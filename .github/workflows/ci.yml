@@ -40,4 +40,4 @@ jobs:
         run: ./scripts/run-quality-checks.ps1
 
       - name: Run PHPUnit
-        run: vendor/bin/phpunit --configuration tests/phpunit.xml.dist
+        run: php vendor/bin/phpunit --configuration tests/phpunit.xml.dist
