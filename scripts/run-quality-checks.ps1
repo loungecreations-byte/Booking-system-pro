@@ -1,50 +1,53 @@
 param(
-    [string]$Root = '.',
-    [switch]$NoPhpcs
+    [string] = '.',
+    [switch]
 )
 
-$ErrorActionPreference = 'Stop'
+Continue = 'Stop'
 
 Write-Host "Running PHP syntax check..." -ForegroundColor Cyan
-$phpFiles = Get-ChildItem -Path $Root -Recurse -Filter '*.php' -File |
-    Where-Object { $_.FullName -notmatch '\\vendor\\' -and $_.FullName -notmatch '\\dist\\' }
+ = Get-ChildItem -Path  -Recurse -Filter '*.php' -File |
+    Where-Object { .FullName -notmatch '\\vendor\\' -and .FullName -notmatch '\\dist\\' }
 
-foreach ($file in $phpFiles) {
-    $result = php -l $file.FullName 2>&1
-    if ($LASTEXITCODE -ne 0) {
-        throw "Syntax error in $($file.FullName): $result"
+foreach ( in ) {
+     = php -l .FullName 2>&1
+    if ( -ne 0) {
+        throw "Syntax error in : "
     }
 }
 
-Write-Host "Syntax check passed for $($phpFiles.Count) files." -ForegroundColor Green
+Write-Host "Syntax check passed for 0 files." -ForegroundColor Green
 
-if ($NoPhpcs) {
+if () {
     Write-Host "Skipping PHPCS because -NoPhpcs was provided." -ForegroundColor Yellow
     exit 0
 }
 
-$phpcsCommand = $null
-if (Get-Command composer -ErrorAction SilentlyContinue) {
-    $phpcsCommand = 'composer phpcs'
-} elseif (Test-Path (Join-Path $Root 'vendor/bin/phpcs.bat')) {
-    $phpcsCommand = 'vendor/bin/phpcs'
-} elseif (Test-Path (Join-Path $Root 'vendor/bin/phpcs')) {
-    $phpcsCommand = 'vendor/bin/phpcs'
+ = 
+   = Join-Path  'vendor/bin/phpcs'
+ = Join-Path  'vendor/bin/phpcs.bat'
+
+if (Test-Path ) {
+     = 
+} elseif (Test-Path ) {
+     = 
+} elseif (Get-Command composer -ErrorAction SilentlyContinue) {
+     = 'composer phpcs'
 }
 
-if (-not $phpcsCommand) {
+if (-not ) {
     Write-Warning 'PHP_CodeSniffer not found. Install via Composer or make it available in PATH.'
     exit 0
 }
 
-Write-Host "Running $phpcsCommand..." -ForegroundColor Cyan
-if ($phpcsCommand -like 'composer*') {
-    iex $phpcsCommand
+Write-Host "Running ..." -ForegroundColor Cyan
+if ( -like 'composer*') {
+    iex 
 } else {
-    & $phpcsCommand
+    & 
 }
 
-if ($LASTEXITCODE -ne 0) {
+if ( -ne 0) {
     throw "PHPCS reported issues."
 }
 
