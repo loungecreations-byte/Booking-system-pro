@@ -1,0 +1,240 @@
+﻿.sbdp-booking-layout-enabled .product {
+    margin-top: 2rem;
+}
+
+@media (min-width: 960px) {
+    .sbdp-booking-layout-enabled .product {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 3rem;
+        align-items: flex-start;
+    }
+
+    .sbdp-booking-layout-enabled .product .woocommerce-product-gallery {
+        order: 2;
+        flex: 1 1 48%;
+    }
+
+    .sbdp-booking-layout-enabled .product .summary.entry-summary {
+        order: 1;
+        flex: 1 1 40%;
+    }
+}
+
+.sbdp-booking-shell {
+    border: 1px solid #dcdcde;
+    border-radius: 8px;
+    padding: 1.75rem;
+    margin-top: 2.5rem;
+    background-color: #ffffff;
+    box-shadow: 0 8px 18px rgba(18, 21, 26, 0.05);
+}
+
+.sbdp-booking-shell__header {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.sbdp-booking-shell__headline h2 {
+    font-size: 1.35rem;
+    margin: 0 0 0.75rem;
+}
+
+.sbdp-booking-shell__intro {
+    font-size: 0.95rem;
+    color: #2f3640;
+}
+
+.sbdp-booking-shell__badges {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-width: 180px;
+}
+
+.sbdp-booking-shell__badge {
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    background: #f0f6ff;
+    border: 1px solid #d4e5ff;
+    font-size: 0.85rem;
+    text-align: center;
+}
+
+.sbdp-booking-shell__grid {
+    display: grid;
+    gap: 2rem;
+}
+
+@media (min-width: 960px) {
+    .sbdp-booking-shell__grid {
+        grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.65fr);
+        align-items: start;
+    }
+}
+
+.sbdp-booking-shell__controls {
+    display: grid;
+    gap: 1.3rem;
+}
+
+.sbdp-booking-step {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+}
+
+.sbdp-booking-step__label {
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: 50%;
+    background: #002a6b;
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 1.1rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.sbdp-booking-step__content h3 {
+    margin: 0 0 0.6rem;
+    font-size: 1.1rem;
+}
+
+.sbdp-booking-step__content input,
+.sbdp-booking-step__content select {
+    width: 100%;
+    max-width: 320px;
+    padding: 0.5rem 0.6rem;
+    border: 1px solid #d0d5dd;
+    border-radius: 6px;
+    font-size: 1rem;
+}
+
+.sbdp-booking-step__content input:focus,
+.sbdp-booking-step__content select:focus {
+    outline: 2px solid #8ab4ff;
+    outline-offset: 1px;
+}
+
+.sbdp-booking-shell__summary {
+    background: #002a6b;
+    color: #ffffff;
+    border-radius: 12px;
+    padding: 1.5rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.sbdp-booking-shell__summary::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0));
+    pointer-events: none;
+}
+
+.sbdp-booking-shell__summary-inner {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    gap: 1.25rem;
+}
+
+.sbdp-booking-shell__summary h3 {
+    margin: 0;
+    font-size: 1.15rem;
+    font-weight: 600;
+}
+
+.sbdp-booking-shell__total {
+    font-size: 2rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.sbdp-booking-shell__details {
+    margin: 0;
+    display: grid;
+    gap: 0.75rem;
+}
+
+.sbdp-booking-shell__details dt {
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: rgba(255, 255, 255, 0.75);
+    margin-bottom: 0.25rem;
+}
+
+.sbdp-booking-shell__details dd {
+    margin: 0;
+    font-size: 1rem;
+}
+
+.sbdp-booking-shell__hint {
+    margin: 0;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.sbdp-booking-shell__buttons {
+    display: grid;
+    gap: 0.75rem;
+}
+
+@media (min-width: 600px) {
+    .sbdp-booking-shell__buttons {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+.sbdp-product-booking__feedback {
+    margin: 0;
+    min-height: 1.25rem;
+    font-size: 0.95rem;
+}
+
+.sbdp-product-booking__feedback--error {
+    color: #ffd7d9;
+}
+
+.sbdp-product-booking__feedback--warning {
+    color: #ffe8bd;
+}
+
+.sbdp-product-booking__feedback--info {
+    color: #c5dcff;
+}
+
+.sbdp-booking-shell.is-loading,
+.sbdp-booking-shell.is-loading .button {
+    opacity: 0.7;
+    pointer-events: none;
+}
+
+@media (max-width: 599px) {
+    .sbdp-booking-shell {
+        padding: 1.25rem;
+    }
+
+    .sbdp-booking-step {
+        flex-direction: column;
+    }
+
+    .sbdp-booking-step__label {
+        width: 2rem;
+        height: 2rem;
+        font-size: 0.95rem;
+    }
+
+    .sbdp-booking-step__content input,
+    .sbdp-booking-step__content select {
+        max-width: 100%;
+    }
+}

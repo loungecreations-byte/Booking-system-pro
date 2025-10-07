@@ -1,0 +1,67 @@
+.sbdp-product-booking {
+    border: 1px solid #dcdcde;
+    border-radius: 6px;
+    padding: 1.5rem;
+    margin: 2rem 0;
+    background-color: #fff;
+}
+
+.sbdp-product-booking__title {
+    font-size: 1.25rem;
+    margin: 0 0 1rem;
+}
+
+.sbdp-product-booking__stock,
+.sbdp-product-booking__capacity {
+    margin: 0 0 0.75rem;
+    font-size: 0.95rem;
+}
+
+.sbdp-product-booking__fields {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem 1.5rem;
+    margin-top: 1rem;
+}
+
+.sbdp-product-booking__fields label {
+    font-weight: 600;
+    display: block;
+    margin-bottom: 0.35rem;
+}
+
+.sbdp-product-booking__fields input[type="date"],
+.sbdp-product-booking__fields input[type="number"] {
+    width: 100%;
+    padding: 0.4rem 0.5rem;
+}
+
+.sbdp-product-booking__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1.5rem;
+}
+
+.sbdp-product-booking__feedback {
+    margin-top: 1rem;
+    min-height: 1.25rem;
+    font-size: 0.95rem;
+}
+
+.sbdp-product-booking__feedback--error {
+    color: #b32d2e;
+}
+
+.sbdp-product-booking__feedback--warning {
+    color: #c05600;
+}
+
+.sbdp-product-booking__feedback--info {
+    color: #1d4ed8;
+}
+
+.sbdp-product-booking.is-loading .button {
+    opacity: 0.7;
+    pointer-events: none;
+}

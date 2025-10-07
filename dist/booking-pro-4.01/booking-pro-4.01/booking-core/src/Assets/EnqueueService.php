@@ -1,0 +1,299 @@
+<?php
+
+declare(strict_types=1);
+
+namespace BSPModule\Core\Assets;
+
+/**
+ * Script and style loading for frontend and admin interfaces.
+ */
+final class EnqueueService
+{
+    public const FRONT_HANDLE_STYLE  = 'sbdp-planner';
+    public const FRONT_HANDLE_SCRIPT = 'sbdp-planner';
+    public const FRONT_HANDLE_VENDOR = 'sbdp-fullcalendar';
+
+    public static function init(): void
+    {
+        if (did_action('init')) {
+            self::register_front_assets();
+        } else {
+            add_action('init', [__CLASS__, 'register_front_assets']);
+        }
+        add_action('wp_enqueue_scripts', [__CLASS__, 'maybe_enqueue_front_assets']);
+        add_action('elementor/editor/before_enqueue_scripts', [__CLASS__, 'enqueue_for_elementor']);
+        add_action('elementor/preview/enqueue_styles', [__CLASS__, 'enqueue_for_elementor']);
+        add_action('admin_enqueue_scripts', [__CLASS__, 'enqueue_admin_assets']);
+    }
+
+    public static function register_front_assets(): void
+    {
+        wp_register_style(
+            self::FRONT_HANDLE_STYLE,
+            SBDP_URL . 'assets/planner.css',
+            [],
+            SBDP_VER
+        );
+
+        wp_register_script(
+            self::FRONT_HANDLE_VENDOR,
+            'https://cdn.jsdelivr.net/npm/fullcalendar@6.1.10/index.global.min.js',
+            [],
+            '6.1.10',
+            true
+        );
+
+        wp_register_script(
+            self::FRONT_HANDLE_SCRIPT,
+            SBDP_URL . 'assets/planner.js',
+            [self::FRONT_HANDLE_VENDOR],
+            SBDP_VER,
+            true
+        );
+    }
+
+    public static function maybe_enqueue_front_assets(): void
+    {
+        if (apply_filters('sbdp_force_enqueue_planner', false)) {
+            self::enqueue_front_assets();
+            return;
+        }
+
+        if (! self::should_enqueue_planner()) {
+            return;
+        }
+
+        self::enqueue_front_assets();
+    }
+
+    public static function enqueue_for_elementor(): void
+    {
+        self::register_front_assets();
+        self::enqueue_front_assets();
+    }
+
+    public static function enqueue_admin_assets(string $hook): void
+    {
+        if (in_array($hook, ['sbdp_bookings_page_sbdp_availability', 'sbdp_bookings_page_sbdp_pricing'], true)) {
+            wp_enqueue_script(self::FRONT_HANDLE_VENDOR);
+            wp_enqueue_style('sbdp-admin-availability', SBDP_URL . 'assets/admin-availability.css', [], SBDP_VER);
+            wp_enqueue_script(
+                'sbdp-admin-visual-editors',
+                SBDP_URL . 'assets/admin-visual-editors.js',
+                [self::FRONT_HANDLE_VENDOR, 'jquery', 'wp-i18n'],
+                SBDP_VER,
+                true
+            );
+            wp_localize_script(
+                'sbdp-admin-visual-editors',
+                'SBDP_ADMIN_AV',
+                [
+                    'api_base'            => esc_url_raw(rest_url('sbdp/v1/availability')),
+                    'publish_endpoint'   => esc_url_raw(rest_url('sbdp/v1/availability/rules')),
+                    'services_endpoint'  => esc_url_raw(rest_url('sbdp/v1/services')),
+                    'resources_endpoint' => esc_url_raw(rest_url('sbdp/v1/resources')),
+                    'pricing_base'       => esc_url_raw(rest_url('sbdp/v1/pricing')),
+                    'bookable_meta_base' => esc_url_raw(rest_url('sbdp/v1/bookable-meta')),
+                    'nonce'              => wp_create_nonce('wp_rest'),
+                ]
+            );
+        }
+
+        if ('sbdp_bookings_page_sbdp_scheduler' === $hook) {
+            wp_enqueue_style('sbdp-admin-scheduler', SBDP_URL . 'assets/admin-scheduler.css', [], SBDP_VER);
+            wp_enqueue_script(
+                'sbdp-admin-scheduler',
+                SBDP_URL . 'assets/admin-scheduler.js',
+                ['wp-i18n'],
+                SBDP_VER,
+                true
+            );
+            wp_localize_script(
+                'sbdp-admin-scheduler',
+                'SBDP_ADMIN_SCHEDULER',
+                [
+                    'endpoint' => esc_url_raw(rest_url('sbdp/v1/schedule/overview')),
+                    'nonce'    => wp_create_nonce('wp_rest'),
+                ]
+            );
+        }
+    }
+
+    private static function enqueue_front_assets(): void
+    {
+        wp_enqueue_style(self::FRONT_HANDLE_STYLE);
+        wp_enqueue_script(self::FRONT_HANDLE_VENDOR);
+        wp_enqueue_script(self::FRONT_HANDLE_SCRIPT);
+
+        if (! wp_script_is(self::FRONT_HANDLE_SCRIPT, 'enqueued')) {
+            return;
+        }
+
+        $config = self::get_frontend_config();
+        if (empty($config)) {
+            return;
+        }
+
+        wp_localize_script(self::FRONT_HANDLE_SCRIPT, 'SBDP_CFG', $config);
+    }
+
+    private static function should_enqueue_planner(): bool
+    {
+        if (is_admin()) {
+            return false;
+        }
+
+        if (self::is_elementor_preview()) {
+            return true;
+        }
+
+        $post = get_post();
+        if (! $post instanceof \WP_Post) {
+            return false;
+        }
+
+        if (has_shortcode($post->post_content, 'sbdp_dayplanner')) {
+            return true;
+        }
+
+        return self::elementor_document_contains_shortcode($post->ID, 'sbdp_dayplanner');
+    }
+
+    private static function get_frontend_config(): array
+    {
+        $currency = function_exists('get_woocommerce_currency') ? get_woocommerce_currency() : 'EUR';
+
+        return [
+            'services'        => esc_url_raw(rest_url('sbdp/v1/services')),
+            'availability'    => esc_url_raw(rest_url('sbdp/v1/availability/plan')),
+            'pricing_preview' => esc_url_raw(rest_url('sbdp/v1/pricing/preview')),
+            'compose'         => esc_url_raw(rest_url('sbdp/v1/compose_booking')),
+            'nonce'           => wp_create_nonce('wp_rest'),
+            'currency'        => $currency,
+            'locale'          => get_locale(),
+            'i18n'            => self::get_i18n_strings(),
+            'bundles'        => apply_filters('sbdp_planner_bundles', array()),
+        ];
+    }
+
+    private static function get_i18n_strings(): array
+    {
+        return [
+            'participants'               => __('deelnemers', 'sbdp'),
+            'participant_single'         => __('deelnemer', 'sbdp'),
+            'total'                      => __('Totaal', 'sbdp'),
+            'pick_date'                  => __('Kies eerst een datum', 'sbdp'),
+            'remove_item'                => __('Verwijder "%s" uit de planner?', 'sbdp'),
+            'no_items'                   => __('Geen items geselecteerd', 'sbdp'),
+            'generic_error'              => __('Er ging iets mis. Probeer het opnieuw.', 'sbdp'),
+            'success'                    => __('Je programma is opgeslagen.', 'sbdp'),
+            'clamped'                    => __('De activiteit is aangepast naar de gekozen datum. Controleer de tijden.', 'sbdp'),
+            'add_to_plan'                => __('Toevoegen aan planner', 'sbdp'),
+            'no_availability'            => __('Geen beschikbaar tijdslot gevonden voor deze dag. Kies een andere datum of pas de regels aan.', 'sbdp'),
+            'conflict'                   => __('Valt buiten de beschikbaarheid', 'sbdp'),
+            'capacity_warning'           => __('Aantal deelnemers hoger dan de capaciteit.', 'sbdp'),
+            'slot_conflict'              => __('Het gekozen tijdslot botst met de beschikbaarheidsregels.', 'sbdp'),
+            'no_date_selected'           => __('Kies eerst een datum om een activiteit te plannen.', 'sbdp'),
+            'loading'                    => __('Bezig met laden...', 'sbdp'),
+            'add_first_service'          => __('Sleep of voeg een activiteit toe aan de planner.', 'sbdp'),
+            'per_booking_label'          => __('per boeking', 'sbdp'),
+            'per_participant_label'      => __('per deelnemer', 'sbdp'),
+            'filter_search_placeholder'  => __('Zoek op naam of omschrijving', 'sbdp'),
+            'toast_added'                => __('%s toegevoegd aan je planning', 'sbdp'),
+            'share_title'                => __('Mijn dagje Den Bosch', 'sbdp'),
+            'share_intro'                => __('Bekijk mijn planning voor', 'sbdp'),
+            'share_success'              => __('Planning gekopieerd naar klembord.', 'sbdp'),
+            'share_error'                => __('Delen is mislukt. Probeer opnieuw.', 'sbdp'),
+            'bundles_heading'           => __('Aanbevolen arrangementen', 'sbdp'),
+            'bundles_intro'             => __('Kies een samengesteld programma als startpunt.', 'sbdp'),
+            'bundle_apply'              => __('Gebruik arrangement', 'sbdp'),
+            'bundle_empty'              => __('Er zijn momenteel geen arrangementen beschikbaar.', 'sbdp'),
+            'bundle_items_label'        => __('Inclusief', 'sbdp'),
+            'bundle_vendor_label'       => __('Aanbieder', 'sbdp'),
+            'bundle_channel_label'      => __('Kanaal', 'sbdp'),
+            'bundle_placeholder'        => __('Arrangementselectie wordt binnenkort geactiveerd.', 'sbdp'),
+        ];
+    }
+
+    private static function is_elementor_preview(): bool
+    {
+        if (is_admin()) {
+            return false;
+        }
+
+        if (isset($_GET['elementor-preview'])) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            return true;
+        }
+
+        if (isset($_GET['elementor_library']) || isset($_GET['elementor-library'])) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            return true;
+        }
+
+        if (class_exists('\\Elementor\\Plugin')) {
+            $plugin = \Elementor\Plugin::$instance;
+            if ($plugin && method_exists($plugin, 'editor') && $plugin->editor) {
+                if (method_exists($plugin->editor, 'is_edit_mode') && $plugin->editor->is_edit_mode()) {
+                    return true;
+                }
+            }
+            if ($plugin && isset($plugin->preview) && method_exists($plugin->preview, 'is_preview_mode') && $plugin->preview->is_preview_mode()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static function elementor_document_contains_shortcode($post_id, $shortcode): bool
+    {
+        if (! $post_id) {
+            return false;
+        }
+
+        $raw_data = get_post_meta($post_id, '_elementor_data', true);
+        if (empty($raw_data)) {
+            return false;
+        }
+
+        if (is_string($raw_data) && strpos($raw_data, $shortcode) !== false) {
+            return true;
+        }
+
+        $data = is_string($raw_data) ? json_decode($raw_data, true) : $raw_data;
+        if (empty($data) || ! is_array($data)) {
+            return false;
+        }
+
+        return self::search_elementor_nodes_for_shortcode($data, $shortcode);
+    }
+
+    private static function search_elementor_nodes_for_shortcode($nodes, $shortcode): bool
+    {
+        foreach ($nodes as $node) {
+            if (! is_array($node)) {
+                continue;
+            }
+
+            if (isset($node['widgetType'])) {
+                $widget_type = $node['widgetType'];
+                if ('shortcode' === $widget_type) {
+                    $content = $node['settings']['shortcode'] ?? '';
+                    if (is_string($content) && strpos($content, $shortcode) !== false) {
+                        return true;
+                    }
+                }
+
+                if ('sbdp_dayplanner' === $widget_type) {
+                    return true;
+                }
+            }
+
+            if (! empty($node['elements']) && self::search_elementor_nodes_for_shortcode($node['elements'], $shortcode)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+}
+

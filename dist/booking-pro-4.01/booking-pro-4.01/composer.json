@@ -1,0 +1,34 @@
+{
+    "name":  "owncreations/booking-pro-module",
+    "description":  "Development tooling for Booking Pro Module",
+    "type":  "project",
+    "require-dev":  {
+                        "phpunit/phpunit":  "^9.6",
+        "squizlabs/php_codesniffer": "^3.9",
+        "phpstan/phpstan": "^2.1",
+        "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
+        "wp-coding-standards/wpcs": "^3.0",
+        "php-stubs/wordpress-stubs": "^6.8",
+        "php-stubs/woocommerce-stubs": "^10.2"
+                    },
+    "autoload":  {
+                     "psr-4":  {
+                                   "BSPModule\\Shared\\":  "shared-libs/src/",
+                                   "BSPModule\\Core\\":  "booking-core/src/",
+                                   "BSPModule\\Sales\\":  "booking-sales/src/",
+                                   "BSPModule\\Ops\\":  "booking-ops/src/",
+                                   "BSPModule\\Finance\\":  "booking-finance/src/",
+                                   "BSPModule\\Data\\":  "booking-data/src/",
+                                   "BSPModule\\Support\\":  "booking-support/src/",
+                                   "BSP\\Sales\\":  "booking-sales/src/"
+                               }
+                 },
+    "scripts":  {
+                    "test":  "phpunit --configuration tests/phpunit.xml.dist"
+                },
+    "config": {
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
+    }
+}
