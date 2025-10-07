@@ -1,0 +1,15 @@
+parameters:
+    level: 6
+    paths:
+        - booking-pro-module.php
+        - includes
+        - booking-core/src
+        - booking-sales/src
+        - booking-ops/src
+        - booking-finance/src
+        - booking-data/src
+        - booking-support/src
+        - shared-libs/src
+    bootstrapFiles:
+        - phpstan-bootstrap.php
+    tmpDir: build/phpstan

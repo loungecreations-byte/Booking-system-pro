@@ -1,0 +1,52 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          coverage: none
+          tools: composer
+
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Run quality checks
+        shell: pwsh
+        run: ./scripts/run-quality-checks.ps1
+
+      - name: Run PHPUnit
+        run: php vendor/bin/phpunit --configuration tests/phpunit.xml.dist
+
+      - name: Build zip package
+        run: |
+          mkdir -p dist
+          zip -r dist/booking-pro-${{ github.ref_name }}.zip . \
+            -x '*.git*' \
+               'dist/*' \
+               'docs/*' \
+               'tests/*' \
+               'scripts/*' \
+               '.github/*' \
+               'build/*'
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: dist/booking-pro-${{ github.ref_name }}.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

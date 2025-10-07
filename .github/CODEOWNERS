@@ -1,0 +1,12 @@
+# Default owner
+* @loungecreations-byte
+
+# Module-specific owners (adjust as your team grows)
+booking-core/ @loungecreations-byte
+booking-sales/ @loungecreations-byte
+booking-ops/ @loungecreations-byte
+booking-finance/ @loungecreations-byte
+booking-data/ @loungecreations-byte
+booking-support/ @loungecreations-byte
+includes/ @loungecreations-byte
+scripts/ @loungecreations-byte

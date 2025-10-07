@@ -1,0 +1,39 @@
+name: Composer Audit
+
+on:
+  schedule:
+    - cron: '0 3 * * 1'
+  workflow_dispatch:
+  push:
+    paths:
+      - composer.json
+      - composer.lock
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+          coverage: none
+          tools: composer
+
+      - name: Install dependencies
+        run: composer install --no-interaction --no-progress --prefer-dist
+
+      - name: Run composer audit
+        run: composer audit --no-interaction --format=json > composer-audit.json
+
+      - name: Upload audit report
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: composer-audit-report
+          path: composer-audit.json
+        continue-on-error: true
