@@ -1,0 +1,12 @@
+# Auto-Fix From Audit (Prompt 14)
+
+Goal: consume a JSON export from `audit_booking_module.php` and generate actionable auto-fix guidance.
+
+Steps:
+1. Ensure the latest audit has been captured (`php audit_booking_module.php --path=modules --json > ops/codex-output/weekend_audit.txt`).
+2. Run `pwsh -NoLogo -NoProfile -File scripts/apply-audit-fixes.ps1 -AuditFile ops/codex-output/weekend_audit.txt -OutputFile ops/codex-output/weekend_fixes.txt`.
+3. Review `ops/codex-output/weekend_fixes.txt` for the suggested refactors (e.g. convert raw `$_POST` reads to `filter_input`, add missing `permission_callback`s).
+4. Apply the recommended changes to the codebase.
+5. Re-run the audit to confirm the issues are resolved.
+
+Output: `ops/codex-output/weekend_fixes.txt` containing the generated recommendations.

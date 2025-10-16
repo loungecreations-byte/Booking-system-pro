@@ -1,0 +1,55 @@
+[2025-10-16T02:31:03.3159954+02:00] Step 1: Starting module inventory.
+module: bookings
+module: commerce
+module: core
+module: data
+module: finance
+module: geo-dashboard
+module: insights
+module: intelligence
+module: notifications
+module: planner
+module: sales
+module: support
+module: vendor-portal
+module: vendors
+[2025-10-16T02:31:03.3669403+02:00] Step 1: Completed module inventory.
+[2025-10-16T02:31:17.7552951+02:00] Module Planner: present
+[2025-10-16T02:31:17.7636400+02:00] Module Sales: present
+[2025-10-16T02:31:17.7650226+02:00] Module Finance: present
+[2025-10-16T02:31:17.7664158+02:00] Module Data: present
+[2025-10-16T02:31:17.7677307+02:00] Module Support: present
+[2025-10-16T02:31:17.7690099+02:00] Module Notifications: present
+[2025-10-16T02:31:17.7702972+02:00] Module Commerce: present
+[2025-10-16T02:31:17.7715764+02:00] Module Intelligence: present
+[2025-10-16T02:31:35.8199759+02:00] Prompt 00: missing
+[2025-10-16T02:31:35.8311322+02:00] Prompt 01: missing
+[2025-10-16T02:31:35.8333134+02:00] Prompt 02: missing
+[2025-10-16T02:31:35.8353286+02:00] Prompt 03: missing
+[2025-10-16T02:31:35.8373012+02:00] Prompt 04: missing
+[2025-10-16T02:31:35.8392659+02:00] Prompt 05: missing
+[2025-10-16T02:31:35.8414302+02:00] Prompt 06: missing
+[2025-10-16T02:31:35.8436695+02:00] Prompt 07: missing
+[2025-10-16T02:31:35.8457276+02:00] Prompt 08: missing
+[2025-10-16T02:31:35.8476863+02:00] Prompt 09: missing
+[2025-10-16T02:31:35.8496984+02:00] Prompt 10: missing
+[2025-10-16T02:31:35.8516643+02:00] Prompt 11: missing
+[2025-10-16T02:31:52.9908829+02:00] Audit completed
+[2025-10-16T02:32:00.1649535+02:00] Auto-fix step skipped: prompt missing
+[2025-10-16T02:32:07.4910461+02:00] PR builder step skipped: prompt missing
+[2025-10-16T02:32:19.4172728+02:00] Optimize step failed: bash not available
+[2025-10-16T02:32:27.7327517+02:00] Found existing build artifact: booking-pro-suite_4.04.zip (1007352 bytes)
+[2025-10-16T02:33:59.2993371+02:00] PR builder summary added manually
+[2025-10-16T02:42:41.4975395+02:00] Prompt 00: missing
+[2025-10-16T02:42:41.5077649+02:00] Prompt 01: missing
+[2025-10-16T02:42:41.5098980+02:00] Prompt 02: missing
+[2025-10-16T02:42:41.5119034+02:00] Prompt 03: missing
+[2025-10-16T02:42:41.5142544+02:00] Prompt 04: missing
+[2025-10-16T02:42:41.5169417+02:00] Prompt 05: missing
+[2025-10-16T02:42:41.5192353+02:00] Prompt 06: missing
+[2025-10-16T02:42:41.5212820+02:00] Prompt 07: missing
+[2025-10-16T02:42:41.5232758+02:00] Prompt 08: missing
+[2025-10-16T02:42:41.5253029+02:00] Prompt 09: missing
+[2025-10-16T02:42:41.5273175+02:00] Prompt 10: missing
+[2025-10-16T02:42:41.5294297+02:00] Prompt 11: missing
+[2025-10-16T02:46:01.4977006+02:00]  $ vendor \\\\bin\\\\phpunit.bat --configuration tests/phpunit.xml.dist
