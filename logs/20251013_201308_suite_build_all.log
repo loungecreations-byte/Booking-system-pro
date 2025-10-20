@@ -1,0 +1,20 @@
+[20:13:08] Start suite build (env=staging, minify=true, clean=true)
+[20:13:09] Controleren van vereisten
+[20:13:09] Installeren van npm dependencies
+
+up to date, audited 4 packages in 3s
+
+found 0 vulnerabilities
+[20:13:12] Opschonen van bestaande dist inhoud
+[20:13:15] Bouwen van BSP core
+[20:13:16] Bouwen van Planner module
+[20:13:17] Bouwen van Commerce module
+[20:13:18] Bouwen van Vendors module
+[20:13:18] Bouwen van Insights module
+[20:13:19] Genereren van versie manifest
+[20:13:19] Valideren van dist output
+All modules present.
+[20:13:19] Suite build afgerond
+BSP Suite Build succesvol afgerond voor omgeving: staging
+Output directory: dist/
+Logbestand: logs/20251013_201308_suite_build_all.log

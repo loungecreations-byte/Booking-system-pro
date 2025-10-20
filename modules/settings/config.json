@@ -1,0 +1,80 @@
+{
+    "generated_at": "2025-10-18T06:00:00+00:00",
+    "settings": [
+        {
+            "key": "allow_cancellation",
+            "type": "toggle",
+            "label": "Annulering toestaan",
+            "description": "Sta klanten toe hun boeking te annuleren binnen een bepaalde periode.",
+            "default": true
+        },
+        {
+            "key": "booking_duration",
+            "type": "select",
+            "label": "Boekingsduur",
+            "description": "Stel vaste of variabele duur in (bijv. 1 dag of 30 minuten).",
+            "default": "vast",
+            "options": [
+                "vast",
+                "variabel"
+            ]
+        },
+        {
+            "key": "buffer_between_bookings",
+            "type": "number",
+            "label": "Buffer tussen boekingen (uren)",
+            "description": "Pauze tussen boekingen voor schoonmaak of voorbereiding.",
+            "default": 1,
+            "min": 0,
+            "max": 24
+        },
+        {
+            "key": "cancellation_days_limit",
+            "type": "number",
+            "label": "Annuleringstermijn (dagen)",
+            "description": "Instellen hoeveel dagen op voorhand geannuleerd mag worden.",
+            "default": 2,
+            "min": 0,
+            "max": 30
+        },
+        {
+            "key": "duration_price_adjustment",
+            "type": "slider",
+            "label": "Prijsaanpassing per duur",
+            "description": "Stel prijsaanpassing in op basis van boekingsduur (korting of toeslag).",
+            "default": 0,
+            "min": -50,
+            "max": 50,
+            "step": 5,
+            "unit": "%"
+        },
+        {
+            "key": "duration_unit",
+            "type": "select",
+            "label": "Eenheidstype",
+            "description": "Kies tussen 'per dag', 'per nacht' of 'per uur'.",
+            "default": "per_dag",
+            "options": [
+                "per_dag",
+                "per_nacht",
+                "per_uur"
+            ]
+        },
+        {
+            "key": "max_bookings_per_unit",
+            "type": "number",
+            "label": "Max. aantal boekingen per tijdseenheid",
+            "description": "Beperk het aantal gelijktijdige reserveringen voor capaciteitsbeheer.",
+            "default": 1,
+            "min": 1,
+            "max": 100
+        },
+        {
+            "key": "requires_confirmation",
+            "type": "toggle",
+            "label": "Bevestiging vereisen",
+            "description": "Optie: klant boekt en admin bevestigt handmatig voor meer controle.",
+            "default": false
+        }
+    ]
+}

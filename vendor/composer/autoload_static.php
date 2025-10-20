@@ -25,14 +25,40 @@ class ComposerStaticInitacf1e8a7421a301c44ac8e07f385b5ba
         ),
         'B' => 
         array (
+            'BSP\\Vendors\\' => 12,
+            'BSP\\VendorPortal\\' => 17,
+            'BSP\\Support\\' => 12,
+            'BSP\\Settings\\' => 13,
             'BSP\\Sales\\' => 10,
+            'BSP\\Planner\\' => 12,
+            'BSP\\Notifications\\' => 18,
+            'BSP\\Intelligence\\' => 17,
+            'BSP\\GeoDashboard\\' => 17,
+            'BSP\\DayPlanner\\' => 15,
+            'BSP\\Core\\' => 9,
+            'BSP\\Commerce\\' => 13,
+            'BSP\\Bookings\\' => 13,
+            'BSP\\BookingBoard\\' => 17,
+            'BSP\\ActivityCtaBlock\\' => 21,
+            'BSPModule\\Vendors\\' => 18,
+            'BSPModule\\VendorPortal\\' => 23,
             'BSPModule\\Support\\' => 18,
             'BSPModule\\Shared\\' => 17,
+            'BSPModule\\Settings\\' => 19,
             'BSPModule\\Sales\\' => 16,
-            'BSPModule\\Ops\\' => 14,
+            'BSPModule\\Planner\\' => 18,
+            'BSPModule\\Notifications\\' => 24,
+            'BSPModule\\Intelligence\\' => 23,
+            'BSPModule\\Insights\\' => 19,
+            'BSPModule\\GeoDashboard\\' => 23,
             'BSPModule\\Finance\\' => 18,
+            'BSPModule\\DayPlanner\\' => 21,
             'BSPModule\\Data\\' => 15,
             'BSPModule\\Core\\' => 15,
+            'BSPModule\\Commerce\\' => 19,
+            'BSPModule\\Bookings\\' => 19,
+            'BSPModule\\BookingBoard\\' => 23,
+            'BSPModule\\ActivityCtaBlock\\' => 27,
         ),
     );
 
@@ -53,37 +79,141 @@ class ComposerStaticInitacf1e8a7421a301c44ac8e07f385b5ba
         array (
             0 => __DIR__ . '/..' . '/myclabs/deep-copy/src/DeepCopy',
         ),
+        'BSP\\Vendors\\' => 
+        array (
+            0 => __DIR__ . '/../..' . '/modules/vendors',
+        ),
+        'BSP\\VendorPortal\\' => 
+        array (
+            0 => __DIR__ . '/../..' . '/modules/vendor-portal',
+        ),
+        'BSP\\Support\\' => 
+        array (
+            0 => __DIR__ . '/../..' . '/modules/support',
+        ),
+        'BSP\\Settings\\' => 
+        array (
+            0 => __DIR__ . '/../..' . '/modules/settings',
+        ),
         'BSP\\Sales\\' => 
         array (
-            0 => __DIR__ . '/../..' . '/booking-sales/src',
+            0 => __DIR__ . '/../..' . '/modules/sales',
+        ),
+        'BSP\\Planner\\' => 
+        array (
+            0 => __DIR__ . '/../..' . '/modules/planner',
+        ),
+        'BSP\\Notifications\\' => 
+        array (
+            0 => __DIR__ . '/../..' . '/modules/notifications',
+        ),
+        'BSP\\Intelligence\\' => 
+        array (
+            0 => __DIR__ . '/../..' . '/modules/intelligence',
+        ),
+        'BSP\\GeoDashboard\\' => 
+        array (
+            0 => __DIR__ . '/../..' . '/modules/geo-dashboard',
+        ),
+        'BSP\\DayPlanner\\' => 
+        array (
+            0 => __DIR__ . '/../..' . '/modules/day-planner',
+        ),
+        'BSP\\Core\\' => 
+        array (
+            0 => __DIR__ . '/../..' . '/core/src',
+        ),
+        'BSP\\Commerce\\' => 
+        array (
+            0 => __DIR__ . '/../..' . '/modules/commerce',
+        ),
+        'BSP\\Bookings\\' => 
+        array (
+            0 => __DIR__ . '/../..' . '/modules/bookings',
+        ),
+        'BSP\\BookingBoard\\' => 
+        array (
+            0 => __DIR__ . '/../..' . '/modules/booking-board',
+        ),
+        'BSP\\ActivityCtaBlock\\' => 
+        array (
+            0 => __DIR__ . '/../..' . '/modules/activity-cta-block',
+        ),
+        'BSPModule\\Vendors\\' => 
+        array (
+            0 => __DIR__ . '/../..' . '/modules/vendors',
+        ),
+        'BSPModule\\VendorPortal\\' => 
+        array (
+            0 => __DIR__ . '/../..' . '/modules/vendor-portal',
         ),
         'BSPModule\\Support\\' => 
         array (
-            0 => __DIR__ . '/../..' . '/booking-support/src',
+            0 => __DIR__ . '/../..' . '/modules/support',
         ),
         'BSPModule\\Shared\\' => 
         array (
-            0 => __DIR__ . '/../..' . '/shared-libs/src',
+            0 => __DIR__ . '/../..' . '/modules/shared',
+        ),
+        'BSPModule\\Settings\\' => 
+        array (
+            0 => __DIR__ . '/../..' . '/modules/settings',
         ),
         'BSPModule\\Sales\\' => 
         array (
-            0 => __DIR__ . '/../..' . '/booking-sales/src',
+            0 => __DIR__ . '/../..' . '/modules/sales',
         ),
-        'BSPModule\\Ops\\' => 
+        'BSPModule\\Planner\\' => 
         array (
-            0 => __DIR__ . '/../..' . '/booking-ops/src',
+            0 => __DIR__ . '/../..' . '/modules/planner',
+        ),
+        'BSPModule\\Notifications\\' => 
+        array (
+            0 => __DIR__ . '/../..' . '/modules/notifications',
+        ),
+        'BSPModule\\Intelligence\\' => 
+        array (
+            0 => __DIR__ . '/../..' . '/modules/intelligence',
+        ),
+        'BSPModule\\Insights\\' => 
+        array (
+            0 => __DIR__ . '/../..' . '/modules/insights',
+        ),
+        'BSPModule\\GeoDashboard\\' => 
+        array (
+            0 => __DIR__ . '/../..' . '/modules/geo-dashboard',
         ),
         'BSPModule\\Finance\\' => 
         array (
-            0 => __DIR__ . '/../..' . '/booking-finance/src',
+            0 => __DIR__ . '/../..' . '/modules/finance',
+        ),
+        'BSPModule\\DayPlanner\\' => 
+        array (
+            0 => __DIR__ . '/../..' . '/modules/day-planner',
         ),
         'BSPModule\\Data\\' => 
         array (
-            0 => __DIR__ . '/../..' . '/booking-data/src',
+            0 => __DIR__ . '/../..' . '/modules/data',
         ),
         'BSPModule\\Core\\' => 
         array (
-            0 => __DIR__ . '/../..' . '/booking-core/src',
+            0 => __DIR__ . '/../..' . '/modules/core',
+        ),
+        'BSPModule\\Commerce\\' => 
+        array (
+            0 => __DIR__ . '/../..' . '/modules/commerce',
+        ),
+        'BSPModule\\Bookings\\' => 
+        array (
+            0 => __DIR__ . '/../..' . '/modules/bookings',
+        ),
+        'BSPModule\\BookingBoard\\' => 
+        array (
+            0 => __DIR__ . '/../..' . '/modules/booking-board',
+        ),
+        'BSPModule\\ActivityCtaBlock\\' => 
+        array (
+            0 => __DIR__ . '/../..' . '/modules/activity-cta-block',
         ),
     );
 

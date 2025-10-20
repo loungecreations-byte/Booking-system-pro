@@ -55,6 +55,14 @@ class SBDP_Plugin {
 
 		self::$booted = true;
 
+		if ( ! class_exists( 'SBDP_Private_Tours', false ) ) {
+			require_once SBDP_DIR . 'includes/class-sbdp-private-tours.php';
+		}
+
+		if ( class_exists( 'SBDP_Private_Tours' ) ) {
+			SBDP_Private_Tours::init();
+		}
+
 		add_action( 'init', array( __CLASS__, 'init' ) );
 		add_action( 'admin_notices', array( __CLASS__, 'maybe_render_notice' ) );
 		add_filter( 'plugin_action_links_' . plugin_basename( SBDP_FILE ), array( __CLASS__, 'register_plugin_links' ) );

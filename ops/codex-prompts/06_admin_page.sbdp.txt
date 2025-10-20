@@ -1,0 +1,19 @@
+ADMIN SETTINGS PAGE IN MODULE
+
+PARAMS
+- {{MODULE_NAME}}, {{SLUG}}, {{PAGE_TITLE}} (bv: Booking Pro Settings), {{OPTION_KEY}} (bv: bsp_notifications_enabled)
+
+OPDRACHT
+- Maak `/modules/{{SLUG}}/Admin_Settings_Page.php`
+- In `Module::init()`:
+  - `add_action('admin_menu', ...)`
+  - `add_action('admin_init', ...)`
+- Settings:
+  - `register_setting('bsp_settings', '{{OPTION_KEY}}')`
+  - 1 sectie + 1 veld (checkbox aan/uit)
+- Pagina onder `Settings > Booking Pro`
+
+OUTPUT
+- Module.php (met hooks)
+- Admin_Settings_Page.php
+- Screenshots placeholders: beschrijf waar zichtbaar in wp-admin

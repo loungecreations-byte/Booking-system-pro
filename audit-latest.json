@@ -1,0 +1,1216 @@
+{
+    "target": "C:\\booking-pro-module-4.0",
+    "status": "error",
+    "counts": {
+        "warning": 48,
+        "error": 81
+    },
+    "issues": [
+        {
+            "severity": "warning",
+            "type": "hook",
+            "message": "Unresolved hook callback static function () use ( $sbdp_conflict_message ): void {\n\t\t\t\tprintf( '<div class=\\\"notice notice-error\\\"><p>%s</p></div>', esc_html( $sbdp_conflict_message ) );\n\t\t\t}",
+            "file": "C:\\booking-pro-module-4.0\\booking-pro-module.php",
+            "line": 27,
+            "meta": []
+        },
+        {
+            "severity": "warning",
+            "type": "hook",
+            "message": "Unresolved hook callback static function () use ( $sbdp_conflict_message ): void {\n\t\t\t\tprintf( '<div class=\\\"notice notice-error\\\"><p>%s</p></div>', esc_html( $sbdp_conflict_message ) );\n\t\t\t}",
+            "file": "C:\\booking-pro-module-4.0\\booking-pro-module.php",
+            "line": 33,
+            "meta": []
+        },
+        {
+            "severity": "warning",
+            "type": "hook",
+            "message": "Unresolved hook callback static function () use ( $sbdp_missing_message ): void {\n\t\t\t\tprintf( '<div class=\\\"notice notice-error\\\"><p>%s</p></div>', esc_html( $sbdp_missing_message ) );\n\t\t\t}",
+            "file": "C:\\booking-pro-module-4.0\\booking-pro-module.php",
+            "line": 76,
+            "meta": []
+        },
+        {
+            "severity": "warning",
+            "type": "hook",
+            "message": "Unresolved hook callback static function () use ( $sbdp_missing_message ): void {\n\t\t\t\tprintf( '<div class=\\\"notice notice-error\\\"><p>%s</p></div>', esc_html( $sbdp_missing_message ) );\n\t\t\t}",
+            "file": "C:\\booking-pro-module-4.0\\booking-pro-module.php",
+            "line": 82,
+            "meta": []
+        },
+        {
+            "severity": "error",
+            "type": "hook",
+            "message": "Callback function manage_options not found",
+            "file": "C:\\booking-pro-module-4.0\\booking-pro-module.php",
+            "line": 108,
+            "meta": []
+        },
+        {
+            "severity": "warning",
+            "type": "hook",
+            "message": "Unresolved hook callback static function () use ($sbdp_conflict_message): void {\n                printf('<div class=\"notice notice-error\"><p>%s</p></div>', esc_html($sbdp_conflict_message));\n            }",
+            "file": "C:\\booking-pro-module-4.0\\booking-pro-suite.php",
+            "line": 28,
+            "meta": []
+        },
+        {
+            "severity": "warning",
+            "type": "hook",
+            "message": "Unresolved hook callback static function () use ($sbdp_conflict_message): void {\n                printf('<div class=\"notice notice-error\"><p>%s</p></div>', esc_html($sbdp_conflict_message));\n            }",
+            "file": "C:\\booking-pro-module-4.0\\booking-pro-suite.php",
+            "line": 34,
+            "meta": []
+        },
+        {
+            "severity": "warning",
+            "type": "hook",
+            "message": "Unresolved hook callback static function () use ($sbdp_missing_message): void {\n                printf('<div class=\"notice notice-error\"><p>%s</p></div>', esc_html($sbdp_missing_message));\n            }",
+            "file": "C:\\booking-pro-module-4.0\\booking-pro-suite.php",
+            "line": 75,
+            "meta": []
+        },
+        {
+            "severity": "warning",
+            "type": "hook",
+            "message": "Unresolved hook callback static function () use ($sbdp_missing_message): void {\n                printf('<div class=\"notice notice-error\"><p>%s</p></div>', esc_html($sbdp_missing_message));\n            }",
+            "file": "C:\\booking-pro-module-4.0\\booking-pro-suite.php",
+            "line": 81,
+            "meta": []
+        },
+        {
+            "severity": "error",
+            "type": "hook",
+            "message": "Callback function manage_options not found",
+            "file": "C:\\booking-pro-module-4.0\\booking-pro-suite.php",
+            "line": 105,
+            "meta": []
+        },
+        {
+            "severity": "error",
+            "type": "hook",
+            "message": "Callback function BSP_Core_Agent not found",
+            "file": "C:\\booking-pro-module-4.0\\booking-pro-suite.php",
+            "line": 180,
+            "meta": []
+        },
+        {
+            "severity": "error",
+            "type": "hook",
+            "message": "Callback AuditLogger::handleAction not found",
+            "file": "C:\\booking-pro-module-4.0\\modules\\core\\Audit\\AuditLogger.php",
+            "line": 32,
+            "meta": []
+        },
+        {
+            "severity": "error",
+            "type": "hook",
+            "message": "Callback RestService::handle_product_saved not found",
+            "file": "C:\\booking-pro-module-4.0\\modules\\core\\Rest\\RestService.php",
+            "line": 59,
+            "meta": []
+        },
+        {
+            "severity": "error",
+            "type": "hook",
+            "message": "Callback RestService::handle_deleted_post not found",
+            "file": "C:\\booking-pro-module-4.0\\modules\\core\\Rest\\RestService.php",
+            "line": 60,
+            "meta": []
+        },
+        {
+            "severity": "error",
+            "type": "hook",
+            "message": "Callback RestService::handle_terms_set not found",
+            "file": "C:\\booking-pro-module-4.0\\modules\\core\\Rest\\RestService.php",
+            "line": 61,
+            "meta": []
+        },
+        {
+            "severity": "error",
+            "type": "hook",
+            "message": "Callback $this->page::register not found",
+            "file": "C:\\booking-pro-module-4.0\\modules\\geo-dashboard\\Module.php",
+            "line": 23,
+            "meta": []
+        },
+        {
+            "severity": "error",
+            "type": "hook",
+            "message": "Callback $this->restController::register_routes not found",
+            "file": "C:\\booking-pro-module-4.0\\modules\\notifications\\Module.php",
+            "line": 25,
+            "meta": []
+        },
+        {
+            "severity": "error",
+            "type": "hook",
+            "message": "Callback $this->adminPage::register_menu not found",
+            "file": "C:\\booking-pro-module-4.0\\modules\\notifications\\Module.php",
+            "line": 26,
+            "meta": []
+        },
+        {
+            "severity": "error",
+            "type": "hook",
+            "message": "Callback $this->adminPage::register_settings not found",
+            "file": "C:\\booking-pro-module-4.0\\modules\\notifications\\Module.php",
+            "line": 27,
+            "meta": []
+        },
+        {
+            "severity": "error",
+            "type": "hook",
+            "message": "Callback $this->profiles::register not found",
+            "file": "C:\\booking-pro-module-4.0\\modules\\planner\\Module.php",
+            "line": 35,
+            "meta": []
+        },
+        {
+            "severity": "error",
+            "type": "hook",
+            "message": "Callback RestController::register not found",
+            "file": "C:\\booking-pro-module-4.0\\modules\\planner\\Module.php",
+            "line": 36,
+            "meta": []
+        },
+        {
+            "severity": "error",
+            "type": "hook",
+            "message": "Callback self::registerMenu not found",
+            "file": "C:\\booking-pro-module-4.0\\modules\\sales\\Admin\\Pages.php",
+            "line": 35,
+            "meta": []
+        },
+        {
+            "severity": "error",
+            "type": "hook",
+            "message": "Callback self::enqueueAssets not found",
+            "file": "C:\\booking-pro-module-4.0\\modules\\sales\\Admin\\Pages.php",
+            "line": 36,
+            "meta": []
+        },
+        {
+            "severity": "error",
+            "type": "hook",
+            "message": "Callback self::registerRoutes not found",
+            "file": "C:\\booking-pro-module-4.0\\modules\\sales\\Channels\\RestController.php",
+            "line": 22,
+            "meta": []
+        },
+        {
+            "severity": "error",
+            "type": "hook",
+            "message": "Callback self::ensureSession not found",
+            "file": "C:\\booking-pro-module-4.0\\modules\\sales\\Funnels\\FunnelTracker.php",
+            "line": 24,
+            "meta": []
+        },
+        {
+            "severity": "error",
+            "type": "hook",
+            "message": "Callback self::handlePromotionCreated not found",
+            "file": "C:\\booking-pro-module-4.0\\modules\\sales\\Funnels\\FunnelTracker.php",
+            "line": 25,
+            "meta": []
+        },
+        {
+            "severity": "error",
+            "type": "hook",
+            "message": "Callback self::handlePromotionUpdated not found",
+            "file": "C:\\booking-pro-module-4.0\\modules\\sales\\Funnels\\FunnelTracker.php",
+            "line": 26,
+            "meta": []
+        },
+        {
+            "severity": "error",
+            "type": "hook",
+            "message": "Callback self::handlePromotionStatusChanged not found",
+            "file": "C:\\booking-pro-module-4.0\\modules\\sales\\Funnels\\FunnelTracker.php",
+            "line": 27,
+            "meta": []
+        },
+        {
+            "severity": "warning",
+            "type": "hook",
+            "message": "Unresolved hook callback $renderNotice",
+            "file": "C:\\booking-pro-module-4.0\\modules\\sales\\LegacyModule.php",
+            "line": 169,
+            "meta": []
+        },
+        {
+            "severity": "warning",
+            "type": "hook",
+            "message": "Unresolved hook callback $renderNotice",
+            "file": "C:\\booking-pro-module-4.0\\modules\\sales\\LegacyModule.php",
+            "line": 170,
+            "meta": []
+        },
+        {
+            "severity": "error",
+            "type": "hook",
+            "message": "Callback self::registerRoutes not found",
+            "file": "C:\\booking-pro-module-4.0\\modules\\sales\\Pricing\\PricingRestController.php",
+            "line": 31,
+            "meta": []
+        },
+        {
+            "severity": "error",
+            "type": "hook",
+            "message": "Callback self::filterPrice not found",
+            "file": "C:\\booking-pro-module-4.0\\modules\\sales\\Pricing\\YieldEngine.php",
+            "line": 62,
+            "meta": []
+        },
+        {
+            "severity": "error",
+            "type": "hook",
+            "message": "Callback self::filterPrice not found",
+            "file": "C:\\booking-pro-module-4.0\\modules\\sales\\Pricing\\YieldEngine.php",
+            "line": 63,
+            "meta": []
+        },
+        {
+            "severity": "error",
+            "type": "hook",
+            "message": "Callback self::registerRoutes not found",
+            "file": "C:\\booking-pro-module-4.0\\modules\\sales\\Promotions\\PromotionsRestController.php",
+            "line": 30,
+            "meta": []
+        },
+        {
+            "severity": "error",
+            "type": "hook",
+            "message": "Callback self::ensureCapability not found",
+            "file": "C:\\booking-pro-module-4.0\\modules\\sales\\Promotions\\PromotionsService.php",
+            "line": 43,
+            "meta": []
+        },
+        {
+            "severity": "error",
+            "type": "hook",
+            "message": "Callback self::registerRoutes not found",
+            "file": "C:\\booking-pro-module-4.0\\modules\\sales\\ReviewManager.php",
+            "line": 45,
+            "meta": []
+        },
+        {
+            "severity": "error",
+            "type": "hook",
+            "message": "Callback self::runNightlyYield not found",
+            "file": "C:\\booking-pro-module-4.0\\modules\\sales\\Support\\Scheduler.php",
+            "line": 39,
+            "meta": []
+        },
+        {
+            "severity": "error",
+            "type": "hook",
+            "message": "Callback self::runChannelSync not found",
+            "file": "C:\\booking-pro-module-4.0\\modules\\sales\\Support\\Scheduler.php",
+            "line": 40,
+            "meta": []
+        },
+        {
+            "severity": "error",
+            "type": "hook",
+            "message": "Callback self::registerRoutes not found",
+            "file": "C:\\booking-pro-module-4.0\\modules\\sales\\Vendors\\VendorRestController.php",
+            "line": 32,
+            "meta": []
+        },
+        {
+            "severity": "error",
+            "type": "hook",
+            "message": "Callback self::registerRoutes not found",
+            "file": "C:\\booking-pro-module-4.0\\modules\\sales\\Vendors\\VendorScheduleRestController.php",
+            "line": 25,
+            "meta": []
+        },
+        {
+            "severity": "error",
+            "type": "hook",
+            "message": "Callback function REQUEST_URI not found",
+            "file": "C:\\booking-pro-module-4.0\\mu-plugins\\sbdp-allow-rest.php",
+            "line": 7,
+            "meta": []
+        },
+        {
+            "severity": "error",
+            "type": "hook",
+            "message": "Callback function rest_get_server not found",
+            "file": "C:\\booking-pro-module-4.0\\mu-plugins\\wfb-rest-permissions.php",
+            "line": 7,
+            "meta": []
+        },
+        {
+            "severity": "error",
+            "type": "rest",
+            "message": "REST route missing permission_callback",
+            "file": "C:\\booking-pro-module-4.0\\modules\\bookings\\Rest\\Controller.php",
+            "line": 26,
+            "meta": {
+                "route": "'bsp/v1'"
+            }
+        },
+        {
+            "severity": "error",
+            "type": "rest",
+            "message": "REST route missing permission_callback",
+            "file": "C:\\booking-pro-module-4.0\\modules\\bookings\\Rest\\Controller.php",
+            "line": 33,
+            "meta": {
+                "route": "'bsp/v1'"
+            }
+        },
+        {
+            "severity": "error",
+            "type": "rest",
+            "message": "REST route missing permission_callback",
+            "file": "C:\\booking-pro-module-4.0\\modules\\bookings\\Rest\\Controller.php",
+            "line": 40,
+            "meta": {
+                "route": "'bsp/v1'"
+            }
+        },
+        {
+            "severity": "error",
+            "type": "rest",
+            "message": "REST route missing permission_callback",
+            "file": "C:\\booking-pro-module-4.0\\modules\\bookings\\Rest\\Controller.php",
+            "line": 47,
+            "meta": {
+                "route": "'bsp/v1'"
+            }
+        },
+        {
+            "severity": "error",
+            "type": "rest",
+            "message": "REST route missing permission_callback",
+            "file": "C:\\booking-pro-module-4.0\\modules\\commerce\\Rest\\Controller.php",
+            "line": 31,
+            "meta": {
+                "route": "'bsp/v1'"
+            }
+        },
+        {
+            "severity": "error",
+            "type": "rest",
+            "message": "REST route missing permission_callback",
+            "file": "C:\\booking-pro-module-4.0\\modules\\commerce\\Rest\\Controller.php",
+            "line": 42,
+            "meta": {
+                "route": "'bsp/v1'"
+            }
+        },
+        {
+            "severity": "error",
+            "type": "rest",
+            "message": "REST route missing permission_callback",
+            "file": "C:\\booking-pro-module-4.0\\modules\\core\\Rest\\AgentRestController.php",
+            "line": 13,
+            "meta": {
+                "route": "'bsp/v1'"
+            }
+        },
+        {
+            "severity": "error",
+            "type": "rest",
+            "message": "REST route missing permission_callback",
+            "file": "C:\\booking-pro-module-4.0\\modules\\core\\Rest\\AgentRestController.php",
+            "line": 23,
+            "meta": {
+                "route": "'bsp/v1'"
+            }
+        },
+        {
+            "severity": "error",
+            "type": "rest",
+            "message": "REST route missing permission_callback",
+            "file": "C:\\booking-pro-module-4.0\\modules\\core\\Rest\\RestService.php",
+            "line": 65,
+            "meta": {
+                "route": "'sbdp/v1'"
+            }
+        },
+        {
+            "severity": "error",
+            "type": "rest",
+            "message": "REST route missing permission_callback",
+            "file": "C:\\booking-pro-module-4.0\\modules\\core\\Rest\\RestService.php",
+            "line": 75,
+            "meta": {
+                "route": "'sbdp/v1'"
+            }
+        },
+        {
+            "severity": "error",
+            "type": "rest",
+            "message": "REST route missing permission_callback",
+            "file": "C:\\booking-pro-module-4.0\\modules\\core\\Rest\\RestService.php",
+            "line": 85,
+            "meta": {
+                "route": "'sbdp/v1'"
+            }
+        },
+        {
+            "severity": "error",
+            "type": "rest",
+            "message": "REST route missing permission_callback",
+            "file": "C:\\booking-pro-module-4.0\\modules\\core\\Rest\\RestService.php",
+            "line": 96,
+            "meta": {
+                "route": "'sbdp/v1'"
+            }
+        },
+        {
+            "severity": "error",
+            "type": "rest",
+            "message": "REST route missing permission_callback",
+            "file": "C:\\booking-pro-module-4.0\\modules\\core\\Rest\\RestService.php",
+            "line": 106,
+            "meta": {
+                "route": "'sbdp/v1'"
+            }
+        },
+        {
+            "severity": "error",
+            "type": "rest",
+            "message": "REST route missing permission_callback",
+            "file": "C:\\booking-pro-module-4.0\\modules\\core\\Rest\\RestService.php",
+            "line": 117,
+            "meta": {
+                "route": "'sbdp/v1'"
+            }
+        },
+        {
+            "severity": "error",
+            "type": "rest",
+            "message": "REST route missing permission_callback",
+            "file": "C:\\booking-pro-module-4.0\\modules\\core\\Rest\\RestService.php",
+            "line": 128,
+            "meta": {
+                "route": "'sbdp/v1'"
+            }
+        },
+        {
+            "severity": "error",
+            "type": "rest",
+            "message": "REST route missing permission_callback",
+            "file": "C:\\booking-pro-module-4.0\\modules\\core\\Rest\\RestService.php",
+            "line": 138,
+            "meta": {
+                "route": "'sbdp/v1'"
+            }
+        },
+        {
+            "severity": "error",
+            "type": "rest",
+            "message": "REST route missing permission_callback",
+            "file": "C:\\booking-pro-module-4.0\\modules\\core\\Rest\\RestService.php",
+            "line": 149,
+            "meta": {
+                "route": "'sbdp/v1'"
+            }
+        },
+        {
+            "severity": "error",
+            "type": "rest",
+            "message": "REST route missing permission_callback",
+            "file": "C:\\booking-pro-module-4.0\\modules\\core\\Rest\\RestService.php",
+            "line": 159,
+            "meta": {
+                "route": "'sbdp/v1'"
+            }
+        },
+        {
+            "severity": "error",
+            "type": "rest",
+            "message": "REST route missing permission_callback",
+            "file": "C:\\booking-pro-module-4.0\\modules\\core\\Rest\\RestService.php",
+            "line": 170,
+            "meta": {
+                "route": "'sbdp/v1'"
+            }
+        },
+        {
+            "severity": "error",
+            "type": "rest",
+            "message": "REST route missing permission_callback",
+            "file": "C:\\booking-pro-module-4.0\\modules\\core\\Rest\\RestService.php",
+            "line": 180,
+            "meta": {
+                "route": "'sbdp/v1'"
+            }
+        },
+        {
+            "severity": "error",
+            "type": "rest",
+            "message": "REST route missing permission_callback",
+            "file": "C:\\booking-pro-module-4.0\\modules\\core\\Rest\\RestService.php",
+            "line": 191,
+            "meta": {
+                "route": "'sbdp/v1'"
+            }
+        },
+        {
+            "severity": "error",
+            "type": "rest",
+            "message": "REST route missing permission_callback",
+            "file": "C:\\booking-pro-module-4.0\\modules\\core\\Rest\\RestService.php",
+            "line": 202,
+            "meta": {
+                "route": "'sbdp/v1'"
+            }
+        },
+        {
+            "severity": "error",
+            "type": "rest",
+            "message": "REST route missing permission_callback",
+            "file": "C:\\booking-pro-module-4.0\\modules\\geo-dashboard\\Rest\\Controller.php",
+            "line": 25,
+            "meta": {
+                "route": "'bsp/v1'"
+            }
+        },
+        {
+            "severity": "error",
+            "type": "rest",
+            "message": "REST route missing permission_callback",
+            "file": "C:\\booking-pro-module-4.0\\modules\\intelligence\\Rest\\Controller.php",
+            "line": 32,
+            "meta": {
+                "route": "'bsp/v1'"
+            }
+        },
+        {
+            "severity": "error",
+            "type": "rest",
+            "message": "REST route missing permission_callback",
+            "file": "C:\\booking-pro-module-4.0\\modules\\intelligence\\Rest\\Controller.php",
+            "line": 43,
+            "meta": {
+                "route": "'bsp/v1'"
+            }
+        },
+        {
+            "severity": "error",
+            "type": "rest",
+            "message": "REST route missing permission_callback",
+            "file": "C:\\booking-pro-module-4.0\\modules\\notifications\\Rest_Controller.php",
+            "line": 18,
+            "meta": {
+                "route": "'bsp/v1'"
+            }
+        },
+        {
+            "severity": "error",
+            "type": "rest",
+            "message": "REST route missing permission_callback",
+            "file": "C:\\booking-pro-module-4.0\\modules\\planner\\Bundles\\PlannerBundleService.php",
+            "line": 93,
+            "meta": {
+                "route": "'sbdp/v1'"
+            }
+        },
+        {
+            "severity": "error",
+            "type": "rest",
+            "message": "REST route missing permission_callback",
+            "file": "C:\\booking-pro-module-4.0\\modules\\sales\\Channels\\RestController.php",
+            "line": 26,
+            "meta": {
+                "route": "'bsp/v1'"
+            }
+        },
+        {
+            "severity": "error",
+            "type": "rest",
+            "message": "REST route missing permission_callback",
+            "file": "C:\\booking-pro-module-4.0\\modules\\sales\\Channels\\RestController.php",
+            "line": 38,
+            "meta": {
+                "route": "'bsp/v1'"
+            }
+        },
+        {
+            "severity": "error",
+            "type": "rest",
+            "message": "REST route missing permission_callback",
+            "file": "C:\\booking-pro-module-4.0\\modules\\sales\\Pricing\\PricingRestController.php",
+            "line": 35,
+            "meta": {
+                "route": "'bsp/v1'"
+            }
+        },
+        {
+            "severity": "error",
+            "type": "rest",
+            "message": "REST route missing permission_callback",
+            "file": "C:\\booking-pro-module-4.0\\modules\\sales\\Pricing\\PricingRestController.php",
+            "line": 64,
+            "meta": {
+                "route": "'bsp/v1'"
+            }
+        },
+        {
+            "severity": "error",
+            "type": "rest",
+            "message": "REST route missing permission_callback",
+            "file": "C:\\booking-pro-module-4.0\\modules\\sales\\Pricing\\PricingRestController.php",
+            "line": 81,
+            "meta": {
+                "route": "'bsp/v1'"
+            }
+        },
+        {
+            "severity": "error",
+            "type": "rest",
+            "message": "REST route missing permission_callback",
+            "file": "C:\\booking-pro-module-4.0\\modules\\sales\\Pricing\\PricingRestController.php",
+            "line": 98,
+            "meta": {
+                "route": "'bsp/v1'"
+            }
+        },
+        {
+            "severity": "error",
+            "type": "rest",
+            "message": "REST route missing permission_callback",
+            "file": "C:\\booking-pro-module-4.0\\modules\\sales\\Promotions\\PromotionsRestController.php",
+            "line": 34,
+            "meta": {
+                "route": "'sbdp/v1'"
+            }
+        },
+        {
+            "severity": "error",
+            "type": "rest",
+            "message": "REST route missing permission_callback",
+            "file": "C:\\booking-pro-module-4.0\\modules\\sales\\Promotions\\PromotionsRestController.php",
+            "line": 69,
+            "meta": {
+                "route": "'sbdp/v1'"
+            }
+        },
+        {
+            "severity": "error",
+            "type": "rest",
+            "message": "REST route missing permission_callback",
+            "file": "C:\\booking-pro-module-4.0\\modules\\sales\\Promotions\\PromotionsRestController.php",
+            "line": 86,
+            "meta": {
+                "route": "'sbdp/v1'"
+            }
+        },
+        {
+            "severity": "error",
+            "type": "rest",
+            "message": "REST route missing permission_callback",
+            "file": "C:\\booking-pro-module-4.0\\modules\\sales\\Promotions\\PromotionsRestController.php",
+            "line": 98,
+            "meta": {
+                "route": "'sbdp/v1'"
+            }
+        },
+        {
+            "severity": "error",
+            "type": "rest",
+            "message": "REST route missing permission_callback",
+            "file": "C:\\booking-pro-module-4.0\\modules\\sales\\Promotions\\PromotionsRestController.php",
+            "line": 110,
+            "meta": {
+                "route": "'sbdp/v1'"
+            }
+        },
+        {
+            "severity": "error",
+            "type": "rest",
+            "message": "REST route missing permission_callback",
+            "file": "C:\\booking-pro-module-4.0\\modules\\sales\\Rest\\Controller.php",
+            "line": 35,
+            "meta": {
+                "route": "'bsp/v1'"
+            }
+        },
+        {
+            "severity": "error",
+            "type": "rest",
+            "message": "REST route missing permission_callback",
+            "file": "C:\\booking-pro-module-4.0\\modules\\sales\\Rest\\Controller.php",
+            "line": 46,
+            "meta": {
+                "route": "'bsp/v1'"
+            }
+        },
+        {
+            "severity": "error",
+            "type": "rest",
+            "message": "REST route missing permission_callback",
+            "file": "C:\\booking-pro-module-4.0\\modules\\sales\\Vendors\\VendorRestController.php",
+            "line": 37,
+            "meta": {
+                "route": "self::ROUTE_NAMESPACE"
+            }
+        },
+        {
+            "severity": "error",
+            "type": "rest",
+            "message": "REST route missing permission_callback",
+            "file": "C:\\booking-pro-module-4.0\\modules\\sales\\Vendors\\VendorRestController.php",
+            "line": 61,
+            "meta": {
+                "route": "self::ROUTE_NAMESPACE"
+            }
+        },
+        {
+            "severity": "error",
+            "type": "rest",
+            "message": "REST route missing permission_callback",
+            "file": "C:\\booking-pro-module-4.0\\modules\\sales\\Vendors\\VendorRestController.php",
+            "line": 81,
+            "meta": {
+                "route": "self::ROUTE_NAMESPACE"
+            }
+        },
+        {
+            "severity": "error",
+            "type": "rest",
+            "message": "REST route missing permission_callback",
+            "file": "C:\\booking-pro-module-4.0\\modules\\sales\\Vendors\\VendorRestController.php",
+            "line": 93,
+            "meta": {
+                "route": "self::ROUTE_NAMESPACE"
+            }
+        },
+        {
+            "severity": "error",
+            "type": "rest",
+            "message": "REST route missing permission_callback",
+            "file": "C:\\booking-pro-module-4.0\\modules\\sales\\Vendors\\VendorScheduleRestController.php",
+            "line": 30,
+            "meta": {
+                "route": "'bsp/v1'"
+            }
+        },
+        {
+            "severity": "error",
+            "type": "rest",
+            "message": "REST route missing permission_callback",
+            "file": "C:\\booking-pro-module-4.0\\modules\\vendor-portal\\Rest\\PortalController.php",
+            "line": 25,
+            "meta": {
+                "route": "'bsp/v1'"
+            }
+        },
+        {
+            "severity": "error",
+            "type": "rest",
+            "message": "REST route missing permission_callback",
+            "file": "C:\\booking-pro-module-4.0\\modules\\vendor-portal\\Rest\\PortalController.php",
+            "line": 32,
+            "meta": {
+                "route": "'bsp/v1'"
+            }
+        },
+        {
+            "severity": "error",
+            "type": "rest",
+            "message": "REST route missing permission_callback",
+            "file": "C:\\booking-pro-module-4.0\\modules\\vendor-portal\\Rest\\PortalController.php",
+            "line": 39,
+            "meta": {
+                "route": "'bsp/v1'"
+            }
+        },
+        {
+            "severity": "error",
+            "type": "rest",
+            "message": "REST route missing permission_callback",
+            "file": "C:\\booking-pro-module-4.0\\mu-plugins\\wfb-rest-permissions.php",
+            "line": 36,
+            "meta": {
+                "route": "'wfb-api/v2'"
+            }
+        },
+        {
+            "severity": "warning",
+            "type": "superglobal",
+            "message": "Potentially unsanitized $_GET usage",
+            "file": "C:\\booking-pro-module-4.0\\includes\\admin\\class-sbdp-admin-bookable-meta.php",
+            "line": 72,
+            "meta": {
+                "code": "        $requested = isset( $_GET['product_type'] ) ? sanitize_text_field( wp_unslash( $_GET['product_type'] ) ) : '';// phpcs:ignore WordPress.Security.NonceVerification.Recommended\r"
+            }
+        },
+        {
+            "severity": "warning",
+            "type": "superglobal",
+            "message": "Potentially unsanitized $_GET usage",
+            "file": "C:\\booking-pro-module-4.0\\includes\\admin\\class-sbdp-admin-bookable-meta.php",
+            "line": 72,
+            "meta": {
+                "code": "        $requested = isset( $_GET['product_type'] ) ? sanitize_text_field( wp_unslash( $_GET['product_type'] ) ) : '';// phpcs:ignore WordPress.Security.NonceVerification.Recommended\r"
+            }
+        },
+        {
+            "severity": "warning",
+            "type": "superglobal",
+            "message": "Potentially unsanitized $_GET usage",
+            "file": "C:\\booking-pro-module-4.0\\includes\\admin\\class-sbdp-admin-bookable-meta.php",
+            "line": 74,
+            "meta": {
+                "code": "        if ( ! $requested && isset( $_GET['type'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended\r"
+            }
+        },
+        {
+            "severity": "warning",
+            "type": "superglobal",
+            "message": "Potentially unsanitized $_GET usage",
+            "file": "C:\\booking-pro-module-4.0\\includes\\admin\\class-sbdp-admin-bookable-meta.php",
+            "line": 75,
+            "meta": {
+                "code": "            $requested = sanitize_text_field( wp_unslash( $_GET['type'] ) );\r"
+            }
+        },
+        {
+            "severity": "warning",
+            "type": "superglobal",
+            "message": "Potentially unsanitized $_GET usage",
+            "file": "C:\\booking-pro-module-4.0\\includes\\admin\\class-sbdp-admin-bookable-meta.php",
+            "line": 94,
+            "meta": {
+                "code": "        $post_id      = isset( $_GET['post'] ) ? absint( $_GET['post'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended\r"
+            }
+        },
+        {
+            "severity": "warning",
+            "type": "superglobal",
+            "message": "Potentially unsanitized $_GET usage",
+            "file": "C:\\booking-pro-module-4.0\\includes\\admin\\class-sbdp-admin-bookable-meta.php",
+            "line": 94,
+            "meta": {
+                "code": "        $post_id      = isset( $_GET['post'] ) ? absint( $_GET['post'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended\r"
+            }
+        },
+        {
+            "severity": "warning",
+            "type": "superglobal",
+            "message": "Potentially unsanitized $_POST usage",
+            "file": "C:\\booking-pro-module-4.0\\includes\\admin\\class-sbdp-admin-bookable-meta.php",
+            "line": 153,
+            "meta": {
+                "code": "        if ( ! isset( $_POST['sbdp_bookable_meta_nonce'] ) || ! wp_verify_nonce( wp_unslash( $_POST['sbdp_bookable_meta_nonce'] ), 'sbdp_bookable_meta' ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing\r"
+            }
+        },
+        {
+            "severity": "warning",
+            "type": "superglobal",
+            "message": "Potentially unsanitized $_POST usage",
+            "file": "C:\\booking-pro-module-4.0\\includes\\admin\\class-sbdp-admin-bookable-meta.php",
+            "line": 153,
+            "meta": {
+                "code": "        if ( ! isset( $_POST['sbdp_bookable_meta_nonce'] ) || ! wp_verify_nonce( wp_unslash( $_POST['sbdp_bookable_meta_nonce'] ), 'sbdp_bookable_meta' ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing\r"
+            }
+        },
+        {
+            "severity": "warning",
+            "type": "superglobal",
+            "message": "Potentially unsanitized $_POST usage",
+            "file": "C:\\booking-pro-module-4.0\\includes\\admin\\class-sbdp-admin-bookable-meta.php",
+            "line": 165,
+            "meta": {
+                "code": "        $product_type = isset( $_POST['product-type'] ) ? sanitize_text_field( wp_unslash( $_POST['product-type'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing\r"
+            }
+        },
+        {
+            "severity": "warning",
+            "type": "superglobal",
+            "message": "Potentially unsanitized $_POST usage",
+            "file": "C:\\booking-pro-module-4.0\\includes\\admin\\class-sbdp-admin-bookable-meta.php",
+            "line": 165,
+            "meta": {
+                "code": "        $product_type = isset( $_POST['product-type'] ) ? sanitize_text_field( wp_unslash( $_POST['product-type'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing\r"
+            }
+        },
+        {
+            "severity": "warning",
+            "type": "superglobal",
+            "message": "Potentially unsanitized $_POST usage",
+            "file": "C:\\booking-pro-module-4.0\\includes\\admin\\class-sbdp-admin-bookable-meta.php",
+            "line": 175,
+            "meta": {
+                "code": "        $raw = isset( $_POST['sbdp_bookable'] ) && is_array( $_POST['sbdp_bookable'] )\r"
+            }
+        },
+        {
+            "severity": "warning",
+            "type": "superglobal",
+            "message": "Potentially unsanitized $_POST usage",
+            "file": "C:\\booking-pro-module-4.0\\includes\\admin\\class-sbdp-admin-bookable-meta.php",
+            "line": 175,
+            "meta": {
+                "code": "        $raw = isset( $_POST['sbdp_bookable'] ) && is_array( $_POST['sbdp_bookable'] )\r"
+            }
+        },
+        {
+            "severity": "warning",
+            "type": "superglobal",
+            "message": "Potentially unsanitized $_POST usage",
+            "file": "C:\\booking-pro-module-4.0\\includes\\admin\\class-sbdp-admin-bookable-meta.php",
+            "line": 176,
+            "meta": {
+                "code": "            ? wp_unslash( $_POST['sbdp_bookable'] )\r"
+            }
+        },
+        {
+            "severity": "warning",
+            "type": "superglobal",
+            "message": "Potentially unsanitized $_POST usage",
+            "file": "C:\\booking-pro-module-4.0\\includes\\admin\\class-sbdp-admin-bookable-meta.php",
+            "line": 203,
+            "meta": {
+                "code": "        $source_id = isset( $_POST['source_id'] ) ? absint( $_POST['source_id'] ) : 0;\r"
+            }
+        },
+        {
+            "severity": "warning",
+            "type": "superglobal",
+            "message": "Potentially unsanitized $_POST usage",
+            "file": "C:\\booking-pro-module-4.0\\includes\\admin\\class-sbdp-admin-bookable-meta.php",
+            "line": 203,
+            "meta": {
+                "code": "        $source_id = isset( $_POST['source_id'] ) ? absint( $_POST['source_id'] ) : 0;\r"
+            }
+        },
+        {
+            "severity": "warning",
+            "type": "superglobal",
+            "message": "Potentially unsanitized $_POST usage",
+            "file": "C:\\booking-pro-module-4.0\\includes\\admin\\class-sbdp-admin-bookable-meta.php",
+            "line": 204,
+            "meta": {
+                "code": "        $target_id = isset( $_POST['target_id'] ) ? absint( $_POST['target_id'] ) : 0;\r"
+            }
+        },
+        {
+            "severity": "warning",
+            "type": "superglobal",
+            "message": "Potentially unsanitized $_POST usage",
+            "file": "C:\\booking-pro-module-4.0\\includes\\admin\\class-sbdp-admin-bookable-meta.php",
+            "line": 204,
+            "meta": {
+                "code": "        $target_id = isset( $_POST['target_id'] ) ? absint( $_POST['target_id'] ) : 0;\r"
+            }
+        },
+        {
+            "severity": "warning",
+            "type": "superglobal",
+            "message": "Potentially unsanitized $_GET usage",
+            "file": "C:\\booking-pro-module-4.0\\modules\\core\\Assets\\EnqueueService.php",
+            "line": 304,
+            "meta": {
+                "code": "        if (isset($_GET['elementor-preview'])) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended\r"
+            }
+        },
+        {
+            "severity": "warning",
+            "type": "superglobal",
+            "message": "Potentially unsanitized $_GET usage",
+            "file": "C:\\booking-pro-module-4.0\\modules\\core\\Assets\\EnqueueService.php",
+            "line": 308,
+            "meta": {
+                "code": "        if (isset($_GET['elementor_library']) || isset($_GET['elementor-library'])) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended\r"
+            }
+        },
+        {
+            "severity": "warning",
+            "type": "superglobal",
+            "message": "Potentially unsanitized $_GET usage",
+            "file": "C:\\booking-pro-module-4.0\\modules\\core\\Assets\\EnqueueService.php",
+            "line": 308,
+            "meta": {
+                "code": "        if (isset($_GET['elementor_library']) || isset($_GET['elementor-library'])) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended\r"
+            }
+        },
+        {
+            "severity": "warning",
+            "type": "superglobal",
+            "message": "Potentially unsanitized $_POST usage",
+            "file": "C:\\booking-pro-module-4.0\\modules\\core\\Resource\\ResourceMeta.php",
+            "line": 88,
+            "meta": {
+                "code": "\t\tif ( ! isset( $_POST['sbdp_resource_meta_nonce'] ) || ! wp_verify_nonce( wp_unslash( $_POST['sbdp_resource_meta_nonce'] ), 'sbdp_resource_meta' ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing"
+            }
+        },
+        {
+            "severity": "warning",
+            "type": "superglobal",
+            "message": "Potentially unsanitized $_POST usage",
+            "file": "C:\\booking-pro-module-4.0\\modules\\core\\Resource\\ResourceMeta.php",
+            "line": 88,
+            "meta": {
+                "code": "\t\tif ( ! isset( $_POST['sbdp_resource_meta_nonce'] ) || ! wp_verify_nonce( wp_unslash( $_POST['sbdp_resource_meta_nonce'] ), 'sbdp_resource_meta' ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing"
+            }
+        },
+        {
+            "severity": "warning",
+            "type": "superglobal",
+            "message": "Potentially unsanitized $_POST usage",
+            "file": "C:\\booking-pro-module-4.0\\modules\\core\\Resource\\ResourceMeta.php",
+            "line": 98,
+            "meta": {
+                "code": "\t\tif ( isset( $_POST['sbdp_resource_capacity'] ) && '' !== $_POST['sbdp_resource_capacity'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing"
+            }
+        },
+        {
+            "severity": "warning",
+            "type": "superglobal",
+            "message": "Potentially unsanitized $_POST usage",
+            "file": "C:\\booking-pro-module-4.0\\modules\\core\\Resource\\ResourceMeta.php",
+            "line": 98,
+            "meta": {
+                "code": "\t\tif ( isset( $_POST['sbdp_resource_capacity'] ) && '' !== $_POST['sbdp_resource_capacity'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing"
+            }
+        },
+        {
+            "severity": "warning",
+            "type": "superglobal",
+            "message": "Potentially unsanitized $_POST usage",
+            "file": "C:\\booking-pro-module-4.0\\modules\\core\\Resource\\ResourceMeta.php",
+            "line": 99,
+            "meta": {
+                "code": "\t\t\t$capacity = (int) wp_unslash( $_POST['sbdp_resource_capacity'] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing"
+            }
+        },
+        {
+            "severity": "warning",
+            "type": "superglobal",
+            "message": "Potentially unsanitized $_POST usage",
+            "file": "C:\\booking-pro-module-4.0\\modules\\core\\Resource\\ResourceMeta.php",
+            "line": 106,
+            "meta": {
+                "code": "\t\tif ( isset( $_POST['sbdp_resource_color'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing"
+            }
+        },
+        {
+            "severity": "warning",
+            "type": "superglobal",
+            "message": "Potentially unsanitized $_POST usage",
+            "file": "C:\\booking-pro-module-4.0\\modules\\core\\Resource\\ResourceMeta.php",
+            "line": 107,
+            "meta": {
+                "code": "\t\t\t$color = sanitize_hex_color( wp_unslash( $_POST['sbdp_resource_color'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing"
+            }
+        },
+        {
+            "severity": "warning",
+            "type": "superglobal",
+            "message": "Potentially unsanitized $_POST usage",
+            "file": "C:\\booking-pro-module-4.0\\modules\\core\\Resource\\ResourceMeta.php",
+            "line": 115,
+            "meta": {
+                "code": "\t\tif ( isset( $_POST['sbdp_resource_order'] ) && '' !== $_POST['sbdp_resource_order'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing"
+            }
+        },
+        {
+            "severity": "warning",
+            "type": "superglobal",
+            "message": "Potentially unsanitized $_POST usage",
+            "file": "C:\\booking-pro-module-4.0\\modules\\core\\Resource\\ResourceMeta.php",
+            "line": 115,
+            "meta": {
+                "code": "\t\tif ( isset( $_POST['sbdp_resource_order'] ) && '' !== $_POST['sbdp_resource_order'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing"
+            }
+        },
+        {
+            "severity": "warning",
+            "type": "superglobal",
+            "message": "Potentially unsanitized $_POST usage",
+            "file": "C:\\booking-pro-module-4.0\\modules\\core\\Resource\\ResourceMeta.php",
+            "line": 116,
+            "meta": {
+                "code": "\t\t\t$order = (int) wp_unslash( $_POST['sbdp_resource_order'] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing"
+            }
+        },
+        {
+            "severity": "warning",
+            "type": "superglobal",
+            "message": "Potentially unsanitized $_POST usage",
+            "file": "C:\\booking-pro-module-4.0\\modules\\core\\WooCommerce\\ProductType\\BookableServiceProductType.php",
+            "line": 337,
+            "meta": {
+                "code": "\t\t\t$value = isset( $_POST[ $key ] ) ? wp_unslash( $_POST[ $key ] ) : '';"
+            }
+        },
+        {
+            "severity": "warning",
+            "type": "superglobal",
+            "message": "Potentially unsanitized $_POST usage",
+            "file": "C:\\booking-pro-module-4.0\\modules\\core\\WooCommerce\\ProductType\\BookableServiceProductType.php",
+            "line": 337,
+            "meta": {
+                "code": "\t\t\t$value = isset( $_POST[ $key ] ) ? wp_unslash( $_POST[ $key ] ) : '';"
+            }
+        },
+        {
+            "severity": "warning",
+            "type": "superglobal",
+            "message": "Potentially unsanitized $_POST usage",
+            "file": "C:\\booking-pro-module-4.0\\modules\\core\\WooCommerce\\ProductType\\BookableServiceProductType.php",
+            "line": 341,
+            "meta": {
+                "code": "\t\t$raw_resource_ids = isset( $_POST['_sbdp_resource_ids'] ) ? wp_unslash( $_POST['_sbdp_resource_ids'] ) : array();"
+            }
+        },
+        {
+            "severity": "warning",
+            "type": "superglobal",
+            "message": "Potentially unsanitized $_POST usage",
+            "file": "C:\\booking-pro-module-4.0\\modules\\core\\WooCommerce\\ProductType\\BookableServiceProductType.php",
+            "line": 341,
+            "meta": {
+                "code": "\t\t$raw_resource_ids = isset( $_POST['_sbdp_resource_ids'] ) ? wp_unslash( $_POST['_sbdp_resource_ids'] ) : array();"
+            }
+        },
+        {
+            "severity": "warning",
+            "type": "superglobal",
+            "message": "Potentially unsanitized $_POST usage",
+            "file": "C:\\booking-pro-module-4.0\\modules\\planner\\Vendor\\Admin\\ProfileAdmin.php",
+            "line": 105,
+            "meta": {
+                "code": "            'name'     => sanitize_text_field($_POST['name'] ?? ''),"
+            }
+        },
+        {
+            "severity": "warning",
+            "type": "superglobal",
+            "message": "Potentially unsanitized $_POST usage",
+            "file": "C:\\booking-pro-module-4.0\\modules\\planner\\Vendor\\Admin\\ProfileAdmin.php",
+            "line": 106,
+            "meta": {
+                "code": "            'ical_url' => esc_url_raw($_POST['ical_url'] ?? ''),"
+            }
+        },
+        {
+            "severity": "warning",
+            "type": "superglobal",
+            "message": "Potentially unsanitized $_POST usage",
+            "file": "C:\\booking-pro-module-4.0\\modules\\planner\\Vendor\\Admin\\ProfileAdmin.php",
+            "line": 107,
+            "meta": {
+                "code": "            'timezone' => sanitize_text_field($_POST['timezone'] ?? 'UTC'),"
+            }
+        },
+        {
+            "severity": "warning",
+            "type": "superglobal",
+            "message": "Potentially unsanitized $_POST usage",
+            "file": "C:\\booking-pro-module-4.0\\modules\\planner\\Vendor\\Admin\\ProfileAdmin.php",
+            "line": 108,
+            "meta": {
+                "code": "            'note'     => sanitize_text_field($_POST['note'] ?? ''),"
+            }
+        }
+    ]
+}

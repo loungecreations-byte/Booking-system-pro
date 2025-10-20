@@ -1,0 +1,57 @@
+.sbdp-geo-dashboard {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 360px;
+    gap: 16px;
+}
+
+.sbdp-geo-dashboard__map {
+    min-height: 540px;
+    border: 1px solid #d2d6dc;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.sbdp-geo-dashboard__sidebar {
+    background: #ffffff;
+    border: 1px solid #d2d6dc;
+    border-radius: 8px;
+    padding: 16px;
+    overflow-y: auto;
+    max-height: 540px;
+}
+
+.sbdp-geo-dashboard__filters {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 16px;
+    margin-bottom: 12px;
+}
+
+.sbdp-geo-dashboard__filters label {
+    display: grid;
+    gap: 4px;
+    font-size: 13px;
+}
+
+[data-sbdp-booking-list] {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    gap: 12px;
+}
+
+[data-sbdp-booking-list] li {
+    border-bottom: 1px solid #e4e7eb;
+    padding-bottom: 8px;
+}
+
+@media (max-width: 960px) {
+    .sbdp-geo-dashboard {
+        grid-template-columns: 1fr;
+    }
+
+    .sbdp-geo-dashboard__sidebar {
+        max-height: none;
+    }
+}

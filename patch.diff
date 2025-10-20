@@ -1,0 +1,1333 @@
+diff --git a/plugin-3.0/booking-pro-module.php b/dist/booking-pro-module-3.0-fixed1/booking-pro-module/booking-pro-module.php
+index 7fcdf40..7ea6f94 100644
+--- a/plugin-3.0/booking-pro-module.php
++++ b/dist/booking-pro-module-3.0-fixed1/booking-pro-module/booking-pro-module.php
+@@ -9,17 +9,22 @@
+  * License: GPLv2 or later
+  */
+ 
+-if (!defined('ABSPATH')) {
+-  exit;
++if ( ! defined( 'ABSPATH' ) ) {
++	exit;
+ }
+ 
+-define('SBDP_FILE', __FILE__);
+-define('SBDP_DIR', plugin_dir_path(__FILE__));
+-define('SBDP_URL', plugin_dir_url(__FILE__));
+-define('SBDP_VER', '3.0');
++define( 'SBDP_FILE', __FILE__ );
++define( 'SBDP_DIR', plugin_dir_path( __FILE__ ) );
++define( 'SBDP_URL', plugin_dir_url( __FILE__ ) );
++define( 'SBDP_VER', '3.0' );
+ 
+-require_once SBDP_DIR.'includes/class-plugin.php';
+-require_once SBDP_DIR.'includes/class-activation.php';
++require_once SBDP_DIR . 'includes/class-modules-autoloader.php';
++SBDP_Modules_Autoloader::register();
++
++require_once SBDP_DIR . 'includes/class-core-agent.php';
++require_once SBDP_DIR . 'includes/class-modules-manager.php';
++require_once SBDP_DIR . 'includes/class-plugin.php';
++require_once SBDP_DIR . 'includes/class-activation.php';
+ 
+ SBDP_Activation::bootstrap();
+ 
+diff --git a/plugin-3.0/includes/class-plugin.php b/dist/booking-pro-module-3.0-fixed1/booking-pro-module/includes/class-plugin.php
+index 6003401..2a7407b 100644
+--- a/plugin-3.0/includes/class-plugin.php
++++ b/dist/booking-pro-module-3.0-fixed1/booking-pro-module/includes/class-plugin.php
+@@ -71,6 +71,10 @@ final class SBDP_Plugin {
+         self::register_modules();
+         self::bootstrap_integrations();
+ 
++        if ( class_exists( 'SBDP_Modules_Manager' ) ) {
++            SBDP_Modules_Manager::bootstrap();
++        }
++
+         add_filter( 'rest_authentication_errors', [ __CLASS__, 'maybe_allow_public_rest' ], 999 );
+     }
+ 
+diff --git a/dist/booking-pro-module-3.0-fixed1/booking-pro-module/includes/class-modules-autoloader.php b/dist/booking-pro-module-3.0-fixed1/booking-pro-module/includes/class-modules-autoloader.php
+new file mode 100644
+index 0000000..79a9d2d
+--- /dev/null
++++ b/dist/booking-pro-module-3.0-fixed1/booking-pro-module/includes/class-modules-autoloader.php
+@@ -0,0 +1,91 @@
++<?php
++/**
++ * Lightweight PSR-4 style autoloader for bundled Booking System Pro modules.
++ *
++ * @package SBDP
++ */
++
++if ( ! defined( 'ABSPATH' ) ) {
++	exit;
++}
++
++final class SBDP_Modules_Autoloader {
++
++	/**
++	 * Ensures the autoloader is only registered once.
++	 *
++	 * @var bool
++	 */
++	private static $registered = false;
++
++	/**
++	 * Namespace prefixes mapped to their base directories.
++	 *
++	 * @var array<string,string>
++	 */
++	private static $prefixes = array(
++		'BSP\\'       => 'modules/',
++		'BSPModule\\' => 'modules/',
++	);
++
++	/**
++	 * Register the autoloader with SPL.
++	 */
++	public static function register(): void {
++		if ( self::$registered ) {
++			return;
++		}
++
++		spl_autoload_register( array( __CLASS__, 'autoload' ), true, true );
++		self::$registered = true;
++	}
++
++	/**
++	 * Attempt to autoload a class from the modules directory.
++	 *
++	 * @param string $class Fully-qualified class name.
++	 */
++	private static function autoload( string $class ): void {
++		foreach ( self::$prefixes as $prefix => $relative_dir ) {
++			if ( 0 !== strpos( $class, $prefix ) ) {
++				continue;
++			}
++
++			$relative = substr( $class, strlen( $prefix ) );
++			if ( '' === $relative ) {
++				return;
++			}
++
++			$segments = explode( '\\', $relative );
++			if ( empty( $segments ) ) {
++				return;
++			}
++
++			$segments[0] = self::normalise_top_level_directory( $segments[0] );
++			$path        = SBDP_DIR . $relative_dir . implode( '/', $segments ) . '.php';
++
++			if ( file_exists( $path ) ) {
++				require_once $path;
++			}
++		}
++	}
++
++	/**
++	 * Convert a namespace segment into the directory format used inside /modules.
++	 *
++	 * Most top-level segment directories are kebab-case (e.g. vendor-portal) whereas namespaces
++	 * use StudlyCaps (VendorPortal). This helper converts the namespace segment accordingly.
++	 *
++	 * @param string $segment Top-level namespace segment.
++	 *
++	 * @return string Normalised directory segment.
++	 */
++	private static function normalise_top_level_directory( string $segment ): string {
++		$slug = preg_replace( '/([a-z])([A-Z])/', '$1-$2', $segment );
++		if ( null === $slug ) {
++			$slug = $segment;
++		}
++
++		return strtolower( $slug );
++	}
++}
+diff --git a/dist/booking-pro-module-3.0-fixed1/booking-pro-module/includes/class-modules-manager.php b/dist/booking-pro-module-3.0-fixed1/booking-pro-module/includes/class-modules-manager.php
+new file mode 100644
+index 0000000..b89aa28
+--- /dev/null
++++ b/dist/booking-pro-module-3.0-fixed1/booking-pro-module/includes/class-modules-manager.php
+@@ -0,0 +1,148 @@
++<?php
++/**
++ * Module bootstrapper that wires modern BSP modules into the classic plugin lifecycle.
++ *
++ * @package SBDP
++ */
++
++if ( ! defined( 'ABSPATH' ) ) {
++	exit;
++}
++
++final class SBDP_Modules_Manager {
++
++	/**
++	 * Track whether the bootstrap already executed.
++	 *
++	 * @var bool
++	 */
++	private static $bootstrapped = false;
++
++	/**
++	 * Initialise all bundled modules (both legacy BSPModule and modern BSP namespaces).
++	 */
++	public static function bootstrap(): void {
++		if ( self::$bootstrapped ) {
++			return;
++		}
++
++		self::$bootstrapped = true;
++
++		self::bootstrap_legacy_modules();
++		self::bootstrap_core_modules();
++
++		if ( class_exists( 'BSP_Core_Agent' ) ) {
++			\BSP_Core_Agent::instance()->boot();
++		}
++	}
++
++	/**
++	 * Register and load modules that implement \BSP\Core\Interfaces\ModuleInterface.
++	 */
++	private static function bootstrap_core_modules(): void {
++		if ( ! class_exists( '\BSP\Core\Modules' ) ) {
++			return;
++		}
++
++		$core_modules = array(
++			'planner'       => '\BSP\Planner\Module',
++			'bookings'      => '\BSP\Bookings\Module',
++			'sales'         => '\BSP\Sales\Module',
++			'vendor_portal' => '\BSP\VendorPortal\Module',
++			'geo_dashboard' => '\BSP\GeoDashboard\Module',
++			'notifications' => '\BSP\Notifications\Module',
++		);
++
++		if ( function_exists( 'apply_filters' ) ) {
++			$core_modules = (array) apply_filters( 'sbdp/core_module_classes', $core_modules );
++		}
++
++		foreach ( $core_modules as $key => $class ) {
++			if ( ! is_string( $class ) || '' === $class ) {
++				continue;
++			}
++
++			if ( ! class_exists( $class ) ) {
++				continue;
++			}
++
++			if ( ! is_subclass_of( $class, '\BSP\Core\Interfaces\ModuleInterface' ) ) {
++				continue;
++			}
++
++			$slug = is_string( $key ) && '' !== $key
++				? (string) $key
++				: strtolower( basename( str_replace( '\\', '/', $class ) ) );
++
++			if ( \BSP\Core\Modules::isRegistered( $slug ) ) {
++				continue;
++			}
++
++			\BSP\Core\Modules::register( $slug, $class );
++		}
++
++		\BSP\Core\Modules::loadAll();
++
++		if ( function_exists( 'do_action' ) ) {
++			do_action( 'sbdp/core_modules/booted' );
++		}
++	}
++
++	/**
++	 * Register and boot legacy modules that rely on the BSPModule namespace.
++	 */
++	private static function bootstrap_legacy_modules(): void {
++		if ( ! class_exists( '\BSPModule\Shared\Modules\ModuleRegistry' ) ) {
++			return;
++		}
++
++		$registry = new \BSPModule\Shared\Modules\ModuleRegistry();
++
++		$legacy_modules = array(
++			'\BSPModule\Core\Module',
++			'\BSPModule\Sales\Module',
++			'\BSPModule\Support\Module',
++		);
++
++		$fallback_classes = array(
++			'\BSPModule\Sales\Module' => '\BSP\Sales\LegacyModule',
++		);
++
++		if ( function_exists( 'apply_filters' ) ) {
++			$legacy_modules = (array) apply_filters( 'sbdp/legacy_module_classes', $legacy_modules );
++		}
++
++		foreach ( $legacy_modules as $class ) {
++			if ( ! is_string( $class ) || '' === $class ) {
++				continue;
++			}
++
++			$target = $class;
++
++			if ( ! class_exists( $target ) && isset( $fallback_classes[ $target ] ) && class_exists( $fallback_classes[ $target ] ) ) {
++				$target = $fallback_classes[ $target ];
++			}
++
++			if ( ! class_exists( $target ) ) {
++				continue;
++			}
++
++			if ( ! is_subclass_of( $target, '\BSPModule\Shared\Modules\ModuleInterface' ) ) {
++				continue;
++			}
++
++			$module = new $target();
++			$registry->add( $module );
++		}
++
++		if ( function_exists( 'do_action' ) ) {
++			do_action( 'sbdp/legacy_modules/registry', $registry );
++		}
++
++		$registry->boot();
++
++		if ( function_exists( 'do_action' ) ) {
++			do_action( 'sbdp/legacy_modules/booted', $registry );
++		}
++	}
++}
+diff --git a/dist/booking-pro-module-3.0-fixed1/booking-pro-module/includes/class-core-agent.php b/dist/booking-pro-module-3.0-fixed1/booking-pro-module/includes/class-core-agent.php
+new file mode 100644
+index 0000000..f43e3e9
+--- /dev/null
++++ b/dist/booking-pro-module-3.0-fixed1/booking-pro-module/includes/class-core-agent.php
+@@ -0,0 +1,22 @@
++<?php
++/**
++ * Provides backwards-compatible aliases for the BSP core agent system.
++ *
++ * @package SBDP
++ */
++
++if ( ! defined( 'ABSPATH' ) ) {
++	exit;
++}
++
++if ( ! class_exists( '\BSPModule\Shared\Agents\CoreAgent' ) ) {
++	return;
++}
++
++if ( ! class_exists( 'BSP_Core_Agent', false ) ) {
++	class_alias( \BSPModule\Shared\Agents\CoreAgent::class, 'BSP_Core_Agent' );
++}
++
++if ( ! interface_exists( 'BSP_Module_Agent_Interface', false ) && interface_exists( '\BSPModule\Shared\Agents\ModuleAgentInterface' ) ) {
++	class_alias( \BSPModule\Shared\Agents\ModuleAgentInterface::class, 'BSP_Module_Agent_Interface' );
++}
+diff --git a/dist/booking-pro-module-3.0-fixed1/booking-pro-module/modules/core/CoreServiceProvider.php b/dist/booking-pro-module-3.0-fixed1/booking-pro-module/modules/core/CoreServiceProvider.php
+new file mode 100644
+index 0000000..4aa15fe
+--- /dev/null
++++ b/dist/booking-pro-module-3.0-fixed1/booking-pro-module/modules/core/CoreServiceProvider.php
+@@ -0,0 +1,26 @@
++<?php
++declare(strict_types=1);
++
++namespace BSP\Core;
++
++use BSP\Core\Helpers\Logger;
++
++/**
++ * Exposes shared services for Booking System Pro modules.
++ */
++final class CoreServiceProvider
++{
++    private static ?Logger $logger = null;
++
++    /**
++     * Retrieve a shared logger instance.
++     */
++    public static function logger(): Logger
++    {
++        if (null === self::$logger) {
++            self::$logger = new Logger();
++        }
++
++        return self::$logger;
++    }
++}
+diff --git a/dist/booking-pro-module-3.0-fixed1/booking-pro-module/modules/core/Helpers/Logger.php b/dist/booking-pro-module-3.0-fixed1/booking-pro-module/modules/core/Helpers/Logger.php
+new file mode 100644
+index 0000000..d686b50
+--- /dev/null
++++ b/dist/booking-pro-module-3.0-fixed1/booking-pro-module/modules/core/Helpers/Logger.php
+@@ -0,0 +1,20 @@
++<?php
++declare(strict_types=1);
++
++namespace BSP\Core\Helpers;
++
++/**
++ * Minimal logger that proxies messages to error_log with a BSP prefix.
++ */
++final class Logger
++{
++    /**
++     * Log the provided message.
++     */
++    public function log(string $message): void
++    {
++        if (function_exists('error_log')) {
++            error_log('[BSP] ' . $message);
++        }
++    }
++}
+diff --git a/dist/booking-pro-module-3.0-fixed1/booking-pro-module/modules/core/Interfaces/ModuleInterface.php b/dist/booking-pro-module-3.0-fixed1/booking-pro-module/modules/core/Interfaces/ModuleInterface.php
+new file mode 100644
+index 0000000..418f1f7
+--- /dev/null
++++ b/dist/booking-pro-module-3.0-fixed1/booking-pro-module/modules/core/Interfaces/ModuleInterface.php
+@@ -0,0 +1,15 @@
++<?php
++declare(strict_types=1);
++
++namespace BSP\Core\Interfaces;
++
++/**
++ * Contract implemented by Booking System Pro module classes.
++ */
++interface ModuleInterface
++{
++    /**
++     * Perform module bootstrap such as registering hooks and REST routes.
++     */
++    public function init(): void;
++}
+diff --git a/dist/booking-pro-module-3.0-fixed1/booking-pro-module/modules/core/ModuleInterface.php b/dist/booking-pro-module-3.0-fixed1/booking-pro-module/modules/core/ModuleInterface.php
+new file mode 100644
+index 0000000..554e843
+--- /dev/null
++++ b/dist/booking-pro-module-3.0-fixed1/booking-pro-module/modules/core/ModuleInterface.php
+@@ -0,0 +1,9 @@
++<?php
++declare(strict_types=1);
++
++namespace BSP\Core;
++
++interface ModuleInterface
++{
++    public function init(): void;
++}
+diff --git a/dist/booking-pro-module-3.0-fixed1/booking-pro-module/modules/core/Modules.php b/dist/booking-pro-module-3.0-fixed1/booking-pro-module/modules/core/Modules.php
+new file mode 100644
+index 0000000..7bf7cdc
+--- /dev/null
++++ b/dist/booking-pro-module-3.0-fixed1/booking-pro-module/modules/core/Modules.php
+@@ -0,0 +1,63 @@
++<?php
++declare(strict_types=1);
++
++namespace BSP\Core;
++
++use BSP\Core\Interfaces\ModuleInterface;
++
++/**
++ * Runtime registry used to manage Booking System Pro modules.
++ */
++final class Modules
++{
++    /**
++     * @var array<string, class-string<ModuleInterface>>
++     */
++    private static array $registry = [];
++
++    /**
++     * Register a module class under the specified key.
++     */
++    public static function register(string $key, string $class): void
++    {
++        self::$registry[$key] = $class;
++    }
++
++    /**
++     * Determine whether a module key has been registered.
++     */
++    public static function isRegistered(string $key): bool
++    {
++        return array_key_exists($key, self::$registry);
++    }
++
++    /**
++     * Instantiate and boot the module stored under the given key.
++     */
++    public static function load(string $key): void
++    {
++        if (! self::isRegistered($key)) {
++            return;
++        }
++
++        $class = self::$registry[$key];
++        if (! class_exists($class)) {
++            return;
++        }
++
++        $instance = new $class();
++        if ($instance instanceof ModuleInterface) {
++            $instance->init();
++        }
++    }
++
++    /**
++     * Load every registered module in registration order.
++     */
++    public static function loadAll(): void
++    {
++        foreach (array_keys(self::$registry) as $key) {
++            self::load($key);
++        }
++    }
++}
+diff --git a/dist/booking-pro-module-3.0-fixed1/booking-pro-module/modules/core/Compat/BSPModule/Shared/Modules/ModuleInterface.php b/dist/booking-pro-module-3.0-fixed1/booking-pro-module/modules/core/Compat/BSPModule/Shared/Modules/ModuleInterface.php
+new file mode 100644
+index 0000000..832d7af
+--- /dev/null
++++ b/dist/booking-pro-module-3.0-fixed1/booking-pro-module/modules/core/Compat/BSPModule/Shared/Modules/ModuleInterface.php
+@@ -0,0 +1,14 @@
++<?php
++declare(strict_types=1);
++
++namespace BSPModule\Shared\Modules;
++
++/**
++ * Legacy module interface retained for backwards compatibility.
++ */
++interface ModuleInterface
++{
++    public function moduleName(): string;
++
++    public function register(): void;
++}
+diff --git a/dist/booking-pro-module-3.0-fixed1/booking-pro-module/modules/core/Compat/BSPModule/Shared/Modules/ModuleRegistry.php b/dist/booking-pro-module-3.0-fixed1/booking-pro-module/modules/core/Compat/BSPModule/Shared/Modules/ModuleRegistry.php
+new file mode 100644
+index 0000000..9c234d5
+--- /dev/null
++++ b/dist/booking-pro-module-3.0-fixed1/booking-pro-module/modules/core/Compat/BSPModule/Shared/Modules/ModuleRegistry.php
+@@ -0,0 +1,45 @@
++<?php
++declare(strict_types=1);
++
++namespace BSPModule\Shared\Modules;
++
++/**
++ * Minimal module registry compatible with legacy BSP module loaders.
++ */
++final class ModuleRegistry
++{
++    /**
++     * @var array<string, ModuleInterface>
++     */
++    private array $modules = [];
++
++    public function add(ModuleInterface $module): void
++    {
++        $name = $module->moduleName();
++        if ('' === $name || isset($this->modules[$name])) {
++            return;
++        }
++
++        $this->modules[$name] = $module;
++    }
++
++    /**
++     * Retrieve all registered modules.
++     *
++     * @return array<int, ModuleInterface>
++     */
++    public function all(): array
++    {
++        return array_values($this->modules);
++    }
++
++    /**
++     * Execute the register hook for every stored module.
++     */
++    public function boot(): void
++    {
++        foreach ($this->modules as $module) {
++            $module->register();
++        }
++    }
++}
+diff --git a/dist/booking-pro-module-3.0-fixed1/booking-pro-module/modules/shared/Agents/ModuleAgentInterface.php b/dist/booking-pro-module-3.0-fixed1/booking-pro-module/modules/shared/Agents/ModuleAgentInterface.php
+new file mode 100644
+index 0000000..a033a0d
+--- /dev/null
++++ b/dist/booking-pro-module-3.0-fixed1/booking-pro-module/modules/shared/Agents/ModuleAgentInterface.php
+@@ -0,0 +1,26 @@
++<?php
++declare(strict_types=1);
++
++namespace BSPModule\Shared\Agents;
++
++/**
++ * Describes the public behaviour of module agent implementations.
++ */
++interface ModuleAgentInterface
++{
++    public function get_slug(): string;
++
++    public function get_name(): string;
++
++    /**
++     * Execute boot-time hooks for the agent.
++     */
++    public function boot(): void;
++
++    /**
++     * Return diagnostics or status information for REST and CLI surfaces.
++     *
++     * @return array<string,mixed>
++     */
++    public function status(): array;
++}
+diff --git a/dist/booking-pro-module-3.0-fixed1/booking-pro-module/modules/shared/Agents/CoreAgent.php b/dist/booking-pro-module-3.0-fixed1/booking-pro-module/modules/shared/Agents/CoreAgent.php
+new file mode 100644
+index 0000000..9fffd39
+--- /dev/null
++++ b/dist/booking-pro-module-3.0-fixed1/booking-pro-module/modules/shared/Agents/CoreAgent.php
+@@ -0,0 +1,79 @@
++<?php
++declare(strict_types=1);
++
++namespace BSPModule\Shared\Agents;
++
++use function array_values;
++use function do_action;
++use function spl_object_hash;
++
++/**
++ * Collects module agents and exposes diagnostics for REST/CLI surfaces.
++ */
++final class CoreAgent
++{
++    private static ?self $instance = null;
++
++    /**
++     * @var array<string, ModuleAgentInterface>
++     */
++    private array $agents = [];
++
++    private function __construct()
++    {
++    }
++
++    public static function instance(): self
++    {
++        if (null === self::$instance) {
++            self::$instance = new self();
++        }
++
++        return self::$instance;
++    }
++
++    public function register_agent(ModuleAgentInterface $agent): void
++    {
++        $slug = $agent->get_slug();
++        if ('' === $slug) {
++            $slug = spl_object_hash($agent);
++        }
++
++        $this->agents[$slug] = $agent;
++
++        if (\function_exists('do_action')) { // @codeCoverageIgnore
++            do_action('bsp/agent/registered', $slug, $agent);
++        }
++    }
++
++    /**
++     * Execute boot routines for all registered agents.
++     */
++    public function boot(): void
++    {
++        foreach ($this->agents as $agent) {
++            $agent->boot();
++        }
++
++        if (\function_exists('do_action')) { // @codeCoverageIgnore
++            do_action('bsp/agent/booted', array_values($this->agents));
++        }
++    }
++
++    /**
++     * Gather diagnostic payload from registered agents.
++     *
++     * @return array<string,array<string,mixed>>
++     */
++    public function diagnostics(): array
++    {
++        $report = [];
++
++        foreach ($this->agents as $slug => $agent) {
++            $status        = $agent->status();
++            $report[$slug] = is_array($status) ? $status : [];
++        }
++
++        return $report;
++    }
++}
+diff --git a/tests/bootstrap.php b/tests/bootstrap.php
+index 3d4dd96..4e1ce80 100644
+--- a/tests/bootstrap.php
++++ b/tests/bootstrap.php
+@@ -1,105 +1,469 @@
+ <?php
++declare(strict_types=1);
+ 
+ $autoload = __DIR__ . '/../vendor/autoload.php';
+ if (is_readable($autoload)) {
+     require $autoload;
+ }
+ 
+-// Ensure core constants that might be referenced in isolated tests.
+ define('DAY_IN_SECONDS', 24 * 60 * 60);
+ define('HOUR_IN_SECONDS', 60 * 60);
+ define('MINUTE_IN_SECONDS', 60);
+ 
+-// Provide lightweight shims for common WordPress helpers when not running inside WP.
++global $bsp_test_actions, $bsp_test_shortcodes, $bsp_test_posts, $bsp_test_post_meta, $bsp_test_registered_post_types, $bsp_test_submenus, $bsp_test_redirects, $bsp_test_filters, $bsp_test_registered_styles, $bsp_test_registered_scripts;
++$bsp_test_actions = $bsp_test_shortcodes = $bsp_test_posts = $bsp_test_post_meta = $bsp_test_registered_post_types = $bsp_test_submenus = $bsp_test_redirects = $bsp_test_registered_styles = $bsp_test_registered_scripts = [];
++$bsp_test_filters = [];
++
+ if (!function_exists('__')) {
+-    function __($text, $domain = null) {
++    function __($text, $domain = null)
++    {
+         return $text;
+     }
+ }
+ 
++if (!function_exists('__return_empty_array')) {
++    function __return_empty_array()
++    {
++        return [];
++    }
++}
++
+ if (!function_exists('sanitize_text_field')) {
+-    function sanitize_text_field($str) {
+-        return is_string($str) ? trim($str) : $str;
++    function sanitize_text_field($value)
++    {
++        return is_string($value) ? trim($value) : $value;
+     }
+ }
+ 
+ if (!function_exists('wp_json_encode')) {
+-    function wp_json_encode($value, $options = 0, $depth = 512) {
++    function wp_json_encode($value, $options = 0, $depth = 512)
++    {
+         return json_encode($value, $options, $depth);
+     }
+ }
+ 
+-if (!function_exists('wp_date')) {
+-    function wp_date($format, $timestamp = null) {
+-        return date($format, $timestamp ?? time());
++if (!function_exists('rest_ensure_response')) {
++    function rest_ensure_response($value)
++    {
++        return $value;
++    }
++}
++
++if (!function_exists('current_time')) {
++    function current_time($type)
++    {
++        return time();
++    }
++}
++
++if (!function_exists('add_action')) {
++    function add_action($hook, $callback, $priority = 10, $accepted_args = 1)
++    {
++        global $bsp_test_actions;
++        $bsp_test_actions[] = [
++            'hook'          => $hook,
++            'callback'      => $callback,
++            'priority'      => $priority,
++            'accepted_args' => $accepted_args,
++        ];
++        return true;
++    }
++}
++
++if (!function_exists('add_filter')) {
++    function add_filter($hook, $callback, $priority = 10, $accepted_args = 1)
++    {
++        global $bsp_test_filters;
++        $bsp_test_filters[$hook][] = [
++            'callback'      => $callback,
++            'priority'      => (int) $priority,
++            'accepted_args' => (int) $accepted_args,
++        ];
++        return true;
+     }
+ }
+ 
+ if (!function_exists('apply_filters')) {
+-    function apply_filters($tag, $value) {
++    function apply_filters($hook, $value)
++    {
++        global $bsp_test_filters;
++        if (empty($bsp_test_filters[$hook])) {
++            return $value;
++        }
++
++        usort(
++            $bsp_test_filters[$hook],
++            static function (array $left, array $right): int {
++                return $left['priority'] <=> $right['priority'];
++            }
++        );
++
++        $args = func_get_args();
++
++        foreach ($bsp_test_filters[$hook] as $filter) {
++            $callback  = $filter['callback'];
++            $max_args  = max(1, $filter['accepted_args']);
++            $arguments = array_slice($args, 1, $max_args);
++
++            if (empty($arguments)) {
++                $arguments = [$value];
++            } else {
++                $arguments[0] = $value;
++            }
++
++            $value = call_user_func_array($callback, $arguments);
++        }
++
+         return $value;
+     }
+ }
+ 
+-if (!function_exists('get_option')) {
+-    function get_option($name, $default = false) {
+-        return $default;
++if (!function_exists('add_shortcode')) {
++    function add_shortcode($tag, $callback)
++    {
++        global $bsp_test_shortcodes;
++        $bsp_test_shortcodes[$tag] = $callback;
++        return true;
++    }
++}
++
++if (!function_exists('register_rest_route')) {
++    function register_rest_route($namespace, $route, $args = [], $override = false)
++    {
++        global $bsp_test_rest_routes;
++        if (!isset($bsp_test_rest_routes)) {
++            $bsp_test_rest_routes = [];
++        }
++        $bsp_test_rest_routes[] = compact('namespace', 'route', 'args', 'override');
++        return true;
++    }
++}
++
++if (!class_exists('WP_Post')) {
++    class WP_Post
++    {
++        public int $ID;
++        public string $post_title;
++        public string $post_status;
++        public string $post_type;
++
++        public function __construct(object $data)
++        {
++            $this->ID          = (int) ($data->ID ?? 0);
++            $this->post_title  = (string) ($data->post_title ?? '');
++            $this->post_status = (string) ($data->post_status ?? 'draft');
++            $this->post_type   = (string) ($data->post_type ?? 'post');
++        }
++    }
++}
++
++if (!function_exists('register_post_type')) {
++    function register_post_type($post_type, $args = [])
++    {
++        global $bsp_test_registered_post_types;
++        $bsp_test_registered_post_types[$post_type] = $args;
++        return true;
++    }
++}
++
++if (!function_exists('plugins_url')) {
++    function plugins_url($path = '', $plugin = '')
++    {
++        $base = 'http://example.com/wp-content/plugins/booking-pro-module';
++        $path = '' === $path ? '' : '/' . ltrim($path, '/');
++        return $base . $path;
++    }
++}
++
++if (!function_exists('trailingslashit')) {
++    function trailingslashit($string)
++    {
++        return rtrim((string) $string, '/\\') . '/';
++    }
++}
++
++if (!function_exists('wp_register_style')) {
++    function wp_register_style($handle, $src = '', $deps = [], $ver = false, $media = 'all')
++    {
++        global $bsp_test_registered_styles;
++        $bsp_test_registered_styles[$handle] = [
++            'src'    => $src,
++            'deps'   => $deps,
++            'ver'    => $ver,
++            'media'  => $media,
++            'status' => 'registered',
++        ];
++        return true;
++    }
++}
++
++if (!function_exists('wp_enqueue_style')) {
++    function wp_enqueue_style($handle)
++    {
++        global $bsp_test_registered_styles;
++        if (!isset($bsp_test_registered_styles[$handle])) {
++            $bsp_test_registered_styles[$handle] = ['status' => 'enqueued'];
++        }
++        $bsp_test_registered_styles[$handle]['status'] = 'enqueued';
++        return true;
++    }
++}
++
++if (!function_exists('wp_register_script')) {
++    function wp_register_script($handle, $src = '', $deps = [], $ver = false, $in_footer = false)
++    {
++        global $bsp_test_registered_scripts;
++        $bsp_test_registered_scripts[$handle] = [
++            'src'       => $src,
++            'deps'      => $deps,
++            'ver'       => $ver,
++            'in_footer' => $in_footer,
++            'status'    => 'registered',
++        ];
++        return true;
++    }
++}
++
++if (!function_exists('wp_enqueue_script')) {
++    function wp_enqueue_script($handle)
++    {
++        global $bsp_test_registered_scripts;
++        if (!isset($bsp_test_registered_scripts[$handle])) {
++            $bsp_test_registered_scripts[$handle] = ['status' => 'enqueued'];
++        }
++        $bsp_test_registered_scripts[$handle]['status'] = 'enqueued';
++        return true;
++    }
++}
++
++if (!function_exists('wp_localize_script')) {
++    function wp_localize_script($handle, $object_name, $data)
++    {
++        global $bsp_test_registered_scripts;
++        $bsp_test_registered_scripts[$handle]['localized'][ $object_name ] = $data;
++        return true;
++    }
++}
++
++if (!function_exists('wp_create_nonce')) {
++    function wp_create_nonce($action = -1)
++    {
++        return md5((string) $action);
++    }
++}
++
++if (!function_exists('rest_url')) {
++    function rest_url($path = '')
++    {
++        return 'http://example.com/wp-json/' . ltrim((string) $path, '/');
++    }
++}
++
++if (!function_exists('wp_insert_post')) {
++    function wp_insert_post($data)
++    {
++        global $bsp_test_posts;
++        $id = isset($data['ID']) ? (int) $data['ID'] : (count($bsp_test_posts) + 1);
++        $post = new WP_Post((object) [
++            'ID'          => $id,
++            'post_title'  => $data['post_title'] ?? '',
++            'post_status' => $data['post_status'] ?? 'draft',
++            'post_type'   => $data['post_type'] ?? 'post',
++        ]);
++        $bsp_test_posts[$id] = $post;
++        return $id;
++    }
++}
++
++if (!function_exists('get_post')) {
++    function get_post($post_id)
++    {
++        global $bsp_test_posts;
++        return $bsp_test_posts[$post_id] ?? null;
++    }
++}
++
++if (!function_exists('get_posts')) {
++    function get_posts($args = [])
++    {
++        global $bsp_test_posts;
++        $posts = array_values($bsp_test_posts);
++        if (isset($args['post_type'])) {
++            $posts = array_filter($posts, static function ($post) use ($args) {
++                return $post instanceof WP_Post && $post->post_type === $args['post_type'];
++            });
++        }
++        return array_values($posts);
++    }
++}
++
++if (!function_exists('update_post_meta')) {
++    function update_post_meta($post_id, $meta_key, $meta_value)
++    {
++        global $bsp_test_post_meta;
++        if (!isset($bsp_test_post_meta[$post_id])) {
++            $bsp_test_post_meta[$post_id] = [];
++        }
++        $bsp_test_post_meta[$post_id][$meta_key] = $meta_value;
++        return true;
+     }
+ }
+ 
+ if (!function_exists('get_post_meta')) {
+-    function get_post_meta($post_id, $key, $single = false) {
+-        return $single ? '' : array();
++    function get_post_meta($post_id, $meta_key, $single = false)
++    {
++        global $bsp_test_post_meta;
++        $value = $bsp_test_post_meta[$post_id][$meta_key] ?? ($single ? '' : []);
++        return $single ? $value : [$value];
++    }
++}
++
++if (!function_exists('admin_url')) {
++    function admin_url($path = '')
++    {
++        return 'http://example.com/wp-admin/' . ltrim($path, '/');
++    }
++}
++
++if (!function_exists('wp_nonce_field')) {
++    function wp_nonce_field($action, $name)
++    {
++        echo '<input type="hidden" name="' . $name . '" value="nonce" />';
++    }
++}
++
++if (!function_exists('submit_button')) {
++    function submit_button($text)
++    {
++        echo '<button type="submit">' . $text . '</button>';
++    }
++}
++
++if (!function_exists('esc_url')) {
++    function esc_url($url)
++    {
++        return $url;
+     }
+ }
+ 
+-if (!function_exists('wc_get_product')) {
+-    function wc_get_product($product_id) {
+-        return null;
++if (!function_exists('esc_url_raw')) {
++    function esc_url_raw($url)
++    {
++        return $url;
+     }
+ }
+ 
+-if (!function_exists('wp_cache_get')) {
+-    function wp_cache_get($key, $group = '', $force = false, &$found = null) {
+-        $found = false;
+-        return false;
++if (!function_exists('admin_url')) {
++    function admin_url($path = '')
++    {
++        return 'http://example.com/wp-admin/' . ltrim((string) $path, '/');
++    }
++}
++
++if (!function_exists('esc_html')) {
++    function esc_html($text)
++    {
++        return $text;
+     }
+ }
+ 
+-if (!function_exists('wp_cache_set')) {
+-    function wp_cache_set($key, $data, $group = '', $expire = 0) {
++if (!function_exists('current_user_can')) {
++    function current_user_can($capability)
++    {
+         return true;
+     }
+ }
+ 
+-if (!function_exists('wp_cache_delete')) {
+-    function wp_cache_delete($key, $group = '') {
++if (!function_exists('check_admin_referer')) {
++    function check_admin_referer($action, $name = '_wpnonce')
++    {
+         return true;
+     }
+ }
+ 
+-if (!class_exists('WC_Product')) {
+-    class WC_Product {
+-        private $id;
+-        private $price;
+-        private $regular;
++if (!function_exists('wp_safe_redirect')) {
++    function wp_safe_redirect($location)
++    {
++        global $bsp_test_redirects;
++        $bsp_test_redirects[] = $location;
++    }
++}
++
++if (!function_exists('add_query_arg')) {
++    function add_query_arg($key, $value, $url = '')
++    {
++        $url = $url ?: 'http://example.com';
++        return $url . '?' . urlencode((string) $key) . '=' . urlencode((string) $value);
++    }
++}
++
++if (!function_exists('wp_get_referer')) {
++    function wp_get_referer()
++    {
++        return 'http://example.com/referrer';
++    }
++}
++
++if (!function_exists('is_admin')) {
++    function is_admin()
++    {
++        return defined('BSP_TEST_IS_ADMIN') ? BSP_TEST_IS_ADMIN : false;
++    }
++}
++
++if (!class_exists('WP_Error')) {
++    class WP_Error
++    {
++        public function __construct(private string $code = '', private string $message = '', private array $data = [])
++        {
++        }
+ 
+-        public function __construct($id, $price = 0.0, $regular = 0.0) {
+-            $this->id = $id;
+-            $this->price = $price;
+-            $this->regular = $regular ?: $price;
++        public function get_error_message(): string
++        {
++            return $this->message;
++        }
++    }
++}
++if (!function_exists('set_transient')) {
++    function set_transient($transient, $value, $expiration = 0)
++    {
++        global $bsp_test_transients;
++        if (!isset($bsp_test_transients)) {
++            $bsp_test_transients = [];
+         }
++        $bsp_test_transients[$transient] = [
++            'value'   => $value,
++            'expires' => $expiration > 0 ? time() + (int) $expiration : 0,
++        ];
++        return true;
++    }
++}
+ 
+-        public function get_id() {
+-            return $this->id;
++if (!function_exists('get_transient')) {
++    function get_transient($transient)
++    {
++        global $bsp_test_transients;
++        if (!isset($bsp_test_transients[$transient])) {
++            return false;
+         }
+ 
+-        public function get_price($context = '') {
+-            return $this->price;
++        $entry = $bsp_test_transients[$transient];
++        if ($entry['expires'] > 0 && $entry['expires'] < time()) {
++            unset($bsp_test_transients[$transient]);
++            return false;
+         }
+ 
+-        public function get_regular_price($context = '') {
+-            return $this->regular;
++        return $entry['value'];
++    }
++}
++
++if (!function_exists('delete_transient')) {
++    function delete_transient($transient)
++    {
++        global $bsp_test_transients;
++        if (isset($bsp_test_transients[$transient])) {
++            unset($bsp_test_transients[$transient]);
+         }
++        return true;
+     }
+-}
+\ No newline at end of file
++}
+diff --git a/tests/Integration/Plugin/ModulesBootstrapTest.php b/tests/Integration/Plugin/ModulesBootstrapTest.php
+new file mode 100644
+index 0000000..5210639
+--- /dev/null
++++ b/tests/Integration/Plugin/ModulesBootstrapTest.php
+@@ -0,0 +1,130 @@
++<?php
++declare(strict_types=1);
++
++namespace BSP\Tests\Integration\Plugin;
++
++use BSP\Planner\Rest\Controller as PlannerRestController;
++use BSP\VendorPortal\Rest\PortalController;
++use PHPUnit\Framework\TestCase;
++
++final class ModulesBootstrapTest extends TestCase
++{
++    private static bool $bootstrapped = false;
++
++    public static function setUpBeforeClass(): void
++    {
++        parent::setUpBeforeClass();
++
++        $pluginDir = realpath(__DIR__ . '/../../dist/booking-pro-module-3.0-fixed1/booking-pro-module');
++        if (false === $pluginDir) {
++            self::markTestSkipped('Booking Pro module directory not found.');
++        }
++
++        if (! defined('ABSPATH')) {
++            define('ABSPATH', __DIR__);
++        }
++
++        if (! function_exists('plugin_dir_path')) {
++            function plugin_dir_path($file)
++            {
++                return dirname($file) . DIRECTORY_SEPARATOR;
++            }
++        }
++
++        if (! function_exists('plugin_dir_url')) {
++            function plugin_dir_url($file)
++            {
++                return 'http://example.com/wp-content/plugins/booking-pro-module/';
++            }
++        }
++
++        if (! defined('SBDP_DIR')) {
++            define('SBDP_DIR', $pluginDir . DIRECTORY_SEPARATOR);
++        }
++
++        if (! defined('SBDP_FILE')) {
++            define('SBDP_FILE', SBDP_DIR . 'booking-pro-module.php');
++        }
++
++        if (! defined('SBDP_URL')) {
++            define('SBDP_URL', 'http://example.com/wp-content/plugins/booking-pro-module/');
++        }
++
++        if (! defined('SBDP_VER')) {
++            define('SBDP_VER', 'test');
++        }
++
++        require_once SBDP_DIR . 'includes/class-modules-autoloader.php';
++        \SBDP_Modules_Autoloader::register();
++
++        require_once SBDP_DIR . 'includes/class-core-agent.php';
++        require_once SBDP_DIR . 'includes/class-modules-manager.php';
++    }
++
++    protected function setUp(): void
++    {
++        parent::setUp();
++        global $bsp_test_actions, $bsp_test_rest_routes;
++        $bsp_test_actions     = [];
++        $bsp_test_rest_routes = [];
++    }
++
++    public function test_bootstrap_registers_core_module_hooks(): void
++    {
++        if (! self::$bootstrapped) {
++            add_filter('sbdp/legacy_module_classes', '__return_empty_array');
++            add_filter(
++                'sbdp/core_module_classes',
++                static function (): array {
++                    return [
++                        'planner'  => \BSP\Planner\Module::class,
++                        'bookings' => \BSP\Bookings\Module::class,
++                    ];
++                }
++            );
++
++            \SBDP_Modules_Manager::bootstrap();
++            self::$bootstrapped = true;
++        }
++
++        global $bsp_test_actions;
++        $restHooks = array_filter(
++            $bsp_test_actions,
++            static function (array $hook): bool {
++                return 'rest_api_init' === $hook['hook']
++                    && false !== strpos(is_string($hook['callback']) ? $hook['callback'] : (is_array($hook['callback']) ? $hook['callback'][0] : ''), 'Planner');
++            }
++        );
++
++        $this->assertNotEmpty($restHooks, 'Planner module should register REST API hooks.');
++    }
++
++    /**
++     * @depends test_bootstrap_registers_core_module_hooks
++     */
++    public function test_planner_rest_routes_are_registered(): void
++    {
++        global $bsp_test_rest_routes;
++
++        PlannerRestController::register();
++
++        $routes = array_column($bsp_test_rest_routes, 'route');
++        $this->assertContains('/planner/schedule', $routes);
++        $this->assertContains('/planner/availability', $routes);
++    }
++
++    /**
++     * @depends test_bootstrap_registers_core_module_hooks
++     */
++    public function test_vendor_portal_rest_routes_are_registered(): void
++    {
++        global $bsp_test_rest_routes;
++
++        PortalController::register();
++
++        $routes = array_column($bsp_test_rest_routes, 'route');
++        $this->assertContains('/vendor-portal/login', $routes);
++        $this->assertContains('/vendor-portal/dashboard', $routes);
++        $this->assertContains('/vendor-portal/logout', $routes);
++    }
++}

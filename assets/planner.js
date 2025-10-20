@@ -484,6 +484,10 @@
     const config = options || {};
     const headers = config.headers ? Object.assign({}, config.headers) : {};
 
+    if (cfg.public_nonce) {
+      headers['X-SBDP-Nonce'] = cfg.public_nonce;
+    }
+
     if (cfg.nonce) {
       headers['X-WP-Nonce'] = cfg.nonce;
     }

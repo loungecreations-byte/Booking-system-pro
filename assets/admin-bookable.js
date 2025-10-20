@@ -18,17 +18,20 @@
     initAvailability($root);
     initDuplicate($root, state);
     initMaps($root, state);
+    initResourceSelect($root);
   });
 
   function initTabs($root){
-    const $tabs = $root.find('.sbdp-bookable-tabs .nav-tab');
-    $tabs.on('click', function(){
-      const panelId = $(this).data('panel');
+    $root.on('click', '.sbdp-bookable-tabs .nav-tab', function(event){
+      event.preventDefault();
+      const $tab = $(this);
+      const panelId = $tab.data('panel');
       if (!panelId) {
         return;
       }
+      const $tabs = $root.find('.sbdp-bookable-tabs .nav-tab');
       $tabs.removeClass('nav-tab-active').attr('aria-selected','false');
-      $(this).addClass('nav-tab-active').attr('aria-selected','true');
+      $tab.addClass('nav-tab-active').attr('aria-selected','true');
       $root.find('.sbdp-tab-panel').attr('hidden', 'hidden').removeClass('is-active');
       $('#' + panelId).removeAttr('hidden').addClass('is-active');
     });
@@ -216,6 +219,7 @@
     setFieldValue($root,'booking_location', meta.booking_location);
 
     updateAllowedDays($root, meta.booking_allowed_start_days || []);
+    setMultiSelectValue($root,'resource_ids', meta.resource_ids || []);
 
     setCheckboxValue($root,'people_enabled', meta.people_enabled);
     setCheckboxValue($root,'people_count_as_booking', meta.people_count_as_booking);
@@ -286,6 +290,16 @@
       return;
     }
     $field.val(value != null ? value : '');
+  }
+
+  function setMultiSelectValue($root, key, values){
+    const selector = '[name="sbdp_bookable[' + key + '][]"]';
+    const $field = $root.find(selector);
+    if (!$field.length) {
+      return;
+    }
+    const normalized = Array.isArray(values) ? values.map(String) : [];
+    $field.val(normalized).trigger('change');
   }
 
   function setCheckboxValue($root, key, value){
@@ -369,68 +383,21 @@
     return window.SBDPMapsPromise;
   }
 
-  function enhanceTabsAccessibility(){
-    const  = .find('.sbdp-bookable-tabs .nav-tab');
-    if (!.length) {
+  function initResourceSelect($root){
+    const $select = $root.find('#sbdp-booking-resources');
+    if (!$select.length) {
       return;
     }
 
-    const  = .find('.sbdp-tab-panel');
-
-    const applyState = function(, focus){
-      if (! || !.length) {
-        return;
-      }
-      .attr('tabindex', '-1');
-      .attr('tabindex', '0');
-      if (focus) {
-        .trigger('focus');
-      }
-    };
-
-    .each(function(){
-      const  = ;
-      .attr('role', 'tab');
-      const panelId = .data('panel');
-      if (panelId && !.attr('aria-controls')) {
-        .attr('aria-controls', panelId);
-      }
-    });
-
-    .each(function(){
-      const  = ;
-      .attr('role', 'tabpanel');
-      const panelId = .attr('id');
-      if (!panelId) {
-        return;
-      }
-      const  = .filter(function(){
-        return .data('panel') === panelId;
-      }).first();
-      if (.length && !.attr('aria-labelledby')) {
-        .attr('aria-labelledby', .attr('id') || '');
-      }
-    });
-
-    .on('click.sbdpEnhance', function(){
-      applyState(, false);
-    });
-
-    .on('keydown.sbdpEnhance', function(event){
-      if (event.key !== 'ArrowRight' && event.key !== 'ArrowLeft') {
-        return;
-      }
-      event.preventDefault();
-      const index = .index(this);
-      const direction = event.key === 'ArrowRight' ? 1 : -1;
-      const nextIndex = (index + direction + .length) % .length;
-      const  = .eq(nextIndex);
-      .trigger('click');
-      applyState(, true);
-    });
-
-    applyState(.filter('.nav-tab-active').first(), false);
+    if (typeof $select.selectWoo === 'function') {
+      $select.selectWoo({ minimumResultsForSearch: 10, width: '100%' });
+    } else if (typeof $select.wc_enhanced_select === 'function') {
+      $select.wc_enhanced_select();
+    } else {
+      $(document.body).trigger('wc-enhanced-select-init');
+    }
   }
+
   function enhanceTabsAccessibility($root){
     const $tabs = $root.find('.sbdp-bookable-tabs .nav-tab');
     if (!$tabs.length) {

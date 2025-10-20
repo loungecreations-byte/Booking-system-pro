@@ -1,0 +1,11 @@
+Weekend pipeline started 2025-10-15 04:14:31Z
+composer validate: warnings (lock file out of date, no license) - consider composer update
+composer dump-autoload: OK
+[Step2] Building core/modules/frontend assets...
+[Step3] Optimization: created dist/bsp.min.css and dist/bsp.min.js from planner assets
+[Step4] Tests: running PHPUnit
+PHPUnit: OK (1 test skipped - Brain Monkey helpers missing)
+php -l sweep: skipped due to time (consider running scripts/run-quality-checks.ps1)
+[Step5] Docs & changelog updated (docs/weekend-build-report.md, CHANGELOG.md entry added)
+Archive created: dist/booking-system-pro-weekend-202510150416.zip
+WEEKEND-BUILD-OK

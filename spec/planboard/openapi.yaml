@@ -1,0 +1,94 @@
+openapi: 3.0.3
+info:
+  title: "Planboard v1 API"
+  version: "1.0.0"
+servers:
+  - url: "https://site.local/wp-json"
+paths:
+  /sbdp/v1/planner/board:
+    get:
+      summary: Get planboard
+      parameters:
+        - in: query
+          name: days
+          schema: { type: integer, default: 7 }
+        - in: query
+          name: outlet
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+  /sbdp/v1/bookings:
+    get:
+      summary: Search bookings
+      parameters:
+        - in: query
+          name: query
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
+  /sbdp/v1/bookings/{id}:
+    patch:
+      summary: Edit booking
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BookingPatch"
+      responses:
+        "200": { description: Updated }
+  /sbdp/v1/bookings/{id}/cancel:
+    post:
+      summary: Cancel booking
+      responses: { "200": { description: Cancelled } }
+  /sbdp/v1/bookings/{id}/refund:
+    post:
+      summary: Refund booking
+      responses: { "200": { description: Refunded } }
+  /sbdp/v1/drag/sessions:
+    post:
+      summary: Start DnD session
+      responses: { "201": { description: Created } }
+  /sbdp/v1/drag/apply:
+    post:
+      summary: Apply tentative move
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DragApply"
+      responses:
+        "200": { description: Tentative OK }
+  /sbdp/v1/drag/commit:
+    post:
+      summary: Commit DnD changes
+      responses: { "200": { description: Committed } }
+  /sbdp/v1/drag/rollback:
+    post:
+      summary: Rollback DnD changes
+      responses: { "200": { description: Rolled back } }
+  /sbdp/v1/availability/blocks:
+    post:
+      summary: Add block
+      responses: { "201": { description: Created } }
+components:
+  schemas:
+    BookingPatch:
+      type: object
+      properties:
+        status: { type: string, enum: [confirmed, pending, cancelled] }
+        notes:  { type: string }
+        meta:   { type: object, additionalProperties: true }
+    DragApply:
+      type: object
+      required: [ bookingId, toSlotId ]
+      properties:
+        bookingId: { type: string }
+        toSlotId:  { type: string }
+        keepPrice: { type: boolean, default: true }

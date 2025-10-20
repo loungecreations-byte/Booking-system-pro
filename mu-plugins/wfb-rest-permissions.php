@@ -6,7 +6,7 @@
 
 add_action(
 	'rest_api_init',
-	function () {
+	function() {
 		if ( ! function_exists( 'rest_get_server' ) ) {
 			return;
 		}
@@ -44,3 +44,4 @@ add_action(
 	},
 	99
 );
+

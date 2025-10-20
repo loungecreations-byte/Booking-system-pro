@@ -1,0 +1,23 @@
+[21:49:50] Start suite build (env=staging, minify=true, clean=true)
+[21:49:50] Controleren van vereisten
+[21:49:50] Installeren van npm dependencies
+
+up to date, audited 4 packages in 838ms
+
+found 0 vulnerabilities
+[21:49:51] Opschonen van bestaande dist inhoud
+[21:49:53] Bouwen van BSP core
+[21:49:53] Bouwen van Planner module
+[21:49:54] Bouwen van Commerce module
+[21:49:55] Bouwen van Vendors module
+[21:49:56] Bouwen van Insights module
+[21:49:57] Genereren van versie manifest
+[21:49:57] Valideren van dist output
+All modules present.
+[21:49:57] Verpakken van volledige plugin
+[21:51:07] Plugin verpakt als booking-pro-suite_staging_20251013_215003.zip
+[21:51:08] Suite build afgerond
+BSP Suite Build succesvol afgerond voor omgeving: staging
+Output directory: dist/
+Logbestand: logs/20251013_214950_suite_build_all.log
+Distributie ZIP: dist/booking-pro-suite_staging_20251013_215003.zip

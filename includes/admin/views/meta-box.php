@@ -72,6 +72,8 @@ $extra_costs  = is_array( $meta['extra_costs'] ) ? $meta['extra_costs'] : array(
 $rules        = is_array( $meta['advanced_price_rules'] ) ? $meta['advanced_price_rules'] : array();
 $availability = is_array( $meta['default_availability'] ) ? $meta['default_availability'] : array();
 $additional   = is_array( $meta['additional_rules'] ) ? $meta['additional_rules'] : array();
+$resource_ids = isset( $meta['resource_ids'] ) && is_array( $meta['resource_ids'] ) ? array_map( 'intval', $meta['resource_ids'] ) : array();
+$resource_options = isset( $resource_options ) && is_array( $resource_options ) ? $resource_options : array();
 ?>
 <div class="sbdp-bookable-meta" data-product-id="<?php echo esc_attr( $product_id ); ?>">
 	<p class="description">
@@ -87,6 +89,24 @@ $additional   = is_array( $meta['additional_rules'] ) ? $meta['additional_rules'
 
 	<section id="sbdp-booking-tab" class="sbdp-tab-panel is-active" role="tabpanel">
 		<div class="sbdp-field-grid">
+			<div class="sbdp-field">
+				<label for="sbdp-booking-resources"><?php esc_html_e( 'Linked resources', 'sbdp' ); ?></label>
+				<select name="sbdp_bookable[resource_ids][]" id="sbdp-booking-resources" class="wc-enhanced-select" multiple="multiple" data-placeholder="<?php esc_attr_e( 'Select resources', 'sbdp' ); ?>">
+					<?php foreach ( $resource_options as $resource ) : ?>
+						<?php
+						$resource_id    = isset( $resource['id'] ) ? (int) $resource['id'] : 0;
+						$resource_title = isset( $resource['title'] ) ? $resource['title'] : '';
+						if ( $resource_id <= 0 || '' === trim( $resource_title ) ) {
+							continue;
+						}
+						?>
+						<option value="<?php echo esc_attr( (string) $resource_id ); ?>" <?php selected( in_array( $resource_id, $resource_ids, true ), true ); ?>>
+							<?php echo esc_html( $resource_title ); ?>
+						</option>
+					<?php endforeach; ?>
+				</select>
+				<p class="description"><?php esc_html_e( 'Select which resources (and their capacities) are available for this service.', 'sbdp' ); ?></p>
+			</div>
 			<div class="sbdp-field">
 				<label for="sbdp-booking-duration-type"><?php esc_html_e( 'Duration units', 'sbdp' ); ?></label>
 				<select name="sbdp_bookable[booking_duration_type]" id="sbdp-booking-duration-type">

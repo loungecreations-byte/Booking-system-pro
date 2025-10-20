@@ -1,0 +1,13 @@
+
+2025-10-08 06:03:02 [INFO] Codex nightly run starting. RunId: fdad48c9-e0a6-4827-8801-83afeb7dcfeb
+2025-10-08 06:03:02 [INFO] Project root: C:\booking-pro-module-4.0
+2025-10-08 06:03:02 [INFO] Log file: C:\booking-pro-module-4.0\logs\codex-nightly\20251008\codex-nightly-060302.log
+2025-10-08 06:03:02 [INFO] Retention: keep 14 days, archive after 7 days
+2025-10-08 06:03:02 [INFO] Notes: dry run verification
+2025-10-08 06:03:02 [WARN] Plugin activation and data seeding skipped via -SkipSeed.
+2025-10-08 06:03:02 [WARN] Codex build skipped via -SkipCodex.
+2025-10-08 06:03:02 [WARN] Quality checks skipped via -SkipQualityChecks.
+2025-10-08 06:03:02 [WARN] PHPUnit run skipped via -SkipPhpUnit.
+2025-10-08 06:03:02 [WARN] REST smoke test skipped via -SkipRestSmoke.
+2025-10-08 06:03:02 [INFO] No steps scheduled; exiting without actions.
+2025-10-08 06:03:02 [INFO] Notification status success: No steps scheduled; exiting without actions.

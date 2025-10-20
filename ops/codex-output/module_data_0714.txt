@@ -1,0 +1,7 @@
+error: unexpected argument '--input' found
+
+  tip: to pass '--input' as a value, use '-- --input'
+
+Usage: codex <PROMPT>
+
+For more information, try '--help'.

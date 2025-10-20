@@ -1,0 +1,85 @@
+Scanned plugin at C:\booking-pro-module-4.0\build\booking-pro-module
+[ERROR] hook: Callback function maybe_seed_demo not found (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-activation.php:8)
+[ERROR] hook: Callback function menu not found (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-admin-menu.php:18)
+[ERROR] hook: Callback function register_page not found (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-admin-scheduler.php:18)
+[ERROR] hook: Callback function register not found (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-cpt.php:18)
+[ERROR] hook: Callback function register_widget not found (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-elementor.php:22)
+[ERROR] hook: Callback function carry_meta not found (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-emails.php:18)
+[ERROR] hook: Callback function append_program not found (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-emails.php:19)
+[ERROR] hook: Callback function register_front_assets not found (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-enqueue.php:22)
+[ERROR] hook: Callback function maybe_enqueue_front_assets not found (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-enqueue.php:23)
+[ERROR] hook: Callback function enqueue_for_elementor not found (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-enqueue.php:24)
+[ERROR] hook: Callback function enqueue_for_elementor not found (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-enqueue.php:25)
+[ERROR] hook: Callback function enqueue_admin_assets not found (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-enqueue.php:26)
+[ERROR] hook: Callback function append_cart_item_data not found (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-meta-display.php:30)
+[ERROR] hook: Callback function filter_order_meta_label not found (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-meta-display.php:31)
+[ERROR] hook: Callback function filter_order_meta_value not found (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-meta-display.php:32)
+[ERROR] hook: Callback function hide_raw_meta not found (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-meta-display.php:33)
+[ERROR] hook: Callback function init not found (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-plugin.php:56)
+[ERROR] hook: Callback function maybe_render_notice not found (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-plugin.php:57)
+[ERROR] hook: Callback function register_plugin_links not found (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-plugin.php:58)
+[ERROR] hook: Callback function maybe_allow_public_rest not found (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-plugin.php:74)
+[ERROR] hook: Callback function register_type_selector not found (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-product-type.php:20)
+[ERROR] hook: Callback function register_wc_product_class not found (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-product-type.php:21)
+[ERROR] hook: Callback function render_general_section not found (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-product-type.php:22)
+[ERROR] hook: Callback function register_settings_tab not found (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-product-type.php:23)
+[ERROR] hook: Callback function render_settings_panel not found (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-product-type.php:24)
+[ERROR] hook: Callback function save_product_meta not found (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-product-type.php:25)
+[ERROR] hook: Callback function register_wc_product_class not found (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-product-type.php:49)
+[ERROR] hook: Callback function register_box not found (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-resource-meta.php:18)
+[ERROR] hook: Callback function save not found (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-resource-meta.php:19)
+[ERROR] hook: Callback function columns not found (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-resource-meta.php:20)
+[ERROR] hook: Callback function render_column not found (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-resource-meta.php:21)
+[ERROR] hook: Callback function routes not found (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-rest.php:6)
+[ERROR] hook: Callback function rest_get_server not found (C:\booking-pro-module-4.0\build\booking-pro-module\mu-plugins\wfb-rest-permissions.php:6)
+[ERROR] rest: REST route missing permission_callback (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-rest.php:10)
+    meta: {"route":"'sbdp/v1'"}
+[ERROR] rest: REST route missing permission_callback (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-rest.php:16)
+    meta: {"route":"'sbdp/v1'"}
+[ERROR] rest: REST route missing permission_callback (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-rest.php:22)
+    meta: {"route":"'sbdp/v1'"}
+[ERROR] rest: REST route missing permission_callback (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-rest.php:28)
+    meta: {"route":"'sbdp/v1'"}
+[ERROR] rest: REST route missing permission_callback (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-rest.php:34)
+    meta: {"route":"'sbdp/v1'"}
+[ERROR] rest: REST route missing permission_callback (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-rest.php:40)
+    meta: {"route":"'sbdp/v1'"}
+[ERROR] rest: REST route missing permission_callback (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-rest.php:46)
+    meta: {"route":"'sbdp/v1'"}
+[ERROR] rest: REST route missing permission_callback (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-rest.php:52)
+    meta: {"route":"'sbdp/v1'"}
+[ERROR] rest: REST route missing permission_callback (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-rest.php:58)
+    meta: {"route":"'sbdp/v1'"}
+[ERROR] rest: REST route missing permission_callback (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-rest.php:64)
+    meta: {"route":"'sbdp/v1'"}
+[ERROR] rest: REST route missing permission_callback (C:\booking-pro-module-4.0\build\booking-pro-module\mu-plugins\wfb-rest-permissions.php:35)
+    meta: {"route":"'wfb-api/v2'"}
+[WARNING] superglobal: Potentially unsanitized $_GET usage (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-enqueue.php:239)
+    meta: {"code":"        if ( isset( $_GET['elementor-preview'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended"}
+[WARNING] superglobal: Potentially unsanitized $_GET usage (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-enqueue.php:243)
+    meta: {"code":"        if ( isset( $_GET['elementor_library'] ) || isset( $_GET['elementor-library'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended"}
+[WARNING] superglobal: Potentially unsanitized $_GET usage (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-enqueue.php:243)
+    meta: {"code":"        if ( isset( $_GET['elementor_library'] ) || isset( $_GET['elementor-library'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended"}
+[WARNING] superglobal: Potentially unsanitized $_POST usage (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-product-type.php:242)
+    meta: {"code":"            $value = isset( $_POST[ $key ] ) ? wp_unslash( $_POST[ $key ] ) : '';// phpcs:ignore WordPress.Security.NonceVerification.Missing"}
+[WARNING] superglobal: Potentially unsanitized $_POST usage (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-product-type.php:242)
+    meta: {"code":"            $value = isset( $_POST[ $key ] ) ? wp_unslash( $_POST[ $key ] ) : '';// phpcs:ignore WordPress.Security.NonceVerification.Missing"}
+[WARNING] superglobal: Potentially unsanitized $_POST usage (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-product-type.php:246)
+    meta: {"code":"        $resource_ids = isset( $_POST['_sbdp_resource_ids'] ) ? SBDP_Product_Meta::sanitize_resource_ids( wp_unslash( $_POST['_sbdp_resource_ids'] ) ) : [];// phpcs:ignore WordPress.Security.NonceVerification.Missing"}
+[WARNING] superglobal: Potentially unsanitized $_POST usage (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-product-type.php:246)
+    meta: {"code":"        $resource_ids = isset( $_POST['_sbdp_resource_ids'] ) ? SBDP_Product_Meta::sanitize_resource_ids( wp_unslash( $_POST['_sbdp_resource_ids'] ) ) : [];// phpcs:ignore WordPress.Security.NonceVerification.Missing"}
+[WARNING] superglobal: Potentially unsanitized $_POST usage (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-resource-meta.php:65)
+    meta: {"code":"        if ( ! isset( $_POST['sbdp_resource_meta_nonce'] ) || ! wp_verify_nonce( wp_unslash( $_POST['sbdp_resource_meta_nonce'] ), 'sbdp_resource_meta' ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing"}
+[WARNING] superglobal: Potentially unsanitized $_POST usage (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-resource-meta.php:65)
+    meta: {"code":"        if ( ! isset( $_POST['sbdp_resource_meta_nonce'] ) || ! wp_verify_nonce( wp_unslash( $_POST['sbdp_resource_meta_nonce'] ), 'sbdp_resource_meta' ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing"}
+[WARNING] superglobal: Potentially unsanitized $_POST usage (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-resource-meta.php:75)
+    meta: {"code":"        if ( isset( $_POST['sbdp_resource_capacity'] ) && '' !== $_POST['sbdp_resource_capacity'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing"}
+[WARNING] superglobal: Potentially unsanitized $_POST usage (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-resource-meta.php:75)
+    meta: {"code":"        if ( isset( $_POST['sbdp_resource_capacity'] ) && '' !== $_POST['sbdp_resource_capacity'] ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing"}
+[WARNING] superglobal: Potentially unsanitized $_POST usage (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-resource-meta.php:76)
+    meta: {"code":"            $capacity = (int) wp_unslash( $_POST['sbdp_resource_capacity'] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing"}
+[WARNING] superglobal: Potentially unsanitized $_REQUEST usage (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-rest.php:852)
+    meta: {"code":"    if ( ! $nonce && isset( $_REQUEST['_wpnonce'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing\r"}
+[WARNING] superglobal: Potentially unsanitized $_REQUEST usage (C:\booking-pro-module-4.0\build\booking-pro-module\includes\class-rest.php:853)
+    meta: {"code":"      $nonce = sanitize_text_field( wp_unslash( $_REQUEST['_wpnonce'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing\r"}
+Totals => Errors: 44, Warnings: 14, Infos: 0

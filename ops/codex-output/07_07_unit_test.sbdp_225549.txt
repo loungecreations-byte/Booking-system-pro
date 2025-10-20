@@ -1,0 +1,532 @@
+[2025-10-09T20:55:49] OpenAI Codex v0.42.0 (research preview)
+--------
+workdir: C:\booking-pro-module-4.0
+model: gpt-5-codex
+provider: openai
+approval: never
+sandbox: workspace-write [workdir, /tmp, $TMPDIR]
+reasoning effort: high
+reasoning summaries: auto
+--------
+[2025-10-09T20:55:49] User instructions:
+PHPUNIT TESTS + BRAIN MONKEY
+
+OPDRACHT
+- Voeg `/tests/bootstrap.php` toe met autoload + Brain Monkey init
+- Maak `/tests/{{SLUG}}/ModuleTest.php` die:
+  - WordPress hooks mocked met Brain Monkey
+  - Verifieert dat `init()` de admin_menu en rest_api_init hooks registreert (indien van toepassing)
+- Update composer.json require-dev indien `brain/monkey` ontbreekt
+- Voeg `tests/phpunit.xml.dist`
+
+OUTPUT
+- Toon alle testbestanden
+- Toon voorbeeld-run: `vendor/bin/phpunit --configuration tests/phpunit.xml.dist`
+
+[2025-10-09T20:55:57] thinking
+
+**Clarifying shell usage and initial steps**
+[2025-10-09T20:55:57] exec bash -lc ls in C:\booking-pro-module-4.0
+[2025-10-09T20:55:58] bash -lc ls succeeded in 634ms:
+AGENTS.md
+assets
+booking-pro-suite.php
+composer.bat
+composer.json
+composer.lock
+composer.phar
+core
+dist
+docs
+includes
+languages
+logs
+modules
+mu-plugins
+node_modules
+ops
+package.json
+package-lock.json
+phpcs.xml
+[2025-10-09T20:55:58] tokens used: 3.714
+[2025-10-09T20:55:58] tokens used: 3.714
+
+[2025-10-09T20:55:59] thinking
+
+**Checking for existing tests**
+[2025-10-09T20:55:59] exec bash -lc 'ls tests' in C:\booking-pro-module-4.0
+[2025-10-09T20:56:00] bash -lc 'ls tests' succeeded in 662ms:
+bootstrap.php
+e2e
+phpunit.xml.dist
+Unit
+[2025-10-09T20:56:00] tokens used: 4.571
+[2025-10-09T20:56:00] tokens used: 4.571
+
+[2025-10-09T20:56:01] thinking
+
+**Checking existing bootstrap file**
+[2025-10-09T20:56:02] exec bash -lc 'cat tests/bootstrap.php' in C:\booking-pro-module-4.0
+[2025-10-09T20:56:03] bash -lc 'cat tests/bootstrap.php' succeeded in 731ms:
+<?php
+
+$autoload = __DIR__ . '/../vendor/autoload.php';
+if (is_readable($autoload)) {
+    require $autoload;
+}
+
+// Ensure core constants that might be referenced in isolated tests.
+define('DAY_IN_SECONDS', 24 * 60 * 60);
+define('HOUR_IN_SECONDS', 60 * 60);
+define('MINUTE_IN_SECONDS', 60);
+
+// Provide lightweight shims for common WordPress helpers when not running inside WP.
+if (!function_exists('add_action')) {
+    function add_action($hook, $callback, $priority = 10, $accepted_args = 1) {
+        global $bsp_test_actions;
+        if (! is_array($bsp_test_actions ?? null)) {
+            $bsp_test_actions = array();
+        }
+
+[2025-10-09T20:56:03] tokens used: 4.759
+[2025-10-09T20:56:03] tokens used: 4.759
+
+[2025-10-09T20:56:05] thinking
+
+**Preparing test bootstrap integration**
+[2025-10-09T20:56:06] exec bash -lc 'find tests -maxdepth 2 -type f' in C:\booking-pro-module-4.0
+[2025-10-09T20:56:07] bash -lc 'find tests -maxdepth 2 -type f' succeeded in 780ms:
+tests/.phpunit.result.cache
+tests/bootstrap.php
+tests/e2e/planner-smoke.spec.ts
+tests/e2e/plannerBundles.spec.ts
+tests/e2e/README.md
+tests/phpunit.xml.dist
+[2025-10-09T20:56:07] tokens used: 6.156
+[2025-10-09T20:56:07] tokens used: 6.156
+
+[2025-10-09T20:56:09] thinking
+
+**Investigating test directory and module slug**
+[2025-10-09T20:56:10] exec bash -lc 'ls modules' in C:\booking-pro-module-4.0
+[2025-10-09T20:56:10] bash -lc 'ls modules' succeeded in 665ms:
+commerce
+core
+data
+finance
+intelligence
+notifications
+planner
+sales
+support
+[2025-10-09T20:56:10] tokens used: 6.561
+[2025-10-09T20:56:11] tokens used: 6.561
+
+[2025-10-09T20:56:13] thinking
+
+**Searching for module slug**
+[2025-10-09T20:56:13] tokens used: 6.872
+[2025-10-09T20:56:14] tokens used: 6.872
+
+[2025-10-09T20:56:17] thinking
+
+**Evaluating allowed commands for search**
+[2025-10-09T20:56:17] exec bash -lc 'grep -R "function init" -n modules | head' in C:\booking-pro-module-4.0
+[2025-10-09T20:56:18] bash -lc 'grep -R "function init" -n modules | head' succeeded in 736ms:
+modules/commerce/Module.php:15:    public function init(): void
+modules/core/Admin/AdminMenu.php:61:    public static function init(): void
+modules/core/Admin/AdminScheduler.php:18:	public static function init() {
+modules/core/Assets/EnqueueService.php:21:    public static function init(): void
+modules/core/Assets/EnqueueService.php.original:16:    public static function init(): void
+modules/core/Audit/AuditLogger.php:29:    public static function init(): void
+modules/core/Emails/EmailsService.php:14:	public static function init() {
+modules/core/Notifications/NotificationCenter.php:28:    public static function init(): void
+modules/core/PostType/BookablePostTypes.php:11:	public static function init(): void {
+modules/core/Resource/ResourceMeta.php:18:	public static function init() {
+[2025-10-09T20:56:18] tokens used: 7.793
+[2025-10-09T20:56:18] tokens used: 7.793
+
+[2025-10-09T20:56:21] thinking
+
+**Investigating module structure and slugs**
+[2025-10-09T20:56:21] exec bash -lc "sed -n '1,160p' modules/commerce/Module.php" in C:\booking-pro-module-4.0
+[2025-10-09T20:56:22] bash -lc "sed -n '1,160p' modules/commerce/Module.php" succeeded in 627ms:
+<?php
+
+declare(strict_types=1);
+
+namespace BSP\Commerce;
+
+use BSP\Core\ModuleInterface;
+use BSPModule\Core\Module as LegacyCoreModule;
+use BSP\Finance\Module as FinanceModule;
+
+final class Module implements ModuleInterface
+{
+    private static bool $booted = false;
+
+    public function init(): void
+    {
+        if (self::$booted) {
+            return;
+        }
+
+[2025-10-09T20:56:22] tokens used: 9.095
+[2025-10-09T20:56:22] tokens used: 9.095
+
+[2025-10-09T20:56:23] thinking
+
+**Searching for WordPress hook registrations**
+[2025-10-09T20:56:24] exec bash -lc "grep -R \"add_action(\\s*'admin_menu'\" -n" in C:\booking-pro-module-4.0
+[2025-10-09T20:56:34] bash -lc "grep -R \"add_action(\\s*'admin_menu'\" -n" exited 124 in 10.13s:
+.build_tmp/booking-pro-suite/modules/core/Admin/AdminMenu.php:63:        add_action('admin_menu', array( __CLASS__, 'menu' ));
+.build_tmp/booking-pro-suite/modules/core/Admin/AdminScheduler.php:19:		add_action( 'admin_menu', array( __CLASS__, 'register_page' ) );
+.build_tmp/booking-pro-suite/modules/data/Admin/Menu.php:16:		add_action( 'admin_menu', array( __CLASS__, 'register_menu' ) );
+.build_tmp/booking-pro-suite/modules/finance/Admin/Menu.php:16:		add_action( 'admin_menu', array( __CLASS__, 'register_menu' ) );
+.build_tmp/booking-pro-suite/modules/notifications/Module.php:27:            add_action('admin_menu', array($this->adminSettingsPage, 'register_menu'));
+.build_tmp/booking-pro-suite/modules/sales/Admin/Menu.php:16:		add_action( 'admin_menu', array( __CLASS__, 'register_menu' ) );
+.build_tmp/booking-pro-suite/modules/sales/Admin/Pages.php:35:        add_action('admin_menu', [self::class, 'registerMenu']);
+.build_tmp/booking-pro-suite/modules/support/Admin/Menu.php:16:        add_action('admin_menu', array(__CLASS__, 'register_menu'));
+dist/booking-pro-4.01/booking-pro-4.01/booking-core/src/Admin/AdminMenu.php:30:		add_action( 'admin_menu', array( __CLASS__, 'menu' ) );
+dist/booking-pro-4.01/booking-pro-4.01/booking-core/src/Admin/AdminScheduler.php:19:		add_action( 'admin_menu', array( __CLASS__, 'register_page' ) );
+dist/booking-pro-4.01/booking-pro-4.01/booking-data/src/Admin/Menu.php:16:		add_action( 'admin_menu', array( __CLASS__, 'register_menu' ) );
+dist/booking-pro-4.01/booking-pro-4.01/booking-finance/src/Admin/Menu.php:16:		add_action( 'admin_menu', array( __CLASS__, 'register_menu' ) );
+dist/booking-pro-4.01/booking-pro-4.01/booking-ops/src/Admin/Menu.php:16:		add_action( 'admin_menu', array( __CLASS__, 'register_menu' ) );
+dist/booking-pro-4.01/booking-pro-4.01/booking-sales/src/Admin/Menu.php:16:		add_action( 'admin_menu', array( __CLASS__, 'register_menu' ) );
+dist/booking-pro-4.01/booking-pro-4.01/booking-sales/src/Admin/Pages.php:35:        add_action('admin_menu', [self::class, 'registerMenu']);
+dist/booking-pro-4.01/booking-pro-4.01/booking-support/src/Admin/Menu.php:16:		add_action( 'admin_menu', array( __CLASS__, 'register_menu' ) );
+dist/booking-pro-4.02/booking-pro-4.02/booking-core/src/Admin/AdminMenu.php:30:		add_action( 'admin_menu', array( __CLASS__, 'menu' ) );
+dist/booking-pro-4.02/booking-pro-4.02/booking-core/src/Admin/AdminScheduler.php:19:		add_action( 'admin_menu', array( __CLASS__, 'register_page' ) );
+dist/booking-pro-4.02/booking-pro-4.02/booking-data/src/Admin/Menu.php:16:		add_action( 'admin_menu', array( __CLASS__, 'register_menu' ) );
+dist/booking-pro-4.02/booking-pro-4.02/booking-finance/src/Admin/Menu.php:16:		add_action( 'admin_menu', array( __CLASS__, 'register_menu' ) );
+[2025-10-09T20:56:34] tokens used: 9.582
+[2025-10-09T20:56:34] tokens used: 9.582
+
+[2025-10-09T20:56:38] thinking
+
+**Determining target module slug**
+[2025-10-09T20:56:39] exec bash -lc "sed -n '1,160p' modules/notifications/Module.php" in C:\booking-pro-module-4.0
+[2025-10-09T20:56:39] bash -lc "sed -n '1,160p' modules/notifications/Module.php" succeeded in 668ms:
+<?php
+
+declare(strict_types=1);
+
+namespace BSP\Notifications;
+
+use BSP\Core\ModuleInterface;
+
+final class Module implements ModuleInterface
+{
+    private const SHORTCODE_TAG = 'booking_notifications';
+
+    private Rest_Controller $restController;
+
+    private Admin_Settings_Page $adminSettingsPage;
+
+    public function __construct(?Rest_Controller $restController = null, ?Admin_Settings_Page $adminSettingsPage = null)
+    {
+        $this->restController = $restController ?? new Rest_Controller();
+        $this->adminSettingsPage = $adminSettingsPage ?? new Admin_Settings_Page();
+[2025-10-09T20:56:39] tokens used: 11.485
+[2025-10-09T20:56:40] tokens used: 11.485
+
+[2025-10-09T20:56:43] thinking
+
+**Verifying module slug and test setup**
+[2025-10-09T20:56:43] exec bash -lc 'cat composer.json' in C:\booking-pro-module-4.0
+[2025-10-09T20:56:44] bash -lc 'cat composer.json' succeeded in 679ms:
+{
+  "name": "owncreations/booking-pro-module",
+  "description": "Development tooling for Booking Pro Module",
+  "type": "project",
+  "require-dev": {
+    "phpunit/phpunit": "^9.6",
+    "squizlabs/php_codesniffer": "^3.9",
+    "phpstan/phpstan": "^2.1",
+    "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
+    "wp-coding-standards/wpcs": "^3.0",
+    "php-stubs/wordpress-stubs": "^6.8",
+    "php-stubs/woocommerce-stubs": "^10.2",
+    "brain/monkey": "^2.6"
+  },
+  "autoload": {
+    "psr-4": {
+      "BSP\\Core\\": "core/src/",
+      "BSP\\Commerce\\": "modules/commerce/",
+      "BSP\\Planner\\": "modules/planner/",
+      "BSP\\Sales\\": "modules/sales/",
+[2025-10-09T20:56:44] tokens used: 13.158
+[2025-10-09T20:56:45] tokens used: 13.158
+
+[2025-10-09T20:56:47] thinking
+
+**Verifying Brain Monkey dependency and tests**
+[2025-10-09T20:56:48] exec bash -lc 'ls tests/Unit' in C:\booking-pro-module-4.0
+[2025-10-09T20:56:49] bash -lc 'ls tests/Unit' succeeded in 769ms:
+Core
+Notifications
+Planner
+Sales
+Support
+[2025-10-09T20:56:49] tokens used: 13.950
+[2025-10-09T20:56:49] tokens used: 13.950
+
+[2025-10-09T20:56:50] thinking
+
+**Checking location**
+[2025-10-09T20:56:50] exec bash -lc 'find tests/Unit -type f' in C:\booking-pro-module-4.0
+[2025-10-09T20:56:51] bash -lc 'find tests/Unit -type f' succeeded in 715ms:
+tests/Unit/Core/ModuleRegistryTest.php
+tests/Unit/Notifications/ModuleTest.php
+tests/Unit/Planner/Bundles/BundleDefinitionTest.php
+tests/Unit/Planner/Bundles/PlannerBundleServiceTest.php
+tests/Unit/Sales/Funnels/FunnelServiceTest.php
+tests/Unit/Sales/Pricing/YieldEngineTest.php
+tests/Unit/Sales/Promotions/PromotionServiceTest.php
+tests/Unit/Support/NamespaceTest.php
+[2025-10-09T20:56:51] tokens used: 14.082
+[2025-10-09T20:56:51] tokens used: 14.082
+
+[2025-10-09T20:56:53] thinking
+
+**Examining existing notification tests**
+[2025-10-09T20:56:53] exec bash -lc "sed -n '1,200p' tests/Unit/Notifications/ModuleTest.php" in C:\booking-pro-module-4.0
+[2025-10-09T20:56:54] bash -lc "sed -n '1,200p' tests/Unit/Notifications/ModuleTest.php" succeeded in 640ms:
+<?php
+
+declare(strict_types=1);
+
+namespace BSP\Tests\Unit\Notifications;
+
+use function Brain\Monkey\Functions\expect;
+use BSP\Notifications\Admin_Settings_Page;
+use BSP\Notifications\Module;
+use BSP\Notifications\Rest_Controller;
+use PHPUnit\Framework\TestCase;
+
+final class ModuleTest extends TestCase
+{
+    private array $actionsBackup = array();
+
+    private array $shortcodesBackup = array();
+
+    private array $restRoutesBackup = array();
+
+[2025-10-09T20:56:54] tokens used: 14.410
+[2025-10-09T20:56:54] tokens used: 14.410
+
+[2025-10-09T20:57:02] thinking
+
+**Evaluating test restructuring and Brain Monkey integration**
+[2025-10-09T20:57:02] exec bash -lc 'cat tests/phpunit.xml.dist' in C:\booking-pro-module-4.0
+[2025-10-09T20:57:02] bash -lc 'cat tests/phpunit.xml.dist' succeeded in 453ms:
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.6/phpunit.xsd"
+         bootstrap="bootstrap.php"
+         colors="true"
+         verbose="true">
+    <testsuites>
+        <testsuite name="Booking Pro Module Tests">
+            <directory suffix="Test.php">Unit</directory>
+        </testsuite>
+    </testsuites>
+</phpunit>
+[2025-10-09T20:57:02] tokens used: 16.119
+[2025-10-09T20:57:03] tokens used: 16.119
+
+[2025-10-09T20:57:05] thinking
+
+**Investigating test configuration and module hooks**
+[2025-10-09T20:57:06] exec bash -lc "grep -R \"add_action(\\s*'rest_api_init'\" -n modules" in C:\booking-pro-module-4.0
+[2025-10-09T20:57:06] bash -lc "grep -R \"add_action(\\s*'rest_api_init'\" -n modules" succeeded in 639ms:
+modules/core/Agent/CoreModuleAgent.php:77:		add_action( 'rest_api_init', array( $this, 'register_rest_routes' ) );
+modules/core/Rest/RestService.php:58:		add_action( 'rest_api_init', array( __CLASS__, 'routes' ) );
+modules/notifications/Module.php:26:            add_action('rest_api_init', array($this->restController, 'register_routes'));
+modules/planner/Bundles/PlannerBundleService.php:37:        add_action('rest_api_init', array($this, 'registerRestRoutes'));
+modules/sales/Channels/RestController.php:22:		add_action( 'rest_api_init', array( self::class, 'registerRoutes' ) );
+modules/sales/Pricing/PricingRestController.php:31:		add_action( 'rest_api_init', array( self::class, 'registerRoutes' ) );
+modules/sales/Promotions/PromotionsRestController.php:30:		add_action( 'rest_api_init', array( self::class, 'registerRoutes' ) );
+modules/sales/ReviewManager.php:45:		add_action( 'rest_api_init', array( self::class, 'registerRoutes' ) );
+modules/sales/Vendors/VendorRestController.php:32:        add_action('rest_api_init', array(self::class, 'registerRoutes'));
+modules/sales/Vendors/VendorScheduleRestController.php:25:        add_action('rest_api_init', array(self::class, 'registerRoutes'));
+[2025-10-09T20:57:06] tokens used: 17.056
+[2025-10-09T20:57:07] tokens used: 17.056
+
+[2025-10-09T20:57:18] thinking
+
+**Planning test restructuring with Brain Monkey**
+
+I’m figuring out how to update the existing notification module tests by moving them to a new directory and rewriting them with Brain Monkey instead of manual stubs. I want to confirm how the bootstrap and other tests rely on globals so I don’t accidentally break anything while making this change. This feels like a careful balancing act!
+[2025-10-09T20:57:19] exec bash -lc "sed -n '1,200p' tests/Unit/Core/ModuleRegistryTest.php" in C:\booking-pro-module-4.0
+[2025-10-09T20:57:20] bash -lc "sed -n '1,200p' tests/Unit/Core/ModuleRegistryTest.php" succeeded in 642ms:
+<?php
+
+declare(strict_types=1);
+
+namespace BSP\Tests\Unit\Core;
+
+use BSPModule\Shared\Modules\ModuleInterface;
+use BSPModule\Shared\Modules\ModuleRegistry;
+use PHPUnit\Framework\TestCase;
+
+final class ModuleRegistryTest extends TestCase
+{
+    public function testAddStoresModuleOnce(): void
+    {
+        $registry = new ModuleRegistry();
+
+        $module = new class() implements ModuleInterface {
+            public bool $registered = false;
+
+            public function moduleName(): string
+[2025-10-09T20:57:20] tokens used: 17.976
+[2025-10-09T20:57:20] tokens used: 17.976
+
+[2025-10-09T20:57:21] thinking
+
+**Checking for WordPress function usage**
+[2025-10-09T20:57:26] exec bash -lc "sed -n '1,200p' tests/Unit/Planner/Bundles/PlannerBundleServiceTest.php" in C:\booking-pro-module-4.0
+[2025-10-09T20:57:27] bash -lc "sed -n '1,200p' tests/Unit/Planner/Bundles/PlannerBundleServiceTest.php" succeeded in 654ms:
+<?php
+declare(strict_types=1);
+
+namespace BSP\Tests\Unit\Planner\Bundles;
+
+use BSP\Planner\Bundles\BundleRegistry;
+use BSP\Planner\Bundles\PlannerBundleService;
+use PHPUnit\Framework\TestCase;
+
+final class PlannerBundleServiceTest extends TestCase
+{
+    public function testExposeFrontendBundlesMergesRegistryBundles(): void
+    {
+        $registry = new BundleRegistry();
+        $service  = new PlannerBundleService($registry);
+
+        $registry->registerFromArray(array(
+            'id'      => 'BND-1',
+            'label'   => 'Registered Bundle',
+            'meta'    => array(
+[2025-10-09T20:57:27] tokens used: 18.539
+[2025-10-09T20:57:27] tokens used: 18.539
+
+[2025-10-09T20:58:29] thinking
+
+**Reworking test bootstrap and Brain Monkey setup**
+**Designing Brain Monkey-based module test with stubs**
+
+I'll sketch a new `tests/notifications/ModuleTest.php` that uses Brain Monkey to verify hooking for `admin_menu` and `rest_api_init`, stubbing WordPress functions like `add_shortcode` and `function_exists` to prevent fatal errors, and keeping dependencies mocked. This way, the test focuses on hooking using Brain Monkey’s expectations while ensuring necessary functions appear defined.
+[2025-10-09T20:58:51] codex
+**Designing Brain Monkey-based module test with stubs**
+
+I'll sketch a new `tests/notifications/ModuleTest.php` that uses Brain Monkey to verify hooking for `admin_menu` and `rest_api_init`, stubbing WordPress functions like `add_shortcode` and `function_exists` to prevent fatal errors, and keeping dependencies mocked. This way, the test focuses on hooking using Brain Monkey’s expectations while ensuring necessary functions appear defined.
+[2025-10-09T20:58:51] exec bash -lc 'rg "wp_" tests/Unit' in C:\booking-pro-module-4.0
+[2025-10-09T20:58:52] bash -lc 'rg "wp_" tests/Unit' exited 1 in 961ms:
+
+[2025-10-09T20:58:52] tokens used: 24.781
+[2025-10-09T20:58:52] tokens used: 24.781
+
+[2025-10-09T20:59:13] thinking
+
+**Planning Brain Monkey setup for tests**
+[2025-10-09T20:59:14] exec bash -lc "rg \"Brain\\\\Monkey\" tests/Unit -n" in C:\booking-pro-module-4.0
+[2025-10-09T20:59:14] bash -lc "rg \"Brain\\\\Monkey\" tests/Unit -n" exited 2 in 637ms:
+rg: regex parse error:
+    (?:Brain\Monkey)
+            ^^
+error: unrecognized escape sequence
+[2025-10-09T20:59:14] tokens used: 26.459
+[2025-10-09T20:59:15] tokens used: 26.459
+
+[2025-10-09T20:59:15] thinking
+
+**Fixing escape character issue**
+[2025-10-09T20:59:16] exec bash -lc "rg \"Brain\\\\\\\\Monkey\" -n tests/Unit" in C:\booking-pro-module-4.0
+[2025-10-09T20:59:16] bash -lc "rg \"Brain\\\\\\\\Monkey\" -n tests/Unit" exited 2 in 755ms:
+rg: regex parse error:
+    (?:Brain\Monkey)
+            ^^
+error: unrecognized escape sequence
+[2025-10-09T20:59:16] tokens used: 26.719
+[2025-10-09T20:59:17] tokens used: 26.719
+
+[2025-10-09T20:59:18] thinking
+
+**Switching from rg to grep for search**
+[2025-10-09T20:59:19] exec bash -lc "grep -R \"Brain\\\\Monkey\" -n tests/Unit" in C:\booking-pro-module-4.0
+[2025-10-09T20:59:19] bash -lc "grep -R \"Brain\\\\Monkey\" -n tests/Unit" exited 1 in 697ms:
+
+[2025-10-09T20:59:19] tokens used: 26.967
+[2025-10-09T20:59:20] tokens used: 26.967
+
+[2025-10-09T20:59:21] thinking
+
+**Reevaluating search approach for setUp usage**
+[2025-10-09T20:59:22] exec bash -lc "grep -R \"Brain\\\\\\\\Monkey\" -n tests" in C:\booking-pro-module-4.0
+[2025-10-09T20:59:23] bash -lc "grep -R \"Brain\\\\\\\\Monkey\" -n tests" exited 1 in 875ms:
+
+[2025-10-09T20:59:23] tokens used: 27.246
+[2025-10-09T20:59:23] tokens used: 27.246
+
+[2025-10-09T20:59:25] thinking
+
+**Clarifying backslash escaping**
+[2025-10-09T20:59:26] exec bash -lc "sed -n '20,40p' tests/Unit/Notifications/ModuleTest.php" in C:\booking-pro-module-4.0
+[2025-10-09T20:59:27] bash -lc "sed -n '20,40p' tests/Unit/Notifications/ModuleTest.php" succeeded in 735ms:
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        \Brain\Monkey\setUp();
+
+        global $bsp_test_actions, $bsp_test_shortcodes, $bsp_test_rest_routes;
+
+        $this->actionsBackup    = is_array($bsp_test_actions ?? null) ? $bsp_test_actions : array();
+        $this->shortcodesBackup = is_array($bsp_test_shortcodes ?? null) ? $bsp_test_shortcodes : array();
+        $this->restRoutesBackup = is_array($bsp_test_rest_routes ?? null) ? $bsp_test_rest_routes : array();
+
+        $bsp_test_actions     = array();
+        $bsp_test_shortcodes  = array();
+        $bsp_test_rest_routes = array();
+    }
+
+    protected function tearDown(): void
+    {
+        \Brain\Monkey\tearDown();
+[2025-10-09T20:59:27] tokens used: 27.624
+[2025-10-09T20:59:27] tokens used: 27.624
+
+[2025-10-09T20:59:39] thinking
+
+**Planning Brain Monkey bootstrap and test restructure**
+
+There is a lot here! I'm sorting out how to properly initialize Brain Monkey for tests—deciding whether to keep setup calls in bootstrap or move them into a base test class or trait. I want to keep existing tests working while introducing a new base test that handles Brain Monkey setup cleanly. I’m thinking about requiring Brain Monkey functions in bootstrap and providing a helper trait or base class for new tests. I’ll also consider stubs WP functions might need and how to remove or simplify them as we rewrite tests. This feels like balancing new best practices with existing code, so I’ll proceed carefully to maintain compatibility.
+[2025-10-09T20:59:41] exec bash -lc "rg \"__\\(\" -n tests" in C:\booking-pro-module-4.0
+[2025-10-09T20:59:42] bash -lc "rg \"__\\(\" -n tests" succeeded in 645ms:
+tests\bootstrap.php:70:    function __($text, $domain = null) {
+[2025-10-09T20:59:42] tokens used: 28.879
+[2025-10-09T20:59:42] tokens used: 28.879
+
+[2025-10-09T21:00:33] thinking
+
+**Planning test bootstrap and restructuring**
+**Drafting updated test bootstrap and new test setup**
+
+I'll carefully rewrite `tests/bootstrap.php` to load Composer, define constants, and provide a base test class initializing Brain Monkey for WordPress hooking. Then I plan to create a new `ModuleTest.php` under `tests/notifications` using this base class with proper Brain Monkey expectations, and remove the old `Unit` test file to avoid duplicates. I’ll also prepare changes to the PHPUnit config to include the new test directory.
+[2025-10-09T21:01:11] codex
+**Drafting updated test bootstrap and new test setup**
+
+I'll carefully rewrite `tests/bootstrap.php` to load Composer, define constants, and provide a base test class initializing Brain Monkey for WordPress hooking. Then I plan to create a new `ModuleTest.php` under `tests/notifications` using this base class with proper Brain Monkey expectations, and remove the old `Unit` test file to avoid duplicates. I’ll also prepare changes to the PHPUnit config to include the new test directory.
+[2025-10-09T21:01:12] tokens used: 36.087
+[2025-10-09T21:01:13] tokens used: 36.087
+
+[2025-10-09T21:01:15] thinking
+
+**Using Python to write files**
+[2025-10-09T21:01:17] tokens used: 36.980
+[2025-10-09T21:01:17] tokens used: 36.980
+
+[2025-10-09T21:01:28] thinking
+
+**Analyzing allowed shell commands**

@@ -1,0 +1,19 @@
+VOEG EEN REST ENDPOINT TOE AAN EEN MODULE
+
+PARAMS
+- {{MODULE_NAME}} (PascalCase)
+- {{SLUG}} (lowercase)
+- {{ROUTE}} (bv: notifications)
+- {{METHOD}} (GET of POST)
+
+OPDRACHT
+- In `/modules/{{SLUG}}/` maak class `Rest_Controller.php` met namespace `BSP\{{MODULE_NAME}}`
+- Registreer in `init()` van Module: `add_action('rest_api_init', [$this, 'register_routes']);`
+- Route: `/bsp/v1/{{ROUTE}}`, methods {{METHOD}}
+- Permission: read (publiek) of `current_user_can('manage_options')` (parametriseer via comment)
+- Response: JSON met sleutel `ok: true` + timestamp
+- Docblocks + error handling met `WP_Error`
+
+OUTPUT
+- Toon file(s) volledig (Module.php updates + Rest_Controller.php)
+- Toon voorbeeld `curl` call

@@ -122,6 +122,181 @@
     outline-offset: 1px;
 }
 
+.sbdp-date-picker {
+    border: 1px solid #d0d5dd;
+    border-radius: 12px;
+    padding: 1rem 1.25rem;
+    display: grid;
+    gap: 0.85rem;
+    max-width: 360px;
+    background: #fdfefe;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+}
+
+.sbdp-date-picker__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.sbdp-date-picker__label {
+    margin: 0;
+    font-weight: 600;
+    font-size: 1rem;
+    text-transform: capitalize;
+    color: #1f2a44;
+}
+
+.sbdp-date-picker__nav {
+    border: 1px solid #d0d5dd;
+    background: #ffffff;
+    color: #1f2a44;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.sbdp-date-picker__nav:hover:not(:disabled),
+.sbdp-date-picker__nav:focus-visible {
+    background: #002a6b;
+    color: #ffffff;
+    border-color: #002a6b;
+}
+
+.sbdp-date-picker__nav:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.sbdp-date-picker__weekdays {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.4rem;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    color: #6c7a89;
+    text-align: center;
+}
+
+.sbdp-date-picker__weekday {
+    padding: 0.2rem 0;
+}
+
+.sbdp-date-picker__grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.45rem;
+}
+
+.sbdp-date-picker__day {
+    border: 1px solid transparent;
+    background: #ffffff;
+    color: #1f2a44;
+    border-radius: 10px;
+    padding: 0.55rem 0;
+    font-size: 0.95rem;
+    line-height: 1;
+    text-align: center;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.sbdp-date-picker__day[aria-selected="true"] {
+    background: #002a6b;
+    color: #ffffff;
+    border-color: #002a6b;
+    box-shadow: 0 6px 14px rgba(0, 42, 107, 0.25);
+}
+
+.sbdp-date-picker__day--today:not([aria-selected="true"]) {
+    border-color: rgba(0, 42, 107, 0.35);
+}
+
+.sbdp-date-picker__day--unavailable {
+    color: #a7b1c3;
+}
+
+.sbdp-date-picker__day--unavailable[aria-selected="true"] {
+    background: #aab6c8;
+    color: #ffffff;
+    border-color: #aab6c8;
+}
+
+.sbdp-date-picker__day:disabled,
+.sbdp-date-picker__day[aria-disabled="true"] {
+    cursor: not-allowed;
+    color: #cbd3df;
+    border-color: transparent;
+    background: #f1f3f7;
+}
+
+.sbdp-date-picker__cell--empty {
+    background: none;
+    border: none;
+    pointer-events: none;
+}
+
+.sbdp-time-picker {
+    display: grid;
+    gap: 0.75rem;
+    max-width: 360px;
+}
+
+.sbdp-time-picker__status {
+    margin: 0;
+    font-size: 0.9rem;
+    color: #6c7a89;
+}
+
+.sbdp-time-picker__grid {
+    display: grid;
+    gap: 0.5rem;
+    grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
+}
+
+.sbdp-time-picker__slot {
+    border: 1px solid #d0d5dd;
+    background: #ffffff;
+    border-radius: 10px;
+    padding: 0.55rem 0.75rem;
+    text-align: center;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.sbdp-time-picker__slot:hover,
+.sbdp-time-picker__slot:focus-visible {
+    border-color: #002a6b;
+    color: #002a6b;
+    box-shadow: 0 0 0 2px rgba(0, 42, 107, 0.1);
+}
+
+.sbdp-time-picker__slot[aria-selected="true"] {
+    background: #002a6b;
+    color: #ffffff;
+    border-color: #002a6b;
+    box-shadow: 0 6px 14px rgba(0, 42, 107, 0.25);
+}
+
+.sbdp-time-picker__slot:disabled {
+    cursor: not-allowed;
+    color: #cbd3df;
+    background: #f3f5f8;
+    border-color: #e5e9f1;
+}
+
+.sbdp-time-picker--empty .sbdp-time-picker__grid {
+    display: none;
+}
+
 .sbdp-booking-shell__summary {
     background: #002a6b;
     color: #ffffff;

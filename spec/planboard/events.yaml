@@ -1,0 +1,32 @@
+version: 1
+bus: sbdp-planboard
+events:
+  - name: BookingCreated
+    source: bookings
+    payload:
+      bookingId: string
+      outletId: string
+      timeslot: string
+      participants: integer
+  - name: BookingUpdated
+    source: bookings
+    payload:
+      bookingId: string
+      changes: object
+  - name: CapacityAdjusted
+    source: availability
+    payload:
+      outletId: string
+      slotId: string
+      delta: integer
+  - name: PriceUpdated
+    source: pricing
+    payload:
+      productId: string
+      ruleId: string
+      newPrice: number
+retries:
+  max_attempts: 8
+  backoff: "exponential"
+security:
+  signature_header: "X-SBDP-Signature"

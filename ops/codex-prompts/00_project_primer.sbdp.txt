@@ -1,0 +1,24 @@
+GOAL
+Automatically emit a ready-to-send primer for the Booking Pro Suite repository; do not wait for follow-up dialogue.
+
+REFERENCE DATA (use verbatim)
+- Bootstrap file: booking-pro-suite.php (loads includes/class-sbdp-plugin.php and core/bootstrap.php)
+- Core services: includes/class-sbdp-plugin.php, includes/class-core-agent.php, includes/class-admin-menu.php, includes/class-rest.php
+- Module directories: modules/planner, modules/sales, modules/data, modules/support, modules/notifications, modules/commerce, modules/intelligence, modules/finance, modules/core
+- MU plugins: mu-plugins/sbdp-allow-rest.php, mu-plugins/sbdp-cli-diagnostics.php
+- Supporting folders: assets/, languages/, scripts/, tests/, dist/
+- Key scripts: scripts/run-full-codex-cycle.sh, scripts/build-all-modules.sh, scripts/rest-smoke.ps1, scripts/run-staging-checks.sh
+- Composer script: `composer test`
+- Primary tests entry: vendor/bin/phpunit --configuration tests/phpunit.xml.dist
+- Quality command: pwsh -File scripts/run-quality-checks.ps1
+
+OUTPUT FORMAT
+- Use Markdown headings exactly in this order: Overview, Key Paths, Tooling, Immediate Actions.
+- Each heading must contain 1-4 bullet points.
+- Mention file paths in backticks and keep each bullet <= 25 words.
+- Immediate Actions should recommend specific commands chosen from the reference data.
+- If information is missing (should not happen), write "- None found".
+
+RESTRICTIONS
+- Do not run shell commands or ask for additional input; rely solely on the reference data above.
+- Respond in English.

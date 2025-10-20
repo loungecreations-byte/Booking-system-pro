@@ -1,0 +1,29 @@
+2025-10-15 04:08:43Z
+Starting Nightly Pro Build
+[1/8] Prebuild: opruimen oude data...
+[2/8] Preflight checks...
+composer dump-autoload: OK
+codex lint PHP/JS: skipped (codex command unavailable in environment)
+codex verify composer.json: skipped (codex command unavailable in environment)
+[3/8] Volledige build uitvoeren...
+codex exec codex/weekend_master_build_v3.codex --write: skipped (codex command unavailable)
+Build herstelactie via codex: skipped (codex command unavailable)
+[4/8] Extra buildtaken...
+codex generate module Vendor / ensure Planner assets compiled: skipped (codex command unavailable)
+codex compile frontend assets: skipped (codex command unavailable)
+codex add version banner to assets: skipped (codex command unavailable)
+[5/8] Optimalisatie...
+codex optimize plugin tasks: skipped (codex command unavailable)
+codex performance baseline: skipped (codex command unavailable)
+[6/8] Tests...
+codex php -l on all PHP files: skipped (codex command unavailable)
+codex REST endpoint smoke tests: skipped (codex command unavailable)
+codex shortcode validation: skipped (codex command unavailable)
+codex security audit: skipped (codex command unavailable)
+[7/8] Documentatie...
+codex generate docs/API.md: skipped (codex command unavailable)
+codex generate CHANGELOG.md: skipped (codex command unavailable)
+codex generate docs/architecture.md: skipped (codex command unavailable)
+[8/8] Packaging...
+[] ZIP gemaakt: dist/booking-system-pro-20251015.zip
+DONE: NIGHTLY-PRO-BUILD-OK

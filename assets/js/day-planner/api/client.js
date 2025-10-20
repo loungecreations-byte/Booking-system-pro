@@ -1,0 +1,129 @@
+const DEFAULT_HEADERS = {
+  "Content-Type": "application/json",
+};
+
+/**
+ * Create a REST client for the day planner endpoints.
+ *
+ * @param {Object} options
+ * @param {string} options.restBase
+ * @param {string} options.nonce
+ */
+export function createPlannerApi({ restBase, nonce }) {
+  const baseUrl = sanitiseBase(restBase);
+
+  /**
+   * @param {string} path
+   * @param {Object} [options]
+   * @param {"GET"|"POST"|"PATCH"} [options.method]
+   * @param {Object} [options.body]
+   * @param {Object} [options.params]
+   */
+  async function request(path, { method = "GET", body, params } = {}) {
+    const url = buildUrl(baseUrl, path, params);
+
+    const response = await fetch(url, {
+      method,
+      headers: {
+        ...DEFAULT_HEADERS,
+        "X-WP-Nonce": nonce,
+      },
+      body: body ? JSON.stringify(body) : undefined,
+      credentials: "same-origin",
+    });
+
+    const payload = await parseJson(response);
+
+    if (!response.ok) {
+      const message = payload && payload.message ? payload.message : response.statusText;
+      throw new Error(message || "Request failed");
+    }
+
+    return payload;
+  }
+
+  return {
+    listActivities(filters = {}) {
+      return request("/activities", { params: filters });
+    },
+
+    createPlan(payload) {
+      return request("/plan", { method: "POST", body: payload });
+    },
+
+    getPlan(planId) {
+      return request(`/plan/${planId}`);
+    },
+
+    updatePlan(planId, payload) {
+      return request(`/plan/${planId}`, { method: "PATCH", body: payload });
+    },
+
+    sharePlan(planId) {
+      return request(`/plan/${planId}/share`, { method: "POST" });
+    },
+
+    queueBooking(planId) {
+      return request(`/plan/${planId}/book`, { method: "POST" });
+    },
+
+    exportPlan(planId, type) {
+      const exportType = type === "ics" ? "ics" : "pdf";
+      return request(`/plan/${planId}/export/${exportType}`, { method: "POST" });
+    },
+
+    suggestActivities(preferences) {
+      return request("/plan/ai/suggest", { method: "POST", body: preferences });
+    },
+
+    detectConflicts(plan) {
+      return request("/plan/conflicts", { method: "POST", body: plan });
+    },
+  };
+}
+
+function sanitiseBase(restBase) {
+  if (typeof restBase !== "string" || restBase.length === 0) {
+    return "";
+  }
+
+  return restBase.replace(/\/+$/, "");
+}
+
+function buildUrl(base, path, params = {}) {
+  const query = new URLSearchParams();
+
+  Object.entries(params).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === "") {
+      return;
+    }
+
+    if (Array.isArray(value)) {
+      value.forEach((item) => query.append(`${key}[]`, String(item)));
+      return;
+    }
+
+    query.append(key, String(value));
+  });
+
+  const suffix = path.startsWith("/") ? path : `/${path}`;
+  const queryString = query.toString();
+
+  return queryString ? `${base}${suffix}?${queryString}` : `${base}${suffix}`;
+}
+
+async function parseJson(response) {
+  const contentType = response.headers.get("Content-Type");
+  if (!contentType || contentType.indexOf("application/json") === -1) {
+    return null;
+  }
+
+  try {
+    return await response.json();
+  } catch (error) {
+    console.warn("Failed to parse JSON response", error);
+    return null;
+  }
+}
+
+export default createPlannerApi;

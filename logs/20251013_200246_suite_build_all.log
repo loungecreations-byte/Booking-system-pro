@@ -1,0 +1,3 @@
+[20:02:46] Start suite build (env=staging, minify=true, clean=true)
+[20:02:46] Controleren van vereisten
+Error: Modulebron ontbreekt: modules/vendors

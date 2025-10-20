@@ -1,0 +1,9 @@
+erDiagram
+  BOOKING ||--o{ BOOKING_NOTE : has
+  BOOKING ||--|| TIMESLOT : scheduled_in
+  BOOKING }o--|| CUSTOMER : belongs_to
+  TIMESLOT ||--|| RESOURCE : allocates
+  RESOURCE }o--o{ OUTLET : grouped_by
+  PRICE_RULE }o--o{ PRODUCT : applies_to
+  CHANNEL ||--o{ CHANNEL_SYNC : logs
+  AVAILABILITY_BLOCK }o--|| RESOURCE : locks

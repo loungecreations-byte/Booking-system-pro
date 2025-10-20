@@ -4,12 +4,24 @@ param(
 
 $ErrorActionPreference = 'Stop'
 
-function Invoke-Git([string[]]$Args) {
-    & git @Args
+function Invoke-Git {
+    param(
+        [Parameter(ValueFromRemainingArguments = $true)]
+        [string[]]$Arguments
+    )
+
+    & git @Arguments
 }
 
-$latestCommit = Invoke-Git @('log','-1','--pretty=format:%h %s')
-$changes = Invoke-Git @('status','-sb')
+$commitHash = [string](Invoke-Git log -1 '--pretty=%h')
+$commitSubject = [string](Invoke-Git log -1 '--pretty=%s')
+$latestCommit = "{0} {1}" -f $commitHash, $commitSubject
+$changesRaw = Invoke-Git status -sb
+if ($changesRaw -is [System.Array]) {
+    $changes = $changesRaw | Select-Object -First 20
+} else {
+    $changes = $changesRaw
+}
 $zip = Get-ChildItem dist -Filter 'booking-pro-module-*.zip' -ErrorAction SilentlyContinue | Sort-Object LastWriteTime -Descending | Select-Object -First 1
 if ($zip) {
     $sizeMb = [math]::Round($zip.Length / 1MB, 2)
@@ -28,9 +40,13 @@ $lines += '- php audit_booking_module.php --path=modules --json'
 $lines += ''
 $lines += '## Notes'
 $lines += ''
-$lines += 'git status:'
+$lines += 'git status (first 20 lines):'
 $lines += '```'
-$lines += $changes
+if ($changes -is [System.Array]) {
+    $lines += $changes
+} else {
+    $lines += $changes.ToString()
+}
 $lines += '```'
 
 $lines -join [Environment]::NewLine | Out-File $OutputPath -Encoding UTF8

@@ -1,0 +1,49 @@
+🌙 Nightly run started at Thu, Oct  9, 2025  7:14:35 AM
+⚙️  Generating module: Planner
+⚙️  Generating module: Sales
+⚙️  Generating module: Finance
+⚙️  Generating module: Data
+⚙️  Generating module: Support
+⚙️  Generating module: Notifications
+⚙️  Generating module: Commerce
+⚙️  Generating module: Intelligence
+✅ Module generation complete. Output stored in /c/booking-pro-module-4.0/ops/codex-output/
+🚀 Starting Codex full cycle at Thu, Oct  9, 2025  7:14:40 AM
+────────────────────────────
+▶️  Running Codex prompt: 00_project_primer.sbdp.txt
+────────────────────────────
+────────────────────────────
+▶️  Running Codex prompt: 01_plugin_build_plan.sbdp.txt
+────────────────────────────
+────────────────────────────
+▶️  Running Codex prompt: 02_check_structure_and_autoload.sbdp.txt
+────────────────────────────
+────────────────────────────
+▶️  Running Codex prompt: 03_module_generator.sbdp.txt
+────────────────────────────
+────────────────────────────
+▶️  Running Codex prompt: 04_rest_endpoint.sbdp.txt
+────────────────────────────
+────────────────────────────
+▶️  Running Codex prompt: 05_shortcode_ui.sbdp.txt
+────────────────────────────
+────────────────────────────
+▶️  Running Codex prompt: 06_admin_page.sbdp.txt
+────────────────────────────
+────────────────────────────
+▶️  Running Codex prompt: 07_unit_test.sbdp.txt
+────────────────────────────
+────────────────────────────
+▶️  Running Codex prompt: 08_plugin_validator.sbdp.txt
+────────────────────────────
+────────────────────────────
+▶️  Running Codex prompt: 09_zip_packaging.sbdp.txt
+────────────────────────────
+────────────────────────────
+▶️  Running Codex prompt: 10_top_plugin_audit.sbdp.txt
+────────────────────────────
+────────────────────────────
+▶️  Running Codex prompt: 11_auto_fix_from_audit.sbdp.txt
+────────────────────────────
+✅ Full Codex cycle finished in 47s
+./scripts/nightly-build.sh: line 8: ./scripts/optimize-plugin.sh: No such file or directory

@@ -1,0 +1,12 @@
+*** Begin Patch
+*** Update File: assets/js/day-planner/modules/TimelineCompact.jsx
+@@
+-            const slots = Array.isArray(day.slots) ? day.slots : [];
+-            const slotsByHour = HOURS.map((hour) => ({
++            const slots = Array.isArray(day.slots) ? day.slots : [];
++            const totalParticipantsCount = sumParticipants(slots);
++            const slotsByHour = HOURS.map((hour) => ({
+               hour,
+               items: slots.filter((slot) => getSlotHour(slot) === hour),
+             }));
+*** End Patch

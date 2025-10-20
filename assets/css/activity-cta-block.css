@@ -1,0 +1,185 @@
+.ddb-cta-block {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    padding: 1.1rem 1.5rem;
+    border-radius: 0.9rem;
+    background: linear-gradient(135deg, #fdf2e9 0%, #eef3ff 100%);
+    box-shadow: 0 14px 28px rgba(16, 46, 115, 0.08);
+    border: 1px solid rgba(255, 112, 61, 0.25);
+}
+
+.ddb-cta-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.ddb-cta-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.25rem;
+    align-items: center;
+    font-size: 0.9rem;
+    color: #1d305c;
+}
+
+.ddb-cta-details[hidden] {
+    display: none !important;
+}
+
+.ddb-cta-details__item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+}
+
+.ddb-cta-details__field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+    min-width: 140px;
+}
+
+.ddb-cta-details__input {
+    display: block;
+    width: 100%;
+    min-height: 2.75rem;
+    padding: 0.55rem 0.9rem;
+    border-radius: 0.75rem;
+    border: 1px solid rgba(15, 35, 95, 0.2);
+    background: #fff;
+    color: #0d2254;
+    font-size: 0.95rem;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.ddb-cta-details__input:focus {
+    border-color: rgba(15, 83, 255, 0.6);
+    box-shadow: 0 0 0 3px rgba(15, 83, 255, 0.15);
+    outline: none;
+}
+
+.ddb-cta-details__input::-webkit-calendar-picker-indicator {
+    filter: invert(25%);
+}
+
+.ddb-cta-details__input[type="number"] {
+    -moz-appearance: textfield;
+}
+
+.ddb-cta-details__input[type="number"]::-webkit-outer-spin-button,
+.ddb-cta-details__input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.ddb-cta-details__label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: rgba(13, 34, 84, 0.65);
+}
+
+.ddb-cta-details__value {
+    font-weight: 600;
+    color: #0d2254;
+}
+
+.ddb-cta-block .ddb-add-to-plan,
+.ddb-cta-block .ddb-direct-book,
+.ddb-cta-block .ddb-info {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.65rem 1.4rem;
+    border-radius: 999px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+.ddb-cta-block .ddb-add-to-plan {
+    background: #ff6f3d;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 10px 18px rgba(255, 112, 61, 0.35);
+}
+
+.ddb-cta-block .ddb-direct-book {
+    background: #5168C1;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    box-shadow: 0 10px 18px rgba(81, 104, 193, 0.32);
+}
+
+.ddb-cta-block .ddb-info {
+    background: #ffffff;
+    color: #11224f;
+    border: 2px solid rgba(17, 34, 79, 0.18);
+    box-shadow: inset 0 0 0 1px rgba(17, 34, 79, 0.04);
+}
+
+.ddb-cta-block .ddb-add-to-plan:hover,
+.ddb-cta-block .ddb-direct-book:hover,
+.ddb-cta-block .ddb-info:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 24px rgba(15, 35, 95, 0.25);
+}
+
+.ddb-cta-block .ddb-add-to-plan.ddb-in-planner {
+    background: #122c6a;
+    box-shadow: 0 12px 20px rgba(18, 44, 106, 0.38);
+}
+
+.ddb-cta-block .ddb-add-to-plan.ddb-in-planner:after {
+    content: "\2713";
+    display: inline-block;
+    margin-left: 0.5rem;
+    font-size: 0.85rem;
+}
+
+.ddb-cta-block .ddb-info:focus,
+.ddb-cta-block .ddb-direct-book:focus,
+.ddb-cta-block .ddb-add-to-plan:focus {
+    outline: 3px solid rgba(255, 112, 61, 0.55);
+    outline-offset: 3px;
+}
+
+@media (max-width: 600px) {
+    .ddb-cta-block {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .ddb-cta-details {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.65rem;
+    }
+
+    .ddb-cta-details__item {
+        width: 100%;
+    }
+
+    .ddb-cta-details__field {
+        width: 100%;
+    }
+
+    .ddb-cta-actions {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.6rem;
+    }
+
+    .ddb-cta-block .ddb-add-to-plan,
+    .ddb-cta-block .ddb-direct-book,
+    .ddb-cta-block .ddb-info {
+        width: 100%;
+    }
+}

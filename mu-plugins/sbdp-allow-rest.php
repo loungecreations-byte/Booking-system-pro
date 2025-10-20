@@ -6,7 +6,7 @@
 
 add_filter(
 	'rest_authentication_errors',
-	function ( $result ) {
+	function( $result ) {
 		if ( ! empty( $result ) ) {
 			$route = isset( $_SERVER['REQUEST_URI'] ) ? $_SERVER['REQUEST_URI'] : '';
 			if ( strpos( $route, '/wp-json/sbdp/v1/' ) !== false ) {
@@ -18,3 +18,4 @@ add_filter(
 	},
 	5
 );
+

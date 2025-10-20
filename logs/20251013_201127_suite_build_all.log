@@ -1,0 +1,3 @@
+[20:11:27] Start suite build (env=staging, minify=true, clean=true)
+[20:11:27] Controleren van vereisten
+Error: Modulebron ontbreekt: modules/insights

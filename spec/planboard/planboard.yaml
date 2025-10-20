@@ -1,0 +1,91 @@
+meta:
+  name: "Planboard v1"
+  version: "1.0.0"
+  owner: "Booking Pro"
+  updated_at: "2025-10-17T13:19:25.7095813+02:00"
+runtime:
+  base_url: "https://site.local/wp-json"
+  auth:
+    type: "wp-nonce"
+    header: "X-WP-Nonce"
+  realtime:
+    enabled: True
+    transport: "websocket"
+    channel: "sbdp.planboard.\"
+domains:
+  - bookings
+  - availability
+  - planner
+  - pricing
+  - channels
+  - notifications
+non_functional:
+  sla:
+    rto_minutes: 30
+    rpo_minutes: 15
+    latency_p50_ms: 200
+    latency_p95_ms: 600
+  rate_limits:
+    read_rpm: 600
+    write_rpm: 120
+data_sources:
+  - name: primary_db
+    type: "mysql"
+    owner: "booking-core"
+  - name: cache
+    type: "redis"
+flows:
+  live_board:
+    goal: "Realtime zicht op capaciteit en status per timeslot"
+    steps:
+      - subscribe: "realtime.channel"
+      - fetch: "GET /sbdp/v1/planner/board?days=7&outlet={id}"
+      - hydrate: "bookings + availability + priceHints"
+      - update_on: ["BookingCreated","BookingUpdated","CapacityAdjusted","PriceUpdated"]
+  manage_bookings:
+    goal: "Snel zoeken, wijzigen, annuleren, notities en refunds"
+    steps:
+      - search: "GET /sbdp/v1/bookings?query=..."
+      - edit:   "PATCH /sbdp/v1/bookings/{id}"
+      - cancel: "POST /sbdp/v1/bookings/{id}/cancel"
+      - refund: "POST /sbdp/v1/bookings/{id}/refund"
+  drag_drop:
+    goal: "Herplannen met drag & drop tussen tijdsloten/ressources"
+    steps:
+      - start:  "POST /sbdp/v1/drag/sessions"
+      - apply:  "POST /sbdp/v1/drag/apply {bookingId, toSlotId}"
+      - commit: "POST /sbdp/v1/drag/commit"
+      - rollback: "POST /sbdp/v1/drag/rollback"
+    constraints:
+      - "respect participant limits"
+      - "respect resource exclusivity"
+      - "no cross-outlet unless role permits"
+  availability_ops:
+    goal: "Capaciteit en blokkades beheren"
+    steps:
+      - add_block:    "POST /sbdp/v1/availability/blocks"
+      - remove_block: "DELETE /sbdp/v1/availability/blocks/{id}"
+      - set_quota:    "POST /sbdp/v1/availability/quotas"
+  permissions:
+    roles: ["owner","manager","agent","supplier","viewer"]
+    rules:
+      - "agent: manage own-outlet bookings, no pricing edits"
+      - "manager: all bookings in tenant, pricing limited"
+      - "owner: full access"
+integrations:
+  channels:
+    enabled: True
+    providers: ["GetYourGuide","Viator","Tripadvisor","Briq"]
+    sync:
+      schedule: "*/15 * * * *"
+      hooks: ["onInventoryChange","onPriceChange","onBlackout"]
+ui:
+  drag_and_drop:
+    lib: "native-html5"
+    drop_targets: ["timeslot","resource"]
+    ghost_preview: true
+    snap_minutes: 15
+  board:
+    timescales: ["day","week"]
+    density: "auto"
+    indicators: ["overbook","low_capacity","hardware_alert"]

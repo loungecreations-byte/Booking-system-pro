@@ -1,9 +1,9 @@
 <?php return array(
     'root' => array(
         'name' => 'owncreations/booking-pro-module',
-        'pretty_version' => '1.0.0+no-version-set',
-        'version' => '1.0.0.0',
-        'reference' => null,
+        'pretty_version' => 'dev-master',
+        'version' => 'dev-master',
+        'reference' => 'ed6ced99676732ccc6136f20d5ba19dd812aff57',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -47,9 +47,9 @@
             'dev_requirement' => true,
         ),
         'owncreations/booking-pro-module' => array(
-            'pretty_version' => '1.0.0+no-version-set',
-            'version' => '1.0.0.0',
-            'reference' => null,
+            'pretty_version' => 'dev-master',
+            'version' => 'dev-master',
+            'reference' => 'ed6ced99676732ccc6136f20d5ba19dd812aff57',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

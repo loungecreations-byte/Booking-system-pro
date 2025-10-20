@@ -1,0 +1,54 @@
+[21:48:44] Start suite build (env=staging, minify=true, clean=true)
+[21:48:44] Controleren van vereisten
+[21:48:44] Installeren van npm dependencies
+
+up to date, audited 4 packages in 898ms
+
+found 0 vulnerabilities
+[21:48:46] Opschonen van bestaande dist inhoud
+[21:48:46] Bouwen van BSP core
+[21:48:47] Bouwen van Planner module
+[21:48:48] Bouwen van Commerce module
+[21:48:48] Bouwen van Vendors module
+[21:48:49] Bouwen van Insights module
+[21:48:50] Genereren van versie manifest
+[21:48:50] Valideren van dist output
+All modules present.
+[21:48:50] Verpakken van volledige plugin
+Compress-Archive : The path '\c\booking-pro-module-4.0\dist' either does not exist or is not a valid file system path.
+At line:1 char:1
++ Compress-Archive -Path '\c\booking-pro-module-4.0\dist\_package\booki ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : InvalidArgument: (\c\booking-pro-module-4.0\dist:String) [Compress-Archive], InvalidOperationException
+    + FullyQualifiedErrorId : ArchiveCmdletPathNotFound,Compress-Archive
+ 
+
+Build mislukt bij stap: package plugin (exitcode 1)
+Laatste 50 regels uit logs/20251013_214844_suite_build_all.log:
+[21:48:44] Start suite build (env=staging, minify=true, clean=true)
+[21:48:44] Controleren van vereisten
+[21:48:44] Installeren van npm dependencies
+
+up to date, audited 4 packages in 898ms
+
+found 0 vulnerabilities
+[21:48:46] Opschonen van bestaande dist inhoud
+[21:48:46] Bouwen van BSP core
+[21:48:47] Bouwen van Planner module
+[21:48:48] Bouwen van Commerce module
+[21:48:48] Bouwen van Vendors module
+[21:48:49] Bouwen van Insights module
+[21:48:50] Genereren van versie manifest
+[21:48:50] Valideren van dist output
+All modules present.
+[21:48:50] Verpakken van volledige plugin
+Compress-Archive : The path '\c\booking-pro-module-4.0\dist' either does not exist or is not a valid file system path.
+At line:1 char:1
++ Compress-Archive -Path '\c\booking-pro-module-4.0\dist\_package\booki ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : InvalidArgument: (\c\booking-pro-module-4.0\dist:String) [Compress-Archive], InvalidOperationException
+    + FullyQualifiedErrorId : ArchiveCmdletPathNotFound,Compress-Archive
+ 
+
+Build mislukt bij stap: package plugin (exitcode 1)
+Laatste 50 regels uit logs/20251013_214844_suite_build_all.log:
