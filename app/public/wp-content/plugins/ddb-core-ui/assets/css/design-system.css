@@ -1,0 +1,2257 @@
+/* DagjeDenBosch Design System (mobile-first, pagespeed-first, token-first) */
+:root {
+  /* Typography — canonical DDB: Quattrocento (headlines) + Quattrocento Sans (body/UI) */
+  --ui-font-display: var(--ddb-font-display, "Quattrocento", serif);
+  --ui-font-serif: var(--ddb-font-serif, "Quattrocento", serif);
+  --ui-font-sans: var(--ddb-font-sans, "Quattrocento Sans", sans-serif);
+  --ui-font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  --ui-text-xs: 0.75rem;
+  --ui-text-sm: 0.875rem;
+  --ui-text-md: 1rem;
+  --ui-text-lg: 1.125rem;
+  --ui-text-xl: 1.25rem;
+  --ui-text-2xl: 1.5rem;
+  --ui-text-3xl: clamp(1.75rem, 3.2vw, 2.25rem);
+  --ui-leading-tight: 1.2;
+  --ui-leading-body: 1.55;
+  --ui-weight-regular: 400;
+  --ui-weight-medium: 500;
+  --ui-weight-semibold: 600;
+  --ui-weight-bold: 700;
+
+  /* Spacing */
+  --ui-space-2xs: 0.25rem;
+  --ui-space-xs: 0.5rem;
+  --ui-space-sm: 0.75rem;
+  --ui-space-md: 1rem;
+  --ui-space-lg: 1.5rem;
+  --ui-space-xl: 2rem;
+  --ui-space-2xl: 3rem;
+  --ui-space-3xl: 4rem;
+
+  /* Radius + Border */
+  --ui-radius-sm: 0.5rem;
+  --ui-radius-md: 0.6875rem;
+  --ui-radius-lg: 1rem;
+  --ui-radius-xl: 1.375rem;
+  --ui-radius-card: 1.375rem;
+  --ui-radius-section: 1.375rem;
+  --ui-radius-pill: 999px;
+  --ui-border-width: 1px;
+
+  /* Containers */
+  --ui-container-sm: 40rem;
+  --ui-container-md: 56rem;
+  --ui-container-lg: 72rem;
+  --ui-container-xl: 80rem;
+  --ui-container-pad: 1rem;
+
+  /* ──────────────────────────────────────────────────────────────────
+     Semantic Colors (Light Mode Default)
+     Warm paper vibes, preventing clinical #FFFFFF
+     ────────────────────────────────────────────────────────────────── */
+  --ui-color-bg: #fdfbf7;
+  --ui-color-surface: #ffffff;
+  --ui-color-surface-2: #f4f1eb;
+  --ui-color-surface-3: #ebe5dd;
+  --ui-color-text: #1a1714;
+  --ui-color-text-muted: #6b635c;
+  --ui-color-border: #e2dacd;
+  --ui-color-border-subtle: rgba(26, 23, 20, 0.08);
+
+  --ui-color-primary: #d4af37;
+  --ui-color-primary-hover: #bc992a;
+  --ui-color-primary-contrast: #100b02;
+  --ui-color-accent: #d4af37;
+  --ui-color-accent-contrast: #17120a;
+  --ui-color-cta: #1a1714;
+  --ui-color-cta-hover: #2e2823;
+  --ui-color-cta-contrast: #ffffff;
+  
+  --ui-color-success: #15803d;
+  --ui-color-warning: #b45309;
+  --ui-color-danger: #b91c1c;
+  --ui-color-focus: #c58a53;
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   OLED Dark Mode (Apple-like premium dark)
+   Activated by precise class or OS preference
+   ────────────────────────────────────────────────────────────────── */
+:root.theme-dark,
+[data-theme="dark"] {
+  --ui-color-bg: #000000;
+  --ui-color-surface: #0f0f0f;
+  --ui-color-surface-2: #1c1a17;
+  --ui-color-surface-3: #2a2723;
+  --ui-color-text: #f5f2ed;
+  --ui-color-text-muted: #a39c94;
+  --ui-color-border: #2a2723;
+  --ui-color-border-subtle: rgba(245, 242, 237, 0.08);
+
+  --ui-color-cta: #f5f2ed;
+  --ui-color-cta-hover: #dedad5;
+  --ui-color-cta-contrast: #0f0f0f;
+  
+  --ui-nav-bg: color-mix(in srgb, #0f0f0f 94%, transparent);
+  --ui-nav-border: #2a2723;
+  --ui-nav-text: #f5f2ed;
+  --ui-nav-pill-bg: color-mix(in srgb, #1c1a17 92%, transparent);
+  --ui-nav-toggle-bg: #1c1a17;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not(.theme-light):not([data-theme="light"]) {
+    --ui-color-bg: #000000;
+    --ui-color-surface: #0f0f0f;
+    --ui-color-surface-2: #1c1a17;
+    --ui-color-surface-3: #2a2723;
+    --ui-color-text: #f5f2ed;
+    --ui-color-text-muted: #a39c94;
+    --ui-color-border: #2a2723;
+    --ui-color-border-subtle: rgba(245, 242, 237, 0.08);
+
+    --ui-color-cta: #f5f2ed;
+    --ui-color-cta-hover: #dedad5;
+    --ui-color-cta-contrast: #0f0f0f;
+
+    --ui-nav-bg: color-mix(in srgb, #0f0f0f 94%, transparent);
+    --ui-nav-border: #2a2723;
+    --ui-nav-text: #f5f2ed;
+    --ui-nav-pill-bg: color-mix(in srgb, #1c1a17 92%, transparent);
+    --ui-nav-toggle-bg: #1c1a17;
+  }
+}
+
+:root {
+  /* Shadows + Motion + Layers */
+  --ui-shadow-sm: var(--ddb-shadow-1, 0 18px 40px rgba(0, 0, 0, 0.22));
+  --ui-shadow-md: var(--ddb-shadow-2, 0 26px 56px rgba(0, 0, 0, 0.3));
+  --ui-shadow-lg: var(--ddb-shadow-2, 0 34px 72px rgba(0, 0, 0, 0.38));
+  --ui-nav-bg: color-mix(in srgb, var(--ui-color-surface) 94%, transparent);
+  --ui-nav-border: var(--ui-color-border);
+  --ui-nav-text: var(--ui-color-text);
+  --ui-nav-pill-bg: color-mix(in srgb, var(--ui-color-surface-2) 92%, transparent);
+  --ui-nav-pill-bg-hover: color-mix(in srgb, var(--ui-color-primary) 16%, var(--ui-color-surface));
+  --ui-nav-pill-border: color-mix(in srgb, var(--ui-color-border) 92%, transparent);
+  --ui-nav-shadow: 0 10px 24px rgba(26, 22, 18, 0.14);
+  --ui-nav-toggle-bg: var(--ui-color-surface-2);
+  --ui-nav-toggle-bg-hover: color-mix(in srgb, var(--ui-color-primary) 14%, var(--ui-color-surface));
+  --ui-nav-toggle-border: var(--ui-color-border);
+  --ui-nav-toggle-shadow: 0 6px 18px rgba(26, 22, 18, 0.16);
+  /* Gold accent — DagjeDenBosch primary CTA color */
+  --ddb-gold:        #d4af37;
+  --ddb-gold-light:  #edd48b;
+  --ddb-gold-dark:   #c9932a;
+  --ddb-gold-rgb:    212, 175, 55;
+  --ddb-gold-contrast: #17120a;
+
+  --ui-motion-fast: 140ms;
+  --ui-motion-base: 220ms;
+  --ui-ease-standard: cubic-bezier(0.2, 0.75, 0.3, 1);
+  --ui-z-header: 40;
+  --ui-z-dropdown: 50;
+  --ui-z-overlay: 60;
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   LEGACY ALIAS BRIDGE
+   Maps old --ddb-* and --chrome-* token names used in commerce/offerte/
+   global-theme CSS files to the canonical --ui-* runtime.
+   Do not remove: sbdp-cart-checkout.css, sbdp-offerte-form.css,
+   and global-theme.css still reference these names.
+   ──────────────────────────────────────────────────────────────── */
+:root {
+  /* Typography aliases */
+  --ddb-font-family:        var(--ui-font-sans);
+  --ddb-text-xs:            var(--ui-text-xs);
+  --ddb-text-sm:            var(--ui-text-sm);
+  --ddb-text-base:          var(--ui-text-md);
+  --ddb-text-md:            var(--ui-text-md);
+  --ddb-text-lg:            var(--ui-text-lg);
+  --ddb-text-xl:            var(--ui-text-xl);
+  --ddb-text-2xl:           var(--ui-text-2xl);
+  --ddb-text-3xl:           var(--ui-text-3xl);
+  --ddb-text-4xl:           clamp(2rem, 5vw, 3rem);
+  --ddb-weight-regular:     var(--ui-weight-regular);
+  --ddb-weight-medium:      var(--ui-weight-medium);
+  --ddb-weight-semibold:    var(--ui-weight-semibold);
+  --ddb-weight-bold:        var(--ui-weight-bold);
+  --ddb-leading-relaxed:    1.6;
+
+  /* Spacing aliases */
+  --ddb-spacing-2xs:        var(--ui-space-2xs);
+  --ddb-spacing-xs:         var(--ui-space-xs);
+  --ddb-spacing-sm:         var(--ui-space-sm);
+  --ddb-spacing-md:         var(--ui-space-md);
+  --ddb-spacing-lg:         var(--ui-space-lg);
+  --ddb-spacing-xl:         var(--ui-space-xl);
+  --ddb-spacing-2xl:        var(--ui-space-2xl);
+  --ddb-gap-compact:        var(--ui-space-sm);
+  --ddb-gap-normal:         var(--ui-space-md);
+
+  /* Radius aliases */
+  --ddb-radius-sm:          var(--ui-radius-sm);
+  --ddb-radius-md:          var(--ui-radius-md);
+  --ddb-radius-lg:          var(--ui-radius-lg);
+  --ddb-radius-xl:          var(--ui-radius-xl);
+  --ddb-radius-full:        var(--ui-radius-pill);
+  --ddb-radius-input:       var(--ui-radius-md);
+
+  /* Shadow aliases */
+  --ddb-shadow-sm:          var(--ui-shadow-sm);
+  --ddb-shadow-md:          var(--ui-shadow-md);
+  --ddb-shadow-lg:          var(--ui-shadow-lg);
+
+  /* Motion aliases */
+  --ddb-duration-fast:      var(--ui-motion-fast);
+  --ddb-duration-normal:    var(--ui-motion-base);
+  --ddb-duration-base:      var(--ui-motion-base);
+  --ddb-ease-out:           var(--ui-ease-standard);
+
+  /* Container aliases */
+  --ddb-container-max-width: var(--ui-container-xl);
+  --ddb-container-gutter:   var(--ui-container-pad);
+
+  /* Color aliases — light mode defaults */
+  --ddb-bg-base:            var(--ui-color-bg);
+  --ddb-bg-surface:         var(--ui-color-surface);
+  --ddb-bg-surface-hover:   var(--ui-color-surface-2);
+  --ddb-surface-0:          var(--ui-color-bg);
+  --ddb-surface-1:          var(--ui-color-surface);
+  --ddb-surface-2:          var(--ui-color-surface-2);
+  --ddb-surface-3:          var(--ui-color-surface-3);
+  --ddb-black-0:            var(--ui-color-bg);
+  --ddb-color-surface:      var(--ui-color-surface);
+  --ddb-color-surface-2:    var(--ui-color-surface-2);
+  --ddb-color-surface-3:    var(--ui-color-surface-3);
+  --ddb-color-text:         var(--ui-color-text);
+  --ddb-color-text-secondary: var(--ui-color-text-muted);
+  --ddb-color-text-muted:   var(--ui-color-text-muted);
+  --ddb-text-primary:       var(--ui-color-text);
+  --ddb-text-secondary:     var(--ui-color-text-muted);
+  --ddb-muted:              var(--ui-color-text-muted);
+  --ddb-border-default:     var(--ui-color-border);
+  --ddb-border-subtle:      color-mix(in srgb, var(--ui-color-border) 55%, transparent);
+  --ddb-accent:             var(--ui-color-primary);
+  --ddb-accent-hover:       var(--ui-color-primary-hover);
+  --ddb-accent-gold:        var(--ui-color-primary);
+  --ddb-accent-purple:      var(--ui-color-primary);
+  --ddb-accent-primary-gradient: var(--ui-color-primary);
+  --ddb-color-danger:       var(--ui-color-danger);
+  --ddb-color-success:      var(--ui-color-success);
+  --ddb-color-warning:      var(--ui-color-warning);
+  --ddb-glow-gold:          none;
+  --ddb-glow-accent:        none;
+
+  /* Button aliases */
+  --ddb-button-height:      48px;
+  --ddb-button-radius:      var(--ui-radius-md);
+  --ddb-button-glow:        none;
+
+  /* Commerce button aliases — mapped by CSOT block but needed as global fallback */
+  --ddb-commerce-button-bg:       var(--ui-color-primary);
+  --ddb-commerce-button-bg-hover: var(--ui-color-primary-hover);
+  --ddb-commerce-button-text:     var(--ui-color-primary-contrast);
+  --ddb-commerce-button-border:   transparent;
+
+  /* Offerte-form self-referential tokens */
+  --sbdp-offerte-radius-lg: var(--ui-radius-xl);
+  --sbdp-offerte-radius-md: var(--ui-radius-md);
+  --sbdp-offerte-radius-sm: var(--ui-radius-sm);
+  --sbdp-offerte-shadow-sm: var(--ui-shadow-sm);
+  --sbdp-offerte-primary:   var(--ui-color-primary);
+
+  /* Chrome vars (global-theme.css compat) */
+  --chrome-bg:              var(--ui-color-bg);
+  --chrome-surface:         var(--ui-color-surface);
+  --chrome-surface-elevated: var(--ui-color-surface-2);
+  --chrome-primary:         var(--ui-color-primary);
+  --chrome-text:            var(--ui-color-text);
+  --chrome-text-secondary:  var(--ui-color-text-muted);
+  --chrome-border:          var(--ui-color-border);
+  --chrome-shadow:          var(--ui-shadow-sm);
+  --chrome-shadow-hover:    var(--ui-shadow-md);
+  --chrome-input-bg:        var(--ui-color-surface);
+
+  /* Glass vars (page-overrides.css spinwheel compat) */
+  --glass-surface:          color-mix(in srgb, var(--ui-color-surface) 90%, transparent);
+  --glass-surface-strong:   var(--ui-color-surface);
+  --glass-border:           var(--ui-color-border);
+  --glass-shadow:           var(--ui-shadow-md);
+
+  /* Elementor Global Colors Overrides (Forces Elementor to follow our system) */
+  --e-global-color-primary: var(--ui-color-primary);
+  --e-global-color-secondary: var(--ui-color-surface-2);
+  --e-global-color-text: var(--ui-color-text);
+  --e-global-color-accent: var(--ui-color-accent);
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   Premium Spot Card (Loop Item Component)
+   Apply class 'ddb-premium-card' to the main container in Elementor
+   ────────────────────────────────────────────────────────────────── */
+.ddb-premium-card {
+  background-color: var(--ui-color-surface) !important;
+  border-radius: var(--ui-radius-card) !important;
+  overflow: hidden; /* Zorgt dat de foto netjes de afgeronde hoeken volgt */
+  border: 1px solid var(--ui-color-border-subtle);
+  transition: transform var(--ui-motion-base) var(--ui-ease-standard), 
+              box-shadow var(--ui-motion-base) var(--ui-ease-standard);
+  display: flex !important;
+  flex-direction: column;
+}
+
+.ddb-premium-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--ui-shadow-md);
+}
+
+/* Tekstkleuren forceren in de card voor light/dark switch */
+.ddb-premium-card h1, 
+.ddb-premium-card h2, 
+.ddb-premium-card h3, 
+.ddb-premium-card h4 {
+  color: var(--ui-color-text) !important;
+}
+
+.ddb-premium-card p, 
+.ddb-premium-card .elementor-widget-text-editor {
+  color: var(--ui-color-text-muted) !important;
+}
+
+/* Knoppen in de card netjes stijlen */
+.ddb-premium-card .elementor-button {
+  border-radius: var(--ui-radius-md) !important;
+  background-color: var(--ui-color-surface-2) !important;
+  color: var(--ui-color-text) !important;
+  border: 1px solid var(--ui-color-border-subtle) !important;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.ddb-premium-card .elementor-button:hover {
+  background-color: var(--ui-color-surface-3) !important;
+}
+
+/* Primaire reserveer-knop een gouden tint geven (voeg class 'ddb-btn-primary' toe aan specifieke button) */
+.ddb-premium-card .ddb-btn-primary .elementor-button,
+.woocommerce ul.products li.product .button,
+.elementor-widget-woocommerce-products .button {
+  background-color: var(--ui-color-primary) !important;
+  color: var(--ui-color-primary-contrast) !important;
+  border: none !important;
+  border-radius: var(--ui-radius-md) !important;
+}
+
+.ddb-premium-card .ddb-btn-primary .elementor-button:hover,
+.woocommerce ul.products li.product .button:hover,
+.elementor-widget-woocommerce-products .button:hover {
+  background-color: var(--ui-color-primary-hover) !important;
+}
+
+/* Force WooCommerce links to inherit correct styling */
+.woocommerce ul.products li.product a,
+.woocommerce ul.products li.product a:hover,
+.woocommerce ul.products li.product h2,
+.woocommerce ul.products li.product h3,
+.woocommerce ul.products li.product .woocommerce-loop-product__title {
+  color: var(--ui-color-text) !important;
+  text-decoration: none !important;
+}
+
+/* Fix contrast for price overlays */
+.woocommerce ul.products li.product .price,
+.elementor-widget-woocommerce-products .price {
+  color: var(--ui-color-text-muted) !important;
+  font-weight: 600;
+}
+
+/* Dark mode overrides for legacy aliases */
+html[data-theme="dark"] {
+  --ddb-bg-base:            var(--ui-color-bg);
+  --ddb-bg-surface:         var(--ui-color-surface);
+  --ddb-bg-surface-hover:   var(--ui-color-surface-2);
+  --ddb-black-0:            var(--ui-color-bg);
+  --ddb-color-surface:      var(--ui-color-surface);
+  --ddb-color-surface-2:    var(--ui-color-surface-2);
+  --ddb-color-surface-3:    var(--ui-color-surface-3);
+  --ddb-color-text:         var(--ui-color-text);
+  --ddb-color-text-secondary: var(--ui-color-text-muted);
+  --ddb-color-text-muted:   var(--ui-color-text-muted);
+  --ddb-text-primary:       var(--ui-color-text);
+  --ddb-text-secondary:     var(--ui-color-text-muted);
+  --ddb-border-default:     var(--ui-color-border);
+  --ddb-border-subtle:      color-mix(in srgb, var(--ui-color-border) 55%, transparent);
+  --chrome-bg:              var(--ui-color-bg);
+  --chrome-surface:         var(--ui-color-surface);
+  --chrome-surface-elevated: var(--ui-color-surface-2);
+  --chrome-primary:         var(--ui-color-primary);
+  --chrome-text:            var(--ui-color-text);
+  --chrome-text-secondary:  var(--ui-color-text-muted);
+  --chrome-border:          var(--ui-color-border);
+  --chrome-input-bg:        var(--ui-color-surface);
+  --glass-surface:          color-mix(in srgb, var(--ui-color-surface) 40%, transparent);
+  --glass-surface-strong:   color-mix(in srgb, var(--ui-color-surface) 72%, transparent);
+  --glass-border:           var(--ui-color-border);
+}
+
+html[data-theme="light"] {
+  color-scheme: light;
+}
+
+html[data-theme="dark"] {
+  /* Tokens worden beheerd in dark-mode.css — hier alleen color-scheme hint */
+  color-scheme: dark;
+}
+
+html[data-theme="system"] {
+  /* Tokens voor system-dark worden beheerd in dark-mode.css */
+  color-scheme: light dark;
+}
+
+/* Scope root: background + color only inside DDB app wrappers, not bare body (Elementor compatibility) */
+.ui-scope,
+.ddb-app,
+.ddb-admin,
+body.ddb-app-route {
+  background: var(--ui-color-bg);
+  color: var(--ui-color-text);
+}
+
+/* Typography baseline: font on every page */
+body {
+  font-family: var(--ui-font-sans);
+  font-size: var(--ui-text-md);
+  font-weight: var(--ui-weight-regular);
+  line-height: var(--ui-leading-body);
+}
+
+/* Reset admin bar — Dashicons + Elementor toolbar icons rely on their own font families */
+#wpadminbar,
+#wpadminbar *,
+#wpadminbar .ab-icon::before,
+#wpadminbar .dashicons::before {
+  font-family: dashicons, sans-serif;
+}
+
+.ui-scope *,
+.ddb-app *,
+.ddb-admin *,
+body.ddb-app-route * {
+  box-sizing: border-box;
+}
+
+.ui-scope :where(a, button, input, select, textarea, [tabindex]):focus-visible,
+.ddb-app :where(a, button, input, select, textarea, [tabindex]):focus-visible,
+.ddb-admin :where(a, button, input, select, textarea, [tabindex]):focus-visible,
+body.ddb-app-route :where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ui-color-focus) 28%, transparent);
+  outline: none;
+}
+
+/* Typography */
+.ui-h1,
+.ui-h2,
+.ui-h3,
+.ui-h4 {
+  font-family: var(--ui-font-display);
+  color: var(--ui-color-text);
+  font-weight: var(--ui-weight-bold);
+  letter-spacing: -0.01em;
+  margin: 0;
+}
+
+.ui-scope :where(h1, h2, h3, h4, h5, h6),
+.ddb-app :where(h1, h2, h3, h4, h5, h6),
+.ddb-admin :where(h1, h2, h3, h4, h5, h6),
+body.ddb-app-route :where(h1, h2, h3, h4, h5, h6),
+body :where(h1, h2, h3, h4, h5, h6) {
+  font-family: var(--ui-font-display);
+}
+
+.ui-scope :where(button, input, select, textarea, label),
+.ddb-app :where(button, input, select, textarea, label),
+.ddb-admin :where(button, input, select, textarea, label),
+body.ddb-app-route :where(button, input, select, textarea, label),
+.ui-btn,
+.ddb-add-to-plan,
+.ddb-direct-book,
+.ddb-listing-btn,
+.ui-badge {
+  font-family: var(--ui-font-sans);
+}
+
+.ui-h1 {
+  font-size: var(--ui-text-3xl);
+  line-height: var(--ui-leading-tight);
+}
+
+.ui-h2 {
+  font-size: var(--ui-text-2xl);
+  line-height: 1.24;
+}
+
+.ui-h3 {
+  font-size: var(--ui-text-xl);
+  line-height: 1.3;
+}
+
+.ui-h4 {
+  font-size: var(--ui-text-lg);
+  line-height: 1.35;
+}
+
+.ui-text-muted {
+  color: var(--ui-color-text-muted);
+}
+
+.ddb-browser-bar {
+  margin: 0 auto;
+  padding: var(--ui-space-md) var(--ui-container-pad) 0;
+}
+
+.ddb-browser-bar__inner {
+  max-width: var(--ui-container-xl);
+  margin: 0 auto;
+  display: grid;
+  gap: var(--ui-space-sm);
+  padding: 0.95rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--ui-color-border) 86%, transparent);
+  border-radius: 1rem;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--ui-color-surface) 96%, transparent), color-mix(in srgb, var(--ui-color-surface-2) 88%, transparent));
+  box-shadow: var(--ui-shadow-sm);
+}
+
+.ddb-browser-bar__lead,
+.ddb-browser-bar__body,
+.ddb-browser-bar__chips,
+.ddb-browser-bar__actions,
+.ddb-browser-bar__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  align-items: center;
+}
+
+.ddb-browser-bar__lead {
+  justify-content: space-between;
+}
+
+.ddb-browser-bar__eyebrow {
+  margin: 0;
+  font-size: var(--ui-text-xs);
+  font-weight: var(--ui-weight-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ui-color-primary);
+}
+
+.ddb-browser-bar__title {
+  margin: 0;
+  font-size: var(--ui-text-sm);
+  color: var(--ui-color-text);
+}
+
+.ddb-browser-bar__meta-item,
+.ddb-browser-bar__chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.1rem;
+  padding: 0.42rem 0.82rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--ui-color-border) 84%, transparent);
+  background: color-mix(in srgb, var(--ui-color-surface-2) 82%, transparent);
+  color: var(--ui-color-text-muted);
+  font-size: var(--ui-text-sm);
+  line-height: 1.1;
+  text-decoration: none;
+}
+
+.ddb-browser-bar__chip.is-active {
+  border-color: color-mix(in srgb, var(--ui-color-primary) 35%, var(--ui-color-border));
+  background: color-mix(in srgb, var(--ui-color-primary) 10%, var(--ui-color-surface));
+  color: var(--ui-color-text);
+}
+
+.ddb-browser-bar__search {
+  flex: 1 1 18rem;
+  display: flex;
+  gap: 0.65rem;
+  align-items: center;
+}
+
+.ddb-browser-bar__search-input {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.75rem 0.95rem;
+  border: 1px solid var(--ui-color-border);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ui-color-surface) 94%, transparent);
+  color: var(--ui-color-text);
+  font: inherit;
+}
+
+.ddb-browser-bar__search-submit {
+  min-height: 2.75rem;
+  padding: 0.7rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--ui-color-primary) 22%, var(--ui-color-border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ui-color-primary) 10%, var(--ui-color-surface));
+  color: var(--ui-color-text);
+  font: inherit;
+  font-weight: var(--ui-weight-semibold);
+  cursor: pointer;
+}
+
+.ddb-browser-bar__actions {
+  margin-left: auto;
+}
+
+html[data-theme="dark"] .ddb-browser-bar__inner {
+  background:
+    linear-gradient(180deg, rgba(18, 22, 29, 0.96), rgba(21, 27, 36, 0.9));
+}
+
+@media (max-width: 780px) {
+  .ddb-browser-bar__lead,
+  .ddb-browser-bar__body {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .ddb-browser-bar__search,
+  .ddb-browser-bar__actions {
+    width: 100%;
+  }
+
+  .ddb-browser-bar__actions .ui-btn {
+    flex: 1 1 auto;
+  }
+}
+
+.ui-text-sm {
+  font-size: var(--ui-text-sm);
+}
+
+.ui-text-lg {
+  font-size: var(--ui-text-lg);
+}
+
+/* Layout */
+.ui-container {
+  margin-inline: auto;
+  max-width: min(var(--ui-container-xl), calc(100% - (var(--ui-container-pad) * 2)));
+  width: 100%;
+}
+
+.ui-container--sm {
+  max-width: min(var(--ui-container-sm), calc(100% - (var(--ui-container-pad) * 2)));
+}
+
+.ui-container--md {
+  max-width: min(var(--ui-container-md), calc(100% - (var(--ui-container-pad) * 2)));
+}
+
+.ui-container--lg {
+  max-width: min(var(--ui-container-lg), calc(100% - (var(--ui-container-pad) * 2)));
+}
+
+.ui-section {
+  padding-block: var(--ui-space-xl);
+}
+
+.ui-section--tight {
+  padding-block: var(--ui-space-lg);
+}
+
+.ui-section--loose {
+  padding-block: var(--ui-space-2xl);
+}
+
+.ui-grid {
+  display: grid;
+  gap: var(--ui-space-md);
+  grid-template-columns: 1fr;
+}
+
+.ui-grid--2,
+.ui-grid--3,
+.ui-grid--4 {
+  grid-template-columns: 1fr;
+}
+
+.ui-stack > * + * {
+  margin-top: var(--ui-space-md);
+}
+
+.ui-shell,
+.ddb-app .ui-shell,
+body.ddb-app-route .ui-shell {
+  margin-inline: auto;
+  max-width: min(var(--ui-container-xl), calc(100% - (var(--ui-container-pad) * 2)));
+  width: 100%;
+}
+
+.ui-shell--wide {
+  max-width: min(84rem, calc(100% - (var(--ui-container-pad) * 2)));
+}
+
+.ui-shell--narrow {
+  max-width: min(56rem, calc(100% - (var(--ui-container-pad) * 2)));
+}
+
+/* External assistant widget containment; visual only, no booking state. */
+#ddb-agent-widget-v3.ddb-widget {
+  max-width: 100vw;
+  overflow-x: clip;
+}
+
+#ddb-agent-widget-v3 .ddb-panel {
+  box-sizing: border-box;
+  max-width: calc(100vw - (var(--ui-space-md) * 2));
+}
+
+#ddb-agent-widget-v3 .ddb-categories {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+}
+
+#ddb-agent-widget-v3 .ddb-category {
+  flex: 0 0 auto;
+}
+
+#ddb-agent-widget-v3 .ddb-category,
+#ddb-agent-widget-v3 .ddb-action-icon,
+#ddb-agent-widget-v3 .ddb-theme-toggle,
+#ddb-agent-widget-v3 .ddb-close-btn {
+  background: var(--ui-color-surface);
+  border-color: var(--ui-color-border);
+  color: var(--ui-color-text);
+}
+
+#ddb-agent-widget-v3 .ddb-category.ddb-active,
+#ddb-agent-widget-v3 .ddb-category:hover,
+#ddb-agent-widget-v3 .ddb-action-icon:hover {
+  background: color-mix(in srgb, var(--ui-color-primary) 14%, var(--ui-color-surface));
+  border-color: color-mix(in srgb, var(--ui-color-primary) 42%, var(--ui-color-border));
+  color: var(--ui-color-text);
+}
+
+.is-ddb-image-missing {
+  opacity: 0;
+}
+
+.is-ddb-media-missing {
+  align-items: center;
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--ui-color-primary) 16%, transparent), transparent 34%),
+    linear-gradient(145deg, var(--ui-color-surface-2), var(--ui-color-surface));
+  border: 1px solid var(--ui-color-border);
+  color: var(--ui-color-text-muted);
+  display: flex;
+  justify-content: center;
+  min-height: 12rem;
+  position: relative;
+}
+
+.is-ddb-media-missing::before {
+  content: "Beeld volgt";
+  font-family: var(--ui-font-sans);
+  font-size: var(--ui-text-sm);
+  font-weight: var(--ui-weight-semibold);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.ddb-runtime-footer {
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--ui-color-primary) 10%, transparent), transparent 34%),
+    var(--ui-color-surface);
+  border-top: 1px solid var(--ui-color-border);
+  color: var(--ui-color-text);
+  margin-top: var(--ui-space-2xl);
+  padding: var(--ui-space-xl) var(--ui-container-pad);
+}
+
+.ddb-runtime-footer__inner {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-md);
+  justify-content: space-between;
+  margin-inline: auto;
+  max-width: var(--ui-container-xl);
+}
+
+.ddb-runtime-footer__brand {
+  color: var(--ui-color-text);
+  font-family: var(--ui-font-display);
+  font-size: var(--ui-text-lg);
+  font-weight: var(--ui-weight-bold);
+}
+
+.ddb-runtime-footer__nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-sm);
+}
+
+.ddb-runtime-footer__nav a {
+  color: var(--ui-color-text-muted);
+  font-size: var(--ui-text-sm);
+}
+
+.ddb-runtime-footer__nav a:hover,
+.ddb-runtime-footer__nav a:focus-visible {
+  color: var(--ui-color-primary);
+}
+
+body:not(.wp-admin) input[type="date"],
+body:not(.wp-admin) input[type="email"],
+body:not(.wp-admin) input[type="number"],
+body:not(.wp-admin) input[type="password"],
+body:not(.wp-admin) input[type="search"],
+body:not(.wp-admin) input[type="tel"],
+body:not(.wp-admin) input[type="text"],
+body:not(.wp-admin) input[type="url"],
+body:not(.wp-admin) select,
+body:not(.wp-admin) textarea {
+  background: var(--ui-color-surface);
+  border-color: var(--ui-color-border);
+  border-radius: var(--ui-radius-md);
+  color: var(--ui-color-text);
+}
+
+body:not(.wp-admin) input:focus,
+body:not(.wp-admin) select:focus,
+body:not(.wp-admin) textarea:focus {
+  border-color: var(--ui-color-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ui-color-primary) 18%, transparent);
+  outline: 0;
+}
+
+/* Header + Navigation */
+.ui-header {
+  border-bottom: var(--ui-border-width) solid var(--ui-color-border);
+  transition: background-color var(--ui-motion-base) var(--ui-ease-standard), border-color var(--ui-motion-base) var(--ui-ease-standard), box-shadow var(--ui-motion-base) var(--ui-ease-standard);
+  z-index: var(--ui-z-header);
+}
+
+.ui-header--solid {
+  background: color-mix(in srgb, var(--ui-color-surface) 92%, transparent);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--ui-shadow-sm);
+}
+
+.ui-header--transparent {
+  background: transparent;
+  border-bottom-color: transparent;
+  box-shadow: none;
+}
+
+.ui-header--sticky {
+  position: sticky;
+  top: 0;
+}
+
+.ui-header__inner {
+  align-items: center;
+  display: grid;
+  gap: var(--ui-space-sm);
+  grid-template-columns: auto 1fr auto;
+  min-height: 4rem;
+}
+
+.ui-header__logo {
+  align-items: center;
+  color: var(--ui-color-text);
+  display: inline-flex;
+  font-weight: var(--ui-weight-bold);
+  font-size: var(--ui-text-lg);
+  gap: var(--ui-space-xs);
+  text-decoration: none;
+}
+
+.ui-nav {
+  align-items: center;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.ui-nav__menu {
+  display: none;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ui-nav__item {
+  position: relative;
+}
+
+.ui-nav__link {
+  border-radius: var(--ui-radius-pill);
+  color: var(--ui-color-text);
+  display: inline-flex;
+  font-size: var(--ui-text-sm);
+  font-weight: var(--ui-weight-semibold);
+  min-height: 2.25rem;
+  padding: 0.45rem 0.8rem;
+  text-decoration: none;
+  transition: background-color var(--ui-motion-fast) var(--ui-ease-standard), color var(--ui-motion-fast) var(--ui-ease-standard);
+}
+
+.ui-nav__link:hover,
+.ui-nav__link[aria-current="page"] {
+  background: var(--ui-color-surface-2);
+}
+
+.ui-nav__toggle {
+  align-items: center;
+  background: var(--ui-color-surface);
+  border: var(--ui-border-width) solid var(--ui-color-border);
+  border-radius: var(--ui-radius-md);
+  color: var(--ui-color-text);
+  display: inline-flex;
+  height: 2.5rem;
+  justify-content: center;
+  width: 2.5rem;
+}
+
+.ui-nav__dropdown {
+  background: var(--ui-color-surface);
+  border: var(--ui-border-width) solid var(--ui-color-border);
+  border-radius: var(--ui-radius-lg);
+  box-shadow: var(--ui-shadow-md);
+  display: none;
+  min-width: 13rem;
+  padding: var(--ui-space-xs);
+  position: absolute;
+  right: 0;
+  top: calc(100% + var(--ui-space-xs));
+  z-index: var(--ui-z-dropdown);
+}
+
+.ui-nav__item:hover > .ui-nav__dropdown,
+.ui-nav__item:focus-within > .ui-nav__dropdown,
+.ui-nav__item.is-open > .ui-nav__dropdown {
+  display: block;
+}
+
+/* Elementor bridge: existing main-nav becomes consistent without template rebuild */
+.ui-scope .elementor-location-header .elementor-element.main-nav,
+.ui-scope .main-nav {
+  background: var(--ui-nav-bg);
+  border-bottom: var(--ui-border-width) solid var(--ui-nav-border);
+  box-shadow: var(--ui-nav-shadow);
+  position: sticky;
+  top: 0;
+  z-index: var(--ui-z-header);
+}
+
+.ui-scope .main-nav .e-con-inner {
+  align-items: center;
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: auto 1fr auto auto;
+  margin: 0 auto;
+  max-width: 80rem;
+  padding: 0.72rem 1rem;
+}
+
+.ui-scope .main-nav.ddb-main-nav-host,
+.ui-scope .main-nav:has(.ddb-mega-menu) {
+  background: transparent;
+  border-bottom: 0;
+  box-shadow: none;
+  position: static;
+}
+
+.ui-scope .main-nav.ddb-main-nav-host .e-con-inner,
+.ui-scope .main-nav:has(.ddb-mega-menu) .e-con-inner {
+  display: block;
+  max-width: none;
+  min-height: 0;
+  padding: 0;
+}
+
+.ui-scope .main-nav.ddb-main-nav-host .ddb-theme-toggle-host,
+.ui-scope .main-nav:has(.ddb-mega-menu) .ddb-theme-toggle-host {
+  display: none;
+}
+
+.ui-scope .main-nav .ddb-theme-toggle-host {
+  align-items: center;
+  display: inline-flex;
+  justify-content: center;
+}
+
+.ui-scope .main-nav .elementor-item,
+.ui-scope .main-nav .elementor-sub-item {
+  background: transparent;
+  border: var(--ui-border-width) solid transparent;
+  border-radius: var(--ui-radius-pill);
+  color: var(--ui-nav-text);
+  display: inline-flex;
+  font-size: var(--ui-text-sm);
+  font-weight: var(--ui-weight-semibold);
+  min-height: 2.3rem;
+  padding: 0.35rem 0.82rem;
+  text-decoration: none;
+}
+
+.ui-scope .main-nav .elementor-item:hover,
+.ui-scope .main-nav .elementor-sub-item:hover,
+.ui-scope .main-nav .elementor-item-active {
+  background: var(--ui-nav-pill-bg-hover);
+  border-color: transparent;
+  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--ui-color-primary) 68%, transparent);
+  color: var(--ui-nav-text);
+}
+
+.ui-scope .main-nav button[data-sbdp-dark-toggle],
+.ui-scope .main-nav button[data-ddb-theme-toggle] {
+  align-items: center;
+  background: var(--ui-nav-toggle-bg);
+  border: var(--ui-border-width) solid var(--ui-nav-toggle-border);
+  border-radius: var(--ui-radius-md);
+  color: var(--ui-nav-text);
+  display: inline-flex;
+  font-size: 1.05rem;
+  font-weight: var(--ui-weight-bold);
+  flex-shrink: 0;
+  height: 2.75rem;
+  justify-content: center;
+  line-height: 1;
+  box-shadow: var(--ui-nav-toggle-shadow);
+  width: 2.75rem;
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   Premium Filter UI (Pills & Search Bar)
+   Overrides standard Elementor/FacetWP/FilterEverything selects
+   Apply this wrapper class: .ddb-premium-filters
+   ────────────────────────────────────────────────────────────────── */
+.ddb-premium-filters,
+.ddb-browser-bar__inner {
+  display: flex !important;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--ui-space-md);
+  background: var(--ui-color-surface) !important;
+  border: 1px solid var(--ui-color-border-subtle) !important;
+  padding: 12px 24px !important;
+  border-radius: 999px !important; /* Volledig ronde pil-vormige zoekbalk */
+  box-shadow: var(--ui-shadow-sm) !important;
+  max-width: 100%;
+}
+
+/* Zoekveld strak trekken (Links) */
+.ddb-premium-filters input[type="search"],
+.ddb-premium-filters input[type="text"],
+.ddb-browser-bar__search-input {
+  background: transparent !important;
+  border: none !important;
+  color: var(--ui-color-text) !important;
+  font-size: var(--ui-text-md) !important;
+  min-width: 250px;
+  box-shadow: none !important;
+  padding: 8px 0 !important;
+}
+
+.ddb-premium-filters input[type="search"]:focus,
+.ddb-premium-filters input[type="text"]:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Verberg logge dropdowns en standaard labels */
+.ddb-premium-filters select,
+.ddb-premium-filters .elementor-field-label {
+  display: none !important;
+}
+
+/* Forceer filter linkjes (Radio's/FacetWP) naar chique 'Pills' (Rechts) */
+.ddb-premium-filters .facetwp-radio,
+.ddb-premium-filters .filter-link,
+.ddb-browser-bar__chip,
+.ddb-pill {
+  background: var(--ui-color-surface-2) !important;
+  color: var(--ui-color-text-muted) !important;
+  border: 1px solid var(--ui-color-border-subtle) !important;
+  padding: 8px 20px !important;
+  border-radius: 999px !important;
+  font-size: var(--ui-text-sm) !important;
+  font-weight: 600 !important;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+/* Hover & Active states voor de Pills */
+.ddb-premium-filters .facetwp-radio:hover,
+.ddb-premium-filters .filter-link:hover,
+.ddb-browser-bar__chip:hover,
+.ddb-pill:hover {
+  background: var(--ui-color-surface-3) !important;
+  color: var(--ui-color-text) !important;
+}
+
+.ddb-premium-filters .facetwp-radio.checked,
+.ddb-premium-filters .filter-link.active,
+.ddb-browser-bar__chip.is-active,
+.ddb-pill.active {
+  background: var(--ui-color-primary) !important;
+  color: var(--ui-color-primary-contrast) !important;
+  border-color: var(--ui-color-primary) !important;
+}
+
+/* Kaart (Map) Integratie (Forceert donkere filter op map in dark mode) */
+html[data-theme="dark"] .elementor-widget-google_maps iframe,
+html[data-theme="dark"] .wpgmp_map,
+html[data-theme="dark"] .leaflet-container {
+  filter: invert(90%) hue-rotate(180deg) brightness(85%) contrast(85%) sepia(50%) saturate(30%) !important;
+  border-radius: var(--ui-radius-card);
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   FINAL POLISH: Badges, Empty States, Headers & Skeleton Loaders
+   (Het 'Apple-like' fundament 100% sluitend maken)
+   ────────────────────────────────────────────────────────────────── */
+
+/* 1. Zwevende Badges (Voeg class 'ddb-badge' toe aan tekst/icon over de foto) */
+.ddb-badge {
+  position: absolute !important;
+  top: 16px;
+  left: 16px;
+  background: rgba(26, 23, 20, 0.6) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: var(--ui-color-primary) !important;
+  padding: 6px 14px !important;
+  border-radius: var(--ui-radius-pill) !important;
+  font-size: var(--ui-text-xs) !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  z-index: 10;
+  border: 1px solid rgba(212, 175, 55, 0.3) !important;
+  line-height: 1;
+}
+
+/* Rating Badge (rechtsonder op foto) */
+.ddb-badge-rating {
+  top: auto;
+  bottom: 16px;
+  right: 16px;
+  left: auto;
+  background: var(--ui-color-surface) !important;
+  color: var(--ui-color-text) !important;
+  border-color: var(--ui-color-border-subtle) !important;
+}
+
+/* 2. Premium Image Fallbacks — geen Elementor-class targeting, enkel img within ddb scope */
+.ddb-premium-card img {
+  width: 100%;
+  object-fit: cover;
+  aspect-ratio: 16/9;
+  border-radius: var(--ui-radius-card) var(--ui-radius-card) 0 0;
+  display: block;
+}
+
+/* 3. Skeleton Loading State (Geef class 'ddb-loading' aan containers tijdens filteren/zoeken) */
+.ddb-loading {
+  animation: ddbPulse 1.5s infinite ease-in-out;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+@keyframes ddbPulse {
+  0% { background-color: var(--ui-color-surface-2); }
+  50% { background-color: var(--ui-color-surface-3); }
+  100% { background-color: var(--ui-color-surface-2); }
+}
+
+/* 6. De Sfeer-schakelaar (Light/Dark Toggle Button) — custom class, geen !important nodig */
+.ddb-theme-toggle {
+  background: transparent;
+  border: 1px solid var(--ui-color-border-subtle);
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all var(--ui-motion-base) var(--ui-ease-standard);
+  color: var(--ui-color-text);
+}
+
+.ddb-theme-toggle:hover {
+  background: var(--ui-color-surface-2);
+  transform: scale(1.05);
+}
+
+/* Verberg het zonnetje in donkere modus, verberg het maantje in lichte modus */
+html[data-theme="dark"] .ddb-theme-toggle .ddb-icon-moon,
+html[data-theme="light"] .ddb-theme-toggle .ddb-icon-sun,
+html[data-theme="system"] .ddb-theme-toggle .ddb-icon-sun {
+  display: none !important;
+}
+
+html[data-theme="system"] .ddb-theme-toggle .ddb-icon-moon {
+  display: block !important;
+}
+@media (prefers-color-scheme: dark) {
+  html[data-theme="system"] .ddb-theme-toggle .ddb-icon-system {
+    display: none !important;
+  }
+}
+
+/* ──────────────────────────────────────────────────────────────────
+   DDB Custom Component Overrides (Token-based, CSOT-compliant)
+   Alleen custom DDB-klassen, nooit generieke Elementor-klassen.
+   Elementor layout & kleuren worden via Elementor Site Settings
+   en Loop Templates geconfigureerd, niet via CSS.
+   ────────────────────────────────────────────────────────────────── */
+
+/* Sidebar booking widget — scoped to opt-in custom class */
+.ddb-sidebar-widget {
+  background-color: var(--ui-color-surface);
+  border: 1px solid var(--ui-color-border-subtle);
+  border-radius: var(--ui-radius-card);
+  padding: 32px;
+  box-shadow: var(--ui-shadow-md);
+  position: sticky;
+  top: 120px;
+}
+
+
+.ui-scope .main-nav button[data-sbdp-dark-toggle][hidden],
+.ui-scope .main-nav button[data-ddb-theme-toggle][hidden] {
+  display: none;
+}
+
+.ui-scope .main-nav button[data-sbdp-dark-toggle]:hover,
+.ui-scope .main-nav button[data-ddb-theme-toggle]:hover {
+  background: var(--ui-nav-toggle-bg-hover);
+  border-color: color-mix(in srgb, var(--ui-color-primary) 58%, var(--ui-nav-toggle-border));
+}
+
+.ui-scope .main-nav .elementor-widget-button .elementor-button {
+  background: var(--ui-color-primary);
+  border: var(--ui-border-width) solid var(--ui-color-primary);
+  border-radius: var(--ui-radius-pill);
+  color: var(--ui-color-primary-contrast);
+}
+
+.ui-scope .main-nav .elementor-widget-nav-menu {
+  justify-self: end;
+}
+
+.ui-scope .main-nav .elementor-element.elementor-widget-theme-site-logo,
+.ui-scope .main-nav .elementor-widget-theme-site-logo,
+.ui-scope .main-nav .site-logo,
+.ui-scope .main-nav .custom-logo-link {
+  flex: 0 0 auto;
+  max-width: 13.5rem;
+  min-width: 8.5rem;
+  width: auto;
+}
+
+.ui-scope .main-nav .elementor-widget-theme-site-logo > a,
+.ui-scope .main-nav .custom-logo-link {
+  align-items: center;
+  display: inline-flex;
+}
+
+.ui-scope .main-nav .elementor-widget-theme-site-logo img,
+.ui-scope .main-nav .custom-logo-link img,
+.ui-scope .main-nav img.custom-logo {
+  display: block;
+  height: clamp(2.8rem, 4.8vw, 3.5rem);
+  max-width: 100%;
+  object-fit: contain;
+  width: auto;
+}
+
+.ui-scope .main-nav .elementor-nav-menu--dropdown.elementor-nav-menu__container {
+  background: var(--ui-color-surface);
+  border: var(--ui-border-width) solid var(--ui-color-border);
+  border-radius: var(--ui-radius-lg);
+  box-shadow: var(--ui-shadow-md);
+  display: none;
+  margin-top: 0.5rem;
+  min-width: min(22rem, calc(100vw - 2rem));
+  padding: 0.45rem;
+  position: absolute;
+  right: 0;
+  top: calc(100% + 2px);
+  z-index: var(--ui-z-dropdown);
+}
+
+.ui-scope .main-nav .elementor-widget-nav-menu .elementor-menu-toggle[aria-expanded="false"] + .elementor-nav-menu--dropdown.elementor-nav-menu__container {
+  display: none;
+}
+
+.ui-scope .main-nav .elementor-widget-nav-menu .elementor-menu-toggle[aria-expanded="true"] + .elementor-nav-menu--dropdown.elementor-nav-menu__container {
+  display: block;
+}
+
+.ui-scope .elementor-location-footer .ehp-flex-footer,
+.ui-scope .elementor-292 .elementor-element.elementor-element-58e44cbe .ehp-flex-footer {
+  background-color: color-mix(in srgb, var(--ui-color-surface) 86%, transparent);
+  border-top: var(--ui-border-width) solid var(--ui-color-border);
+  --flex-footer-subheading-color: var(--ui-color-text);
+  --flex-footer-description-color: var(--ui-color-text-muted);
+  --flex-footer-link-color: var(--ui-color-text-muted);
+  --flex-footer-link-color-hover: var(--ui-color-primary);
+  --flex-footer-copyright-color: var(--ui-color-text-muted);
+}
+
+/* Surfaces + Background helpers */
+.ui-page {
+  background: var(--ui-color-bg);
+  min-height: 100%;
+}
+
+.ui-surface {
+  background: var(--ui-color-surface);
+  border: var(--ui-border-width) solid color-mix(in srgb, var(--ui-color-border) 92%, transparent);
+  border-radius: var(--ui-radius-section);
+}
+
+.ui-surface--alt {
+  background: var(--ui-color-surface-2);
+}
+
+.ui-surface--elevated {
+  box-shadow: var(--ui-shadow-md);
+}
+
+/* Buttons */
+.ui-btn {
+  align-items: center;
+  border: var(--ui-border-width) solid transparent;
+  border-radius: var(--ui-radius-md);
+  box-shadow: none;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: var(--ui-text-sm);
+  font-weight: var(--ui-weight-semibold);
+  gap: var(--ui-space-xs);
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0.6rem 1rem;
+  text-decoration: none;
+  transition: transform var(--ui-motion-fast) var(--ui-ease-standard), background-color var(--ui-motion-fast) var(--ui-ease-standard), border-color var(--ui-motion-fast) var(--ui-ease-standard), color var(--ui-motion-fast) var(--ui-ease-standard);
+}
+
+.ui-btn:active {
+  transform: translateY(1px);
+}
+
+.ui-btn[disabled],
+.ui-btn.is-disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.ui-btn--primary {
+  background: var(--ui-color-cta);
+  border-color: var(--ui-color-cta);
+  color: var(--ui-color-cta-contrast);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.24);
+}
+
+.ui-btn--primary:hover {
+  background: var(--ui-color-cta-hover);
+  border-color: var(--ui-color-cta-hover);
+  box-shadow: 0 18px 38px rgba(0, 0, 0, 0.3);
+}
+
+.ui-btn--secondary {
+  background: color-mix(in srgb, var(--ui-color-surface) 96%, transparent);
+  border-color: color-mix(in srgb, var(--ui-color-border) 88%, transparent);
+  color: var(--ui-color-text);
+}
+
+.ui-btn--secondary:hover {
+  background: color-mix(in srgb, var(--ui-color-primary) 8%, var(--ui-color-surface));
+  border-color: color-mix(in srgb, var(--ui-color-primary) 26%, var(--ui-color-border));
+}
+
+.ui-btn--ghost {
+  background: transparent;
+  border-color: color-mix(in srgb, var(--ui-color-border) 72%, transparent);
+  color: var(--ui-color-text-muted);
+}
+
+.ui-btn--ghost:hover {
+  background: color-mix(in srgb, var(--ui-color-surface-2) 82%, transparent);
+  color: var(--ui-color-text);
+}
+
+.ui-btn--sm {
+  min-height: 2.25rem;
+  padding: 0.35rem 0.7rem;
+}
+
+.ui-btn--lg {
+  min-height: 3rem;
+  padding: 0.75rem 1.2rem;
+}
+
+.ui-btn--inline {
+  min-height: 2.35rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: var(--ui-radius-pill);
+}
+
+.ui-btn--icon {
+  min-height: 2.5rem;
+  min-width: 2.5rem;
+  padding: 0;
+  border-radius: var(--ui-radius-pill);
+}
+
+.ui-btn--full {
+  width: 100%;
+}
+
+.ui-btn--planner {
+  background: var(--ui-color-primary);
+  border-color: var(--ui-color-primary);
+  color: var(--ui-color-primary-contrast);
+}
+
+.ui-btn--planner:hover {
+  background: var(--ui-color-primary-hover);
+  border-color: var(--ui-color-primary-hover);
+}
+
+/* Cards */
+.ui-card {
+  background: var(--ui-color-surface);
+  border: var(--ui-border-width) solid color-mix(in srgb, var(--ui-color-border) 92%, transparent);
+  border-radius: var(--ui-radius-card);
+  color: var(--ui-color-text);
+  display: flex;
+  flex-direction: column;
+  overflow: clip;
+  box-shadow: var(--ui-shadow-sm);
+  transition: border-color var(--ui-motion-fast) var(--ui-ease-standard), transform var(--ui-motion-fast) var(--ui-ease-standard), box-shadow var(--ui-motion-fast) var(--ui-ease-standard), background-color var(--ui-motion-fast) var(--ui-ease-standard);
+}
+
+.ui-card:hover {
+  border-color: color-mix(in srgb, var(--ui-color-primary) 18%, var(--ui-color-border));
+  box-shadow: var(--ui-shadow-md);
+  transform: translateY(-3px);
+}
+
+.ui-card__media {
+  aspect-ratio: 4 / 3;
+  background: var(--ui-color-surface-2);
+  display: block;
+  width: 100%;
+}
+
+.ui-card__body {
+  display: grid;
+  gap: var(--ui-space-xs);
+  padding: clamp(0.9rem, 1vw + 0.65rem, 1.15rem);
+}
+
+.ui-card__title {
+  font-size: var(--ui-text-lg);
+  font-weight: var(--ui-weight-bold);
+  line-height: 1.3;
+  margin: 0;
+}
+
+.ui-card__meta {
+  color: var(--ui-color-text-muted);
+  font-size: var(--ui-text-sm);
+  line-height: 1.45;
+}
+
+.ui-card__desc {
+  color: var(--ui-color-text-muted);
+  font-size: var(--ui-text-sm);
+  line-height: 1.55;
+  margin: 0;
+}
+
+.ui-card--featured {
+  border-color: color-mix(in srgb, var(--ui-color-primary) 24%, var(--ui-color-border));
+  box-shadow: var(--ui-shadow-md);
+  background: color-mix(in srgb, var(--ui-color-surface) 94%, var(--ui-color-primary) 6%);
+}
+
+.ui-card--compact .ui-card__body {
+  gap: var(--ui-space-xs);
+  padding: var(--ui-space-sm);
+}
+
+.ui-card--info {
+  background: var(--ui-color-surface-2);
+}
+
+.ui-card__footer {
+  margin-top: auto;
+  padding-top: var(--ui-space-sm);
+  border-top: var(--ui-border-width) solid var(--ui-color-border);
+}
+
+.ui-card--soft {
+  background: var(--ui-color-surface-2);
+}
+
+.ui-card--decision {
+  border-color: color-mix(in srgb, var(--ui-color-primary) 22%, var(--ui-color-border));
+  box-shadow: var(--ui-shadow-md);
+}
+
+/* Forms */
+.ui-field {
+  display: grid;
+  gap: var(--ui-space-xs);
+}
+
+.ui-label {
+  color: var(--ui-color-text);
+  font-size: var(--ui-text-sm);
+  font-weight: var(--ui-weight-medium);
+}
+
+.ui-input,
+.ui-select,
+.ui-textarea {
+  background: var(--ui-color-surface);
+  border: var(--ui-border-width) solid var(--ui-color-border);
+  border-radius: var(--ui-radius-md);
+  color: var(--ui-color-text);
+  font: inherit;
+  min-height: 2.75rem;
+  padding: 0.55rem 0.75rem;
+  width: 100%;
+}
+
+.ui-textarea {
+  min-height: 6.5rem;
+  resize: vertical;
+}
+
+.ui-input::placeholder,
+.ui-textarea::placeholder {
+  color: var(--ui-color-text-muted);
+  opacity: 0.75;
+}
+
+.ui-input[disabled],
+.ui-select[disabled],
+.ui-textarea[disabled] {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.ui-field--error .ui-input,
+.ui-field--error .ui-select,
+.ui-field--error .ui-textarea {
+  border-color: var(--ui-color-danger);
+}
+
+.ui-help {
+  color: var(--ui-color-text-muted);
+  font-size: var(--ui-text-xs);
+}
+
+.ui-field--error .ui-help {
+  color: var(--ui-color-danger);
+}
+
+.ui-check,
+.ui-radio {
+  align-items: center;
+  color: var(--ui-color-text);
+  display: inline-flex;
+  gap: var(--ui-space-xs);
+}
+
+.ui-chip {
+  align-items: center;
+  background: var(--ui-color-surface-2);
+  border: var(--ui-border-width) solid var(--ui-color-border);
+  border-radius: var(--ui-radius-pill);
+  color: var(--ui-color-text);
+  display: inline-flex;
+  font-size: var(--ui-text-sm);
+  font-weight: var(--ui-weight-semibold);
+  gap: var(--ui-space-2xs);
+  min-height: 2.4rem;
+  padding: 0.35rem 0.8rem;
+  text-decoration: none;
+  transition: transform var(--ui-motion-fast) var(--ui-ease-standard), border-color var(--ui-motion-fast) var(--ui-ease-standard), background-color var(--ui-motion-fast) var(--ui-ease-standard), box-shadow var(--ui-motion-fast) var(--ui-ease-standard);
+}
+
+.ui-chip:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--ui-color-primary) 24%, var(--ui-color-border));
+}
+
+.ui-chip--selected,
+.ui-chip.is-active {
+  background: color-mix(in srgb, var(--ui-color-primary) 12%, var(--ui-color-surface));
+  border-color: color-mix(in srgb, var(--ui-color-primary) 34%, var(--ui-color-border));
+  box-shadow: var(--ui-shadow-sm);
+}
+
+.ui-chip--muted {
+  color: var(--ui-color-text-muted);
+}
+
+/* Badges + Status */
+.ui-badge {
+  align-items: center;
+  background: var(--ui-color-surface-2);
+  border: var(--ui-border-width) solid var(--ui-color-border);
+  border-radius: var(--ui-radius-pill);
+  color: var(--ui-color-text);
+  display: inline-flex;
+  font-size: var(--ui-text-xs);
+  font-weight: var(--ui-weight-semibold);
+  min-height: 1.7rem;
+  padding: 0.15rem 0.55rem;
+}
+
+.ui-badge--success {
+  border-color: color-mix(in srgb, var(--ui-color-success) 40%, var(--ui-color-border));
+  color: var(--ui-color-success);
+}
+
+.ui-badge--warning {
+  border-color: color-mix(in srgb, var(--ui-color-warning) 40%, var(--ui-color-border));
+  color: var(--ui-color-warning);
+}
+
+.ui-badge--danger {
+  border-color: color-mix(in srgb, var(--ui-color-danger) 40%, var(--ui-color-border));
+  color: var(--ui-color-danger);
+}
+
+.ui-summary {
+  background: var(--ui-color-surface);
+  border: var(--ui-border-width) solid color-mix(in srgb, var(--ui-color-border) 92%, transparent);
+  border-radius: var(--ui-radius-section);
+  box-shadow: var(--ui-shadow-sm);
+  display: grid;
+  gap: var(--ui-space-md);
+  padding: clamp(1rem, 1vw + 0.85rem, 1.35rem);
+}
+
+html.ddb-has-mega-menu,
+html.ddb-has-mega-menu body.theme-hello-biz {
+  background: #000000;
+  color: var(--ui-color-text);
+}
+
+html.ddb-has-mega-menu body.theme-hello-biz a {
+  color: inherit;
+}
+
+html.ddb-has-mega-menu body.theme-hello-biz .elementor-location-header,
+html.ddb-has-mega-menu body.theme-hello-biz .elementor-292 {
+  background: #050505;
+  color: var(--ui-color-text);
+}
+
+html.ddb-has-mega-menu body.theme-hello-biz .elementor-location-header > *,
+html.ddb-has-mega-menu body.theme-hello-biz .elementor-location-header section,
+html.ddb-has-mega-menu body.theme-hello-biz .elementor-location-header .e-con,
+html.ddb-has-mega-menu body.theme-hello-biz .elementor-location-header .elementor-element,
+html.ddb-has-mega-menu body.theme-hello-biz .elementor-292 > *,
+html.ddb-has-mega-menu body.theme-hello-biz .elementor-292 section,
+html.ddb-has-mega-menu body.theme-hello-biz .elementor-292 .e-con,
+html.ddb-has-mega-menu body.theme-hello-biz .elementor-292 .elementor-element {
+  background-color: transparent;
+}
+
+html.ddb-has-mega-menu body.theme-hello-biz .elementor-location-header {
+  border-bottom: 1px solid color-mix(in srgb, var(--ui-color-border) 92%, transparent);
+}
+
+html.ddb-has-mega-menu body.theme-hello-biz .elementor-292 {
+  border-top: 1px solid color-mix(in srgb, var(--ui-color-border) 92%, transparent);
+}
+
+html.ddb-has-mega-menu body.theme-hello-biz .elementor-location-header .elementor-widget-container,
+html.ddb-has-mega-menu body.theme-hello-biz .elementor-location-header .elementor-icon-wrapper,
+html.ddb-has-mega-menu body.theme-hello-biz .elementor-location-header .elementor-button,
+html.ddb-has-mega-menu body.theme-hello-biz .elementor-location-header .elementor-item,
+html.ddb-has-mega-menu body.theme-hello-biz .elementor-location-header .elementor-icon,
+html.ddb-has-mega-menu body.theme-hello-biz .elementor-location-header .elementor-nav-menu a,
+html.ddb-has-mega-menu body.theme-hello-biz .elementor-292 .elementor-widget-container,
+html.ddb-has-mega-menu body.theme-hello-biz .elementor-292 .elementor-heading-title,
+html.ddb-has-mega-menu body.theme-hello-biz .elementor-292 .elementor-icon,
+html.ddb-has-mega-menu body.theme-hello-biz .elementor-292 a {
+  color: var(--ui-color-text);
+}
+
+html.ddb-has-mega-menu body.theme-hello-biz .elementor-location-header .elementor-button,
+html.ddb-has-mega-menu body.theme-hello-biz .elementor-location-header .ui-btn--primary {
+  background: var(--ui-color-cta);
+  border-color: var(--ui-color-cta);
+  color: var(--ui-color-cta-contrast);
+}
+
+html.ddb-has-mega-menu body.theme-hello-biz .elementor-location-header .elementor-button:hover,
+html.ddb-has-mega-menu body.theme-hello-biz .elementor-location-header .ui-btn--primary:hover {
+  background: var(--ui-color-cta-hover);
+  border-color: var(--ui-color-cta-hover);
+}
+
+.ui-summary__header {
+  display: grid;
+  gap: var(--ui-space-2xs);
+}
+
+.ui-summary__title {
+  font-family: var(--ui-font-display);
+  font-size: var(--ui-text-2xl);
+  line-height: var(--ui-leading-tight);
+  margin: 0;
+}
+
+.ui-summary__meta {
+  color: var(--ui-color-text-muted);
+  font-size: var(--ui-text-sm);
+}
+
+.ui-summary--compact {
+  padding: var(--ui-space-md);
+}
+
+.ui-summary--decision {
+  background: color-mix(in srgb, var(--ui-color-primary) 4%, var(--ui-color-surface));
+  border-color: color-mix(in srgb, var(--ui-color-primary) 18%, var(--ui-color-border));
+}
+
+.ddb-cart-shell {
+  padding-block: var(--ui-space-xl);
+}
+
+.ddb-cart-shell__layout {
+  align-items: start;
+  gap: var(--ui-space-lg);
+}
+
+.ddb-cart-shell__main {
+  padding: var(--ui-space-lg);
+}
+
+.ddb-cart-shell__totals {
+  align-self: start;
+  position: sticky;
+  top: calc(var(--ui-space-lg) + 4rem);
+}
+
+@media (max-width: 960px) {
+  .ddb-cart-shell__totals {
+    position: static;
+  }
+}
+
+.ui-tabs {
+  display: flex;
+  gap: var(--ui-space-xs);
+  overflow-x: auto;
+  padding: var(--ui-space-2xs);
+  border: var(--ui-border-width) solid var(--ui-color-border);
+  border-radius: var(--ui-radius-pill);
+  background: color-mix(in srgb, var(--ui-color-surface) 94%, transparent);
+  box-shadow: var(--ui-shadow-sm);
+  scrollbar-width: none;
+}
+
+.ui-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.ui-tabs__item {
+  align-items: center;
+  border: var(--ui-border-width) solid transparent;
+  border-radius: var(--ui-radius-pill);
+  color: var(--ui-color-text-muted);
+  display: inline-flex;
+  flex: 0 0 auto;
+  font-size: var(--ui-text-sm);
+  font-weight: var(--ui-weight-semibold);
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0.45rem 1rem;
+  text-decoration: none;
+  transition: background-color var(--ui-motion-fast) var(--ui-ease-standard), border-color var(--ui-motion-fast) var(--ui-ease-standard), color var(--ui-motion-fast) var(--ui-ease-standard), transform var(--ui-motion-fast) var(--ui-ease-standard);
+}
+
+.ui-tabs__item:hover {
+  color: var(--ui-color-text);
+  background: var(--ui-color-surface-2);
+  transform: translateY(-1px);
+}
+
+.ui-tabs__item.is-active,
+.ui-tabs__item[aria-current="page"] {
+  background: var(--ui-color-primary);
+  border-color: var(--ui-color-primary);
+  color: var(--ui-color-primary-contrast);
+  box-shadow: 0 10px 22px color-mix(in srgb, var(--ui-color-primary) 28%, transparent);
+}
+
+/* AI blocks */
+.ui-agent {
+  background: var(--ui-color-surface);
+  border: var(--ui-border-width) solid var(--ui-color-border);
+  border-radius: var(--ui-radius-xl);
+  box-shadow: var(--ui-shadow-sm);
+  display: grid;
+  gap: var(--ui-space-md);
+  padding: var(--ui-space-lg);
+}
+
+.ui-agent__header {
+  align-items: center;
+  display: flex;
+  gap: var(--ui-space-sm);
+  justify-content: space-between;
+}
+
+/* State system */
+.is-selected {
+  border-color: color-mix(in srgb, var(--ui-color-primary) 58%, var(--ui-color-border));
+}
+
+.is-active {
+  box-shadow: var(--ui-shadow-sm);
+}
+
+.is-open {
+  background: var(--ui-color-surface-2);
+}
+
+.is-loading {
+  opacity: 0.75;
+  pointer-events: none;
+}
+
+/* Template governance blocks */
+.ui-hero {
+  padding-block: var(--ui-space-2xl);
+}
+
+.ui-intro {
+  padding-block: var(--ui-space-lg);
+}
+
+.ui-filters {
+  padding-block: var(--ui-space-md);
+}
+
+.ui-content-grid {
+  padding-block: var(--ui-space-lg);
+}
+
+.ui-featured {
+  padding-block: var(--ui-space-xl);
+}
+
+.ui-cta {
+  padding-block: var(--ui-space-2xl);
+}
+
+/* Tablet */
+@media (min-width: 48rem) {
+  :root {
+    --ui-container-pad: 1.25rem;
+  }
+
+  .ui-section {
+    padding-block: var(--ui-space-2xl);
+  }
+
+  .ui-grid--2 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ui-grid--3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Mobile nav bridge */
+@media (max-width: 63.9375rem) {
+  .ui-scope .main-nav .e-con-inner {
+    grid-template-columns: auto 1fr auto;
+  }
+
+  .ui-scope .main-nav .elementor-widget-button {
+    display: none;
+  }
+
+  .ui-scope .main-nav .ddb-theme-toggle-host {
+    justify-self: end;
+    margin-left: 0.2rem;
+  }
+
+  .ui-scope .main-nav .elementor-widget-nav-menu.elementor-nav-menu--dropdown-mobile .elementor-nav-menu--main {
+    display: none;
+  }
+
+  .ui-scope .main-nav .elementor-widget-nav-menu.elementor-nav-menu--dropdown-mobile .elementor-menu-toggle {
+    display: inline-flex;
+  }
+
+  .ui-scope .main-nav .elementor-widget-nav-menu.elementor-nav-menu--dropdown-mobile .elementor-menu-toggle[aria-expanded="true"] + .elementor-nav-menu--dropdown.elementor-nav-menu__container {
+    display: block;
+    left: 0;
+    min-width: 0;
+    right: 0;
+  }
+}
+
+/* Desktop */
+@media (min-width: 64rem) {
+  :root {
+    --ui-container-pad: 1.5rem;
+  }
+
+  .ui-nav__toggle {
+    display: none;
+  }
+
+  .ui-nav__menu {
+    display: flex;
+    gap: var(--ui-space-xs);
+  }
+
+  .ui-grid--3 {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .ui-grid--4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* Motion safety */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms;
+    animation-iteration-count: 1;
+    scroll-behavior: auto;
+    transition-duration: 1ms;
+  }
+}
+
+/* ==========================================================================
+   BUTTON NAMESPACE ALIASES — CSS only, no PHP class changes
+   Maps non-canonical button classes onto the .ui-btn token system.
+   These rules appear after the legacy OLED section to win the cascade.
+   ========================================================================== */
+
+/* .ddb-add-to-plan: activity CTA primary — alias of .ui-btn.ui-btn--primary */
+.ddb-add-to-plan {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0.65rem 1.4rem;
+  border-radius: var(--ui-radius-pill);
+  border: var(--ui-border-width) solid transparent;
+  font-size: var(--ui-text-sm);
+  font-weight: var(--ui-weight-semibold);
+  text-decoration: none;
+  cursor: pointer;
+  background: var(--ui-color-primary);
+  border-color: var(--ui-color-primary);
+  color: var(--ui-color-primary-contrast);
+  transition: transform var(--ui-motion-fast) var(--ui-ease-standard), background-color var(--ui-motion-fast) var(--ui-ease-standard), border-color var(--ui-motion-fast) var(--ui-ease-standard);
+}
+.ddb-add-to-plan:hover {
+  background: var(--ui-color-primary-hover);
+  border-color: var(--ui-color-primary-hover);
+}
+.ddb-add-to-plan.ddb-in-planner {
+  background: var(--ui-color-success);
+  border-color: var(--ui-color-success);
+}
+
+/* .ddb-direct-book: activity CTA secondary — alias of .ui-btn.ui-btn--secondary */
+.ddb-direct-book {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0.65rem 1.4rem;
+  border-radius: var(--ui-radius-pill);
+  border: var(--ui-border-width) solid var(--ui-color-border);
+  font-size: var(--ui-text-sm);
+  font-weight: var(--ui-weight-semibold);
+  text-decoration: none;
+  cursor: pointer;
+  background: var(--ui-color-surface);
+  color: var(--ui-color-text);
+  transition: transform var(--ui-motion-fast) var(--ui-ease-standard), background-color var(--ui-motion-fast) var(--ui-ease-standard), border-color var(--ui-motion-fast) var(--ui-ease-standard);
+}
+.ddb-direct-book:hover {
+  background: var(--ui-color-surface-2);
+}
+
+/* .ddb-listing-btn: filter/sort toolbar button — alias of .ui-btn.ui-btn--inline */
+.ddb-listing-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.35rem;
+  padding: 0.45rem 0.85rem;
+  border-radius: var(--ui-radius-pill);
+  border: var(--ui-border-width) solid var(--ui-color-border);
+  font-size: var(--ui-text-sm);
+  font-weight: var(--ui-weight-semibold);
+  text-decoration: none;
+  cursor: pointer;
+  background: var(--ui-color-surface);
+  color: var(--ui-color-text);
+  transition: background-color var(--ui-motion-fast) var(--ui-ease-standard), border-color var(--ui-motion-fast) var(--ui-ease-standard);
+}
+.ddb-listing-btn:hover {
+  background: var(--ui-color-surface-2);
+  border-color: var(--ui-color-primary);
+}
+.ddb-listing-btn--primary {
+  background: var(--ui-color-primary);
+  border-color: var(--ui-color-primary);
+  color: var(--ui-color-primary-contrast);
+}
+.ddb-listing-btn--primary:hover {
+  background: var(--ui-color-primary-hover);
+  border-color: var(--ui-color-primary-hover);
+}
+
+/* ==========================================================================
+   LAUNCH SPRINT NORMALIZATION OVERRIDES
+   Neutralize legacy OLED/card drift on site routes and restore the shared
+   product-system primitives as the visible source of truth.
+   ========================================================================== */
+
+body:not(.ddb-app-route) .site-header .custom-logo,
+body:not(.ddb-app-route) .ddb-header__logo img,
+body:not(.ddb-app-route) .elementor-widget-theme-site-logo img {
+  filter: none;
+}
+
+body:not(.ddb-app-route) ul.products,
+body:not(.ddb-app-route) .woocommerce ul.products {
+  display: grid;
+  gap: var(--ui-space-md);
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+body:not(.ddb-app-route) ul.products::before,
+body:not(.ddb-app-route) ul.products::after,
+body:not(.ddb-app-route) .woocommerce ul.products::before,
+body:not(.ddb-app-route) .woocommerce ul.products::after {
+  display: none;
+}
+
+body:not(.ddb-app-route) ul.products li.product,
+body:not(.ddb-app-route) .woocommerce ul.products li.product {
+  background: var(--ui-color-surface);
+  border: var(--ui-border-width) solid var(--ui-color-border);
+  border-radius: var(--ui-radius-xl);
+  box-shadow: var(--ui-shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  height: auto;
+  margin: 0;
+  min-height: 0;
+  overflow: hidden;
+  padding: 0;
+  position: relative;
+  text-decoration: none;
+  transition: border-color var(--ui-motion-fast) var(--ui-ease-standard), box-shadow var(--ui-motion-fast) var(--ui-ease-standard), transform var(--ui-motion-fast) var(--ui-ease-standard);
+}
+
+body:not(.ddb-app-route) ul.products li.product:hover,
+body:not(.ddb-app-route) .woocommerce ul.products li.product:hover {
+  border-color: color-mix(in srgb, var(--ui-color-primary) 28%, var(--ui-color-border));
+  box-shadow: var(--ui-shadow-md);
+  transform: translateY(-2px);
+}
+
+body:not(.ddb-app-route) ul.products li.product::before,
+body:not(.ddb-app-route) ul.products li.product::after,
+body:not(.ddb-app-route) ul.products li.product a::before,
+body:not(.ddb-app-route) ul.products li.product a::after,
+body:not(.ddb-app-route) .woocommerce ul.products li.product::before,
+body:not(.ddb-app-route) .woocommerce ul.products li.product::after,
+body:not(.ddb-app-route) .woocommerce ul.products li.product a::before,
+body:not(.ddb-app-route) .woocommerce ul.products li.product a::after {
+  display: none;
+}
+
+body:not(.ddb-app-route) ul.products li.product .woocommerce-loop-product__link,
+body:not(.ddb-app-route) .woocommerce ul.products li.product .woocommerce-loop-product__link,
+body:not(.ddb-app-route) ul.products li.product .woocommerce-LoopProduct-link,
+body:not(.ddb-app-route) .woocommerce ul.products li.product .woocommerce-LoopProduct-link {
+  color: inherit;
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--ui-space-sm);
+  inset: auto;
+  justify-content: flex-start;
+  min-height: 0;
+  padding: 0;
+  position: relative;
+  text-decoration: none;
+}
+
+body:not(.ddb-app-route) ul.products li.product img,
+body:not(.ddb-app-route) .woocommerce ul.products li.product img {
+  aspect-ratio: 4 / 3;
+  border-radius: 0;
+  display: block;
+  height: auto;
+  inset: auto;
+  margin: 0;
+  object-fit: cover;
+  position: relative;
+  width: 100%;
+}
+
+body:not(.ddb-app-route) ul.products li.product .woocommerce-loop-product__title,
+body:not(.ddb-app-route) .woocommerce ul.products li.product .woocommerce-loop-product__title {
+  color: var(--ui-color-text);
+  font-family: var(--ui-font-display);
+  font-size: var(--ui-text-lg);
+  font-weight: var(--ui-weight-bold);
+  line-height: 1.28;
+  margin: 0;
+  max-width: none;
+  padding: 0 var(--ui-space-md);
+  position: relative;
+  text-shadow: none;
+}
+
+body:not(.ddb-app-route) ul.products li.product .price,
+body:not(.ddb-app-route) .woocommerce ul.products li.product .price {
+  align-items: center;
+  background: color-mix(in srgb, var(--ui-color-primary) 8%, var(--ui-color-surface));
+  border: var(--ui-border-width) solid color-mix(in srgb, var(--ui-color-primary) 18%, var(--ui-color-border));
+  border-radius: var(--ui-radius-pill);
+  color: var(--ui-color-text);
+  display: inline-flex;
+  font-family: var(--ui-font-sans);
+  font-size: var(--ui-text-sm);
+  font-weight: var(--ui-weight-semibold);
+  gap: 0.25rem;
+  margin: 0 var(--ui-space-md);
+  padding: 0.35rem 0.75rem;
+  position: relative;
+  right: auto;
+  top: auto;
+  width: fit-content;
+}
+
+body:not(.ddb-app-route) ul.products li.product .button,
+body:not(.ddb-app-route) .woocommerce ul.products li.product .button,
+body:not(.ddb-app-route) ul.products li.product .add_to_cart_button,
+body:not(.ddb-app-route) .woocommerce ul.products li.product .add_to_cart_button {
+  align-items: center;
+  align-self: flex-start;
+  background: transparent;
+  border: var(--ui-border-width) solid var(--ui-color-border);
+  border-radius: var(--ui-radius-pill);
+  color: var(--ui-color-text);
+  display: inline-flex;
+  font-size: var(--ui-text-sm);
+  font-weight: var(--ui-weight-semibold);
+  justify-content: center;
+  margin: var(--ui-space-sm) var(--ui-space-md) var(--ui-space-md);
+  min-height: 2.5rem;
+  padding: 0.5rem 0.9rem;
+  position: relative;
+  right: auto;
+  width: auto;
+}
+
+body:not(.ddb-app-route) ul.products li.product .button:hover,
+body:not(.ddb-app-route) .woocommerce ul.products li.product .button:hover,
+body:not(.ddb-app-route) ul.products li.product .add_to_cart_button:hover,
+body:not(.ddb-app-route) .woocommerce ul.products li.product .add_to_cart_button:hover {
+  background: var(--ui-color-surface-2);
+  border-color: color-mix(in srgb, var(--ui-color-primary) 28%, var(--ui-color-border));
+  color: var(--ui-color-text);
+}
+
+/* ==========================================================================
+   DESIGN SYSTEM NORMALIZATION — card border, chip, and radius refinements
+   ========================================================================== */
+
+/* ── ui-card: softer border in light mode, less hover noise ── */
+html[data-theme="light"] .ui-card,
+html[data-theme="system"] .ui-card {
+  border-color: color-mix(in srgb, var(--ui-color-border) 75%, transparent);
+}
+
+html[data-theme="light"] .ui-card:hover,
+html[data-theme="system"] .ui-card:hover {
+  border-color: color-mix(in srgb, var(--ui-color-primary) 18%, var(--ui-color-border));
+}
+
+@media (prefers-color-scheme: dark) {
+  html[data-theme="system"] .ui-card {
+    border-color: color-mix(in srgb, var(--ui-color-border) 75%, transparent);
+  }
+}
+
+/* ── ui-surface: softer border ── */
+html[data-theme="light"] .ui-surface,
+html[data-theme="system"] .ui-surface {
+  border-color: color-mix(in srgb, var(--ui-color-border) 70%, transparent);
+}
+
+/* ── ui-summary: softer border ── */
+html[data-theme="light"] .ui-summary,
+html[data-theme="system"] .ui-summary {
+  border-color: color-mix(in srgb, var(--ui-color-border) 70%, transparent);
+}
+
+/* ── ui-chip: filter variant — tint active state (not solid fill) ── */
+.ui-chip--filter.is-active,
+.ui-chip--filter[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--ui-color-primary) 12%, var(--ui-color-surface));
+  border-color: color-mix(in srgb, var(--ui-color-primary) 42%, var(--ui-color-border));
+  color: var(--ui-color-text);
+}
+
+/* ── ddb-browser-bar: chip active tint (not solid) ── */
+.ddb-browser-bar__chip.is-active {
+  background: color-mix(in srgb, var(--ui-color-primary) 10%, var(--ui-color-surface));
+  border-color: color-mix(in srgb, var(--ui-color-primary) 32%, var(--ui-color-border));
+  color: var(--ui-color-text);
+}
+

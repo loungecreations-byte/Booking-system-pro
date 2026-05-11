@@ -1,0 +1,101 @@
+# =====================================================================
+#  FILE: product-planner.refresh.codex
+#  PURPOSE: Vernieuwde dagplanner pluginstructuur (WooCommerce integratie)
+#           - Summary card met datum/tijd/aantal personen/prijs
+#           - Planner Dock (desktop) + Sticky CTA (mobiel)
+#           - REST: /price, /slots, /combideals, /plan
+#           - CombiDeals (bookable WooCommerce producten, checkbox-selectie)
+#           - AI suggesties voor dagvulling
+#           - Shortcodes voor Elementor
+# =====================================================================
+
+task: product.page-refresh
+output-policy: [verbose, fail-fast, color]
+
+vars:
+  plugin_slug: "ddb-product-layout"
+  plugin_dir: "wp-content/plugins/ddb-product-layout"
+  ns: "DDB\\ProductLayout"
+  rest_ns: "ddb/v1"
+  feature_flag: "ddb_product_layout_enabled"
+  dock_flag: "ddb_planner_dock_enabled"
+
+include:
+  - dagplanner.rest.bundle.codex
+  - dagplanner.views.bundle.codex
+  - dagplanner.assets.bundle.codex
+
+steps:
+
+# 1) Mappenstructuur
+- name: "Scaffold plugin directories"
+  run: >
+    agent.run("fs.ensure_dirs", { paths: [
+      "${{vars.plugin_dir}}",
+      "${{vars.plugin_dir}}/includes",
+      "${{vars.plugin_dir}}/includes/Rest",
+      "${{vars.plugin_dir}}/includes/Services",
+      "${{vars.plugin_dir}}/includes/Domain",
+      "${{vars.plugin_dir}}/assets",
+      "${{vars.plugin_dir}}/views"
+    ]});
+
+# 2) Hoofdbestand plugin
+- name: "Create plugin bootstrap"
+  run: >
+    agent.run("fs.write", {
+      path: "${{vars.plugin_dir}}/ddb-product-layout.php",
+      content: `<?php
+/**
+ * Plugin Name: DDB Product Layout
+ * Description: Interactieve dagplanner met combideals, AI suggesties, sticky CTA en REST endpoints.
+ * Version: 0.3.0
+ * Author: DagjeDenBosch.nl
+ */
+
+if (!defined('ABSPATH')) exit;
+
+define('DDB_PLUG', __FILE__);
+define('DDB_PLUG_DIR', plugin_dir_path(__FILE__));
+define('DDB_PLUG_URL', plugin_dir_url(__FILE__));
+
+register_activation_hook(__FILE__, function(){
+  add_option('${{vars.feature_flag}}', '1');
+  add_option('${{vars.dock_flag}}', '1');
+});
+
+spl_autoload_register(function($class){
+  if (strpos($class, '${{vars.ns}}') !== 0) return;
+  $file = DDB_PLUG_DIR . 'includes/' . str_replace(['${{vars.ns}}\\','\\\\'], ['', '/'], $class) . '.php';
+  if (file_exists($file)) require_once $file;
+});
+
+add_action('plugins_loaded', function(){
+  if (get_option('${{vars.feature_flag}}') !== '1') return;
+
+  (new ${{vars.ns}}\\Assets())->init();
+  (new ${{vars.ns}}\\Hooks())->init();
+
+  (new ${{vars.ns}}\\Rest\\Price())->init();
+  (new ${{vars.ns}}\\Rest\\Slots())->init();
+  (new ${{vars.ns}}\\Rest\\Combideals())->init();
+  (new ${{vars.ns}}\\Rest\\Plan())->init();
+});
+`
+    });
+
+# 3) Feature flags activeren
+- name: "Enable plugin flags via WP-CLI"
+  run: >
+    if (agent.run("sh.which", {"bin":"wp"})) {
+      agent.run("sh.exec", { "cmd": "wp option update ${{vars.feature_flag}} 1 || true" });
+      agent.run("sh.exec", { "cmd": "wp option update ${{vars.dock_flag}} 1 || true" });
+    }
+
+# 4) Log output
+- name: "Log plugininfo"
+  run: >
+    agent.log.info("✅ Dagplanner plugin aangemaakt");
+    agent.log.info("REST endpoints: /${{vars.rest_ns}}/price, /slots, /combideals, /plan");
+    agent.log.info("Elementor shortcodes: [ddb_summary_card], [ddb_planner_dock], [ddb_combideals]");
+    agent.log.info("Gebruik per product metadata: _ddb_timeslots, _ddb_capacity_per_slot, _ddb_base_price, _ddb_per_person");

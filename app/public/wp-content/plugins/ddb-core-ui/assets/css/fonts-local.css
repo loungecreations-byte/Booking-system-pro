@@ -1,0 +1,9 @@
+@import url("https://fonts.googleapis.com/css2?family=Quattrocento:wght@400;700&family=Quattrocento+Sans:ital,wght@0,400;0,700;1,400&display=swap");
+
+:root {
+  --ddb-font-sans: "Quattrocento Sans", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+  --ddb-font-body: "Quattrocento Sans", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+  --ddb-font-display: "Quattrocento", Georgia, "Times New Roman", serif;
+  --ddb-font-heading: "Quattrocento", Georgia, "Times New Roman", serif;
+  --ddb-font-serif: "Quattrocento", Georgia, "Times New Roman", serif;
+}

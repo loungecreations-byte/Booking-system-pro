@@ -1,0 +1,403 @@
+/* DDB Platform Normalization Layer */
+:root {
+  --ddb-shell-max: 1320px;
+  --ddb-shell-pad: clamp(16px, 2.2vw, 32px);
+  --ddb-shell-gap: clamp(18px, 2vw, 32px);
+
+  --ddb-surface-page: var(--ddb-bg, #0f1115);
+  --ddb-surface-shell: color-mix(in srgb, var(--ddb-surface, #161a21) 92%, transparent);
+  --ddb-surface-panel: color-mix(in srgb, var(--ddb-surface, #161a21) 100%, #ffffff 0%);
+  --ddb-surface-panel-elevated: color-mix(in srgb, var(--ddb-surface-alt, #1d232d) 92%, #ffffff 8%);
+  --ddb-surface-control: color-mix(in srgb, var(--ddb-input, #0f1a31) 90%, #ffffff 10%);
+  --ddb-surface-active: color-mix(in srgb, var(--ddb-primary, #d1a06a) 18%, var(--ddb-surface, #161a21) 82%);
+
+  --ddb-radius-control: 12px;
+  --ddb-radius-panel: 18px;
+  --ddb-radius-card: 16px;
+
+  --ddb-space-1: 8px;
+  --ddb-space-2: 12px;
+  --ddb-space-3: 16px;
+  --ddb-space-4: 24px;
+  --ddb-space-5: 32px;
+  --ddb-space-6: 48px;
+
+  --ddb-heading-1: clamp(2rem, 2.2vw, 3rem);
+  --ddb-heading-2: clamp(1.55rem, 1.5vw, 2.2rem);
+  --ddb-heading-3: clamp(1.15rem, 1vw, 1.45rem);
+}
+
+body {
+  background: radial-gradient(1200px 600px at 8% -20%, color-mix(in srgb, var(--ddb-primary, #d1a06a) 22%, transparent), transparent),
+              linear-gradient(180deg, color-mix(in srgb, var(--ddb-surface, #161a21) 92%, #000 8%), var(--ddb-bg, #0f1115));
+}
+
+.site-main,
+main#content,
+.ddb-semantic-main {
+  width: min(var(--ddb-shell-max), calc(100% - (var(--ddb-shell-pad) * 2)));
+  margin-inline: auto;
+  padding-block: var(--ddb-space-5);
+}
+
+.site-header .site-container,
+.site-footer .site-container,
+.site-footer .elementor-container,
+.site-header .elementor-container {
+  width: min(var(--ddb-shell-max), calc(100% - (var(--ddb-shell-pad) * 2)));
+  margin-inline: auto;
+}
+
+.page-header,
+.ddb-context-strip,
+.ui-section,
+.woocommerce,
+.woocommerce-account,
+.woocommerce-cart,
+.woocommerce-checkout,
+.bsp-partner-portal,
+.sbdp-activity-overview,
+.sbdp-tour-page {
+  margin-bottom: var(--ddb-shell-gap);
+}
+
+h1,
+.entry-title,
+.ui-h1 {
+  font-size: var(--ddb-heading-1);
+  line-height: 1.06;
+}
+
+h2,
+.ui-h2 {
+  font-size: var(--ddb-heading-2);
+  line-height: 1.18;
+}
+
+h3,
+.ui-h3 {
+  font-size: var(--ddb-heading-3);
+}
+
+.ui-card,
+.ui-panel,
+.woocommerce .woocommerce-MyAccount-content,
+.woocommerce .woocommerce-cart-form,
+.woocommerce .cart-collaterals,
+.woocommerce-checkout .woocommerce,
+.woocommerce .cart-empty,
+.woocommerce .return-to-shop,
+.bsp-partner-portal > *,
+.sbdp-vendor-portal__login,
+.sbdp-vendor-portal__vendor,
+.sbdp-vendor-portal__google,
+.sbdp-vendor-portal__schedule,
+.sbdp-vendor-portal__confirmations,
+.sbdp-vendor-portal__dietary,
+.sbdp-activity-overview,
+.ddb-tour-panel,
+.ddb-node {
+  background: var(--ddb-surface-panel);
+  border: 1px solid color-mix(in srgb, var(--ddb-border, #333a46) 70%, transparent);
+  border-radius: var(--ddb-radius-panel);
+  box-shadow: var(--ddb-shadow-1, 0 10px 24px rgba(2, 8, 23, 0.35));
+}
+
+.ui-card--featured,
+.woocommerce .cart_totals,
+.woocommerce-checkout-review-order,
+.bsp-portal-notice,
+.ddb-tour-summary {
+  background: var(--ddb-surface-panel-elevated);
+}
+
+.woocommerce table.shop_table,
+.woocommerce table.shop_table th,
+.woocommerce table.shop_table td,
+.bsp-partner-portal table,
+.bsp-partner-portal th,
+.bsp-partner-portal td {
+  border-color: color-mix(in srgb, var(--ddb-border, #333a46) 75%, transparent);
+}
+
+.woocommerce table.shop_table th,
+.bsp-partner-portal th {
+  color: var(--ddb-muted);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.sbdp-vendor-portal,
+.sbdp-vendor-portal__dashboard {
+  display: grid;
+  gap: var(--ddb-space-4);
+}
+
+.sbdp-vendor-portal__login,
+.sbdp-vendor-portal__vendor,
+.sbdp-vendor-portal__google,
+.sbdp-vendor-portal__schedule,
+.sbdp-vendor-portal__confirmations,
+.sbdp-vendor-portal__dietary {
+  padding: var(--ddb-space-4);
+}
+
+.sbdp-vendor-portal__header,
+.sbdp-vendor-portal__actions,
+.sbdp-vendor-portal__schedule-header,
+.sbdp-vendor-portal__google header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--ddb-space-3);
+  flex-wrap: wrap;
+}
+
+.sbdp-vendor-portal__header-actions,
+.sbdp-vendor-portal__google-actions,
+.sbdp-vendor-portal__cards,
+.sbdp-vendor-portal__filters,
+.sbdp-vendor-portal__kpis {
+  display: grid;
+  gap: var(--ddb-space-3);
+}
+
+.sbdp-vendor-portal__filters,
+.sbdp-vendor-portal__kpis {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.sbdp-vendor-portal__kpi {
+  padding: var(--ddb-space-4);
+  background: var(--ddb-surface-panel-elevated);
+  border: 1px solid color-mix(in srgb, var(--ddb-border, #333a46) 70%, transparent);
+  border-radius: var(--ddb-radius-card);
+}
+
+.sbdp-vendor-portal__kpi p {
+  font-size: clamp(1.6rem, 2vw, 2.35rem);
+  line-height: 1.1;
+  margin: 8px 0;
+}
+
+.sbdp-vendor-portal__field,
+.sbdp-vendor-portal__filter-group label {
+  display: grid;
+  gap: 8px;
+}
+
+.sbdp-vendor-portal__notice,
+.sbdp-vendor-portal__badge,
+.woocommerce .cart-empty {
+  border-radius: var(--ddb-radius-control);
+}
+
+.woocommerce .cart-empty,
+.woocommerce .return-to-shop {
+  padding: var(--ddb-space-4);
+}
+
+.woocommerce .return-to-shop {
+  display: flex;
+  justify-content: flex-start;
+}
+
+button,
+.button,
+.ui-btn,
+.woocommerce a.button,
+.woocommerce button.button,
+.woocommerce input.button {
+  min-height: 44px;
+  border-radius: var(--ddb-radius-control);
+  padding: 10px 16px;
+  border: 1px solid color-mix(in srgb, var(--ddb-border, #333a46) 72%, transparent);
+}
+
+.ui-btn--primary,
+.woocommerce a.button.checkout-button,
+.woocommerce button.button.alt,
+.woocommerce input.button.alt {
+  background: var(--ddb-primary);
+  color: var(--ddb-primary-contrast);
+  border-color: color-mix(in srgb, var(--ddb-primary) 72%, #000 28%);
+}
+
+.ui-btn--secondary,
+.ui-btn--ghost,
+.woocommerce a.button,
+.woocommerce button.button {
+  background: color-mix(in srgb, var(--ddb-surface-panel-elevated) 88%, transparent);
+  color: var(--ddb-text);
+}
+
+input,
+select,
+textarea,
+.woocommerce input.input-text,
+.woocommerce select,
+.woocommerce textarea,
+.ui-input,
+.ui-select {
+  min-height: 44px;
+  border-radius: var(--ddb-radius-control);
+  border: 1px solid color-mix(in srgb, var(--ddb-border, #333a46) 75%, transparent);
+  background: var(--ddb-surface-control);
+  color: var(--ddb-text);
+  padding: 10px 12px;
+}
+
+.ddb-family-marketing .site-main,
+.ddb-family-utility .site-main {
+  --ddb-shell-max: 980px;
+}
+
+.ddb-family-discover .site-main {
+  --ddb-shell-max: 1400px;
+}
+
+.ddb-family-commerce .site-main,
+.ddb-family-partner .site-main {
+  --ddb-shell-max: 1240px;
+}
+
+.ddb-family-commerce .woocommerce-notices-wrapper,
+.ddb-family-partner .woocommerce-notices-wrapper,
+.ddb-family-partner .bsp-portal-notice {
+  border-radius: var(--ddb-radius-control);
+  padding: var(--ddb-space-3);
+}
+
+.ddb-family-tour .site-main {
+  --ddb-shell-max: 1320px;
+}
+
+.ddb-tour-page__inner {
+  display: grid;
+  gap: var(--ddb-space-4);
+}
+
+.ddb-tour-hero,
+.ddb-tour-story,
+.ddb-tour-steps,
+.ddb-tour-cta {
+  padding: clamp(20px, 2.4vw, 32px);
+}
+
+.ddb-tour-hero {
+  background:
+    radial-gradient(circle at top right, color-mix(in srgb, var(--ddb-primary) 14%, transparent), transparent 32%),
+    var(--ddb-surface-panel-elevated);
+}
+
+.ddb-tour-hero__eyebrow {
+  color: var(--ddb-primary);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+
+.ddb-tour-hero__title {
+  margin: 0;
+}
+
+.ddb-tour-hero__summary,
+.ddb-tour-section__head p,
+.ddb-tour-steps__empty {
+  color: var(--ddb-muted);
+}
+
+.ddb-tour-hero__meta,
+.ddb-tour-hero__actions,
+.ddb-tour-step-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.ddb-tour-hero__meta {
+  margin: 18px 0;
+}
+
+.ddb-tour-hero__chip,
+.ddb-tour-step-card__chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 32px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ddb-primary) 12%, var(--ddb-surface-panel));
+  border: 1px solid color-mix(in srgb, var(--ddb-primary) 18%, var(--ddb-border));
+}
+
+.ddb-tour-steps__grid {
+  display: grid;
+  gap: var(--ddb-space-3);
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.ddb-tour-step-card {
+  padding: var(--ddb-space-4);
+}
+
+.ddb-tour-step-card__index {
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--ddb-primary) 18%, var(--ddb-surface-panel));
+  color: var(--ddb-primary);
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.ddb-tour-step-card__title {
+  margin: 0 0 12px;
+}
+
+.ddb-tour-step-card__content > :first-child {
+  margin-top: 0;
+}
+
+.ddb-tour-step-card__content > :last-child {
+  margin-bottom: 0;
+}
+
+.ddb-family-discover .sbdp-activity-overview,
+.ddb-family-discover .ddb-activiteiten-archive,
+.ddb-family-discover .ui-shell,
+.ddb-family-discover .ui-container {
+  max-width: min(1400px, calc(100% - (var(--ddb-shell-pad) * 2)));
+  margin-inline: auto;
+}
+
+body.post-type-archive-activiteiten .page-header,
+body.post-type-archive-activity .page-header {
+  display: none;
+}
+
+@media (max-width: 900px) {
+  .site-main,
+  main#content,
+  .ddb-semantic-main {
+    padding-block: var(--ddb-space-4);
+  }
+
+  .woocommerce table.shop_table,
+  .bsp-partner-portal table {
+    display: block;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .sbdp-vendor-portal__header,
+  .sbdp-vendor-portal__actions,
+  .sbdp-vendor-portal__schedule-header,
+  .sbdp-vendor-portal__google header {
+    align-items: stretch;
+  }
+}

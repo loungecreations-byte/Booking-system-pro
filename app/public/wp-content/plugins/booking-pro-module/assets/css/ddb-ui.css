@@ -1,0 +1,12 @@
+/*
+ * Compatibility shim for the legacy `ddb-ui` stylesheet path.
+ *
+ * Runtime ownership now lives in:
+ * - booking-pro-module/assets/css/design-system.css
+ * - ddb-core-ui assets and inline token bridge
+ *
+ * Keep this file tiny so direct path references do not 404 while the
+ * oversized historical bundle stays archived outside runtime.
+ */
+
+@import url("./design-system.css");

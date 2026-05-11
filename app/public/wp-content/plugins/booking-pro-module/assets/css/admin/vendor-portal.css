@@ -1,0 +1,92 @@
+.sbdp-vendor-portal-admin {
+    max-width: 1100px;
+}
+
+.sbdp-vendor-portal-admin__filters {
+    display: flex;
+    gap: 12px;
+    margin: 16px 0;
+    flex-wrap: wrap;
+}
+
+.sbdp-vendor-portal-admin__filters label {
+    display: flex;
+    flex-direction: column;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.sbdp-vendor-portal-admin__filters input,
+.sbdp-vendor-portal-admin__filters select {
+    min-width: 200px;
+    padding: 6px 8px;
+}
+
+.sbdp-vendor-portal-admin__table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 12px;
+    background: var(--ui-color-surface);
+}
+
+.sbdp-vendor-portal-admin__table th,
+.sbdp-vendor-portal-admin__table td {
+    border: 1px solid var(--ui-color-border);
+    padding: 8px 10px;
+    text-align: left;
+    vertical-align: top;
+}
+
+.sbdp-vendor-portal-admin__table tbody tr:nth-child(odd) {
+    background: color-mix(in srgb, var(--ui-color-surface-2) 70%, transparent);
+}
+
+.sbdp-vendor-portal-admin__actions {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+.sbdp-vendor-portal-admin__actions button {
+    margin: 2px 0;
+}
+
+.sbdp-vendor-portal-admin__pagination {
+    margin-top: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.sbdp-vendor-portal-admin__detail {
+    margin-top: 24px;
+    padding: 16px;
+    border: 1px solid var(--ui-color-border);
+    background: var(--ui-color-surface);
+}
+
+.sbdp-vendor-portal-admin__detail h2 {
+    margin-top: 0;
+}
+
+.sbdp-vendor-portal-admin__badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    background: var(--ui-color-surface-2);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.sbdp-vendor-portal-admin__notice {
+    margin-top: 12px;
+    padding: 12px;
+    border-left: 4px solid var(--ui-color-primary);
+    background: var(--ui-color-surface);
+}
+
+.sbdp-vendor-portal-admin__error {
+    border-left-color: var(--ui-color-danger);
+    background: var(--ui-color-surface);
+}

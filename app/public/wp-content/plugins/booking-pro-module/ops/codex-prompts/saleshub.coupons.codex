@@ -1,0 +1,349 @@
+# =====================================================================
+# FILE: saleshub.coupons.codex
+# PURPOSE: Coupon Engine voor Sales Hub (conditions + next-order rewards)
+#          - Extra voorwaarden bovenop WooCommerce coupons
+#          - Per product / per bedrag / % / vaste €
+#          - 'Volgende bestelling' coupon-uitgifte na order
+#          - Planner/Checkout hints (lichtgewicht)
+# DEPENDS: ddb-product-layout (Sales Hub + PriceEngine/Availability)
+# =====================================================================
+
+task: saleshub.coupons.enable
+output-policy: [verbose, color, fail-fast]
+
+vars:
+  plugin_dir: "wp-content/plugins/ddb-product-layout"
+  ns: "DDB\\ProductLayout"
+
+steps:
+
+# 0) Mappen
+- name: "Ensure folders"
+  run: >
+    agent.run("fs.ensure_dirs", { paths: [
+      "${{vars.plugin_dir}}/includes/Services",
+      "${{vars.plugin_dir}}/includes/Admin",
+      "${{vars.plugin_dir}}/views/admin"
+    ]});
+
+# 1) Services/Coupons.php — validatie & next-order rewards
+- name: "Create Services/Coupons.php"
+  run: >
+    agent.run("fs.write", {
+      path: "${{vars.plugin_dir}}/includes/Services/Coupons.php",
+      content: "<?php
+namespace ${{vars.ns}}\\Services;
+
+/**
+ * Coupon Engine (bovenop WooCommerce)
+ * - Extra voorwaarden via coupon meta: _ddb_coupon_rules (JSON)
+ * - Automatische uitgifte 'volgende bestelling' coupons na order
+ *
+ * JSON rules (voorbeeld):
+ * {
+ *   \"scope\": {\"products\":[123,456], \"vendors\":[11], \"categories\":[22]},
+ *   \"pax\": {\"min\":8, \"max\":40},
+ *   \"order\": {\"min_subtotal\": 100.0},
+ *   \"time\": {\"date_from\":\"2025-01-01\",\"date_to\":\"2025-12-31\",\"offpeak_only\":true, \"days\":[1,2,3]},
+ *   \"booking\": {\"timeslots\":[\"09:00-12:00\"], \"lead_hours_min\":24},
+ *   \"flags\": {\"first_order_only\":false, \"new_customer_only\":false, \"single_use\":true}
+ * }
+ */
+class Coupons {
+  public function init(){
+    // Validatie-hooks
+    add_filter('woocommerce_coupon_is_valid', [$this,'validate_extra_rules'], 10, 2);
+    add_filter('woocommerce_coupon_error', [$this,'friendly_errors'], 10, 3);
+
+    // Next-order coupon uitgifte
+    add_action('woocommerce_order_status_completed', [$this,'maybe_issue_next_order_coupon'], 10, 1);
+
+    // Planner/checkout hint (lichtgewicht): filter voor tekst
+    add_filter('ddb_coupon_hint_for_cart', [$this,'coupon_hint_for_cart'], 10, 2);
+  }
+
+  /** Lees en decodeer DDB rules uit coupon meta */
+  private function get_rules(\\WC_Coupon $coupon): array {
+    $raw = get_post_meta($coupon->get_id(), '_ddb_coupon_rules', true);
+    $data = json_decode((string)$raw, true);
+    return is_array($data) ? $data : [];
+  }
+
+  /** Extra validatie bovenop Woo: return true/false */
+  public function validate_extra_rules($valid, $coupon){
+    if (!$valid || !($coupon instanceof \\WC_Coupon)) return $valid;
+    $rules = $this->get_rules($coupon);
+    if (!$rules) return $valid; // geen extra regels
+
+    $cart = WC()->cart;
+    if (!$cart) return $valid;
+
+    // 1) Order subtotal (excl. korting)
+    if (!empty($rules['order']['min_subtotal'])) {
+      $sub = (float) $cart->get_subtotal();
+      if ($sub + 0.0001 < (float)$rules['order']['min_subtotal']) return false;
+    }
+
+    // 2) Product scope (id/category/vendor)
+    if (!empty($rules['scope'])) {
+      $prod_ids = array_map('intval', array_column($cart->get_cart(), 'product_id'));
+      if (!empty($rules['scope']['products'])) {
+        $need = array_map('intval', (array)$rules['scope']['products']);
+        if (count(array_intersect($need, $prod_ids)) === 0) return false;
+      }
+      if (!empty($rules['scope']['categories'])) {
+        $need_cats = array_map('intval', (array)$rules['scope']['categories']);
+        $has = false;
+        foreach ($cart->get_cart() as $it){
+          $cats = wc_get_product_term_ids($it['product_id'], 'product_cat');
+          if (array_intersect($need_cats, $cats)) { $has = true; break; }
+        }
+        if (!$has) return false;
+      }
+      // Vendor filter (optioneel – verwacht vendor_id in product meta _ddb_vendor_id)
+      if (!empty($rules['scope']['vendors'])) {
+        $need_vendors = array_map('intval', (array)$rules['scope']['vendors']);
+        $has = false;
+        foreach ($cart->get_cart() as $it){
+          $vid = (int) get_post_meta($it['product_id'], '_ddb_vendor_id', true);
+          if ($vid && in_array($vid, $need_vendors, true)) { $has = true; break; }
+        }
+        if (!$has) return false;
+      }
+    }
+
+    // 3) Pax constraints (gebruik ddb_pax uit cart items)
+    if (!empty($rules['pax'])) {
+      $pax_total = 0;
+      foreach ($cart->get_cart() as $it){ $pax_total += (int) ($it['ddb_pax'] ?? $it['quantity'] ?? 0); }
+      if (!empty($rules['pax']['min']) && $pax_total < (int)$rules['pax']['min']) return false;
+      if (!empty($rules['pax']['max']) && $pax_total > (int)$rules['pax']['max']) return false;
+    }
+
+    // 4) Tijd/dag/peak constraints
+    if (!empty($rules['time'])) {
+      $now = current_time('timestamp');
+      if (!empty($rules['time']['date_from']) && $now < strtotime($rules['time']['date_from'])) return false;
+      if (!empty($rules['time']['date_to']) && $now > strtotime($rules['time']['date_to'].' 23:59:59')) return false;
+      if (!empty($rules['time']['days'])) {
+        $wd = (int) date('N', $now); // 1..7
+        if (!in_array($wd, array_map('intval',$rules['time']['days']), true)) return false;
+      }
+      if (!empty($rules['time']['offpeak_only'])) {
+        $is_peak = apply_filters('ddb_now_is_peak', false, $cart);
+        if ($is_peak) return false;
+      }
+    }
+
+    // 5) Booking constraints (lead time, timeslot range)
+    if (!empty($rules['booking'])) {
+      $lead_min = (int) ($rules['booking']['lead_hours_min'] ?? 0);
+      if ($lead_min > 0){
+        foreach ($cart->get_cart() as $it){
+          $d = $it['ddb_date'] ?? ''; $t = $it['ddb_time'] ?? '';
+          if ($d && $t){
+            $start = strtotime($d.' '.$t.':00');
+            if ($start - current_time('timestamp') < $lead_min*HOUR_IN_SECONDS) return false;
+          }
+        }
+      }
+      if (!empty($rules['booking']['timeslots'])){
+        $ok=false;
+        $ranges = (array)$rules['booking']['timeslots'];
+        foreach ($cart->get_cart() as $it){
+          $t = $it['ddb_time'] ?? '';
+          if ($t && $this->in_ranges($t, $ranges)) { $ok=true; break; }
+        }
+        if (!$ok) return false;
+      }
+    }
+
+    // 6) Flags: first/new customer
+    if (!empty($rules['flags']['first_order_only']) || !empty($rules['flags']['new_customer_only'])) {
+      $user_id = get_current_user_id();
+      $has_prev = $user_id ? wc_get_customer_order_count($user_id) > 0 : false;
+      if (!empty($rules['flags']['first_order_only']) && $has_prev) return false;
+      if (!empty($rules['flags']['new_customer_only']) && $has_prev) return false;
+    }
+
+    return true;
+  }
+
+  /** Vriendelijkere foutmeldingen (optioneel) */
+  public function friendly_errors($msg, $err_code, $coupon){
+    if ($msg) return $msg;
+    return __('Deze coupon voldoet niet aan de voorwaarden voor deze bestelling.','ddb');
+  }
+
+  /** Next-order coupon uitgifte na order-completion */
+  public function maybe_issue_next_order_coupon($order_id){
+    $order = wc_get_order($order_id);
+    if (!$order) return;
+
+    $reward = $this->collect_next_order_rewards($order);
+    if (!$reward) return;
+
+    $code = $this->create_unique_coupon($reward);
+    if (!$code) return;
+
+    $email = $order->get_billing_email();
+    if ($email){
+      wp_mail($email, __('Bedankt! Jouw kortingscode voor de volgende bestelling','ddb'),
+        sprintf(__('Gebruik code %1$s voor %2$s korting, geldig t/m %3$s.','ddb'),
+          $code, $this->format_reward($reward), date_i18n(get_option('date_format'), strtotime('+'.$reward['expires_days'].' days'))
+        )
+      );
+    }
+  }
+
+  private function collect_next_order_rewards($order){
+    $best = null;
+    foreach ($order->get_items() as $item){
+      $pid = $item->get_product_id();
+      $enabled = get_post_meta($pid, '_ddb_next_order_enabled', true);
+      if (!$enabled) continue;
+      $type = get_post_meta($pid, '_ddb_next_order_type', true) ?: 'percent';
+      $amount = (float) get_post_meta($pid, '_ddb_next_order_amount', true);
+      $expires = (int) (get_post_meta($pid, '_ddb_next_order_expires_days', true) ?: 60);
+      $min_sub = (float) get_post_meta($pid, '_ddb_next_order_min_subtotal', true);
+      $scope_prod = array_map('intval', (array) get_post_meta($pid, '_ddb_next_order_scope_products', true));
+      $tmp = ['type'=>$type,'amount'=>$amount,'expires_days'=>$expires,'min_subtotal'=>$min_sub,'restrict_products'=>$scope_prod];
+      if (!$best || $amount > $best['amount']) $best = $tmp;
+    }
+    return $best;
+  }
+
+  private function create_unique_coupon(array $reward){
+    $code = strtoupper(wp_generate_password(10, false, false));
+    $post_id = wp_insert_post(['post_title'=>$code,'post_type'=>'shop_coupon','post_status'=>'publish','post_excerpt'=>'Automatisch aangemaakt (DDB next-order)']);
+    if (!$post_id) return null;
+
+    $c = new \\WC_Coupon($post_id);
+    if ($reward['type']==='percent'){ $c->set_discount_type('percent'); $c->set_amount($reward['amount']); }
+    else { $c->set_discount_type('fixed_cart'); $c->set_amount($reward['amount']); }
+    $c->set_usage_limit(1);
+    $c->set_date_expires( (new \\WC_DateTime())->modify('+'.$reward['expires_days'].' days') );
+    if (!empty($reward['min_subtotal'])) $c->set_minimum_amount($reward['min_subtotal']);
+    if (!empty($reward['restrict_products'])) $c->set_product_ids($reward['restrict_products']);
+    $c->save();
+    update_post_meta($post_id, '_ddb_is_next_order', 1);
+    return $code;
+  }
+
+  private function format_reward($r){ return $r['type']==='percent' ? (float)$r['amount'].'%' : wc_price((float)$r['amount']); }
+  private function in_ranges($time,$ranges){ foreach((array)$ranges as $r){ if (strpos($r,'-')!==false){ list($a,$b)=array_map('trim',explode('-',$r,2)); if ($time>=$a && $time<=$b) return true; } } return false; }
+
+  public function coupon_hint_for_cart($text, $cart){
+    $sub = $cart ? (float)$cart->get_subtotal() : 0.0;
+    if ($sub < 100) { $left = wc_price(100 - $sub); return sprintf(__('Nog %s tot €100 – gebruik daarna code WEEKEND10 voor 10%% korting (indien van toepassing).','ddb'), $left); }
+    return $text;
+  }
+}
+"
+    });
+
+# 2) Admin/Coupons.php — UI (rules editor + next-order settings)
+- name: "Create Admin/Coupons.php"
+  run: >
+    agent.run("fs.write", {
+      path: "${{vars.plugin_dir}}/includes/Admin/Coupons.php",
+      content: "<?php
+namespace ${{vars.ns}}\\Admin;
+
+class Coupons {
+  public function init(){
+    add_action('add_meta_boxes', [$this,'metabox_coupon_rules']);
+    add_action('save_post_shop_coupon', [$this,'save_coupon_rules'], 10, 2);
+    add_action('add_meta_boxes_product', [$this,'metabox_next_order']);
+    add_action('save_post_product', [$this,'save_next_order'], 10, 2);
+    add_action('admin_menu', [$this,'submenu']);
+  }
+
+  public function submenu(){
+    add_submenu_page('ddb-sales-hub','Coupons','Coupons','manage_woocommerce','ddb-sales-coupons', function(){
+      include DDB_PLUG_DIR.'views/admin/sales-coupons.php';
+    });
+  }
+
+  public function metabox_coupon_rules(){
+    add_meta_box('ddb_coupon_rules','DDB Coupon voorwaarden','\\\\'.$this::class.'::coupon_box','shop_coupon','normal','default');
+  }
+  public static function coupon_box($post){
+    $rules = get_post_meta($post->ID,'_ddb_coupon_rules', true);
+    echo '<p>Extra voorwaarden (JSON). Voorbeeld:</p>';
+    echo '<pre style=\"background:#f6f7f9;padding:8px\">{ \"order\": {\"min_subtotal\": 100}, \"pax\": {\"min\": 8}, \"scope\": {\"products\": [123]}, \"time\": {\"offpeak_only\": true} }</pre>';
+    echo '<textarea name=\"_ddb_coupon_rules\" class=\"widefat\" rows=\"6\">'.esc_textarea($rules).'</textarea>';
+  }
+  public function save_coupon_rules($post_id, $post){
+    if (isset($_POST['_ddb_coupon_rules'])) update_post_meta($post_id, '_ddb_coupon_rules', wp_unslash($_POST['_ddb_coupon_rules']));
+  }
+
+  public function metabox_next_order(){
+    add_meta_box('ddb_next_order','Next-order Coupon (DDB)','\\\\'.$this::class.'::next_box','product','side','default');
+  }
+  public static function next_box($post){
+    $f = function($k,$d=''){ return esc_attr(get_post_meta($post->ID,$k,true) ?: $d); };
+    ?>
+    <p><label><input type=\"checkbox\" name=\"_ddb_next_order_enabled\" value=\"1\" <?php checked($f('_ddb_next_order_enabled'), '1'); ?>> Activeren</label></p>
+    <p><label>Type
+      <select name=\"_ddb_next_order_type\" class=\"widefat\">
+        <option value=\"percent\" <?php selected($f('_ddb_next_order_type','percent'),'percent'); ?>>% korting</option>
+        <option value=\"fixed\" <?php selected($f('_ddb_next_order_type'),'fixed'); ?>>Vaste € korting</option>
+      </select>
+    </label></p>
+    <p><label>Bedrag (% of €)<br><input type=\"number\" step=\"0.1\" name=\"_ddb_next_order_amount\" class=\"widefat\" value=\"<?php echo $f('_ddb_next_order_amount',10); ?>\"></label></p>
+    <p><label>Min. bestedingsbedrag (optioneel)<br><input type=\"number\" step=\"0.01\" name=\"_ddb_next_order_min_subtotal\" class=\"widefat\" value=\"<?php echo $f('_ddb_next_order_min_subtotal'); ?>\"></label></p>
+    <p><label>Beperk tot product-IDs (comma sep, optioneel)<br><input type=\"text\" name=\"_ddb_next_order_scope_products\" class=\"widefat\" value=\"<?php echo esc_attr(implode(',', (array) get_post_meta($post->ID,'_ddb_next_order_scope_products', true))); ?>\" placeholder=\"123,456\"></label></p>
+    <p><label>Geldigheid (dagen)<br><input type=\"number\" name=\"_ddb_next_order_expires_days\" class=\"widefat\" value=\"<?php echo $f('_ddb_next_order_expires_days',60); ?>\"></label></p>
+    <?php
+  }
+  public function save_next_order($post_id, $post){
+    $map = ['_ddb_next_order_enabled','_ddb_next_order_type','_ddb_next_order_amount','_ddb_next_order_min_subtotal','_ddb_next_order_expires_days'];
+    foreach ($map as $k){ if(isset($_POST[$k])) update_post_meta($post_id,$k,wp_unslash($_POST[$k])); else if($k==='_ddb_next_order_enabled') delete_post_meta($post_id,$k); }
+    if (isset($_POST['_ddb_next_order_scope_products'])){
+      $ids = array_filter(array_map('intval', explode(',', (string)$_POST['_ddb_next_order_scope_products'])));
+      update_post_meta($post_id,'_ddb_next_order_scope_products',$ids);
+    }
+  }
+}
+"
+    });
+
+# 3) View: Sales Hub > Coupons
+- name: "Create view sales-coupons.php"
+  run: >
+    agent.run("fs.write", {
+      path: "${{vars.plugin_dir}}/views/admin/sales-coupons.php",
+      content: "<div class='wrap'><h1>Sales Hub — Coupons</h1>
+<p>Beheer WooCommerce coupons en voeg <strong>DDB-voorwaarden</strong> toe via de coupon-edit pagina (metabox 'DDB Coupon voorwaarden').</p>
+<h2>Ideeën & best practices</h2>
+<ul>
+<li><strong>Per product coupon:</strong> gebruik rule <code>scope.products</code> en zet <em>Usage limit 1</em>.</li>
+<li><strong>Drempelkorting (€50/€100):</strong> zet <code>order.min_subtotal</code> en type <em>fixed_cart</em>.</li>
+<li><strong>Volgende bestelling:</strong> zet op het product een <em>Next-order Coupon</em> (metabox). Wordt bij <em>order completed</em> automatisch gemaild.</li>
+<li><strong>Daluren-only:</strong> zet <code>time.offpeak_only=true</code> en beperk <code>time.days</code>.</li>
+<li><strong>Teams/groepen:</strong> zet <code>pax.min</code> (bijv. ≥8 pers).</li>
+</ul>
+<p>Tip: toon in de Planner een subtiele hint via filter <code>ddb_coupon_hint_for_cart</code> (reeds aanwezig).</p>
+</div>"
+    });
+
+# 4) Wire services & admin
+- name: "Wire into plugin loader"
+  run: >
+    const f = "${{vars.plugin_dir}}/ddb-product-layout.php";
+    let s = agent.run("fs.read", {"path": f});
+    if (!s.includes("Services\\Coupons")) {
+      s = s.replace("add_action('plugins_loaded', function(){", "add_action('plugins_loaded', function(){\n  (new \\\\${{vars.ns}}\\\\Services\\\\Coupons())->init();");
+      agent.run("fs.write", {"path": f, "content": s});
+    }
+    s = agent.run("fs.read", {"path": f});
+    if (!s.includes("Admin\\Coupons")) {
+      s = s.replace("add_action('plugins_loaded', function(){", "add_action('plugins_loaded', function(){\n  if (is_admin()) (new \\\\${{vars.ns}}\\\\Admin\\\\Coupons())->init();");
+      agent.run("fs.write", {"path": f, "content": s});
+    }
+
+# 5) Log
+- name: "Instruction log"
+  run: >
+    agent.log.info("Coupons Engine actief ✅ — extra voorwaarden + next-order rewards. Bewerk via: Coupons (Woo) + Sales Hub > Coupons.")

@@ -1,0 +1,8 @@
+In `BSP\Sales\Module`, roep in `init()` een legacy klasse aan: `BSPModule\Sales_Legacy_Service`.
+
+- Gebruik `require_once` om `includes/legacy/class-sales-legacy-service.php` te laden  
+- Instantieer `Sales_Legacy_Service` in `init()`  
+- Roep zijn `boot()` method aan  
+- Documenteer de bridge bovenaan de class met:  
+`// Bridge to legacy service BSPModule\Sales_Legacy_Service`  
+- Voeg check toe dat de class bestaat vóór je hem aanroept  

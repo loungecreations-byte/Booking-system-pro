@@ -1,0 +1,32 @@
+parameters:
+    level: 5
+    paths:
+        - includes
+    excludePaths:
+        - tests/*
+    bootstrapFiles:
+        - ddb-spots.php
+    ignoreErrors:
+        - '#Constant ABSPATH not found.#'
+        - '#Function add_action not found.#'
+        - '#Function add_filter not found.#'
+        - '#Function register_post_type not found.#'
+        - '#Function register_taxonomy not found.#'
+        - '#Function register_post_meta not found.#'
+        - '#Function get_post_meta not found.#'
+        - '#Function get_the_title not found.#'
+        - '#Function get_the_excerpt not found.#'
+        - '#Function get_permalink not found.#'
+        - '#Function esc_html not found.#'
+        - '#Function esc_attr not found.#'
+        - '#Function esc_url not found.#'
+        - '#Function wp_kses_post not found.#'
+        - '#Function __ not found.#'
+        - '#Function _x not found.#'
+        - '#Function absint not found.#'
+        - '#Function sanitize_text_field not found.#'
+        - '#Function sanitize_key not found.#'
+        - '#Function rest_ensure_response not found.#'
+        - '#Class WP_REST_Response not found.#'
+        - '#Class WP_REST_Request not found.#'
+        - '#Class WP_Post not found.#'

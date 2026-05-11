@@ -1,0 +1,73 @@
+# Local runtime and generated state
+.vscode/
+.codex-backups/
+backups/
+conf/
+logs/
+tmp/
+tmp_restore_probe/
+tmp_wp_core_restore/
+*.log
+*.tmp
+*.bak
+
+# Local/WordPress runtime files
+app/sql/
+app/public/*
+!app/public/wp-content/
+app/public/wp-content/*
+!app/public/wp-content/index.php
+!app/public/wp-content/angie-snippets/
+!app/public/wp-content/mu-plugins/
+!app/public/wp-content/plugins/
+!app/public/wp-content/themes/
+app/public/wp-content/debug.log
+app/public/wp-content/languages/
+app/public/wp-content/upgrade/
+app/public/wp-content/upgrade-temp-backup/
+app/public/wp-content/uploads/
+
+# Custom plugins only
+app/public/wp-content/plugins/*
+!app/public/wp-content/plugins/index.php
+!app/public/wp-content/plugins/booking-pro-module/
+!app/public/wp-content/plugins/ddb-content-model/
+!app/public/wp-content/plugins/ddb-core-ui/
+!app/public/wp-content/plugins/ddb-mega-menu/
+!app/public/wp-content/plugins/ddb-spinwheel/
+!app/public/wp-content/plugins/ddb-spots-0.1.0/
+
+# Custom theme/runtime theme notes only; third-party themes stay out
+app/public/wp-content/themes/*
+!app/public/wp-content/themes/index.php
+
+# Dependency and build outputs
+node_modules/
+vendor/
+build/
+build-debug/
+dist/
+coverage/
+test-results/
+playwright-report/
+
+# Project scratch artifacts
+[ ]*
+.tmp-*
+check-dom.js
+tmp_*
+tmp-*
+prefix[}]*
+postmeta[}]
+posts[}]
+get_post_meta*
+result_css*.txt
+search_results.*
+search-db-value.php
+debug_*.php
+local-xdebuginfo.php
+wp-cli.phar
+
+# Keep dependency lockfiles tracked even when dependency directories are ignored
+!composer.lock
+!package-lock.json

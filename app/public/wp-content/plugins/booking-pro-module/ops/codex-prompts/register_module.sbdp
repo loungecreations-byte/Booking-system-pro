@@ -1,0 +1,7 @@
+Voeg de module `BSP\Notifications\Module` toe aan de registratiehaak in de hoofdplugin file.  
+Gebruik deze hook:
+
+```php
+add_action('bsp/core/modules/register', static function (\BSP\Core\Modules $modules): void {
+    $modules->register( \BSP\Notifications\Module::class );
+});

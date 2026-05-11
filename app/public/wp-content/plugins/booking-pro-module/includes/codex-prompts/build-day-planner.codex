@@ -1,0 +1,242 @@
+# =====================================================================
+#  PLAN JE DAG — Ultimate Day Planner (Admin + Klant)
+#  Bouwt een interactieve dagplanner met kalender, kaart, AI-suggesties,
+#  PDF/ICS export, delen, en batch-boekingen via WooCommerce.
+#  Compatibel met Booking Pro 4.x backend.
+# =====================================================================
+
+task: build-day-planner
+output-policy: [verbose, color, fail-fast]
+
+steps:
+
+# 1) Module-registratie + settings -----------------------------------
+- name: "Register day-planner module"
+  run: >
+    agent.run("booking_core.register", {
+      modules: ["day-planner"],
+      autoload: true,
+      version_check: true
+    })
+
+- name: "Planner settings"
+  run: >
+    agent.run("planner.settings.define", {
+      time_step_minutes: 15,
+      open_hours: {"start":"08:00","end":"23:00"},
+      allow_multi_day: true,
+      default_day_count: 1,
+      autosave: true,
+      currency: "EUR",
+      locale: "nl-NL",
+      theme: "light",
+      color_map: {"eten":"#3b82f6","actief":"#22c55e","cultuur":"#f59e0b","overig":"#8b5cf6"}
+    })
+
+# 2) UI genereren (React) ---------------------------------------------
+- name: "Generate Day Planner UI"
+  run: >
+    ui.generate("day-planner", {
+      framework: "react",
+      components: [
+        "PlannerLayout","ActivityFilterPanel","ActivityList",
+        "CalendarBoard","TimelineCompact","MapPanel",
+        "PriceSummary","ShareBar","ActionButtons",
+        "AddCustomActivityModal","ParticipantsPanel","NotesPanel",
+        "AIDialog","ConflictWarnings","BusyIndicator"
+      ],
+      output: "assets/js/day-planner/"
+    })
+
+# 3) Datamodel & opslag -----------------------------------------------
+- name: "Create planner data model"
+  run: >
+    agent.run("planner.model.create", {
+      entities: {
+        plan: ["id","title","days[]","participants[]","budget","notes","owner","shared_key","created_at","updated_at"],
+        day: ["date","slots[]","distance_km","duration_min"],
+        slot: ["activity_id","title","category","image","start","end","people","price_pp","fixed_cost","services[]","vendor_id","product_id","location{lat,lng,address}"],
+        participant: ["name","email","phone","role"]
+      },
+      storage: {
+        local: "localStorage: planner_state",
+        server: "post_type: planner_plan",
+        autosave_interval: 15
+      }
+    })
+
+# 4) REST API endpoints -----------------------------------------------
+- name: "Expose planner REST endpoints"
+  run: >
+    agent.run("planner.rest.create", {
+      base: "/planner/v1",
+      endpoints: [
+        {"method":"GET","path":"/activities","handler":"Planner@getActivities","cache":60},
+        {"method":"POST","path":"/plan","handler":"Planner@create"},
+        {"method":"GET","path":"/plan/(?P<id>\\d+)","handler":"Planner@get"},
+        {"method":"PATCH","path":"/plan/(?P<id>\\d+)","handler":"Planner@update"},
+        {"method":"POST","path":"/plan/(?P<id>\\d+)/share","handler":"Planner@share"},
+        {"method":"POST","path":"/plan/(?P<id>\\d+)/book","handler":"Planner@bookBatch"},
+        {"method":"POST","path":"/plan/(?P<id>\\d+)/export/pdf","handler":"Planner@exportPdf"},
+        {"method":"POST","path":"/plan/(?P<id>\\d+)/export/ics","handler":"Planner@exportIcs"},
+        {"method":"POST","path":"/plan/ai/suggest","handler":"PlannerAI@suggest"},
+        {"method":"POST","path":"/plan/conflicts","handler":"Planner@conflicts"}
+      ]
+    })
+
+# 5) Kalender + Drag & Drop -------------------------------------------
+- name: "Build calendar board with DnD"
+  run: >
+    agent.run("planner.ui.calendar", {
+      component: "CalendarBoard",
+      library: "FullCalendar",
+      views: ["dayGrid","timeGridDay","timeGridWeek","multiMonth"],
+      drag_drop: true,
+      resize: true,
+      snap_minutes: 15,
+      show_travel_gaps: true,
+      on_drop: "Planner@placeActivity",
+      on_resize: "Planner@resizeActivity",
+      on_event_click: "Planner@openSlotDetail"
+    })
+
+# 6) Activiteitenlijst + filters --------------------------------------
+- name: "Activity list & filters"
+  run: >
+    agent.run("planner.ui.activities", {
+      filters: {
+        people: true,
+        duration: [30,60,90,120,180],
+        price_range: [0,25,50,100,200],
+        category: ["eten","actief","cultuur","overig"],
+        search: true,
+        sort: ["populair","dichtbij","prijs_opp","duur_opl"]
+      },
+      list: {
+        show_image: true,
+        show_badges: ["duur","prijs_pp","categorie"],
+        quick_add_button: true
+      },
+      data_source: "/planner/v1/activities"
+    })
+
+# 7) Kaart + reistijd + route -----------------------------------------
+- name: "Add map panel & travel-time engine"
+  run: >
+    agent.run("planner.map.enable", {
+      provider: "mapbox",
+      show_markers: true,
+      route_preview: true,
+      travel_time: {
+        mode: "walking|cycling",
+        between_slots: true,
+        pad_minutes: 5
+      }
+    })
+
+# 8) Prijslogica & kortingen ------------------------------------------
+- name: "Price engine"
+  run: >
+    agent.run("planner.pricing.setup", {
+      rules: {
+        base: "sum(slot.people * slot.price_pp + slot.fixed_cost)",
+        services: "sum(service.price)",
+        group_discount: {"threshold": 10, "percent": 5},
+        bundle_discount: {"min_slots": 2, "percent": 7},
+        booking_fee: {"per_plan": 4.95}
+      },
+      output_targets: ["#planner-total","#planner-total-pp"]
+    })
+
+# 9) Beschikbaarheid & conflictcheck ----------------------------------
+- name: "Availability + overlap detection"
+  run: >
+    agent.run("planner.availability.enable", {
+      product_lookup: "woocommerce_bookables",
+      check_rules: ["resource_capacity","product_blackouts","open_hours"],
+      conflict_policy: "block_and_warn",
+      ui_warnings: true
+    })
+
+# 10) Delen, opslaan, versiebeheer ------------------------------------
+- name: "Share & save features"
+  run: >
+    agent.run("planner.collab.enable", {
+      share_link: true,
+      shared_key_length: 12,
+      permissions: {"viewer":["view"], "editor":["view","edit"], "owner":["all"]},
+      versioning: true,
+      comment_thread: true
+    })
+
+# 11) Deelnemers & notities -------------------------------------------
+- name: "Participants & notes"
+  run: >
+    agent.run("planner.participants.enable", {
+      require_email: false,
+      collect_names: true,
+      export_with_plan: true,
+      notes_richtext: true
+    })
+
+# 12) Actieknoppen (boek, aanvraag, deel, PDF) ------------------------
+- name: "Action buttons"
+  run: >
+    agent.run("planner.ui.actions", {
+      buttons: [
+        {"id":"book_now","label":"Boek & Betaal","style":"primary","action":"Planner@bookBatch"},
+        {"id":"request_quote","label":"Doe aanvraag","style":"secondary","action":"Planner@sendQuote"},
+        {"id":"share","label":"Deel programma","style":"info","action":"Planner@share"},
+        {"id":"export_pdf","label":"Exporteer PDF","style":"ghost","action":"Planner@exportPdf"},
+        {"id":"export_ics","label":"Voeg toe aan agenda","style":"ghost","action":"Planner@exportIcs"}
+      ],
+      sticky_on_mobile: true
+    })
+
+# 13) Batch-boekingen via WooCommerce ---------------------------------
+- name: "Batch booking integration"
+  run: >
+    agent.run("planner.booking.batch", {
+      wc_strategy: "single_order_multi_line",
+      line_item_meta: ["product_id","start","end","people","services","plan_id","day_index"],
+      stock_reserve_on_add: true,
+      confirm_policy: "auto_confirm_if_all_available",
+      fallback_policy: "partial_ok_with_notice"
+    })
+
+# 14) PDF/ICS export ---------------------------------------------------
+- name: "Exporters"
+  run: >
+    agent.run("planner.export.enable", {
+      pdf: {template: "templates/planner/itinerary.pdf.html", include_map: true, include_qr: true},
+      ics: {one_event_per_slot: true, organizer: "DagjeDenBosch.nl"}
+    })
+
+# 15) AI-suggesties & optimalisatie -----------------------------------
+- name: "AI suggestions"
+  run: >
+    agent.run("planner.ai.enable", {
+      features: ["suggest_dayplan","optimize_order","weather_adjust","popular_combos"],
+      inputs: ["people","duration_pref","budget","categories","date","weather"],
+      output_targets: ["AIDialog","ActivityList"]
+    })
+
+# 16) Multi-day planning ----------------------------------------------
+- name: "Enable multi-day planning"
+  run: >
+    agent.run("planner.multiday.enable", {
+      days_limit: 7,
+      cross_day_conflict_check: true,
+      per_day_budget: true,
+      itinerary_print_per_day: true
+    })
+
+# 17) Rechten & vendor-rol --------------------------------------------
+- name: "Permissions"
+  run: >
+    agent.run("planner.permissions.set", {
+      roles: {
+        "administrator": ["planner_all"],
+        "shop_manager": ["planner_all"],
+        "vendor": ["planner_view_own_products","planner_create_quotes"],
+        "custome

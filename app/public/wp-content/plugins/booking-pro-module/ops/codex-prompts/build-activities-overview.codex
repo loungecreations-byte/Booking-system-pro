@@ -1,0 +1,270 @@
+# =====================================================================
+#  FILE: build-activities-overview.codex
+#  PURPOSE: Maakt een werkende Overzicht Activiteiten pagina
+#           - Shortcode [ddb_activities_overview]
+#           - Werkt met WooCommerce Bookable Products (product_type=booking)
+#           - Plan-je-dag knop met JS event
+# =====================================================================
+
+task: activities.overview-page
+output-policy: [verbose, color, fail-fast]
+
+vars:
+  plugin_dir: "wp-content/plugins/ddb-product-layout"
+  ns: "DDB\\ProductLayout"
+
+steps:
+
+# 1) Zorg dat Shortcodes-map bestaat
+- name: "Ensure Shortcodes directory exists"
+  run: >
+    agent.run("fs.mkdir", {
+      "path": "${{vars.plugin_dir}}/includes/Shortcodes",
+      "recursive": true
+    })
+
+# 2) Shortcode class: [ddb_activities_overview]
+- name: "Create ActivitiesOverviewShortcode class"
+  run: >
+    agent.run("fs.write", {
+      "path": "${{vars.plugin_dir}}/includes/Shortcodes/ActivitiesOverviewShortcode.php",
+      "content": "<?php
+namespace ${{vars.ns}}\\Shortcodes;
+
+use WP_Query;
+
+class ActivitiesOverviewShortcode {
+
+    public static function register() {
+        add_shortcode( 'ddb_activities_overview', [ __CLASS__, 'render' ] );
+    }
+
+    /**
+     * Render de activiteiten-overzicht shortcode.
+     *
+     * Attributen:
+     * - per_page: aantal activiteiten per pagina (default 12)
+     * - category: productcategorie slug (default 'activiteiten')
+     */
+    public static function render( $atts = [] ) {
+        $atts = shortcode_atts(
+            [
+                'per_page' => 12,
+                'category' => 'activiteiten',
+            ],
+            $atts,
+            'ddb_activities_overview'
+        );
+
+        $query_args = [
+            'post_type'      => 'product',
+            'posts_per_page' => (int) $atts['per_page'],
+            'post_status'    => 'publish',
+            'tax_query'      => [
+                'relation' => 'AND',
+                [
+                    'taxonomy' => 'product_cat',
+                    'field'    => 'slug',
+                    'terms'    => $atts['category'],
+                ],
+                [
+                    'taxonomy' => 'product_type',
+                    'field'    => 'slug',
+                    'terms'    => [ 'booking' ], // alleen bookable products
+                ],
+            ],
+        ];
+
+        /**
+         * Filter de query args voor het activiteitenoverzicht.
+         * Zo kun je later nog extra filters (datum, tags) injecteren.
+         */
+        $query_args = apply_filters(
+            'ddb_activities_overview_query_args',
+            $query_args,
+            $atts
+        );
+
+        $loop = new WP_Query( $query_args );
+
+        ob_start();
+
+        $template = self::locate_template();
+
+        // Zorg dat $activities_loop in de template beschikbaar is.
+        $activities_loop = $loop;
+
+        if ( $template ) {
+            include $template;
+        } else {
+            echo '<p>Er zijn momenteel geen activiteiten om te tonen.</p>';
+        }
+
+        wp_reset_postdata();
+
+        return ob_get_clean();
+    }
+
+    /**
+     * Zoek naar de template in het thema, anders in de plugin:
+     * - theme/woocommerce/dagjedenbosch/activities-overview.php
+     * - theme/dagjedenbosch/activities-overview.php
+     * - plugin_dir/templates/activities-overview.php
+     */
+    protected static function locate_template() {
+        $candidates = [
+            'woocommerce/dagjedenbosch/activities-overview.php',
+            'dagjedenbosch/activities-overview.php',
+        ];
+
+        $template = locate_template( $candidates );
+
+        if ( $template ) {
+            return $template;
+        }
+
+        $plugin_template = rtrim( plugin_dir_path( dirname( __FILE__ ) ), '/\\' ) . '/templates/activities-overview.php';
+
+        if ( file_exists( $plugin_template ) ) {
+            return $plugin_template;
+        }
+
+        return '';
+    }
+}
+"
+    })
+
+# 3) Koppel Shortcode in plugin-bootstrap
+- name: "Wire shortcode into plugin bootstrap"
+  run: >
+    agent.run("code.edit", {
+      "paths": [
+        "${{vars.plugin_dir}}/ddb-product-layout.php",
+        "${{vars.plugin_dir}}/booking-pro.php",
+        "${{vars.plugin_dir}}/plugin.php"
+      ],
+      "prompt": "Je krijgt een of meer plugin bootstrap-bestanden (hoofdbestand van de plugin).\n\nOpdracht:\n1. Zorg dat de class DDB\\\\ProductLayout\\\\Shortcodes\\\\ActivitiesOverviewShortcode wordt geladen (via de bestaande autoloader of een require_once als er geen autoloader is).\n2. Registreer de shortcode binnen een geschikte hook, bijvoorbeeld:\n\nuse DDB\\\\ProductLayout\\\\Shortcodes\\\\ActivitiesOverviewShortcode;\n\nadd_action( 'init', function() {\n    if ( class_exists( ActivitiesOverviewShortcode::class ) ) {\n        ActivitiesOverviewShortcode::register();\n    }\n});\n\nGebruik de stijl die de plugin al gebruikt (bijv. een ServiceContainer of init class) en voorkom dubbele registraties."
+    })
+
+# 4) Template-map & templatebestand voor activiteitenoverzicht
+- name: "Ensure templates directory exists"
+  run: >
+    agent.run("fs.mkdir", {
+      "path": "${{vars.plugin_dir}}/templates",
+      "recursive": true
+    })
+
+- name: "Write activities-overview.php template"
+  run: >
+    agent.run("fs.write", {
+      "path": "${{vars.plugin_dir}}/templates/activities-overview.php",
+      "content": "<?php
+/**
+ * Template: Activities Overview
+ *
+ * Variabelen:
+ * - $activities_loop (WP_Query): de query met activiteiten/producten
+ */
+
+if ( ! isset( $activities_loop ) || ! $activities_loop instanceof WP_Query ) {
+    echo '<p>Er zijn momenteel geen activiteiten gevonden.</p>';
+    return;
+}
+?>
+<div class=\"ddb-activities-overview\" data-ddb-component=\"activities-overview\">
+    <header class=\"ddb-activities-header\">
+        <h1 class=\"ddb-activities-title\"><?php esc_html_e( 'Overzicht activiteiten in Den Bosch', 'dagjedenbosch' ); ?></h1>
+        <p class=\"ddb-activities-intro\">
+            <?php esc_html_e( 'Kies een activiteit, plan je dag en boek direct via DagjeDenBosch.nl.', 'dagjedenbosch' ); ?>
+        </p>
+    </header>
+
+    <?php if ( $activities_loop->have_posts() ) : ?>
+        <div class=\"ddb-activities-grid\">
+            <?php while ( $activities_loop->have_posts() ) : $activities_loop->the_post(); global $product; ?>
+                <?php if ( ! $product || ! is_object( $product ) ) { continue; } ?>
+                <?php
+                $product_id   = $product->get_id();
+                $title_attr   = the_title_attribute( [ 'echo' => false ] );
+                $permalink    = get_permalink( $product_id );
+                $price_html   = $product->get_price_html();
+                ?>
+                <article class=\"ddb-activity-card\" data-product-id=\"<?php echo esc_attr( $product_id ); ?>\">
+                    <a href=\"<?php echo esc_url( $permalink ); ?>\" class=\"ddb-activity-link\">
+                        <div class=\"ddb-activity-thumb\">
+                            <?php if ( has_post_thumbnail() ) : ?>
+                                <?php the_post_thumbnail( 'medium_large' ); ?>
+                            <?php endif; ?>
+                        </div>
+                        <div class=\"ddb-activity-content\">
+                            <h2 class=\"ddb-activity-title\"><?php the_title(); ?></h2>
+
+                            <?php if ( $price_html ) : ?>
+                                <div class=\"ddb-activity-meta\">
+                                    <span class=\"ddb-activity-price\"><?php echo wp_kses_post( $price_html ); ?></span>
+                                </div>
+                            <?php endif; ?>
+
+                            <div class=\"ddb-activity-excerpt\">
+                                <?php echo wp_kses_post( wp_trim_words( get_the_excerpt(), 22 ) ); ?>
+                            </div>
+                        </div>
+                    </a>
+
+                    <div class=\"ddb-activity-actions\">
+                        <button
+                            type=\"button\"
+                            class=\"ddb-activity-plan-btn\"
+                            data-ddb-action=\"plan-activity\"
+                            data-product-id=\"<?php echo esc_attr( $product_id ); ?>\"
+                            data-product-title=\"<?php echo esc_attr( $title_attr ); ?>\"
+                            data-product-url=\"<?php echo esc_url( $permalink ); ?>\"
+                        >
+                            <?php esc_html_e( 'Plan deze activiteit in je dag', 'dagjedenbosch' ); ?>
+                        </button>
+                    </div>
+                </article>
+            <?php endwhile; ?>
+        </div>
+    <?php else : ?>
+        <p><?php esc_html_e( 'Er zijn op dit moment geen activiteiten beschikbaar.', 'dagjedenbosch' ); ?></p>
+    <?php endif; ?>
+</div>
+"
+    })
+
+# 5) Basis CSS voor grid & kaarten
+- name: "Create basic CSS for activities overview"
+  run: >
+    agent.run("fs.write_or_append", {
+      "path": "${{vars.plugin_dir}}/assets/css/activities-overview.css",
+      "content": ".ddb-activities-overview{max-width:1200px;margin:0 auto;padding:2rem 1.5rem}.ddb-activities-header{text-align:left;margin-bottom:1.5rem}.ddb-activities-title{font-size:1.6rem;margin:0 0 .25rem}.ddb-activities-intro{margin:0;color:#555}.ddb-activities-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:1.5rem}.ddb-activity-card{background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 8px 20px rgba(0,0,0,.06);display:flex;flex-direction:column}.ddb-activity-link{text-decoration:none;color:inherit;display:flex;flex-direction:column;flex:1}.ddb-activity-thumb img{display:block;width:100%;height:180px;object-fit:cover}.ddb-activity-content{padding:1rem 1.1rem 0.75rem;display:flex;flex-direction:column;gap:.35rem}.ddb-activity-title{font-size:1.05rem;margin:0}.ddb-activity-meta{font-weight:600;font-size:.95rem;margin-top:.15rem}.ddb-activity-excerpt{font-size:.9rem;line-height:1.4;color:#555;margin-top:.1rem}.ddb-activity-actions{padding:0 1.1rem 1rem}.ddb-activity-plan-btn{display:inline-flex;align-items:center;justify-content:center;padding:.55rem 1rem;border-radius:999px;border:none;cursor:pointer;font-size:.9rem;font-weight:600}.ddb-activity-plan-btn:focus{outline:2px solid rgba(0,0,0,.16);outline-offset:2px}"
+    })
+
+# 6) JS voor Plan-je-dag integratie (event dispatcher)
+- name: "Create JS for activities overview planner integration"
+  run: >
+    agent.run("fs.write", {
+      "path": "${{vars.plugin_dir}}/assets/js/activities-overview.js",
+      "content": "(function(){\n  function onReady(fn){if(document.readyState!=='loading'){fn();}else{document.addEventListener('DOMContentLoaded',fn);} }\n\n  onReady(function(){\n    var container = document.querySelector('[data-ddb-component=\"activities-overview\"]');\n    if(!container){return;}\n\n    container.addEventListener('click',function(e){\n      var btn = e.target.closest('[data-ddb-action=\"plan-activity\"]');\n      if(!btn){return;}\n\n      var productId    = btn.getAttribute('data-product-id');\n      var productTitle = btn.getAttribute('data-product-title');\n      var productUrl   = btn.getAttribute('data-product-url');\n\n      var detail = {\n        productId: productId,\n        productTitle: productTitle,\n        productUrl: productUrl,\n        source: 'activities-overview'\n      };\n\n      // 1) CustomEvent voor je Plan-je-dag module\n      var ev = new CustomEvent('ddb:add-to-dayplanner', { detail: detail });\n      window.dispatchEvent(ev);\n\n      // 2) Optioneel: global helper als hij bestaat\n      if(window.DDBDayPlanner && typeof window.DDBDayPlanner.addActivity === 'function'){\n        try{ window.DDBDayPlanner.addActivity(detail); }catch(err){ console && console.warn && console.warn('[DDB] addActivity error', err); }\n      }\n    });\n  });\n})();\n"
+    })
+
+# 7) Enqueue CSS + JS op pagina met shortcode
+- name: "Enqueue activities overview assets"
+  run: >
+    agent.run("code.edit", {
+      "paths": [
+        "${{vars.plugin_dir}}/includes",
+        "${{vars.plugin_dir}}/ddb-product-layout.php",
+        "${{vars.plugin_dir}}/booking-pro.php"
+      ],
+      "prompt": "Voeg front-end asset-registratie toe voor de activities overview.\n\nDoel:\n- activities-overview.css en activities-overview.js registreren\n- ze alleen enqueuen op pagina's waar de shortcode [ddb_activities_overview] in de content staat.\n\nGebruik ongeveer dit patroon, maar pas pad/constant aan op basis van de bestaande plugin-structuur:\n\nadd_action( 'wp_enqueue_scripts', function() {\n    global $post;\n\n    if ( ! $post || ! has_shortcode( $post->post_content, 'ddb_activities_overview' ) ) {\n        return;\n    }\n\n    $base_file = __FILE__;\n    if ( defined( 'DDB_PRODUCT_LAYOUT_FILE' ) ) {\n        $base_file = DDB_PRODUCT_LAYOUT_FILE;\n    }\n\n    $version = defined( 'DDB_PRODUCT_LAYOUT_VERSION' ) ? DDB_PRODUCT_LAYOUT_VERSION : null;\n\n    wp_register_style(\n        'ddb-activities-overview',\n        plugins_url( 'assets/css/activities-overview.css', $base_file ),\n        [],\n        $version\n    );\n\n    wp_register_script(\n        'ddb-activities-overview',\n        plugins_url( 'assets/js/activities-overview.js', $base_file ),\n        [],\n        $version,\n        true\n    );\n\n    wp_enqueue_style( 'ddb-activities-overview' );\n    wp_enqueue_script( 'ddb-activities-overview' );\n});\n\nIntegreer dit netjes in de bestaande assets-/service-structuur van de plugin en voorkom dubbele definities."
+    })
+
+# 8) Genereer korte WP-CLI instructie om shortcode op pagina te zetten
+- name: "Generate WP-CLI helper text"
+  run: >
+    agent.run("code.generate", {
+      "prompt": "Schrijf een korte instructie (in het Nederlands) hoe de gebruiker met WP-CLI de pagina met slug 'overzicht-activiteiten' kan updaten zodat de content minimaal de shortcode [ddb_activities_overview] bevat.\n\nGebruik bijvoorbeeld:\n- wp post list --post_type=page --name=overzicht-activiteiten --field=ID\n- wp post update <ID> '[ddb_activities_overview]'\n\nHoud het antwoord kort (3-5 regels) in markdown."
+    })

@@ -1,0 +1,14 @@
+.sbdp-admin-availability .sbdp-admin-calendar {
+  min-height: 480px;
+  border: 1px dashed var(--ui-color-border, #cbd5f5);
+  background: var(--ui-color-surface, #fff);
+  padding: 1rem;
+  margin-top: 1rem;
+  border-radius: var(--ui-radius-lg, 0.875rem);
+  box-shadow: var(--ui-shadow-sm, 0 8px 20px rgba(26, 22, 18, 0.08));
+}
+
+.sbdp-admin-availability .notice.inline {
+  margin-top: 1rem;
+  margin-bottom: 0;
+}

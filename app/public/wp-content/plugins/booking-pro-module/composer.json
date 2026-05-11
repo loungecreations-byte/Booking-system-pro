@@ -1,0 +1,80 @@
+{
+  "name": "owncreations/booking-pro-module",
+  "description": "Development tooling for Booking Pro Module",
+  "type": "project",
+  "require": {
+    "dompdf/dompdf": "^2.0",
+    "endroid/qr-code": "^5.0"
+  },
+  "require-dev": {
+    "php-stubs/woocommerce-stubs": "^10.6",
+    "php-stubs/wordpress-stubs": "^6.9",
+    "phpunit/phpunit": "^9.6",
+    "squizlabs/php_codesniffer": "^3.9",
+    "phpstan/phpstan": "^2.1"
+  },
+  "autoload": {
+    "psr-4": {
+      "BSP\\Core\\": "core/src/",
+      "BSP\\Commerce\\": "modules/commerce/",
+      "BSP\\Planner\\": "modules/planner/",
+      "BSP\\Bookings\\": "modules/bookings/",
+      "BSP\\Settings\\": "modules/settings/",
+      "BSP\\Sales\\": "modules/sales/",
+      "BSP\\DayPlanner\\": "modules/day-planner/",
+      "BSP\\BookingBoard\\": "modules/booking-board/",
+      "BSP\\Intelligence\\": "modules/intelligence/",
+      "BSP\\Notifications\\": "modules/notifications/",
+      "BSP\\Vendors\\": "modules/vendors/",
+      "BSP\\ActivityCtaBlock\\": "modules/activity-cta-block/",
+      "BSP\\VendorPortal\\": "modules/vendor-portal/",
+      "BSP\\GeoDashboard\\": "modules/geo-dashboard/",
+      "BSP\\Support\\": "modules/support/",
+      "BSPModule\\Core\\": "modules/core/",
+      "BSPModule\\Commerce\\": "modules/commerce/",
+      "BSPModule\\Planner\\": "modules/planner/",
+      "BSPModule\\Bookings\\": "modules/bookings/",
+      "BSPModule\\Settings\\": "modules/settings/",
+      "BSPModule\\Sales\\": "modules/sales/",
+      "BSPModule\\DayPlanner\\": "modules/day-planner/",
+      "BSPModule\\BookingBoard\\": "modules/booking-board/",
+      "BSPModule\\Intelligence\\": "modules/intelligence/",
+      "BSPModule\\Notifications\\": "modules/notifications/",
+      "BSPModule\\Vendors\\": "modules/vendors/",
+      "BSPModule\\ActivityCtaBlock\\": "modules/activity-cta-block/",
+      "BSPModule\\VendorPortal\\": "modules/vendor-portal/",
+      "BSPModule\\GeoDashboard\\": "modules/geo-dashboard/",
+      "BSPModule\\Finance\\": "modules/finance/",
+      "BSPModule\\Support\\": "modules/support/",
+      "BSPModule\\Data\\": "modules/data/",
+      "BSPModule\\Insights\\": "modules/insights/",
+      "BSPModule\\Shared\\": "modules/shared/",
+      "BSPModule\\Shared\\Modules\\": [
+        "modules/shared/Modules/",
+        "modules/core/Compat/BSPModule/Shared/Modules/",
+        "core/src/Compat/BSPModule/Shared/Modules/"
+      ],
+      "SBDP\\": "includes/",
+      "SBDP\\Bookings\\": "modules/bookings/src/",
+      "SBDP\\Modules\\": "includes/Modules/",
+      "BPM\\": "includes/",
+      "BPM\\Modules\\": "includes/Modules/"
+    }
+  },
+  "scripts": {
+    "test": "phpunit --configuration tests/phpunit.xml.dist",
+    "test:contracts": "phpunit --configuration tests/phpunit.xml.dist --filter AssistantResponseValidatorTest",
+    "test:smoke": "phpunit --configuration tests/phpunit.xml.dist --filter DecisionEngineSmokeTest",
+    "post-install-cmd": [
+      "@php scripts/post-install-assets.php"
+    ],
+    "post-update-cmd": [
+      "@php scripts/post-install-assets.php"
+    ]
+  },
+  "config": {
+    "allow-plugins": {
+      "dealerdirect/phpcodesniffer-composer-installer": true
+    }
+  }
+}

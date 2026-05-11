@@ -1,0 +1,122 @@
+.fa-dark-wrapper-ca9727ba {
+    --card-bg: #000000;
+    --card-text: #a1a1a6;
+    --card-border: #333336;
+    --card-radius: 20px;
+    --card-shadow: 0 10px 30px rgba(0, 0, 0, 0.8);
+    --accent: #ffffff;
+    --btn-bg: #1c1c1e;
+    --btn-radius: 24px;
+    --btn-hover: #2c2c2e;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+}
+
+/* Base structural overrides */
+.fa-dark-wrapper-ca9727ba ul,
+.fa-dark-wrapper-ca9727ba > div {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)) !important;
+    gap: 32px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    list-style: none !important;
+}
+
+/* Card Styling - OLED Apple style */
+.fa-dark-wrapper-ca9727ba li,
+.fa-dark-wrapper-ca9727ba .activity-item,
+.fa-dark-wrapper-ca9727ba > div > div {
+    background-color: var(--card-bg) !important;
+    color: var(--card-text) !important;
+    border: 1px solid var(--card-border) !important;
+    border-radius: var(--card-radius) !important;
+    padding: 32px !important;
+    box-shadow: var(--card-shadow) !important;
+    transition: transform 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.4s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.4s ease !important;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+}
+
+.fa-dark-wrapper-ca9727ba li:hover,
+.fa-dark-wrapper-ca9727ba > div > div:hover {
+    transform: scale(1.02) translateY(-4px) !important;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 1) !important;
+    border-color: #55555a !important;
+}
+
+/* Typography */
+.fa-dark-wrapper-ca9727ba h2,
+.fa-dark-wrapper-ca9727ba h3,
+.fa-dark-wrapper-ca9727ba h4 {
+    color: #ffffff !important;
+    margin-top: 0 !important;
+    margin-bottom: 16px !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.5px !important;
+}
+
+/* Make prices white assuming standard classes like .price, .amount, etc. */
+.fa-dark-wrapper-ca9727ba .price,
+.fa-dark-wrapper-ca9727ba .amount,
+.fa-dark-wrapper-ca9727ba strong.price,
+.fa-dark-wrapper-ca9727ba span.price {
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    font-size: 1.2em !important;
+    margin-bottom: 16px !important;
+    display: block !important;
+}
+
+/* Buttons - refined Apple-like pill buttons */
+.fa-dark-wrapper-ca9727ba a.button,
+.fa-dark-wrapper-ca9727ba button,
+.fa-dark-wrapper-ca9727ba .btn {
+    display: inline-block !important;
+    margin-top: auto !important;
+    padding: 12px 24px !important;
+    background-color: var(--btn-bg) !important;
+    color: #ffffff !important;
+    border-radius: var(--btn-radius) !important;
+    text-decoration: none !important;
+    text-align: center !important;
+    font-weight: 500 !important;
+    font-size: 15px !important;
+    border: none !important;
+    transition: background-color 0.3s ease, transform 0.2s ease !important;
+    cursor: pointer !important;
+}
+
+.fa-dark-wrapper-ca9727ba a.button:hover,
+.fa-dark-wrapper-ca9727ba button:hover,
+.fa-dark-wrapper-ca9727ba .btn:hover {
+    background-color: var(--btn-hover) !important;
+    transform: scale(1.03) !important;
+}
+
+/* Editor Preview Dummy */
+.fa-preview-ca9727ba {
+    padding: 20px;
+    background: #111;
+    border-radius: var(--card-radius);
+    color: #a1a1a6;
+    text-align: center;
+}
+.fa-dummy-cards-ca9727ba {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 32px;
+    margin-top: 24px;
+}
+.fa-dummy-card-ca9727ba {
+    background-color: var(--card-bg);
+    color: var(--card-text);
+    border: 1px solid var(--card-border);
+    border-radius: var(--card-radius);
+    padding: 32px;
+    box-shadow: var(--card-shadow);
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+}

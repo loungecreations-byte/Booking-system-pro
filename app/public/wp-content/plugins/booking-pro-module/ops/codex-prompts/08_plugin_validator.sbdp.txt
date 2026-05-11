@@ -1,0 +1,18 @@
+VALIDATIEPROMPT – REVIEW & FIX
+
+OPDRACHT
+- Controleer:
+  1) plugin.php header geldig, geen BOM, geen output
+  2) composer.json psr-4 ↔ foldermatch
+  3) Alle Module.php classes bestaan en implementeerden ModuleInterface
+  4) REST routes geregistreerd zonder fatals
+  5) Shortcodes registreren zonder notices
+  6) Admin page bereikbaar
+  7) `composer dump-autoload` clean
+  8) `php -l` op alle php files clean
+- Rapporteer issues en lever gefixte versies van files
+
+OUTPUT
+- “Issues” lijst
+- “Fixes” met volledige file inhoud (multi-file format)
+- Komando’s om te draaien

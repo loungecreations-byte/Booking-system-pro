@@ -1,0 +1,106 @@
+# Booking Pro Suite – Top Plugin Quality Audit
+
+Context:
+Gebruik de regels uit 00_project_primer.sbdp.txt.
+Je werkt binnen het BSP-framework (core/src, modules/, legacy/, assets/, tests/, scripts/).
+Focus op codekwaliteit, veiligheid, performance, UX, developer experience, en onderhoudbaarheid.
+
+Doel:
+Voer een volledige audit uit van de huidige plugin en lever een verbeterplan + codevoorstellen.
+Controleer en optimaliseer waar nodig zodat het resultaat een production-ready, high-quality WordPress plugin is.
+
+Taken:
+
+1. **Codekwaliteit**
+   - Check of elk PHP-bestand `declare(strict_types=1);` bovenaan heeft.
+   - Controleer type-hints en return types voor alle public methods.
+   - Controleer PSR-12 naleving, 4-spaces, trailing commas.
+   - Controleer of composer.json `optimize-autoloader` en `classmap-authoritative` gebruikt.
+   - Controleer consistente docblocks (`@param`, `@return`, `@throws`).
+   - Identificeer duplicate code en stel refactorings voor (helpers of traits).
+
+2. **Architectuur & Modulariteit**
+   - Controleer dat elke module `implements BSP\Core\ModuleInterface` en een `init()`-methode bevat.
+   - Controleer dat core nooit direct modules importeert.
+   - Controleer dat `core/` en `modules/` gescheiden verantwoordelijkheden hebben.
+   - Stel verbeteringen voor aan de dependency-injectie of service-registry.
+   - Controleer dat alle `add_action` en `add_filter` calls binnen init() staan (geen globals).
+
+3. **Performance**
+   - Zoek onnodige database queries of directe `get_option()` loops.
+   - Controleer caching/transients/`wp_cache_*` waar zinvol.
+   - Controleer lazy-loading van modules en hooks.
+   - Controleer asset-loading: minified JS/CSS, met versie-hash (`wp_enqueue_script( ..., null, filemtime() )`).
+   - Stel output-buffering of async loading voor bij zware UI-componenten.
+
+4. **Beveiliging**
+   - Scan alle user-output op correcte escaping (`esc_html`, `esc_attr`, `wp_kses_post`).
+   - Controleer presence van nonces (`wp_nonce_field`, `check_admin_referer`).
+   - Controleer `current_user_can()` in admin-acties.
+   - Controleer dat externe API-calls veilige endpoints, timeouts en sanitizing gebruiken.
+   - Controleer of plugin geen informatie lekt via notices, debug output of REST routes.
+
+5. **UX / Admin**
+   - Controleer dat elke module zijn eigen settingspagina of tab heeft onder één hoofdmenu.
+   - Beoordeel consistentie van labels, iconen en velden.
+   - Controleer dat alle opties beschrijvingen/tooltips hebben.
+   - Stel verbeteringen voor in gebruikersflow (wizard, helptekst, inline tips).
+   - Controleer frontend shortcodes: output, responsiveness, accessibility (aria-labels).
+
+6. **Developer Experience**
+   - Controleer of een `wp-cli` command bestaat (of voorstel doen).
+   - Controleer dat er Makefile, npm-scripts of VSCode tasks zijn voor build/test.
+   - Controleer dat er unit/integration/e2e tests bestaan.
+   - Controleer presence van `.editorconfig`, `.phpcs.xml.dist`, `phpstan.neon`.
+   - Stel uitbreidingen voor: autoload-dev, psalm of rector.
+
+7. **Tests**
+   - Controleer dat elke module een testbestand heeft in `/tests/<module>/`.
+   - Controleer Brain Monkey mocks voor WordPress hooks.
+   - Genereer lijst van classes zonder test coverage.
+   - Voeg voorbeeld-test voor een REST-route toe.
+   - Controleer dat `phpunit.xml.dist` juist pad en bootstrap definieert.
+
+8. **Internationalisatie & Documentatie**
+   - Genereer lijst van vertaalbare strings (`__()`, `_x()`).
+   - Controleer `languages/sbdp.pot`.
+   - Controleer presence van `README.md`, `CHANGELOG.md`, `LICENSE`.
+   - Voeg samenvatting per module toe in docs/ of module-header.
+   - Controleer dat hooks met `@hook` worden beschreven in docblocks.
+
+9. **Logging & Monitoring**
+   - Controleer dat er een veilige logging-functie bestaat (`bsp_log()`).
+   - Controleer dat fatale fouten of exceptions niet worden genegeerd.
+   - Stel optionele logging-instellingen of externe log integratie voor (Monolog).
+
+10. **Release & CI/CD**
+    - Controleer dat `scripts/build-plugin.sh` correct zipt zonder ongewenste bestanden.
+    - Controleer dat GitHub Actions of CI workflow aanwezig is.
+    - Controleer versiebeheer in plugin header vs git-tag.
+    - Stel automatische changelog-generatie of release-workflow voor.
+    - Controleer of `composer validate` en `composer audit` clean zijn.
+
+11. **Compliance & Licensing**
+    - Controleer dat plugin een correcte GPL/MIT-licentie bevat.
+    - Controleer dat alle externe dependencies compatible licenties hebben.
+    - Controleer dat plugin opt-in telemetrie heeft (geen data-leak).
+
+12. **Output**
+    - Toon sectie **Findings** per categorie (Code, Architecture, Performance, Security, UX, DevEx, Tests, Docs, Logging, Release).
+    - Toon sectie **Recommended Fixes** met concrete voorbeelden of code (multi-file formaat: `# File: path` + codeblok).
+    - Toon sectie **Commands to Run** met benodigde composer/phpunit/docker commando’s.
+    - Toon samenvatting **Audit Score** (percentage + korte beoordeling).
+
+Formaat:
+Gebruik duidelijke Markdown-secties:
+## Findings
+## Recommended Fixes
+## Commands to Run
+## Audit Score
+
+Verwachte eindcommando’s:
+- `composer dump-autoload -o`
+- `composer test`
+- `composer analyse`
+- `composer lint`
+- `./scripts/build-plugin.sh`

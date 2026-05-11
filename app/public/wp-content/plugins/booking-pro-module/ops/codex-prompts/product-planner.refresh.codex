@@ -1,0 +1,640 @@
+# =====================================================================
+#  FILE: product-planner.refresh.codex
+#  PURPOSE: Verbetert WooCommerce productpagina (planner) — lichtgewicht
+#           - Nieuwe summary-card (datum/tijd/pax, prijs, CTA's)
+#           - Rechter Planner-Dock met kalender-popover (desktop) + sticky mobiel
+#           - REST endpoints: prijs (/price) en timeslots (/slots) + hooks/filters
+#           - Elementor-vriendelijk (shortcodes)
+#           - Cart item data (date/time/pax) + Book Direct flow
+# =====================================================================
+
+task: product.page-refresh
+output-policy: [verbose, color, fail-fast]
+
+vars:
+  plugin_slug: "ddb-product-layout"
+  plugin_dir: "wp-content/plugins/ddb-product-layout"
+  ns: "DDB\\ProductLayout"
+  rest_ns: "ddb/v1"
+  feature_flag: "ddb_product_layout_enabled"
+  dock_flag: "ddb_planner_dock_enabled"
+
+steps:
+
+# 0) Mappen & plugin scaffold
+- name: "Scaffold plugin directories"
+  run: >
+    agent.run("fs.ensure_dirs", { paths: [
+      "${{vars.plugin_dir}}",
+      "${{vars.plugin_dir}}/includes",
+      "${{vars.plugin_dir}}/includes/Rest",
+      "${{vars.plugin_dir}}/includes/Services",
+      "${{vars.plugin_dir}}/includes/Domain",
+      "${{vars.plugin_dir}}/assets",
+      "${{vars.plugin_dir}}/views"
+    ]});
+
+# 1) Hoofd-pluginbestand
+- name: "Create main plugin file"
+  run: >
+    agent.run("fs.write", {
+      path: "${{vars.plugin_dir}}/ddb-product-layout.php",
+      content: `<?php
+/**
+ * Plugin Name: DDB Product Layout
+ * Description: Schone productplanner met summary-card, Planner-Dock, REST pricing/slots en sticky CTA.
+ * Author: DagjeDenBosch.nl
+ * Version: 0.2.0
+ */
+
+if (!defined('ABSPATH')) { exit; }
+
+define('DDB_PLUG', __FILE__);
+define('DDB_PLUG_DIR', plugin_dir_path(__FILE__));
+define('DDB_PLUG_URL', plugin_dir_url(__FILE__));
+
+register_activation_hook(__FILE__, function(){
+  add_option('${{vars.feature_flag}}', '1');
+  add_option('${{vars.dock_flag}}', '1');
+});
+
+spl_autoload_register(function($class){
+  if (strpos($class, '${{vars.ns}}') !== 0) return;
+  $path = DDB_PLUG_DIR . 'includes/' . str_replace(['${{vars.ns}}\\', '\\\\'], ['', '/'], $class) . '.php';
+  if (file_exists($path)) require_once $path;
+});
+
+add_action('plugins_loaded', function(){
+  if (get_option('${{vars.feature_flag}}') !== '1') return;
+
+  (new ${{vars.ns}}\\Assets())->init();
+  (new ${{vars.ns}}\\Hooks())->init();
+
+  (new ${{vars.ns}}\\Rest\\Price())->init();
+  (new ${{vars.ns}}\\Rest\\Slots())->init(); // nieuwe timeslots endpoint
+});
+`
+    });
+
+# 2) Assets loader
+- name: "Create Assets loader"
+  run: >
+    agent.run("fs.write", {
+      path: "${{vars.plugin_dir}}/includes/Assets.php",
+      content: `<?php
+namespace ${{vars.ns}};
+
+class Assets {
+  public function init(){
+    add_action('wp_enqueue_scripts', [$this,'enqueue']);
+  }
+  public function enqueue(){
+    if (!is_product() && !is_page()) return;
+
+    // Alleen laden op productpagina's en (optioneel) /plan-je-dag
+    $is_planner_page = function_exists('is_page') && (is_page('plan-je-dag') || is_page('planner'));
+    if (!is_product() && !$is_planner_page) return;
+
+    wp_enqueue_style('ddb-product', DDB_PLUG_URL.'assets/ddb-product.css', [], '0.2.0');
+    wp_enqueue_script('ddb-product', DDB_PLUG_URL.'assets/ddb-product.js', [], '0.2.0', true);
+
+    wp_localize_script('ddb-product', 'DDB_PRODUCT', [
+      'rest' => [
+        'price' => esc_url_raw( rest_url('${{vars.rest_ns}}/price') ),
+        'slots' => esc_url_raw( rest_url('${{vars.rest_ns}}/slots') ),
+        'nonce' => wp_create_nonce('wp_rest')
+      ],
+      'flags' => [
+        'dock' => get_option('${{vars.dock_flag}}') === '1'
+      ],
+      'i18n' => [
+        'selectDate' => __('Kies eerst een datum','ddb'),
+        'selectTime' => __('Kies een tijd','ddb'),
+        'selectPax'  => __('Vul aantal personen in','ddb'),
+        'unavailable'=> __('Niet beschikbaar','ddb')
+      ]
+    ]);
+  }
+}
+`
+    });
+
+# 3) Hooks: summary + planner-dock + cart data
+- name: "Create Hooks"
+  run: >
+    agent.run("fs.write", {
+      path: "${{vars.plugin_dir}}/includes/Hooks.php",
+      content: `<?php
+namespace ${{vars.ns}};
+
+class Hooks {
+  public function init(){
+    // Summary vervangen door eigen card (laat titel bewaard via template)
+    remove_action('woocommerce_single_product_summary','woocommerce_template_single_price',10);
+    remove_action('woocommerce_single_product_summary','woocommerce_template_single_add_to_cart',30);
+    add_action('woocommerce_single_product_summary', [$this,'render_summary_card'], 25);
+
+    // Planner-Dock rechts (optioneel via feature-flag)
+    add_action('woocommerce_after_single_product_summary', [$this,'render_planner_dock'], 5);
+
+    // Sticky CTA in footer (mobiel)
+    add_action('wp_footer', [$this,'render_sticky_cta']);
+
+    // Cart item data: sla date/time/pax op in winkelmandje
+    add_filter('woocommerce_add_cart_item_data', [$this,'add_cart_item_data'], 10, 3);
+    add_filter('woocommerce_get_item_data', [$this,'display_cart_item_data'], 10, 2);
+
+    // Shortcodes voor Elementor
+    add_shortcode('ddb_summary_card', [$this,'shortcode_summary']);
+    add_shortcode('ddb_planner_dock', [$this,'shortcode_dock']);
+  }
+
+  public function render_summary_card(){
+    if (!is_product()) return;
+    global $product;
+    if (!$product instanceof \\WC_Product) return;
+    include DDB_PLUG_DIR.'views/summary-card.php';
+  }
+
+  public function render_planner_dock(){
+    if (!is_product()) return;
+    if (get_option('${{vars.dock_flag}}') !== '1') return;
+    global $product;
+    if (!$product instanceof \\WC_Product) return;
+    echo '<aside class="ddb-planner-dock-wrap">';
+    include DDB_PLUG_DIR.'views/planner-dock.php';
+    echo '</aside>';
+  }
+
+  public function render_sticky_cta(){
+    if (!is_product()) return;
+    echo '<div class="ddb-sticky-cta" hidden>
+      <div class="ddb-sticky-meta" aria-live="polite"></div>
+      <button class="button alt ddb-sticky-book">'.esc_html__('Boek direct','ddb').'</button>
+    </div>';
+  }
+
+  public function add_cart_item_data($cart_item_data, $product_id, $variation_id){
+    foreach (['ddb_date','ddb_time','ddb_pax'] as $k){
+      if (!empty($_POST[$k])) $cart_item_data[$k] = sanitize_text_field($_POST[$k]);
+    }
+    return $cart_item_data;
+  }
+
+  public function display_cart_item_data($item_data, $cart_item){
+    $map = [
+      'ddb_date' => __('Datum','ddb'),
+      'ddb_time' => __('Tijd','ddb'),
+      'ddb_pax'  => __('Personen','ddb')
+    ];
+    foreach ($map as $key=>$label){
+      if (!empty($cart_item[$key])){
+        $item_data[] = ['name'=>$label,'value'=>esc_html($cart_item[$key])];
+      }
+    }
+    return $item_data;
+  }
+
+  public function shortcode_summary($atts){
+    ob_start();
+    $this->render_summary_card();
+    return ob_get_clean();
+  }
+
+  public function shortcode_dock($atts){
+    ob_start();
+    $this->render_planner_dock();
+    return ob_get_clean();
+  }
+}
+`
+    });
+
+# 4) REST endpoint voor prijs (ongewijzigd, maar klaar voor uitbreiding)
+- name: "Create/Update REST Price controller"
+  run: >
+    agent.run("fs.write", {
+      path: "${{vars.plugin_dir}}/includes/Rest/Price.php",
+      content: `<?php
+namespace ${{vars.ns}}\\Rest;
+
+class Price {
+  public function init(){
+    add_action('rest_api_init', function(){
+      register_rest_route('${{vars.rest_ns}}','/price', [
+        'methods' => 'GET',
+        'permission_callback' => '__return_true',
+        'callback' => [$this,'handle']
+      ]);
+    });
+  }
+
+  public function handle($req){
+    $product_id = absint($req['product_id']);
+    $pax = max(1, intval($req['pax']));
+    $date = sanitize_text_field($req['date']);
+    $time = sanitize_text_field($req['time']);
+
+    if (!$product_id) return new \\WP_Error('bad_request','product_id missing', ['status'=>400]);
+
+    $product = wc_get_product($product_id);
+    if (!$product) return new \\WP_Error('not_found','product not found', ['status'=>404]);
+
+    // Eenvoudige prijslogica (placeholder): per-person of base + per-person
+    $base = (float) get_post_meta($product_id,'_ddb_base_price', true);
+    $per  = (float) get_post_meta($product_id,'_ddb_per_person', true);
+    if ($per <= 0 && $product) { $per = (float) $product->get_price(); }
+
+    $subtotal = max(0,$base) + max(0,$per) * $pax;
+
+    $response = [
+      'product_id' => $product_id,
+      'pax' => $pax,
+      'date' => $date,
+      'time' => $time,
+      'price' => wc_price($subtotal),
+      'raw' => ['base'=>$base, 'per_person'=>$per, 'subtotal'=>$subtotal],
+      'availability' => ['ok' => true] // kan door Slots/filters worden beïnvloed
+    ];
+    return rest_ensure_response($response);
+  }
+}
+`
+    });
+
+# 5) REST endpoint voor timeslots (met filters/blackouts/capaciteit)
+- name: "Create REST Slots controller"
+  run: >
+    agent.run("fs.write", {
+      path: "${{vars.plugin_dir}}/includes/Rest/Slots.php",
+      content: `<?php
+namespace ${{vars.ns}}\\Rest;
+
+class Slots {
+  public function init(){
+    add_action('rest_api_init', function(){
+      register_rest_route('${{vars.rest_ns}}','/slots', [
+        'methods' => 'GET',
+        'permission_callback' => '__return_true',
+        'callback' => [$this,'handle']
+      ]);
+    });
+  }
+
+  public function handle($req){
+    $product_id = absint($req['product_id']);
+    $date = sanitize_text_field($req['date']);
+    if (!$product_id || !$date) {
+      return new \\WP_Error('bad_request','product_id/date missing', ['status'=>400]);
+    }
+
+    // Meta: CSV timeslots, JSON days_allowed, CSV blackouts, capacity_per_slot
+    $timeslots = array_filter(array_map('trim', explode(',', (string)get_post_meta($product_id, '_ddb_timeslots', true))));
+    if (empty($timeslots)) $timeslots = ['09:00','10:00','13:00','15:00'];
+
+    $days_allowed = json_decode((string)get_post_meta($product_id,'_ddb_days_allowed', true), true) ?: [];
+    if (!empty($days_allowed)) {
+      $weekday = (int) date('N', strtotime($date));
+      if (!in_array($weekday, $days_allowed, true)) {
+        return rest_ensure_response(['date'=>$date,'slots'=>[]]); // niet boekbaar
+      }
+    }
+
+    $blackouts = array_filter(array_map('trim', explode(',', (string)get_post_meta($product_id, '_ddb_blackout_dates', true))));
+    if (in_array($date, $blackouts, true)) {
+      return rest_ensure_response(['date'=>$date,'slots'=>[]]);
+    }
+
+    $cap = (int) (get_post_meta($product_id,'_ddb_capacity_per_slot', true) ?: 0);
+
+    $slots = [];
+    foreach ($timeslots as $t){
+      $status = 'free';
+      $used = apply_filters('ddb_reserved_count', 0, $product_id, $date, $t);
+      if ($cap > 0 && $used >= $cap) $status = 'full';
+      $slots[] = ['time'=>$t,'status'=>$status,'used'=>$used,'cap'=>$cap];
+    }
+
+    // Externe planner kan volledige slots-list overschrijven
+    $slots = apply_filters('ddb_planner_slots', $slots, $product_id, $date);
+
+    return rest_ensure_response(['date'=>$date,'slots'=>$slots]);
+  }
+}
+`
+    });
+
+# 6) Summary view (bestaand)
+- name: "Create summary-card view"
+  run: >
+    agent.run("fs.write", {
+      path: "${{vars.plugin_dir}}/views/summary-card.php",
+      content: `<?php
+/** @var WC_Product $product */
+?>
+<div class="ddb-summary" data-product-id="<?php echo esc_attr($product->get_id()); ?>">
+  <div class="ddb-usp">
+    <ul>
+      <li>⏱ <?php echo esc_html(get_post_meta($product->get_id(),'_ddb_duration','2 uur')); ?></li>
+      <li>👥 <?php echo esc_html(get_post_meta($product->get_id(),'_ddb_group_hint','Ideaal: 8–20 p.')); ?></li>
+      <li>📍 <?php echo esc_html(get_post_meta($product->get_id(),'_ddb_start_loc','Centrum Den Bosch')); ?></li>
+    </ul>
+  </div>
+
+  <div class="ddb-row">
+    <label for="ddb_date"><?php esc_html_e('Datum','ddb'); ?></label>
+    <input type="date" id="ddb_date" name="ddb_date" min="<?php echo esc_attr(date('Y-m-d')); ?>" />
+  </div>
+
+  <div class="ddb-row">
+    <label for="ddb_time"><?php esc_html_e('Tijd','ddb'); ?></label>
+    <select id="ddb_time" name="ddb_time">
+      <option value=""><?php esc_html_e('Kies tijd','ddb'); ?></option>
+    </select>
+  </div>
+
+  <div class="ddb-row">
+    <label for="ddb_pax"><?php esc_html_e('Personen','ddb'); ?></label>
+    <input type="number" id="ddb_pax" name="ddb_pax" min="1" value="1" />
+  </div>
+
+  <div class="ddb-price" aria-live="polite">
+    <span class="ddb-price-label"><?php esc_html_e('Totaal','ddb'); ?>:</span>
+    <span class="ddb-price-value"><?php echo wc_price(0); ?></span>
+  </div>
+
+  <div class="ddb-actions">
+    <form class="ddb-add-to-cart" method="post" action="<?php echo esc_url( wc_get_cart_url() ); ?>">
+      <input type="hidden" name="add-to-cart" value="<?php echo esc_attr($product->get_id()); ?>" />
+      <input type="hidden" name="ddb_date" />
+      <input type="hidden" name="ddb_time" />
+      <input type="hidden" name="ddb_pax" />
+      <button type="submit" class="button alt" disabled><?php esc_html_e('Boek direct','ddb'); ?></button>
+    </form>
+    <a href="#" class="button button-secondary ddb-plan-day"><?php esc_html_e('Plan mijn dag','ddb'); ?></a>
+  </div>
+</div>
+`
+    });
+
+# 7) Planner-Dock view (rechts, popovers)
+- name: "Create planner-dock view"
+  run: >
+    agent.run("fs.write", {
+      path: "${{vars.plugin_dir}}/views/planner-dock.php",
+      content: `<?php
+/** @var WC_Product $product */
+?>
+<aside class="ddb-planner-dock" data-product-id="<?php echo esc_attr($product->get_id()); ?>" aria-label="<?php esc_attr_e('Plan je dag','ddb'); ?>">
+  <button class="planner-field" data-pop="date" aria-expanded="false">
+    <span>📅 <?php esc_html_e('Datum','ddb'); ?></span>
+    <strong data-bind="dateLabel"><?php esc_html_e('Kies datum','ddb'); ?></strong>
+  </button>
+  <div class="popover" data-popover="date" hidden>
+    <input type="date" min="<?php echo esc_attr(date('Y-m-d')); ?>" />
+  </div>
+
+  <button class="planner-field" data-pop="time" aria-expanded="false" disabled>
+    <span>⏱ <?php esc_html_e('Tijd','ddb'); ?></span>
+    <strong data-bind="timeLabel"><?php esc_html_e('Kies tijd','ddb'); ?></strong>
+  </button>
+  <div class="popover" data-popover="time" hidden>
+    <div class="slots" aria-live="polite"></div>
+  </div>
+
+  <label class="planner-field pax">
+    <span>👥 <?php esc_html_e('Personen','ddb'); ?></span>
+    <input type="number" min="1" value="2" data-ref="pax" />
+  </label>
+
+  <div class="planner-total">
+    <span><?php esc_html_e('Totaal','ddb'); ?></span><strong data-bind="total">—</strong>
+  </div>
+
+  <form class="dock-book" method="post" action="<?php echo esc_url( wc_get_cart_url() ); ?>">
+    <input type="hidden" name="add-to-cart" value="<?php echo esc_attr($product->get_id()); ?>" />
+    <input type="hidden" name="ddb_date" />
+    <input type="hidden" name="ddb_time" />
+    <input type="hidden" name="ddb_pax" />
+    <button type="submit" class="btn-primary" disabled data-ref="bookCta"><span data-bind="ctaText"><?php esc_html_e('Selecteer datum/tijd','ddb'); ?></span></button>
+  </form>
+
+  <button class="btn-secondary" data-ref="planCta"><?php esc_html_e('Plan mijn dag','ddb'); ?></button>
+
+  <div class="planner-notice" aria-live="polite"></div>
+</aside>
+`
+    });
+
+# 8) CSS (samengevoegd: summary + dock + sticky)
+- name: "Create CSS"
+  run: >
+    agent.run("fs.write", {
+      path: "${{vars.plugin_dir}}/assets/ddb-product.css",
+      content: `/* Summary card */
+.ddb-summary{border:1px solid #E9EEF3;border-radius:12px;padding:16px;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.03)}
+.ddb-usp ul{margin:0 0 12px;padding-left:18px}
+.ddb-row{margin-bottom:12px}
+.ddb-row label{display:block;font-size:.9rem;color:#4a5568;margin-bottom:4px}
+.ddb-price{display:flex;justify-content:space-between;align-items:center;font-weight:600;margin:10px 0 16px}
+.ddb-actions{display:flex;gap:10px;flex-wrap:wrap}
+.ddb-actions .button{padding:.65rem 1rem;border-radius:8px}
+
+/* Planner Dock (right) */
+.ddb-planner-dock-wrap{position:relative}
+.ddb-planner-dock{position:sticky; top:96px; border:1px solid #E9EEF3; border-radius:12px; padding:14px; background:#fff; box-shadow:0 2px 10px rgba(0,0,0,.03); max-width:360px; margin-left:auto}
+.planner-field{width:100%; display:flex; justify-content:space-between; align-items:center; gap:8px; padding:10px 12px; border:1px solid #E9EEF3; border-radius:10px; background:#fff; margin-bottom:10px}
+.planner-field[disabled]{opacity:.6; pointer-events:none}
+.planner-field strong{font-weight:600}
+.popover{position:relative; border:1px solid #E9EEF3; border-radius:10px; padding:10px; margin:-4px 0 10px; background:#fff}
+.popover .slots{display:flex; flex-wrap:wrap; gap:8px}
+.popover .slots button{border:1px solid #E9EEF3; border-radius:8px; padding:6px 10px; background:#fff}
+.popover .slots button[disabled], .popver .slots button.full{opacity:.4}
+.planner-total{display:flex; justify-content:space-between; align-items:center; font-weight:600; margin:8px 0 12px}
+.dock-book .btn-primary, .btn-secondary{padding:.65rem 1rem; border-radius:8px; width:100%}
+.btn-secondary{background:#f6f7f9; border:1px solid #E9EEF3}
+.planner-notice{margin-top:8px; font-size:.95rem}
+
+/* Sticky CTA (mobile) */
+@media(max-width:768px){
+  .ddb-sticky-cta{position:fixed;left:0;right:0;bottom:0;background:#fff;border-top:1px solid #E9EEF3;
+    padding:10px 14px;display:flex;gap:12px;align-items:center;z-index:99;box-shadow:0 -6px 20px rgba(0,0,0,.06)}
+  .ddb-sticky-cta .ddb-sticky-meta{font-weight:600}
+  .ddb-sticky-cta .button{flex:1}
+}
+`
+    });
+
+# 9) JS (samengevoegd: summary + dock + slots + prijs + popovers)
+- name: "Create JS"
+  run: >
+    agent.run("fs.write", {
+      path: "${{vars.plugin_dir}}/assets/ddb-product.js",
+      content: `(function(){
+  const qs = (s, el=document) => el.querySelector(s);
+  const qsa = (s, el=document) => Array.from(el.querySelectorAll(s));
+
+  function fmtPrice(html){ const d=document.createElement('div'); d.innerHTML=html||''; return d.textContent||'—'; }
+
+  async function apiGet(url){
+    const res = await fetch(url, { headers: { 'X-WP-Nonce': (window.DDB_PRODUCT||{}).rest?.nonce || '' }});
+    return res.json();
+  }
+
+  // ---------- SUMMARY CARD ----------
+  const summary = qs('.ddb-summary');
+  if (summary && window.DDB_PRODUCT){
+    const pid = summary.getAttribute('data-product-id');
+    const date = qs('#ddb_date', summary);
+    const time = qs('#ddb_time', summary);
+    const pax  = qs('#ddb_pax', summary);
+    const price = qs('.ddb-price-value', summary);
+    const bookBtn = qs('.ddb-add-to-cart button', summary);
+    const form = qs('.ddb-add-to-cart', summary);
+    const hidDate = qs('input[name=ddb_date]', summary);
+    const hidTime = qs('input[name=ddb_time]', summary);
+    const hidPax  = qs('input[name=ddb_pax]', summary);
+    const sticky = qs('.ddb-sticky-cta');
+    const stickyMeta = sticky ? qs('.ddb-sticky-meta', sticky) : null;
+
+    function ready(){ return date.value && time.value && parseInt(pax.value,10) > 0; }
+    async function loadSlots(){
+      if (!date.value) { time.innerHTML = '<option value="">'+(DDB_PRODUCT.i18n?.selectTime||'Kies tijd')+'</option>'; return; }
+      const u = DDB_PRODUCT.rest.slots + '?product_id='+pid+'&date='+encodeURIComponent(date.value);
+      const data = await apiGet(u);
+      time.innerHTML = '<option value="">'+(DDB_PRODUCT.i18n?.selectTime||'Kies tijd')+'</option>';
+      (data.slots||[]).forEach(s=>{
+        const opt = document.createElement('option');
+        opt.value = s.time; opt.textContent = s.time; if (s.status==='full') opt.disabled = true;
+        time.appendChild(opt);
+      });
+    }
+    async function refresh(){
+      if (!ready()){ price.textContent = '—'; bookBtn.disabled=true; if (sticky) sticky.hidden = true; return; }
+      const u = DDB_PRODUCT.rest.price + '?product_id='+pid+'&date='+encodeURIComponent(date.value)+'&time='+encodeURIComponent(time.value)+'&pax='+encodeURIComponent(pax.value);
+      try{
+        const data = await apiGet(u);
+        price.innerHTML = data.price || '—';
+        bookBtn.disabled = false;
+        if (sticky && stickyMeta){ stickyMeta.textContent = time.value+' • '+pax.value+'p • '+fmtPrice(data.price); sticky.hidden=false; }
+      }catch(e){ console.warn(e); }
+    }
+    function sync(){ hidDate.value=date.value; hidTime.value=time.value; hidPax.value=pax.value; }
+
+    date.addEventListener('change', ()=>{ sync(); loadSlots().then(refresh); });
+    time.addEventListener('change', ()=>{ sync(); refresh(); });
+    pax .addEventListener('input',  ()=>{ sync(); refresh(); });
+
+    // init
+    sync(); loadSlots().then(refresh);
+  }
+
+  // ---------- PLANNER DOCK ----------
+  if (window.DDB_PRODUCT?.flags?.dock){
+    const dock = qs('.ddb-planner-dock');
+    if (dock){
+      const pid = dock.getAttribute('data-product-id');
+      const popDate = qs('[data-popover="date"] input', dock);
+      const popTime = qs('[data-popover="time"] .slots', dock);
+      const fieldDate = qs('[data-pop="date"]', dock);
+      const fieldTime = qs('[data-pop="time"]', dock);
+      const pax = qs('[data-ref="pax"]', dock);
+      const total = qs('[data-bind="total"]', dock);
+      const ctaText = qs('[data-bind="ctaText"]', dock);
+      const bookBtn = qs('[data-ref="bookCta"]', dock);
+      const notice = qs('.planner-notice', dock);
+      const hidDate = qs('input[name=ddb_date"]', dock) || qs('input[name=ddb_date]', dock);
+      const hidTime = qs('input[name=ddb_time"]', dock) || qs('input[name=ddb_time]', dock);
+      const hidPax  = qs('input[name=ddb_pax"]', dock)  || qs('input[name=ddb_pax]', dock);
+
+      function togglePopover(which, show){
+        const trg = qs('[data-popover="'+which+'"]', dock);
+        if (!trg) return;
+        trg.hidden = !show;
+        const btn = qs('[data-pop="'+which+'"]', dock);
+        if (btn) btn.setAttribute('aria-expanded', show ? 'true':'false');
+      }
+      document.addEventListener('click', (e)=>{
+        if (!dock.contains(e.target)) { togglePopover('date', false); togglePopover('time', false); }
+      });
+
+      fieldDate.addEventListener('click', ()=> togglePopover('date', qs('[data-popover="date"]', dock).hidden));
+      fieldTime.addEventListener('click', ()=> { if (!fieldTime.hasAttribute('disabled')) togglePopover('time', qs('[data-popover="time"]', dock).hidden); });
+
+      async function loadSlots(){
+        if (!popDate.value){ fieldTime.setAttribute('disabled',''); popTime.innerHTML=''; return; }
+        const u = DDB_PRODUCT.rest.slots + '?product_id='+pid+'&date='+encodeURIComponent(popDate.value);
+        const data = await apiGet(u);
+        popTime.innerHTML = '';
+        (data.slots||[]).forEach(s=>{
+          const b = document.createElement('button');
+          b.type='button'; b.textContent=s.time;
+          if (s.status==='full') b.disabled = true;
+          b.addEventListener('click', ()=>{ qs('[data-bind="timeLabel"]', dock).textContent = s.time; hidTime.value=s.time; togglePopover('time', false); refresh(); });
+          popTime.appendChild(b);
+        });
+        fieldTime.removeAttribute('disabled');
+      }
+
+      async function refresh(){
+        notice.textContent='';
+        if (!(popDate.value && hidTime.value && parseInt(pax.value||'0',10) > 0)){
+          total.textContent='—'; bookBtn.disabled=true; ctaText.textContent = DDB_PRODUCT.i18n?.selectDate || 'Kies eerst een datum'; return;
+        }
+        const u = DDB_PRODUCT.rest.price + '?product_id='+pid+'&date='+encodeURIComponent(popDate.value)+'&time='+encodeURIComponent(hidTime.value)+'&pax='+encodeURIComponent(pax.value);
+        try{
+          const data = await apiGet(u);
+          total.textContent = fmtPrice(data.price);
+          ctaText.textContent = (hidTime.value+' • '+(pax.value+'p')+' • '+fmtPrice(data.price));
+          bookBtn.disabled = !(data.availability?.ok ?? true);
+          if (!bookBtn.disabled && fmtPrice(data.price) !== '—'){ /* ok */ } else if (data.notice){ notice.innerHTML = data.notice.replace(/\\n/g,'<br>'); }
+        }catch(e){ console.warn(e); }
+      }
+
+      popDate.addEventListener('change', ()=>{
+        qs('[data-bind="dateLabel"]', dock).textContent = popDate.value;
+        hidDate.value = popDate.value;
+        togglePopover('date', false);
+        loadSlots().then(refresh);
+      });
+      pax.addEventListener('input', ()=>{ hidPax.value = pax.value; refresh(); });
+
+      // init
+      hidPax.value = pax.value;
+      refresh();
+
+      // Planner CTA → plannerpagina met payload
+      const planCta = qs('[data-ref="planCta"]', dock);
+      if (planCta){
+        planCta.addEventListener('click', (e)=>{
+          e.preventDefault();
+          const payload = new URLSearchParams({
+            product_id: pid,
+            date: popDate.value || '',
+            time: hidTime.value || '',
+            pax: pax.value || '1'
+          }).toString();
+          window.location.href = '/plan-je-dag/?'+payload;
+        });
+      }
+    }
+  }
+})();`
+    });
+
+# 10) Flags aanzetten via WP-CLI (optioneel)
+- name: "Enable feature flags"
+  run: >
+    if (agent.run("sh.which", {"bin":"wp"})) {
+      agent.run("sh.exec", {"cmd":"wp option update ${{vars.feature_flag}} 1 || true"});
+      agent.run("sh.exec", {"cmd":"wp option update ${{vars.dock_flag}} 1 || true"});
+    }
+
+# 11) Log meta keys (admin hints)
+- name: "Instruction log"
+  run: >
+    agent.log.info("Klaar ✅ Nieuwe summary-card + Planner-Dock actief.");
+    agent.log.info("REST: /${{vars.rest_ns}}/price, /${{vars.rest_ns}}/slots");
+    agent.log.info("Zet per product meta: _ddb_base_price, _ddb_per_person, _ddb_timeslots (CSV), _ddb_days_allowed (JSON [1..7]), _ddb_blackout_dates (CSV), _ddb_capacity_per_slot (int)");
+    agent.log.info("Feature flags: ${{vars.feature_flag}} (layout) en ${{vars.dock_flag}} (dock)");
+    agent.log.info("Shortcodes: [ddb_summary_card] en [ddb_planner_dock]");

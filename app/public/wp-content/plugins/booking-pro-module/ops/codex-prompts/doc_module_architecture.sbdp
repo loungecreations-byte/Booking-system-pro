@@ -1,0 +1,9 @@
+Genereer Markdown-documentatie over hoe BSP modules werken:
+
+- Directory structuur (`modules/<module>/Module.php`)  
+- Namespace conventie  
+- Hoe modules registreren via `bsp/core/modules/register`  
+- Hoe modules zelf hun behavior injecteren via `init()`  
+- Legacy bridging  
+- Composer autoloading regels  
+- Hoe een andere plugin extra modules kan registreren (extensibility)

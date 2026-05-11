@@ -1,0 +1,545 @@
+.sbdp-calendar-view {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.sbdp-calendar-view__header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.sbdp-calendar-view__title {
+    font-size: 16px;
+    font-weight: 600;
+    margin: 0;
+}
+
+.sbdp-calendar-nav {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.sbdp-calendar-nav__button {
+    appearance: none;
+    border: 1px solid #d1d5db;
+    background:#fff;
+    border-radius: 4px;
+    color: #111827;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 4px 8px;
+}
+
+.sbdp-calendar-nav__button:hover {
+    background: #e5e7eb;
+}
+
+.sbdp-calendar-nav__button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.sbdp-calendar-legend {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 12px;
+    color: #4b5563;
+}
+
+.sbdp-scheduler {
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    overflow: hidden;
+    background:#fff;
+}
+
+.sbdp-scheduler__grid {
+    display: grid;
+    grid-auto-flow: column;
+    position: relative;
+}
+
+.sbdp-scheduler__column {
+    min-width: 160px;
+    border-left: 1px solid #e5e7eb;
+    background:#fff;
+}
+
+.sbdp-scheduler__column--times {
+    min-width: 70px;
+    background:#fff;
+    border-left: none;
+    border-right: 1px solid #e5e7eb;
+    color: #6b7280;
+    font-size: 12px;
+}
+
+.sbdp-scheduler__column-header {
+    padding: 12px 10px;
+    border-bottom: 1px solid #e5e7eb;
+    background:#fff;
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.sbdp-scheduler__column-body {
+    position: relative;
+}
+
+.sbdp-scheduler__timeslot {
+    height: 40px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-end;
+    padding: 6px 8px;
+    box-sizing: border-box;
+}
+
+.sbdp-scheduler__slot {
+    height: 40px;
+    border-top: 1px solid #f1f5f9;
+    border-right: 1px solid #f1f5f9;
+    position: relative;
+}
+
+.sbdp-scheduler__slot:last-child {
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.sbdp-scheduler__slot.is-droppable {
+    background: rgba(59, 130, 246, 0.12);
+}
+
+.sbdp-scheduler__event {
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    border-radius: 6px;
+    padding: 6px 10px;
+    color: #0f172a;
+    background: #dbeafe;
+    border: 1px solid #3b82f6;
+    font-size: 12px;
+    line-height: 1.3;
+    box-shadow: 0 3px 6px rgba(15, 23, 42, 0.1);
+    cursor: grab;
+    user-select: none;
+}
+
+.sbdp-scheduler__event:active {
+    cursor: grabbing;
+}
+
+.sbdp-scheduler__event.is-dragging {
+    opacity: 0.6;
+}
+
+.sbdp-scheduler__event-title {
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+
+.sbdp-scheduler__event-meta {
+    display: flex;
+    gap: 6px;
+    font-size: 11px;
+    color: #1f2937;
+}
+
+.sbdp-scheduler__empty {
+    padding: 16px;
+    font-size: 13px;
+    color: #6b7280;
+}
+
+.sbdp-calendar-view__secondary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.sbdp-undo-banner {
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.sbdp-undo-banner .sbdp-undo-banner__message {
+    margin: 0;
+    font-size: 13px;
+}
+
+.sbdp-undo-banner .button.button-link {
+    padding: 0;
+    line-height: 1.6;
+}
+
+.sbdp-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 24px;
+    z-index: 100000;
+}
+
+.sbdp-modal {
+    background:#fff;
+    border-radius: 12px;
+    box-shadow: 0 20px 45px rgba(15, 23, 42, 0.25);
+    max-width: 520px;
+    width: 100%;
+    max-height: calc(100vh - 80px);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.sbdp-modal__header {
+    padding: 20px 24px 12px 24px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.sbdp-modal__title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+}
+
+.sbdp-modal__subline {
+    margin-top: 4px;
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.sbdp-modal__body {
+    padding: 20px 24px;
+    overflow-y: auto;
+}
+
+.sbdp-modal__footer {
+    padding: 16px 24px 20px 24px;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.sbdp-form-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+}
+
+.sbdp-form-field label {
+    display: block;
+    font-size: 12px;
+    color: #4b5563;
+    font-weight: 600;
+    margin-bottom: 6px;
+}
+
+.sbdp-form-field input,
+.sbdp-form-field textarea,
+.sbdp-form-field select {
+    width: 100%;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 13px;
+    background:#fff;
+    box-sizing: border-box;
+}
+
+.sbdp-form-field textarea {
+    min-height: 74px;
+    resize: vertical;
+}
+
+.sbdp-form-helper {
+    font-size: 11px;
+    color: #6b7280;
+    margin-top: 4px;
+}
+
+.sbdp-conflict-indicator {
+    margin-top: 16px;
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 12px;
+}
+
+.sbdp-conflict-indicator--ok {
+    background: #ecfdf5;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+}
+
+.sbdp-conflict-indicator--error {
+    background:#fff;
+    color: #b91c1c;
+    border: 1px solid #fecaca;
+}
+
+.sbdp-conflict-indicator--checking {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+}
+
+.sbdp-modal__actions {
+    display: flex;
+    gap: 8px;
+}
+
+.sbdp-inline-field {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.sbdp-inline-field input {
+    width: 110px;
+}
+.sbdp-booking-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.sbdp-booking-stats__cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 12px;
+}
+
+.sbdp-booking-stats__card {
+    background:#fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 14px 16px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+}
+
+.sbdp-booking-stats__label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.sbdp-booking-stats__value {
+    display: block;
+    margin-top: 6px;
+    font-size: 20px;
+    font-weight: 600;
+    color: #0f172a;
+    line-height: 1.1;
+}
+
+.sbdp-booking-stats__insights {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.sbdp-booking-stats__trend,
+.sbdp-booking-stats__outlets {
+    background:#fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.sbdp-booking-stats__trend-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.sbdp-booking-stats__trend-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.sbdp-booking-stats__trend-value {
+    font-size: 12px;
+    color: #2563eb;
+    font-weight: 600;
+}
+
+.sbdp-booking-stats__sparkline {
+    width: 100%;
+    height: 44px;
+}
+
+.sbdp-booking-stats__trend-range {
+    display: flex;
+    justify-content: space-between;
+    font-size: 11px;
+    color: #6b7280;
+}
+
+.sbdp-booking-stats__outlets-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #1f2937;
+}
+
+.sbdp-booking-stats__outlets-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.sbdp-booking-stats__outlets-item {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13px;
+    color: #0f172a;
+}
+
+.sbdp-booking-stats__outlets-name {
+    font-weight: 600;
+}
+
+.sbdp-booking-stats__outlets-meta {
+    color: #6b7280;
+    font-size: 12px;
+}
+
+@media (max-width: 640px) {
+    .sbdp-booking-stats__cards {
+        grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    }
+
+    .sbdp-booking-stats__insights {
+        grid-template-columns: 1fr;
+    }
+}
+.sbdp-filter-presets {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.sbdp-filter-presets__row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+}
+
+.sbdp-filter-presets__label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #4b5563;
+    min-width: 120px;
+}
+
+.sbdp-filter-presets__select,
+.sbdp-filter-presets__input {
+    flex: 1 1 220px;
+    max-width: 320px;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 13px;
+    background:#fff;
+}
+
+.sbdp-filter-presets__select:disabled,
+.sbdp-filter-presets__input:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.sbdp-filter-presets__actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.sbdp-filter-presets__checkbox {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #4b5563;
+}
+
+.sbdp-filter-presets__checkbox input {
+    margin: 0;
+}
+
+@media (max-width: 640px) {
+    .sbdp-filter-presets__label {
+        min-width: auto;
+        width: 100%;
+    }
+
+    .sbdp-filter-presets__select,
+    .sbdp-filter-presets__input {
+        flex: 1 1 100%;
+    }
+}
+.sbdp-booking-board__toolbar {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.sbdp-quick-preset__select {
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 12px;
+    color: #0f172a;
+    background:#fff;
+}
+
+.sbdp-quick-preset__select:disabled {
+    opacity: 0.6;
+}
+
+.sbdp-health-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: #475569;
+}
+
+.sbdp-health-indicator__dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+}

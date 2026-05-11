@@ -1,0 +1,1326 @@
+/* ================================================================
+   DagjeDenBosch Homepage Design System — v1.0
+   Premium baseline for the platform homepage.
+
+   RESPONSIBILITY:
+   - Homepage-specific component classes (.ddb-hp-*)
+   - Section surface system (replaces random purple/blue blocks)
+   - Premium card, CTA, step, and hero component styles
+   - Elementor section background resets (body.home scope only)
+
+   TOKEN SOURCE:
+   - --ui-* tokens from design-system.css (loaded site-wide)
+   - --ddb-* tokens from ddb-core-design-system.php (PHP engine)
+
+   GOVERNANCE:
+   - No hardcoded color values — all via token references
+   - Dark/light mode handled automatically by html[data-theme]
+   - No !important except for strict Elementor background overrides
+   - Elementor handles structure; this file handles visual truth
+
+   HOW TO USE WITH ELEMENTOR:
+   Add class names to sections via Elementor > Advanced > CSS Classes:
+   - Hero section:       ddb-hp-hero
+   - Composer section:   ddb-hp-composer
+   - Scenarios section:  ddb-hp-scenarios
+   - Steps section:      ddb-hp-steps
+   - Value section:      ddb-hp-value
+   - Preview section:    ddb-hp-preview
+   - Trust section:      ddb-hp-trust
+   - Final CTA section:  ddb-hp-cta
+   ================================================================ */
+
+/* ----------------------------------------------------------------
+   HOMEPAGE PAGE SURFACE
+   ---------------------------------------------------------------- */
+body.home,
+body.front-page {
+  background: var(--ui-color-bg);
+  color: var(--ui-color-text);
+}
+
+/* ----------------------------------------------------------------
+   ELEMENTOR SECTION BACKGROUND RESET
+   Removes injected purple/blue/random background colors from
+   Elementor sections on the homepage that have no ddb-hp-* class.
+   This is the root fix for the "disconnected visual mood" problem.
+   ---------------------------------------------------------------- */
+body.home .elementor-top-section:not(:has(.ddb-hp-hero)):not(:has([class*="ddb-hp-"])),
+body.home .elementor-section:not([class*="ddb-hp-"]) {
+  background-color: var(--ui-color-bg);
+  background-image: none;
+}
+
+/* Make the inner container transparent so section background shows */
+body.home .elementor-section > .elementor-container,
+body.home .e-con-full > .e-con-inner {
+  background: transparent;
+}
+
+/* ----------------------------------------------------------------
+   SECTION PRIMITIVES
+   Reusable layout wrapper classes for Elementor sections.
+   ---------------------------------------------------------------- */
+.ddb-hp-section {
+  position: relative;
+  padding-block: clamp(3rem, 7vw, 5.5rem);
+}
+
+.ddb-hp-section-inner {
+  margin-inline: auto;
+  max-width: min(72rem, calc(100% - 2rem));
+  width: 100%;
+}
+
+.ddb-hp-section-inner--wide {
+  max-width: min(82rem, calc(100% - 2rem));
+}
+
+.ddb-hp-section-inner--narrow {
+  max-width: min(52rem, calc(100% - 2rem));
+}
+
+/* ----------------------------------------------------------------
+   TYPOGRAPHY PRIMITIVES (homepage-scoped)
+   ---------------------------------------------------------------- */
+.ddb-hp-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--ui-font-sans);
+  font-size: var(--ui-text-sm);
+  font-weight: var(--ui-weight-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ui-color-primary);
+  margin-bottom: 0.75rem;
+}
+
+.ddb-hp-headline {
+  font-family: var(--ui-font-display);
+  font-size: clamp(1.75rem, 4vw, 2.75rem);
+  font-weight: var(--ui-weight-bold);
+  line-height: 1.1;
+  color: var(--ui-color-text);
+  letter-spacing: -0.025em;
+  margin: 0 0 0.875rem;
+}
+
+.ddb-hp-lede {
+  font-family: var(--ui-font-sans);
+  font-size: clamp(1rem, 1.8vw, 1.125rem);
+  line-height: 1.6;
+  color: var(--ui-color-text-muted);
+  margin: 0 0 1.75rem;
+  max-width: 42rem;
+}
+
+/* ----------------------------------------------------------------
+   SURFACE SYSTEM
+   Replaces the random purple/blue editorial block pattern.
+   Apply these classes to Elementor section "Advanced > CSS Classes".
+   ---------------------------------------------------------------- */
+
+/* Base page surface — same as body bg */
+.ddb-hp-surface {
+  background: var(--ui-color-bg);
+}
+
+/* Slight lift — for sections that should feel raised */
+.ddb-hp-surface--raised {
+  background: var(--ui-color-surface);
+}
+
+/* Alt tinted surface — warm subtle variation */
+.ddb-hp-surface--alt {
+  background: var(--ui-color-surface-2);
+}
+
+/* Feature: warm primary tint — replaces purple blocks */
+.ddb-hp-surface--feature {
+  background: color-mix(in srgb, var(--ui-color-primary) 6%, var(--ui-color-surface));
+  border-top: 1px solid color-mix(in srgb, var(--ui-color-primary) 14%, var(--ui-color-border));
+  border-bottom: 1px solid color-mix(in srgb, var(--ui-color-primary) 14%, var(--ui-color-border));
+}
+
+/* ----------------------------------------------------------------
+   CTA BUTTONS — homepage-scoped premium button system
+   ---------------------------------------------------------------- */
+.ddb-hp-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  font-family: var(--ui-font-sans);
+  font-size: var(--ui-text-sm);
+  font-weight: var(--ui-weight-semibold);
+  text-decoration: none;
+  border: 1px solid transparent;
+  border-radius: var(--ui-radius-pill);
+  cursor: pointer;
+  padding: 0.8rem 1.625rem;
+  min-height: 2.875rem;
+  line-height: 1;
+  transition:
+    background-color var(--ui-motion-fast) var(--ui-ease-standard),
+    border-color var(--ui-motion-fast) var(--ui-ease-standard),
+    transform var(--ui-motion-fast) var(--ui-ease-standard),
+    box-shadow var(--ui-motion-fast) var(--ui-ease-standard);
+}
+
+.ddb-hp-btn:hover {
+  transform: translateY(-2px);
+}
+
+.ddb-hp-btn:active {
+  transform: translateY(0);
+}
+
+/* Primary: warm bronze/gold — the platform primary action */
+.ddb-hp-btn--primary {
+  background: var(--ui-color-primary);
+  color: var(--ui-color-primary-contrast);
+  border-color: var(--ui-color-primary);
+}
+
+.ddb-hp-btn--primary:hover {
+  background: var(--ui-color-primary-hover);
+  border-color: var(--ui-color-primary-hover);
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--ui-color-primary) 38%, transparent);
+}
+
+/* Ghost-white: for use over dark hero images */
+.ddb-hp-btn--ghost-white {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--ui-color-primary-contrast);
+  border-color: rgba(255, 255, 255, 0.38);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.ddb-hp-btn--ghost-white:hover {
+  background: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.6);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.28);
+}
+
+/* Ghost: standard surface secondary action */
+.ddb-hp-btn--ghost {
+  background: transparent;
+  color: var(--ui-color-text);
+  border-color: var(--ui-color-border);
+}
+
+.ddb-hp-btn--ghost:hover {
+  background: var(--ui-color-surface-2);
+  border-color: var(--ui-color-primary);
+  color: var(--ui-color-primary);
+}
+
+/* CTA group — flex row with wrapping */
+.ddb-hp-cta-group {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+
+/* ================================================================
+   SECTION 1 — HERO
+   ================================================================ */
+.ddb-hp-hero {
+  position: relative;
+  min-height: clamp(560px, 80vh, 920px);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 0;
+  overflow: hidden;
+  background: var(--ui-color-bg);
+}
+
+/* Background image / video layer */
+.ddb-hp-hero__bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.ddb-hp-hero__bg img,
+.ddb-hp-hero__bg video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 30%;
+}
+
+/* Cinematic gradient overlay — dark at top and bottom, open in middle */
+.ddb-hp-hero__overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.42) 0%,
+    rgba(0, 0, 0, 0.14) 35%,
+    rgba(0, 0, 0, 0.62) 78%,
+    rgba(0, 0, 0, 0.88) 100%
+  );
+}
+
+/* Content positioned at bottom */
+.ddb-hp-hero__content {
+  position: relative;
+  z-index: 2;
+  padding: 2rem clamp(1rem, 4vw, 2.5rem) clamp(2.5rem, 5vw, 4.5rem);
+  max-width: min(60rem, 100%);
+  margin-inline: auto;
+  width: 100%;
+}
+
+.ddb-hp-hero__eyebrow {
+  font-family: var(--ui-font-sans);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.65);
+  margin-bottom: 0.875rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.ddb-hp-hero__headline {
+  font-family: var(--ui-font-display);
+  font-size: clamp(2.25rem, 6vw, 4.5rem);
+  font-weight: 700;
+  line-height: 1.03;
+  letter-spacing: -0.025em;
+  color: var(--ui-color-primary-contrast);
+  margin: 0 0 1rem;
+  text-shadow: 0 2px 18px rgba(0, 0, 0, 0.5);
+  max-width: 16em;
+}
+
+.ddb-hp-hero__lede {
+  font-family: var(--ui-font-sans);
+  font-size: clamp(1rem, 2vw, 1.175rem);
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0 0 2rem;
+  max-width: 38rem;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.45);
+}
+
+/* Push hero content to full-width when used with Elementor */
+.ddb-hp-hero.elementor-section > .elementor-container,
+.ddb-hp-hero .elementor-container {
+  max-width: 100%;
+  padding: 0;
+}
+
+
+/* ================================================================
+   SECTION 2 — COMPOSER / START WIDGET
+   ================================================================ */
+.ddb-hp-composer {
+  background: var(--ui-color-bg);
+  padding-block: clamp(1.5rem, 3.5vw, 2.5rem);
+}
+
+/* Premium widget shell — elevated card floating above the page */
+.ddb-hp-composer__shell {
+  background: var(--ui-color-surface);
+  border: 1px solid var(--ui-color-border);
+  border-radius: 1.25rem;
+  box-shadow: var(--ui-shadow-md);
+  padding: clamp(1.25rem, 3vw, 2rem);
+  max-width: min(64rem, calc(100% - 2rem));
+  margin-inline: auto;
+}
+
+.ddb-hp-composer__label {
+  font-family: var(--ui-font-sans);
+  font-size: var(--ui-text-sm);
+  font-weight: var(--ui-weight-semibold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ui-color-primary);
+  margin-bottom: 1rem;
+}
+
+.ddb-hp-composer__intro {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+  max-width: 48rem;
+}
+
+/* ================================================================
+   PREMIUM CANON OVERRIDE — HOMEPAGE FAMILY
+   Keeps homepage inside the same product truth as overview/detail.
+   ================================================================ */
+body.home,
+body.front-page {
+  background: #000000;
+  color: var(--ui-color-text);
+}
+
+body.home .elementor-296,
+body.home .elementor-292,
+body.front-page .elementor-296,
+body.front-page .elementor-292 {
+  background: transparent;
+  color: var(--ui-color-text);
+}
+
+.ddb-hp-section {
+  padding-block: clamp(3.5rem, 7vw, 6rem);
+}
+
+.ddb-hp-section-inner {
+  max-width: min(82rem, calc(100% - 2rem));
+}
+
+.ddb-hp-headline,
+.ddb-hp-hero__headline {
+  letter-spacing: -0.035em;
+  line-height: 1.02;
+}
+
+.ddb-hp-lede,
+.ddb-hp-hero__lede {
+  max-width: 42rem;
+  color: color-mix(in srgb, var(--ui-color-text) 72%, var(--ui-color-text-muted));
+}
+
+.ddb-hp-surface--raised,
+.ddb-hp-surface--alt,
+.ddb-hp-surface--feature,
+.ddb-hp-composer__shell,
+.ddb-hp-card,
+.ddb-hp-step,
+.ddb-hp-trust-card,
+.ddb-hp-preview-card,
+.ddb-hp-value-card,
+.ddb-hp-scenario-card {
+  background: #0a0a0a;
+  border: 1px solid color-mix(in srgb, var(--ui-color-border) 92%, transparent);
+  border-radius: var(--ui-radius-section);
+  box-shadow: var(--ui-shadow-sm);
+}
+
+.ddb-hp-surface--feature {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ui-color-primary) 5%, #0a0a0a) 0%, #0a0a0a 100%);
+  border-top-color: color-mix(in srgb, var(--ui-color-primary) 16%, var(--ui-color-border));
+  border-bottom-color: color-mix(in srgb, var(--ui-color-primary) 16%, var(--ui-color-border));
+}
+
+.ddb-hp-btn--primary {
+  background: var(--ui-color-cta);
+  border-color: var(--ui-color-cta);
+  color: var(--ui-color-cta-contrast);
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.26);
+}
+
+.ddb-hp-btn--primary:hover {
+  background: var(--ui-color-cta-hover);
+  border-color: var(--ui-color-cta-hover);
+}
+
+.ddb-hp-btn--ghost {
+  background: color-mix(in srgb, var(--ui-color-surface) 96%, transparent);
+  border-color: color-mix(in srgb, var(--ui-color-border) 88%, transparent);
+  color: var(--ui-color-text);
+}
+
+.ddb-hp-btn--ghost:hover {
+  background: color-mix(in srgb, var(--ui-color-primary) 8%, var(--ui-color-surface));
+  border-color: color-mix(in srgb, var(--ui-color-primary) 22%, var(--ui-color-border));
+  color: var(--ui-color-text);
+}
+
+.ddb-hp-hero {
+  min-height: clamp(620px, 84vh, 960px);
+}
+
+.ddb-hp-hero__overlay {
+  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.46) 0%, rgba(0, 0, 0, 0.14) 34%, rgba(0, 0, 0, 0.68) 74%, rgba(0, 0, 0, 0.92) 100%);
+}
+
+.ddb-hp-composer__shell {
+  padding: clamp(1.4rem, 3vw, 2.2rem);
+}
+
+@media (max-width: 767px) {
+  .ddb-hp-section-inner,
+  .ddb-hp-composer__shell {
+    max-width: calc(100% - 1.4rem);
+  }
+
+  .ddb-hp-composer__shell,
+  .ddb-hp-surface--raised,
+  .ddb-hp-surface--alt,
+  .ddb-hp-surface--feature {
+    border-radius: var(--ui-radius-xl);
+  }
+}
+
+.ddb-hp-composer__title {
+  font-family: var(--ui-font-display);
+  font-size: clamp(1.5rem, 3vw, 2.25rem);
+  line-height: 1.12;
+  margin: 0;
+}
+
+.ddb-hp-composer__lede {
+  margin: 0;
+  color: var(--ui-color-text-muted);
+  font-size: var(--ui-text-md);
+  line-height: 1.55;
+}
+
+.ddb-hp-composer__controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr));
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.ddb-hp-composer__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.ddb-hp-composer__field label {
+  font-family: var(--ui-font-sans);
+  font-size: 0.69rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ui-color-text-muted);
+}
+
+.ddb-hp-composer__field input,
+.ddb-hp-composer__field select {
+  background: var(--ui-color-surface-2);
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-md);
+  color: var(--ui-color-text);
+  font-family: var(--ui-font-sans);
+  font-size: var(--ui-text-sm);
+  font-weight: 500;
+  height: 2.75rem;
+  padding: 0 0.875rem;
+  transition:
+    border-color var(--ui-motion-fast) var(--ui-ease-standard),
+    box-shadow var(--ui-motion-fast) var(--ui-ease-standard);
+  width: 100%;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.ddb-hp-composer__field input:focus,
+.ddb-hp-composer__field select:focus {
+  border-color: var(--ui-color-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ui-color-focus) 22%, transparent);
+  outline: none;
+}
+
+/* Horizontal divider between controls and CTA when in widget */
+.ddb-hp-composer__divider {
+  height: 1px;
+  background: var(--ui-color-border);
+  margin-block: 1.25rem;
+}
+
+/* "Intelligent start" badge */
+.ddb-hp-composer__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  font-family: var(--ui-font-sans);
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--ui-color-text-muted);
+  margin-top: 0.75rem;
+}
+
+
+/* ================================================================
+   SECTION 3 — SCENARIO CARDS
+   ================================================================ */
+.ddb-hp-scenarios {
+  background: var(--ui-color-surface-2);
+  padding-block: clamp(3rem, 7vw, 5.5rem);
+}
+
+.ddb-hp-scenarios__grid {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 48rem) {
+  .ddb-hp-scenarios__grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Scenario Card */
+.ddb-hp-scenario-card {
+  background: var(--ui-color-surface);
+  border: 1px solid var(--ui-color-border);
+  border-radius: 1.1rem;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transition:
+    transform var(--ui-motion-fast) var(--ui-ease-standard),
+    box-shadow var(--ui-motion-fast) var(--ui-ease-standard),
+    border-color var(--ui-motion-fast) var(--ui-ease-standard);
+  box-shadow: var(--ui-shadow-sm);
+}
+
+.ddb-hp-scenario-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--ui-shadow-md);
+  border-color: color-mix(in srgb, var(--ui-color-primary) 40%, var(--ui-color-border));
+}
+
+.ddb-hp-scenario-card__img {
+  aspect-ratio: 3 / 2;
+  overflow: hidden;
+  background: var(--ui-color-surface-2);
+}
+
+.ddb-hp-scenario-card__img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform var(--ui-motion-base) var(--ui-ease-standard);
+  display: block;
+}
+
+.ddb-hp-scenario-card:hover .ddb-hp-scenario-card__img img {
+  transform: scale(1.05);
+}
+
+.ddb-hp-scenario-card__body {
+  padding: 1.375rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 0.5rem;
+}
+
+.ddb-hp-scenario-card__tag {
+  font-family: var(--ui-font-sans);
+  font-size: 0.69rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ui-color-primary);
+}
+
+.ddb-hp-scenario-card__title {
+  font-family: var(--ui-font-display);
+  font-size: var(--ui-text-xl);
+  font-weight: var(--ui-weight-bold);
+  color: var(--ui-color-text);
+  line-height: 1.2;
+  margin: 0;
+}
+
+.ddb-hp-scenario-card__desc {
+  font-family: var(--ui-font-sans);
+  font-size: var(--ui-text-sm);
+  line-height: 1.6;
+  color: var(--ui-color-text-muted);
+  margin: 0;
+  flex: 1;
+}
+
+/* Compact timeline within card */
+.ddb-hp-scenario-card__timeline {
+  margin-block: 0.5rem;
+  padding: 0.875rem;
+  background: var(--ui-color-surface-2);
+  border-radius: var(--ui-radius-md);
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.ddb-hp-scenario-card__timeline-item {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+  font-family: var(--ui-font-sans);
+  font-size: 0.75rem;
+  color: var(--ui-color-text-muted);
+}
+
+.ddb-hp-scenario-card__timeline-time {
+  font-weight: 600;
+  color: var(--ui-color-primary);
+  min-width: 3.25rem;
+  flex-shrink: 0;
+}
+
+/* Card footer with price + CTA */
+.ddb-hp-scenario-card__footer {
+  margin-top: auto;
+  padding-top: 0.875rem;
+  border-top: 1px solid var(--ui-color-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.ddb-hp-scenario-card__price {
+  font-family: var(--ui-font-sans);
+  font-size: var(--ui-text-sm);
+  font-weight: 600;
+  color: var(--ui-color-text);
+}
+
+.ddb-hp-scenario-card__price-label {
+  font-weight: 400;
+  color: var(--ui-color-text-muted);
+  font-size: 0.75rem;
+  display: block;
+}
+
+
+/* ================================================================
+   SECTION 4 — HOW IT WORKS (Steps)
+   ================================================================ */
+.ddb-hp-steps {
+  background: var(--ui-color-bg);
+  padding-block: clamp(3rem, 7vw, 5.5rem);
+}
+
+.ddb-hp-steps__grid {
+  display: grid;
+  gap: 1.25rem;
+  grid-template-columns: 1fr;
+  counter-reset: ddb-step;
+}
+
+@media (min-width: 40rem) {
+  .ddb-hp-steps__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 64rem) {
+  .ddb-hp-steps__grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.ddb-hp-step {
+  counter-increment: ddb-step;
+  padding: 1.5rem;
+  background: var(--ui-color-surface);
+  border: 1px solid var(--ui-color-border);
+  border-radius: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  position: relative;
+}
+
+/* Step number */
+.ddb-hp-step__num {
+  font-family: var(--ui-font-sans);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ui-color-primary);
+  opacity: 0.75;
+}
+
+.ddb-hp-step__icon {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: var(--ui-radius-md);
+  background: color-mix(in srgb, var(--ui-color-primary) 10%, var(--ui-color-surface-2));
+  border: 1px solid color-mix(in srgb, var(--ui-color-primary) 18%, var(--ui-color-border));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.ddb-hp-step__title {
+  font-family: var(--ui-font-display);
+  font-size: var(--ui-text-lg);
+  font-weight: var(--ui-weight-bold);
+  color: var(--ui-color-text);
+  margin: 0;
+  line-height: 1.25;
+}
+
+.ddb-hp-step__text {
+  font-family: var(--ui-font-sans);
+  font-size: var(--ui-text-sm);
+  line-height: 1.6;
+  color: var(--ui-color-text-muted);
+  margin: 0;
+}
+
+
+/* ================================================================
+   SECTION 5 — PLATFORM VALUE (split section)
+   ================================================================ */
+.ddb-hp-value {
+  background: var(--ui-color-surface-2);
+  padding-block: clamp(3rem, 7vw, 5.5rem);
+}
+
+.ddb-hp-value__inner {
+  margin-inline: auto;
+  max-width: min(72rem, calc(100% - 2rem));
+  display: grid;
+  gap: 2.5rem;
+  align-items: center;
+}
+
+@media (min-width: 56rem) {
+  .ddb-hp-value__inner {
+    grid-template-columns: 1fr 1fr;
+    gap: 4rem;
+  }
+}
+
+.ddb-hp-value__copy {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Value proposition list — replaces the flat "purple reasons" pattern */
+.ddb-hp-value__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.ddb-hp-value__list-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  font-family: var(--ui-font-sans);
+  font-size: var(--ui-text-sm);
+  line-height: 1.6;
+  color: var(--ui-color-text);
+}
+
+.ddb-hp-value__list-item::before {
+  content: "";
+  flex-shrink: 0;
+  width: 1.25rem;
+  height: 1.25rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--ui-color-success) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ui-color-success) 24%, transparent);
+  color: var(--ui-color-success);
+  border-radius: 50%;
+  font-size: 0.55rem;
+  font-weight: 700;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2 6l3 3 5-5' stroke='%2334d399' stroke-width='1.8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 10px;
+  margin-top: 0.1rem;
+}
+
+/* Visual panel: right side of split */
+.ddb-hp-value__visual {
+  background: var(--ui-color-surface);
+  border: 1px solid var(--ui-color-border);
+  border-radius: 1.25rem;
+  padding: 2rem;
+  box-shadow: var(--ui-shadow-md);
+  overflow: hidden;
+}
+
+.ddb-hp-value__visual img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: var(--ui-radius-md);
+}
+
+
+/* ================================================================
+   SECTION 6 — PROGRAM PREVIEW CARD
+   ================================================================ */
+.ddb-hp-preview {
+  background: var(--ui-color-bg);
+  padding-block: clamp(3rem, 7vw, 5.5rem);
+}
+
+.ddb-hp-preview__card {
+  max-width: min(54rem, calc(100% - 2rem));
+  margin-inline: auto;
+  background: var(--ui-color-surface);
+  border: 1px solid var(--ui-color-border);
+  border-radius: 1.25rem;
+  overflow: hidden;
+  box-shadow: var(--ui-shadow-lg);
+}
+
+.ddb-hp-preview__header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--ui-color-border);
+  background: var(--ui-color-surface-2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.ddb-hp-preview__header-title {
+  font-family: var(--ui-font-display);
+  font-size: var(--ui-text-lg);
+  font-weight: var(--ui-weight-bold);
+  color: var(--ui-color-text);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.ddb-hp-preview__header-meta {
+  font-family: var(--ui-font-sans);
+  font-size: var(--ui-text-sm);
+  color: var(--ui-color-text-muted);
+}
+
+.ddb-hp-preview__header-badge {
+  font-family: var(--ui-font-sans);
+  font-size: 0.69rem;
+  font-weight: 600;
+  padding: 0.25rem 0.6rem;
+  background: color-mix(in srgb, var(--ui-color-primary) 12%, transparent);
+  color: var(--ui-color-primary);
+  border: 1px solid color-mix(in srgb, var(--ui-color-primary) 22%, transparent);
+  border-radius: var(--ui-radius-pill);
+  white-space: nowrap;
+}
+
+.ddb-hp-preview__timeline {
+  padding: 1rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.ddb-hp-preview__item {
+  display: grid;
+  grid-template-columns: 4.25rem 1fr;
+  gap: 0.875rem;
+  align-items: start;
+  padding: 0.875rem;
+  border-radius: var(--ui-radius-md);
+  border: 1px solid transparent;
+  transition:
+    background-color var(--ui-motion-fast) var(--ui-ease-standard),
+    border-color var(--ui-motion-fast) var(--ui-ease-standard);
+}
+
+.ddb-hp-preview__item:hover {
+  background: var(--ui-color-surface-2);
+  border-color: var(--ui-color-border);
+}
+
+.ddb-hp-preview__time {
+  font-family: var(--ui-font-sans);
+  font-size: 0.71rem;
+  font-weight: 600;
+  color: var(--ui-color-primary);
+  letter-spacing: 0.03em;
+  padding-top: 0.15rem;
+  line-height: 1.4;
+}
+
+.ddb-hp-preview__name {
+  font-family: var(--ui-font-sans);
+  font-size: var(--ui-text-sm);
+  font-weight: 600;
+  color: var(--ui-color-text);
+  margin: 0 0 0.125rem;
+  line-height: 1.3;
+}
+
+.ddb-hp-preview__meta {
+  font-family: var(--ui-font-sans);
+  font-size: 0.75rem;
+  color: var(--ui-color-text-muted);
+  margin: 0;
+  line-height: 1.4;
+}
+
+.ddb-hp-preview__footer {
+  padding: 1.25rem 1.5rem;
+  border-top: 1px solid var(--ui-color-border);
+  background: var(--ui-color-surface-2);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.ddb-hp-preview__total {
+  font-family: var(--ui-font-display);
+  font-size: var(--ui-text-xl);
+  font-weight: var(--ui-weight-bold);
+  color: var(--ui-color-text);
+  line-height: 1;
+}
+
+.ddb-hp-preview__total-label {
+  font-family: var(--ui-font-sans);
+  font-size: var(--ui-text-sm);
+  color: var(--ui-color-text-muted);
+  display: block;
+  font-weight: 400;
+  margin-bottom: 0.2rem;
+}
+
+
+/* ================================================================
+   SECTION 7 — TRUST / QUALITY PROMISES
+   ================================================================ */
+.ddb-hp-trust {
+  background: var(--ui-color-surface-2);
+  padding-block: clamp(3rem, 7vw, 5.5rem);
+}
+
+.ddb-hp-trust__grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 40rem) {
+  .ddb-hp-trust__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 64rem) {
+  .ddb-hp-trust__grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.ddb-hp-trust-card {
+  padding: 1.5rem;
+  background: var(--ui-color-surface);
+  border: 1px solid var(--ui-color-border);
+  border-radius: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  transition:
+    box-shadow var(--ui-motion-fast) var(--ui-ease-standard),
+    border-color var(--ui-motion-fast) var(--ui-ease-standard);
+}
+
+.ddb-hp-trust-card:hover {
+  box-shadow: var(--ui-shadow-sm);
+  border-color: color-mix(in srgb, var(--ui-color-primary) 28%, var(--ui-color-border));
+}
+
+.ddb-hp-trust-card__icon {
+  font-size: 1.625rem;
+  line-height: 1;
+}
+
+.ddb-hp-trust-card__title {
+  font-family: var(--ui-font-display);
+  font-size: var(--ui-text-md);
+  font-weight: var(--ui-weight-bold);
+  color: var(--ui-color-text);
+  margin: 0;
+  line-height: 1.25;
+}
+
+.ddb-hp-trust-card__text {
+  font-family: var(--ui-font-sans);
+  font-size: var(--ui-text-sm);
+  line-height: 1.6;
+  color: var(--ui-color-text-muted);
+  margin: 0;
+}
+
+
+/* ================================================================
+   SECTION 8 — FINAL CTA SECTION
+   ================================================================ */
+.ddb-hp-cta {
+  background: var(--ui-color-bg);
+  padding-block: clamp(3.5rem, 8vw, 6.5rem);
+  text-align: center;
+}
+
+/* Subtle accent surface variant for final CTA */
+.ddb-hp-cta--accented {
+  background: color-mix(in srgb, var(--ui-color-primary) 5%, var(--ui-color-surface));
+  border-top: 1px solid color-mix(in srgb, var(--ui-color-primary) 12%, var(--ui-color-border));
+}
+
+.ddb-hp-cta__inner {
+  margin-inline: auto;
+  max-width: min(46rem, calc(100% - 2rem));
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+}
+
+.ddb-hp-cta__headline {
+  font-family: var(--ui-font-display);
+  font-size: clamp(1.75rem, 4.5vw, 2.875rem);
+  font-weight: var(--ui-weight-bold);
+  color: var(--ui-color-text);
+  line-height: 1.08;
+  letter-spacing: -0.022em;
+  margin: 0;
+}
+
+.ddb-hp-cta__lede {
+  font-family: var(--ui-font-sans);
+  font-size: var(--ui-text-md);
+  line-height: 1.6;
+  color: var(--ui-color-text-muted);
+  margin: 0;
+  max-width: 34rem;
+}
+
+.ddb-hp-cta__actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 0.25rem;
+}
+
+
+/* ================================================================
+   MOBILE REFINEMENTS
+   ================================================================ */
+@media (max-width: 47.9375rem) {
+  .ddb-hp-hero {
+    min-height: 72vh;
+    justify-content: flex-end;
+  }
+
+  .ddb-hp-hero__overlay {
+    background: linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.5) 0%,
+      rgba(0, 0, 0, 0.78) 80%,
+      rgba(0, 0, 0, 0.92) 100%
+    );
+  }
+
+  .ddb-hp-hero__headline {
+    font-size: clamp(1.9rem, 8.5vw, 2.5rem);
+  }
+
+  .ddb-hp-hero__lede {
+    font-size: 0.975rem;
+  }
+
+  .ddb-hp-composer__controls {
+    grid-template-columns: 1fr;
+  }
+
+  .ddb-hp-scenario-card__body {
+    padding: 1.125rem 1.25rem;
+  }
+
+  .ddb-hp-preview__item {
+    grid-template-columns: 3.5rem 1fr;
+    gap: 0.5rem;
+  }
+
+  .ddb-hp-preview__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .ddb-hp-value__inner {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .ddb-hp-cta__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ddb-hp-btn {
+    justify-content: center;
+  }
+
+  body.home .elementor-widget-sbdp_homepage_block,
+  body.home .elementor-widget-sbdp_homepage_block > .elementor-widget-container,
+  body.home .ui-planner-widget {
+    box-sizing: border-box;
+    max-width: calc(100vw - (var(--ui-space-md) * 2));
+    min-width: 0;
+    width: 100%;
+  }
+}
+
+
+/* ================================================================
+   ELEMENTOR COMPATIBILITY UTILITIES
+   These allow Elementor sections with ddb-hp-* classes to correctly
+   display section backgrounds through Elementor's container structure.
+   ================================================================ */
+.elementor-section.ddb-hp-hero,
+.elementor-section.ddb-hp-composer,
+.elementor-section.ddb-hp-scenarios,
+.elementor-section.ddb-hp-steps,
+.elementor-section.ddb-hp-value,
+.elementor-section.ddb-hp-preview,
+.elementor-section.ddb-hp-trust,
+.elementor-section.ddb-hp-cta {
+  /* Padding handled by our classes; reset Elementor defaults */
+  padding-block: inherit;
+}
+
+/* Wide-screen breathing room */
+@media (min-width: 80rem) {
+  .ddb-hp-section-inner {
+    max-width: min(76rem, calc(100% - 3rem));
+  }
+}
+
+/* ----------------------------------------------------------------
+   Canonical ecosystem alignment
+   Rebase the homepage onto the shared DDB panel/card/button language.
+   ---------------------------------------------------------------- */
+body.home .ddb-hp-hero__overlay {
+  background: linear-gradient(
+    to bottom,
+    rgba(8, 10, 14, 0.28) 0%,
+    rgba(8, 10, 14, 0.12) 34%,
+    rgba(8, 10, 14, 0.64) 78%,
+    rgba(8, 10, 14, 0.88) 100%
+  );
+}
+
+body.home .ddb-hp-composer__shell,
+body.home .ddb-hp-scenario-card,
+body.home .ddb-hp-step,
+body.home .ddb-hp-trust-card,
+body.home .ddb-hp-preview__card {
+  border-color: var(--ui-color-border);
+  border-radius: var(--ui-radius-xl);
+  box-shadow: var(--ui-shadow-sm);
+}
+
+body.home .ddb-hp-scenario-card,
+body.home .ddb-hp-step,
+body.home .ddb-hp-trust-card {
+  background: var(--ui-color-surface);
+}
+
+body.home .ddb-hp-preview__card {
+  background: var(--ui-color-surface);
+}
+
+body.home .ddb-hp-surface--feature,
+body.home .ddb-hp-cta--accented {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ui-color-primary) 6%, var(--ui-color-surface)) 0%, var(--ui-color-bg) 100%);
+}
+
+body.home .ddb-hp-headline,
+body.home .ddb-hp-hero__headline,
+body.home .ddb-hp-cta__headline {
+  letter-spacing: -0.03em;
+}
+
+body.home .ddb-hp-btn {
+  align-items: center;
+  border: 1px solid transparent;
+  border-radius: var(--ui-radius-pill);
+  cursor: pointer;
+  display: inline-flex;
+  font-family: var(--ui-font-sans);
+  font-size: var(--ui-text-sm);
+  font-weight: var(--ui-weight-semibold);
+  gap: 0.4rem;
+  justify-content: center;
+  min-height: 2.75rem;
+  padding: 0.6rem 1rem;
+  text-decoration: none;
+  transition: transform var(--ui-motion-fast) var(--ui-ease-standard), background-color var(--ui-motion-fast) var(--ui-ease-standard), border-color var(--ui-motion-fast) var(--ui-ease-standard), color var(--ui-motion-fast) var(--ui-ease-standard), box-shadow var(--ui-motion-fast) var(--ui-ease-standard);
+}
+
+body.home .ddb-hp-btn:hover {
+  transform: translateY(-1px);
+}
+
+body.home .ddb-hp-btn--primary {
+  background: var(--ui-color-primary);
+  border-color: var(--ui-color-primary);
+  color: var(--ui-color-primary-contrast);
+}
+
+body.home .ddb-hp-btn--primary:hover {
+  background: var(--ui-color-primary-hover);
+  border-color: var(--ui-color-primary-hover);
+  box-shadow: 0 12px 24px color-mix(in srgb, var(--ui-color-primary) 24%, transparent);
+}
+
+body.home .ddb-hp-btn--ghost,
+body.home .ddb-hp-btn--ghost-white {
+  background: transparent;
+  border-color: var(--ui-color-border);
+  color: var(--ui-color-text);
+}
+
+body.home .ddb-hp-btn--ghost-white {
+  color: var(--ui-color-primary-contrast);
+}
+
+body.home .ddb-hp-btn--ghost:hover,
+body.home .ddb-hp-btn--ghost-white:hover {
+  background: var(--ui-color-surface-2);
+}
+
+body.home .ddb-hp-preview__header,
+body.home .ddb-hp-preview__footer {
+  background: var(--ui-color-surface-2);
+}
+
+body.home .ddb-hp-scenario-card__footer {
+  border-top-color: var(--ui-color-border);
+}
+
+body.home .ddb-hp-step__icon {
+  background: color-mix(in srgb, var(--ui-color-primary) 10%, var(--ui-color-surface));
+}
+
+

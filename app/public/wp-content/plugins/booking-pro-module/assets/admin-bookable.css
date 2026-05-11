@@ -1,0 +1,183 @@
+.sbdp-bookable-meta {
+  border: 1px solid var(--ui-color-border, #d1d5db);
+  border-radius: var(--ui-radius-lg, 0.875rem);
+  padding: 1rem;
+  background: var(--ui-color-surface, #fff);
+  box-shadow: var(--ui-shadow-sm, 0 8px 20px rgba(26, 22, 18, 0.08));
+}
+
+.sbdp-bookable-tabs {
+  margin-bottom: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.sbdp-bookable-tabs .nav-tab {
+  cursor: pointer;
+}
+
+.sbdp-tab-panel[hidden] {
+  display: none;
+}
+
+.sbdp-tab-panel.is-active {
+  display: block;
+}
+
+.sbdp-field-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.sbdp-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  margin-bottom: 1rem;
+}
+
+.sbdp-field label {
+  font-weight: 600;
+  color: var(--ui-color-text, #171412);
+}
+
+.sbdp-field input,
+.sbdp-field select,
+.sbdp-field textarea {
+  width: 100%;
+  border-radius: var(--ui-radius-sm, 0.375rem);
+  border: 1px solid var(--ui-color-border, #d1d5db);
+  background: var(--ui-color-surface, #fff);
+  color: var(--ui-color-text, #171412);
+}
+
+.sbdp-toggle-list {
+  display: grid;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.sbdp-toggle-list label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 400;
+  color: var(--ui-color-text, #171412);
+}
+
+.sbdp-checkbox-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 0.5rem;
+}
+
+.sbdp-repeater {
+  border: 1px solid var(--ui-color-border, #e2e8f0);
+  border-radius: var(--ui-radius-md, 0.625rem);
+  margin-bottom: 1.5rem;
+  background: var(--ui-color-surface, #fff);
+}
+
+.sbdp-repeater__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid var(--ui-color-border, #e2e8f0);
+}
+
+.sbdp-repeater__rows {
+  padding: 0.875rem 1rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.sbdp-repeater__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: flex-end;
+  background: var(--ui-color-surface, #fff);
+  border: 1px solid var(--ui-color-border, #e2e8f0);
+  padding: 0.875rem;
+  border-radius: var(--ui-radius-md, 0.625rem);
+}
+
+.sbdp-repeater__row span.dashicons {
+  grid-column: 1 / -1;
+  font-size: 1rem;
+  color: var(--ui-color-text-muted, #9ca3af);
+}
+
+.sbdp-availability-week {
+  display: grid;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.sbdp-availability-day {
+  border: 1px solid var(--ui-color-border, #e2e8f0);
+  border-radius: var(--ui-radius-md, 0.625rem);
+  background: var(--ui-color-surface, #fff);
+}
+
+.sbdp-availability-day header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.625rem 0.875rem;
+  border-bottom: 1px solid var(--ui-color-border, #e2e8f0);
+  background: var(--ui-color-surface, #fff);
+}
+
+.sbdp-availability-slots {
+  padding: 0.875rem;
+  display: grid;
+  gap: 0.625rem;
+}
+
+.sbdp-availability-slot {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) auto;
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.sbdp-location-map {
+  min-height: 220px;
+  border: 1px solid var(--ui-color-border, #e2e8f0);
+  border-radius: var(--ui-radius-md, 0.625rem);
+  margin-top: 0.5rem;
+  background: var(--ui-color-surface-2, #f2ede6);
+}
+
+.sbdp-location-map[data-note]::before {
+  content: attr(data-note);
+  display: block;
+  font-size: 0.75rem;
+  color: var(--ui-color-text-muted, #64748b);
+  padding: 0.75rem;
+}
+
+.sbdp-meta-actions {
+  margin-top: 1.5rem;
+}
+
+body.sbdp-bookable-meta-enabled #sbdp_booking_settings,
+body.sbdp-bookable-meta-enabled .wc-metaboxes-wrapper .show_if_bookable_service,
+body.sbdp-bookable-meta-enabled #woocommerce-product-data ul.wc-tabs li.sbdp_booking_tab {
+  display: none;
+}
+
+@media (max-width: 782px) {
+  .sbdp-repeater__row {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+
+  .sbdp-availability-slot {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+  }
+}

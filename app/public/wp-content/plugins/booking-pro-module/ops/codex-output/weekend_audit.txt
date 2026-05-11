@@ -1,0 +1,6 @@
+{
+    "target": "C:\\booking-pro-module-4.0\\modules",
+    "status": "ok",
+    "counts": [],
+    "issues": []
+}

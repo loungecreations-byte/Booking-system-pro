@@ -1,0 +1,129 @@
+# ==========================================================
+#  BOOKING SUITE PRO — Ultimate Build Prompt
+#  Bouwt alle modules, functies & UX-verbeteringen in één run
+# ==========================================================
+
+task: build-booking-suite-pro
+
+output-policy:
+  - verbose
+  - color
+  - fail-fast
+
+steps:
+
+# 1️⃣ Core & basisregistratie
+- name: "Initialize Booking Core"
+  run: >
+    agent.run("booking_core.init", {
+      version: "5.0",
+      author: "DagjeDenBosch",
+      autoload: true,
+      persist: true,
+      modules: [
+        "settings","people","costs","availability","services","resources",
+        "planner","dashboard","notifications","reports","automation","ai"
+      ]
+    })
+
+# 2️⃣ Productconfiguratie & instellingen
+- import: "scripts/build-booking-settings.codex"
+
+# 3️⃣ People / Costs / Availability / Services / Resources
+- import: "scripts/build-booking-suite.codex"
+
+# 4️⃣ Planner & Dashboard
+- import: "scripts/build-dashboard-planner.codex"
+
+# 5️⃣ Smart UX & handige functies
+- import: "scripts/build-smart-functions.codex"
+
+# 6️⃣ Notificaties & communicatie
+- name: "Setup full notification system"
+  run: >
+    agent.run("booking_notifications.setup", {
+      templates: ["confirmation","reminder","cancellation","review"],
+      methods: ["email","whatsapp","push"],
+      timing: {
+        on_booking: "immediate",
+        before_start: "24h",
+        after_complete: "24h"
+      },
+      variables: ["customer_name","product_name","date","price","link"]
+    })
+
+# 7️⃣ Rapportage & analytics
+- name: "Activate reporting & analytics"
+  run: >
+    agent.run("booking_reports.enable", {
+      widgets: [
+        "total_bookings","revenue_chart","occupancy_heatmap","top_products"
+      ],
+      export_formats: ["csv","pdf","xlsx"],
+      schedule: "weekly",
+      recipients: ["admin","finance"],
+      include_ai_summary: true
+    })
+
+# 8️⃣ Automatisering & cron-taken
+- name: "Enable automation tasks"
+  run: >
+    agent.run("booking_automation.add", {
+      tasks: [
+        {id:"auto-complete", schedule:"hourly", logic:"complete expired bookings"},
+        {id:"weekly-report", schedule:"weekly", logic:"email weekly summary"},
+        {id:"review-request", schedule:"daily", logic:"send review emails"}
+      ],
+      logging: true
+    })
+
+# 9️⃣ AI & dynamische pricing
+- name: "Activate AI & dynamic pricing"
+  run: >
+    agent.run("booking_ai.enable", {
+      features: {
+        dynamic_pricing: true,
+        smart_suggestions: true,
+        ai_day_planner: true,
+        review_analysis: true
+      },
+      training_source: "booking_history",
+      logging: true
+    })
+
+# 🔟 UX / Front-end integratie
+- name: "Generate UI components"
+  run: >
+    ui.generate("booking-suite-pro", {
+      framework: "react",
+      components: [
+        "CalendarView","BookingForm","DashboardGrid","AvailabilityBadge",
+        "StickySummary","TrendChart","AdminToolbar","StatusColors"
+      ],
+      output: "assets/js/ui/"
+    })
+
+# 11️⃣ Integraties
+- name: "Enable integrations"
+  run: >
+    agent.run("booking_integrations.activate", {
+      payment: ["mollie","stripe"],
+      calendar: ["google","apple"],
+      crm: ["hubspot","mailchimp"],
+      analytics: ["ga4","facebook_pixel"],
+      webhooks: ["booking_created","booking_completed"]
+    })
+
+# 12️⃣ Validatie & afronding
+- name: "Validate all modules"
+  run: >
+    agent.run("booking_core.validate", {
+      expect_modules: 12,
+      run_tests: true,
+      write_to_log: true
+    })
+
+# ✅ Einde
+- name: "Finish build"
+  run: >
+    log.success("✅ Booking Suite PRO succesvol opgebouwd — alle modules actief en getest.")

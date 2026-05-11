@@ -1,0 +1,161 @@
+/* Applies only when the user selected the WordPress Midnight admin scheme. */
+body.admin-color-midnight #wpcontent,
+body.admin-color-midnight #wpbody-content,
+body.admin-color-midnight #wpwrap,
+body.admin-color-midnight #wpbody,
+body.admin-color-midnight.block-editor-iframe__body,
+body.admin-color-midnight.block-editor-iframe__body.editor-styles-wrapper {
+  background: #1f2428;
+  color: #dcdcde;
+}
+
+body.admin-color-midnight .interface-interface-skeleton,
+body.admin-color-midnight .interface-interface-skeleton__body,
+body.admin-color-midnight .interface-interface-skeleton__editor,
+body.admin-color-midnight .interface-interface-skeleton__content,
+body.admin-color-midnight .interface-interface-skeleton__header,
+body.admin-color-midnight .interface-interface-skeleton__sidebar,
+body.admin-color-midnight .interface-interface-skeleton__secondary-sidebar,
+body.admin-color-midnight .interface-interface-skeleton__footer,
+body.admin-color-midnight .editor-editor-interface,
+body.admin-color-midnight .edit-post-layout,
+body.admin-color-midnight .edit-post-layout__content,
+body.admin-color-midnight .edit-post-layout__metaboxes,
+body.admin-color-midnight .edit-post-meta-boxes-area,
+body.admin-color-midnight .edit-post-editor__content-area,
+body.admin-color-midnight .editor-post-text-editor__body,
+body.admin-color-midnight .editor-post-text-editor__body textarea,
+body.admin-color-midnight .block-editor-block-list__layout,
+body.admin-color-midnight .is-root-container,
+body.admin-color-midnight #poststuff,
+body.admin-color-midnight #post-body,
+body.admin-color-midnight #post-body-content,
+body.admin-color-midnight .metabox-holder,
+body.admin-color-midnight #normal-sortables {
+  background: #1f2428 ;
+}
+
+body.admin-color-midnight .wrap h1,
+body.admin-color-midnight .wrap h2,
+body.admin-color-midnight .wrap h3,
+body.admin-color-midnight .wrap h4,
+body.admin-color-midnight .wrap p,
+body.admin-color-midnight .wrap li,
+body.admin-color-midnight .wrap td,
+body.admin-color-midnight .wrap th,
+body.admin-color-midnight .wrap label {
+  color: #dcdcde;
+}
+
+body.admin-color-midnight .postbox,
+body.admin-color-midnight .stuffbox,
+body.admin-color-midnight .card,
+body.admin-color-midnight .widefat,
+body.admin-color-midnight .widefat thead tr th,
+body.admin-color-midnight .widefat tfoot tr th,
+body.admin-color-midnight .widefat td {
+  background: #1f2428;
+  border-color: #3c434a;
+  color: #dcdcde;
+}
+
+body.admin-color-midnight .widefat.striped > tbody > :nth-child(odd) {
+  background: #20272c;
+}
+
+body.admin-color-midnight input[type="text"],
+body.admin-color-midnight input[type="search"],
+body.admin-color-midnight input[type="number"],
+body.admin-color-midnight input[type="email"],
+body.admin-color-midnight input[type="url"],
+body.admin-color-midnight input[type="password"],
+body.admin-color-midnight textarea,
+body.admin-color-midnight select {
+  background: #11161a;
+  border-color: #3c434a;
+  color: #dcdcde;
+}
+
+body.admin-color-midnight .notice,
+body.admin-color-midnight div.updated,
+body.admin-color-midnight div.error {
+  background: #1b2126;
+  color: #dcdcde;
+  border-color: #3c434a;
+}
+
+body.admin-color-midnight .edit-post-header,
+body.admin-color-midnight .interface-interface-skeleton__header,
+body.admin-color-midnight .edit-post-header__toolbar,
+body.admin-color-midnight .edit-post-header-toolbar,
+body.admin-color-midnight .edit-post-header__center,
+body.admin-color-midnight .edit-post-header__settings {
+  background: #1b2126;
+  border-color: #3c434a;
+  color: #dcdcde;
+}
+
+body.admin-color-midnight .edit-post-header .components-button,
+body.admin-color-midnight .edit-post-header .components-dropdown-menu__toggle,
+body.admin-color-midnight .edit-post-header .components-button.has-icon {
+  color: #dcdcde;
+}
+
+body.admin-color-midnight .edit-post-layout,
+body.admin-color-midnight .interface-interface-skeleton__content,
+body.admin-color-midnight .edit-post-visual-editor,
+body.admin-color-midnight .edit-post-meta-boxes-main__presenter,
+body.admin-color-midnight .editor-styles-wrapper,
+body.admin-color-midnight.block-editor-iframe__body .editor-styles-wrapper,
+body.admin-color-midnight .block-editor-writing-flow {
+  background: #1f2428 ;
+  color: #dcdcde;
+}
+
+body.admin-color-midnight .edit-post-layout.is-mode-visual .editor-styles-wrapper,
+body.admin-color-midnight .edit-post-layout.is-mode-text .editor-post-text-editor,
+body.admin-color-midnight .editor-post-title__input,
+body.admin-color-midnight .editor-post-text-editor__body,
+body.admin-color-midnight .editor-post-text-editor__body textarea,
+body.admin-color-midnight .editor-textarea,
+body.admin-color-midnight .editor-post-text-editor,
+body.admin-color-midnight.block-editor-iframe__body.editor-styles-wrapper,
+body.admin-color-midnight.block-editor-iframe__body .is-root-container {
+  background: #11161a;
+  color: #dcdcde;
+}
+
+body.admin-color-midnight .components-panel,
+body.admin-color-midnight .components-panel__body,
+body.admin-color-midnight .components-popover__content,
+body.admin-color-midnight .edit-post-sidebar,
+body.admin-color-midnight .interface-complementary-area,
+body.admin-color-midnight .editor-text-editor,
+body.admin-color-midnight .editor-text-editor__toolbar,
+body.admin-color-midnight .components-panel__header,
+body.admin-color-midnight .interface-complementary-area-header,
+body.admin-color-midnight .editor-sidebar__panel-tabs {
+  background: #1b2126;
+  border-color: #3c434a;
+  color: #dcdcde;
+}
+
+body.admin-color-midnight .editor-text-editor__toolbar .components-button,
+body.admin-color-midnight .components-panel__header .components-button,
+body.admin-color-midnight .interface-complementary-area-header .components-button,
+body.admin-color-midnight .editor-sidebar__panel-tabs .components-button,
+body.admin-color-midnight .editor-sidebar__panel-tabs button {
+  color: #dcdcde;
+}
+
+body.admin-color-midnight .components-base-control__field label,
+body.admin-color-midnight .components-panel__body-title,
+body.admin-color-midnight .components-button,
+body.admin-color-midnight .components-menu-item__button,
+body.admin-color-midnight .postbox-header h2,
+body.admin-color-midnight .hndle,
+body.admin-color-midnight .handle-actions .handle-order-higher,
+body.admin-color-midnight .handle-actions .handle-order-lower,
+body.admin-color-midnight .handle-actions .handlediv {
+  color: #dcdcde;
+}

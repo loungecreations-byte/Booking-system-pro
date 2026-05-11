@@ -1,0 +1,17 @@
+includes:
+    - phpstan-baseline.neon
+
+parameters:
+    level: 6
+    parallel:
+        maximumNumberOfProcesses: 1
+    paths:
+        - booking-pro-module.php
+        - includes
+        - booking-core/src
+        - core/src
+        - modules
+        - includes/bootstrap
+    bootstrapFiles:
+        - phpstan-bootstrap.php
+    tmpDir: build/phpstan

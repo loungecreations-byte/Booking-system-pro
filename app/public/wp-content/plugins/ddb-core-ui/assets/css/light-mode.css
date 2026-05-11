@@ -1,0 +1,20 @@
+html,
+html[data-theme="light"],
+html[data-theme="system"],
+.ui-theme-light {
+  --ui-color-bg: #fdfbf7;
+  --ui-color-surface: #ffffff;
+  --ui-color-surface-2: #f4f1eb;
+  --ui-color-surface-3: #ebe5dd;
+  --ui-color-text: #1a1714;
+  --ui-color-text-muted: #6b635c;
+  --ui-color-border: #e2dacd;
+  --ui-color-border-subtle: rgba(26, 23, 20, 0.08);
+  --ui-color-primary: #d4af37;
+  --ui-color-primary-hover: #bc992a;
+  --ui-color-primary-contrast: #100b02;
+  --ui-color-success: #15803d;
+  --ui-color-warning: #b45309;
+  --ui-color-danger: #b91c1c;
+  --ui-color-focus: #c58a53;
+}
