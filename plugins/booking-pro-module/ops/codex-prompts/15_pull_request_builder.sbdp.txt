@@ -1,0 +1,10 @@
+# Pull Request Builder (Prompt 15)
+
+Goal: collect a concise summary of the latest work, test output, and artifacts, and emit a ready-to-paste PR template.
+
+Steps:
+1. Run `pwsh -NoLogo -NoProfile -File scripts/generate-pr-summary.ps1 -OutputPath ops/codex-output/weekend_pr.md`.
+2. Inspect the generated PR draft and append any manual verification notes.
+3. Attach the listed artifact (`dist/booking-pro-module-*.zip`) to the PR when publishing.
+
+Output: `ops/codex-output/weekend_pr.md` containing the PR introduction.

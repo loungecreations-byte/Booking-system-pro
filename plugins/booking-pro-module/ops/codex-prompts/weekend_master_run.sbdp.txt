@@ -1,0 +1,62 @@
+# Booking Pro Module 4.0 - Weekend Autonomous Build & Audit
+
+Context:
+Use all conventions from 00_project_primer.sbdp.txt.
+Work inside the BSP modular framework (core/src, modules/, legacy/, assets/, tests/, scripts/).
+
+Goal:
+Between now and Monday morning, complete a full cycle:
+- ensure all modules exist and pass validation,
+- re-run prompts 00–11,
+- build and optimize the plugin,
+- run tests,
+- deliver a clean dist/ ZIP + report.
+
+Constraints:
+- create new features
+- refactor, optimize, test, and package.
+- Must remain PHP 7.4-8.3 compatible.
+- Keep namespace hygiene, PSR-12, strict_types=1.
+- Never delete user data or settings files.
+
+Tasks:
+
+1. **Generate or update all modules**
+   - Planner, Sales, Finance, Data, Support, Notifications, Commerce, Intelligence.
+   - Follow 03_module_generator.sbdp.txt structure.
+
+2. **Run validation sequence**
+   - Execute `pwsh -File scripts/run-weekend-prompts.ps1` to archive prompts 00–11 into `ops/codex-output/weekend.log`.
+   - Stop only on fatal errors, log everything to ops/codex-output/weekend.log.
+
+3. **Run full audit**
+   - Execute `php audit_booking_module.php --path=modules --json > ops/codex-output/weekend_audit.txt`.
+   - Produce ops/codex-output/weekend_audit.txt.
+
+4. **Apply auto-fixes**
+   - Execute `pwsh -File scripts/apply-audit-fixes.ps1 -AuditFile ops/codex-output/weekend_audit.txt -OutputFile ops/codex-output/weekend_fixes.txt`.
+   - Apply recommended code changes and re-run the audit if needed.
+
+5. **Generate Pull Request description**
+   - Execute `pwsh -File scripts/generate-pr-summary.ps1 -OutputPath ops/codex-output/weekend_pr.md`.
+
+6. **Optimize build**
+   - Run `pwsh -File scripts/optimize-plugin.ps1`.
+   - Verify that dist/booking-pro-module-*.zip exists.
+
+7. **Report**
+   - Summarize findings, duration, and ZIP size via `pwsh -File scripts/generate-weekend-summary.ps1`.
+   - Sections:
+       - Modules created
+       - Tests passed/failed
+       - Security & performance notes
+       - Build artifacts
+       - Commands used
+
+Format:
+Use Markdown headings (## Step 1, ## Results, ## Summary).
+If you modify files, show them in multi-file format:
+# File: <path>  
+```php
+<code>
+```

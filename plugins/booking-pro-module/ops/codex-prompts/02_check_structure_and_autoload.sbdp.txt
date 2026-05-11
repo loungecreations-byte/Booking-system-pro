@@ -1,0 +1,20 @@
+TAK: Validatie & correctie van composer + structuur.
+
+INPUT (door mij): ik plak `composer.json` + een `tree`-achtige lijst van directories.
+
+JOUW OPDRACHT
+1) Check of psr-4 namespaces 1-op-1 mappen met directories
+2) Check op ongeldige karakters in namespaces
+3) Check of alle Module classes bestaan in de paden
+4) Check of plugin.php core bootstrap correct laadt
+5) Geef LIJST met inconsistenties
+6) Lever direct een GEFIXTE `composer.json` (volledig) indien nodig
+7) Geef de commando’s:
+   - `composer dump-autoload`
+   - `php -l <files>`
+   - `vendor/bin/phpunit --configuration tests/phpunit.xml.dist`
+
+OUTPUT
+- Markdown sectie “Issues”
+- Daarna “Fixed composer.json” als volledig JSON blok
+- Daarna “Next commands”

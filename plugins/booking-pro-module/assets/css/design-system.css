@@ -1,0 +1,104 @@
+/* DagjeDenBosch Design System (Fallback CSS)
+   ============================================
+   AUTHORITY: ddb-core-design-system.php token_definitions()
+   
+   This file is a FALLBACK-ONLY CSS that mirrors the MU plugin tokens.
+   It is NEVER loaded when ddb-core-ui plugin is active (normal production state).
+   When ddb-core-ui is NOT active, this fallback provides the same tokens.
+   
+   NO local patches, NO !important hacks, NO color overrides.
+   Token authority and rhythm is absolute.
+*/
+
+:root {
+  /* Typography (matches MU plugin 'global') */
+  --ddb-font-sans: "Quattrocento Sans", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+  --ddb-font-body: "Quattrocento Sans", "Segoe UI", -apple-system, BlinkMacSystemFont, Roboto, Helvetica, Arial, sans-serif;
+  --ddb-font-display: "Quattrocento", Georgia, "Times New Roman", serif;
+  --ddb-font-serif: "Quattrocento", Georgia, "Times New Roman", serif;
+
+  /* Spacing (matches MU plugin 'global') */
+  --ddb-space-1: 0.25rem;
+  --ddb-space-2: 0.5rem;
+  --ddb-space-3: 0.75rem;
+  --ddb-space-4: 1rem;
+  --ddb-space-5: 1.5rem;
+  --ddb-space-6: 2rem;
+
+  /* Radius (matches MU plugin 'global') */
+  --ddb-radius-1: 0.375rem;
+  --ddb-radius-2: 0.625rem;
+  --ddb-radius-3: 0.875rem;
+  --ddb-radius-pill: 999px;
+
+  /* Motion (matches MU plugin 'global') */
+  --ddb-duration-fast: 150ms;
+  --ddb-duration-base: 220ms;
+
+  /* Light mode tokens (matches MU plugin 'light') */
+  --ddb-bg: #f6f4ef;
+  --ddb-surface: #ffffff;
+  --ddb-surface-alt: #f2ede6;
+  --ddb-surface-2: #f2ede6;
+  --ddb-surface-3: #ece4d8;
+  --ddb-text: #171412;
+  --ddb-muted: #5f5852;
+  --ddb-border: #ddd2c4;
+  --ddb-primary: #9a6433;
+  --ddb-primary-contrast: #fffaf6;
+  --ddb-primary-hover: #805126;
+  --ddb-focus: #c58a53;
+  --ddb-success: #15803d;
+  --ddb-warning: #b45309;
+  --ddb-danger: #b91c1c;
+  --ddb-shadow-1: 0 8px 20px rgba(26, 22, 18, 0.08);
+  --ddb-shadow-2: 0 18px 38px rgba(26, 22, 18, 0.14);
+  --ddb-input: #ffffff;
+  --ddb-input-disabled: #ece4d8;
+}
+
+html[data-theme="dark"],
+html[data-theme="dark"] body {
+  /* Dark mode tokens (matches MU plugin 'dark') */
+  --ddb-bg: #000000;
+  --ddb-surface: #0a0a0a;
+  --ddb-surface-alt: #121212;
+  --ddb-surface-2: #121212;
+  --ddb-surface-3: #1a1a1a;
+  --ddb-text: #f1efeb;
+  --ddb-muted: #b6aea3;
+  --ddb-border: #252525;
+  --ddb-primary: #d1a06a;
+  --ddb-primary-contrast: #100b02;
+  --ddb-primary-hover: #e0b582;
+  --ddb-focus: #e0b582;
+  --ddb-success: #34d399;
+  --ddb-warning: #f59e0b;
+  --ddb-danger: #f87171;
+  --ddb-shadow-1: 0 12px 28px rgba(0, 0, 0, 0.42);
+  --ddb-shadow-2: 0 24px 52px rgba(0, 0, 0, 0.58);
+  --ddb-input: #0f0f0f;
+  --ddb-input-disabled: #1a1a1a;
+}
+
+/* Utility classes for component styling (no BS, no local inventions) */
+
+.ddb-section--nav-cards,
+.ddb-section--process-steps,
+.ddb-section--editorial-meta {
+  display: none;
+}
+
+body {
+  font-family: var(--ddb-font-body);
+  background-color: var(--ddb-bg);
+  color: var(--ddb-text);
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--ddb-font-display);
+}
+
+button, input, select, textarea, label {
+  font-family: var(--ddb-font-body);
+}

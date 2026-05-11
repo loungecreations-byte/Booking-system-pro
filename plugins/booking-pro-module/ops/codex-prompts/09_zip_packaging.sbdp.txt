@@ -1,0 +1,13 @@
+ZIP-PACKAGING (INCLUSIEF vendor/)
+
+OPDRACHT
+- Genereer `scripts/build-plugin.sh` die:
+  - `composer install --no-dev --optimize-autoloader`
+  - Syntax check: `php -l`
+  - ZIP naar `dist/booking-pro-suite.zip`
+  - ZIP MOET bevatten: plugin.php, core/, modules/, assets/, languages/, vendor/, composer.json, (geen tests/, geen ops/, geen docker/, geen .git)
+- Toon exact `zip -r` commando met juiste excludes
+
+OUTPUT
+- Toon volledige `scripts/build-plugin.sh`
+- Toon run: `chmod +x scripts/build-plugin.sh && ./scripts/build-plugin.sh`

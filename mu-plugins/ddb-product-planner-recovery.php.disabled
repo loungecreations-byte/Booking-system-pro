@@ -1,0 +1,146 @@
+<?php
+/**
+ * Plugin Name: DDB Product Planner Runtime Recovery
+ * Description: Restores the product planner shortcode and critical styling when legacy planner runtime files are missing.
+ */
+
+if (!defined('ABSPATH')) {
+    exit;
+}
+
+function ddb_planner_recovery_get_product($atts = array()) {
+    $atts = is_array($atts) ? $atts : array();
+    $product_id = isset($atts['product_id']) ? (int) $atts['product_id'] : 0;
+
+    if ($product_id > 0 && function_exists('wc_get_product')) {
+        $product = wc_get_product($product_id);
+        if ($product instanceof WC_Product) {
+            return $product;
+        }
+    }
+
+    if (function_exists('wc_get_product') && function_exists('get_queried_object_id')) {
+        $queried = (int) get_queried_object_id();
+        if ($queried > 0) {
+            $product = wc_get_product($queried);
+            if ($product instanceof WC_Product) {
+                return $product;
+            }
+        }
+    }
+
+    global $product;
+    return ($product instanceof WC_Product) ? $product : null;
+}
+
+function ddb_planner_recovery_render_shortcode($atts = array()) {
+    $product = ddb_planner_recovery_get_product($atts);
+    if (!$product instanceof WC_Product) {
+        return '';
+    }
+
+    $product_id = (int) $product->get_id();
+    $title = $product->get_name();
+    $price = function_exists('wc_get_price_including_tax') ? (float) wc_get_price_including_tax($product, array('qty' => 1)) : (float) $product->get_price();
+    if ($price <= 0) {
+        $price = (float) $product->get_price();
+    }
+    $price_html = function_exists('wc_price') ? wp_strip_all_tags(wc_price($price)) : ('€ ' . number_format_i18n($price, 2));
+    $today = function_exists('wp_date') ? wp_date('Y-m-d') : date('Y-m-d');
+
+    ob_start();
+    ?>
+    <div class="sbdp-booking-form-wrapper" data-sbdp-product-form data-product-id="<?php echo esc_attr($product_id); ?>">
+        <div class="sbdp-context-strip">
+            <span class="sbdp-context-strip__eyebrow">Productplanner</span>
+            <span class="sbdp-context-strip__sep">/</span>
+            <span class="sbdp-context-strip__current"><?php echo esc_html($title); ?></span>
+        </div>
+
+        <form id="sbdp-booking-form" class="sbdp-simple-booking-form" method="post" action="<?php echo esc_url(wc_get_cart_url()); ?>">
+            <div class="sbdp-form-header">
+                <h3><?php echo esc_html($title); ?></h3>
+                <p class="sbdp-intro">Plan je groepsmoment, kies een tijdslot en voeg combinaties toe.</p>
+            </div>
+
+            <div class="sbdp-grid-shell">
+                <div class="sbdp-main-card">
+                    <div class="sbdp-field-grid">
+                        <div class="sbdp-field sbdp-field--date">
+                            <label for="sbdp_date" class="sbdp-label-heading">Datum</label>
+                            <input type="date" id="sbdp_date" name="sbdp_date" value="<?php echo esc_attr($today); ?>" min="<?php echo esc_attr($today); ?>">
+                        </div>
+
+                        <div class="sbdp-field sbdp-field--time">
+                            <label for="sbdp_time_display" class="sbdp-label-heading">Tijdslot</label>
+                            <input type="hidden" id="sbdp_time" name="sbdp_time" value="">
+                            <select id="sbdp_time_display" data-sbdp-timeslot-list>
+                                <option value="">Kies eerst een datum</option>
+                            </select>
+                            <p data-sbdp-timeslot-empty hidden></p>
+                        </div>
+
+                        <div class="sbdp-field sbdp-field--participants">
+                            <label for="sbdp_participants" class="sbdp-label-heading">Aantal personen</label>
+                            <div class="sbdp-number-control">
+                                <button type="button" id="sbdp_minus" class="ui-btn ui-btn--icon" aria-label="Minder personen">−</button>
+                                <span class="sbdp-number-display">
+                                    <input type="number" id="sbdp_participants" name="sbdp_participants" class="sbdp-participants-wide" min="1" step="1" value="10">
+                                    <span id="sbdp_participants_suffix" class="sbdp-number-display__suffix">personen</span>
+                                </span>
+                                <button type="button" id="sbdp_plus" class="ui-btn ui-btn--icon" aria-label="Meer personen">+</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <input type="hidden" name="add-to-cart" value="<?php echo esc_attr($product_id); ?>">
+                    <input type="hidden" name="product_id" value="<?php echo esc_attr($product_id); ?>">
+                    <input type="hidden" name="quantity" value="1">
+                    <input type="hidden" name="sbdp_resource" data-sbdp-resource-input value="">
+                    <input type="hidden" name="sbdp_combi" id="sbdp_combi" value="">
+                    <input type="hidden" name="sbdp_combi_label" id="sbdp_combi_label" value="">
+
+                    <div class="sbdp-summary-card" data-sbdp-planner-card>
+                        <div class="planner-summary__header">
+                            <span class="planner-summary__badge" data-sbdp-planner-indicator>Info</span>
+                            <span class="planner-summary__status-message" data-sbdp-planner-status>Nog geen activiteiten in je planning.</span>
+                        </div>
+                        <div class="planner-summary__details">
+                            <div class="planner-summary__detail"><dt>Datum</dt><dd data-summary-date>—</dd></div>
+                            <div class="planner-summary__detail"><dt>Tijd</dt><dd data-summary-time>—</dd></div>
+                            <div class="planner-summary__detail"><dt>Deelnemers</dt><dd data-summary-people>10 personen</dd></div>
+                        </div>
+                        <div data-summary-breakdown>
+                            <div class="sbdp-summary-breakdown-line" data-summary-phase="main">
+                                <span><?php echo esc_html($title); ?></span>
+                                <strong><?php echo esc_html($price_html); ?></strong>
+                            </div>
+                        </div>
+                        <div data-sbdp-summary-total="true">
+                            <span>Totaal</span>
+                            <strong id="sbdp_summary_total" data-sbdp-total><?php echo esc_html($price_html); ?></strong>
+                        </div>
+                    </div>
+
+                    <div class="sbdp-actions-row">
+                        <button type="button" class="ui-btn ui-btn--secondary" data-sbdp-action="book">Los in winkelwagen</button>
+                        <button type="button" class="ui-btn ui-btn--primary" data-sbdp-action="plan" id="sbdp_plan_btn">Plan in dag</button>
+                    </div>
+                </div>
+            </div>
+        </form>
+        <script>
+        window.SBDP_ProductBooking = window.SBDP_ProductBooking || {};
+        window.SBDP_ProductBooking.productId = <?php echo (int) $product_id; ?>;
+        if (!window.SBDP_ProductBooking.basePrice) { window.SBDP_ProductBooking.basePrice = <?php echo json_encode((string) $price); ?>; }
+        if (!window.SBDP_ProductBooking.perPersonPrice) { window.SBDP_ProductBooking.perPersonPrice = <?php echo json_encode((string) $price); ?>; }
+        if (typeof window.SBDP_ProductBooking.supportsPersons === 'undefined') { window.SBDP_ProductBooking.supportsPersons = true; }
+        </script>
+    </div>
+    <?php
+    return (string) ob_get_clean();
+}
+
+add_action('init', static function (): void {
+    add_shortcode('sbdp_product_planner', 'ddb_planner_recovery_render_shortcode');
+});

@@ -1,0 +1,63 @@
+[2025-10-09T20:42:46] OpenAI Codex v0.42.0 (research preview)
+--------
+workdir: C:\booking-pro-module-4.0
+model: gpt-5-codex
+provider: openai
+approval: never
+sandbox: workspace-write [workdir, /tmp, $TMPDIR]
+reasoning effort: high
+reasoning summaries: auto
+--------
+[2025-10-09T20:42:46] User instructions:
+GOAL
+Automatically emit a ready-to-send primer for the Booking Pro Suite repository; do not wait for follow-up dialogue.
+
+REFERENCE DATA (use verbatim)
+- Bootstrap file: booking-pro-suite.php (loads includes/class-sbdp-plugin.php and core/bootstrap.php)
+- Core services: includes/class-sbdp-plugin.php, includes/class-core-agent.php, includes/class-admin-menu.php, includes/class-rest.php
+- Module directories: modules/planner, modules/sales, modules/data, modules/support, modules/notifications, modules/commerce, modules/intelligence, modules/finance, modules/core
+- MU plugins: mu-plugins/sbdp-allow-rest.php, mu-plugins/sbdp-cli-diagnostics.php
+- Supporting folders: assets/, languages/, scripts/, tests/, dist/
+- Key scripts: scripts/run-full-codex-cycle.sh, scripts/build-all-modules.sh, scripts/rest-smoke.ps1, scripts/run-staging-checks.sh
+- Composer script: `composer test`
+- Primary tests entry: vendor/bin/phpunit --configuration tests/phpunit.xml.dist
+- Quality command: pwsh -File scripts/run-quality-checks.ps1
+
+OUTPUT FORMAT
+- Use Markdown headings exactly in this order: Overview, Key Paths, Tooling, Immediate Actions.
+- Each heading must contain 1-4 bullet points.
+- Mention file paths in backticks and keep each bullet <= 25 words.
+- Immediate Actions should recommend specific commands chosen from the reference data.
+- If information is missing (should not happen), write "- None found".
+
+RESTRICTIONS
+- Do not run shell commands or ask for additional input; rely solely on the reference data above.
+- Respond in English.
+
+[2025-10-09T20:43:02] thinking
+
+**Generating structured primer with concise bullets**
+
+I'll create a formatted primer using only the given reference data, organizing content into Markdown headings with 1-4 short bullets (≤25 words each) for overview, key paths, tooling, and immediate actions referencing file paths and commands.
+[2025-10-09T20:43:03] codex
+
+**Overview**
+- Bootstrap `booking-pro-suite.php` wires `includes/class-sbdp-plugin.php` and `core/bootstrap.php` to load Booking Pro Suite services.
+- Core services extend via `includes/class-core-agent.php`, `includes/class-admin-menu.php`, and `includes/class-rest.php` for orchestration, admin, and REST layers.
+
+**Key Paths**
+- Modules live under `modules/` with planner, sales, data, support, notifications, commerce, intelligence, finance, and core segments.
+- MU extensions reside in `mu-plugins/sbdp-allow-rest.php` and `mu-plugins/sbdp-cli-diagnostics.php` for REST overrides and diagnostics.
+- Assets, localization, scripts, tests, and builds live within `assets/`, `languages/`, `scripts/`, `tests/`, and `dist/` respectively.
+
+**Tooling**
+- Run quality gate via `pwsh -File scripts/run-quality-checks.ps1` before commits to enforce linting and PHPCS.
+- Execute comprehensive cycles with `scripts/run-full-codex-cycle.sh`, `scripts/build-all-modules.sh`, and `scripts/rest-smoke.ps1` as scenario coverage expands.
+- Primary PHP unit tests run through `vendor/bin/phpunit --configuration tests/phpunit.xml.dist` alongside Composer hook `composer test`.
+
+**Immediate Actions**
+- Execute `pwsh -File scripts/run-quality-checks.ps1` to baseline code health.
+- Run `composer test` ensuring autoload and unit suites stay green.
+- Trigger `vendor/bin/phpunit --configuration tests/phpunit.xml.dist` for targeted regression validation.
+- Schedule `bash scripts/run-staging-checks.sh` ahead of deployment for end-to-end verification.
+[2025-10-09T20:43:04] tokens used: 5.140

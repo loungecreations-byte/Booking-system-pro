@@ -1,0 +1,318 @@
+{
+  "version": "0.4",
+  "title": "DDB SEO Landing Page Template",
+  "type": "page",
+  "page_settings": {
+    "hide_title": "yes"
+  },
+  "content": [
+    {
+      "id": "hero",
+      "elType": "container",
+      "settings": {
+        "_css_classes": "ui-section ui-section--hero",
+        "content_width": "boxed",
+        "boxed_width": {
+          "unit": "px",
+          "size": 1240
+        }
+      },
+      "elements": [
+        {
+          "id": "hero-heading",
+          "elType": "widget",
+          "widgetType": "heading",
+          "settings": {
+            "title": "Lokale inspiratie voor elke doelgroep",
+            "tag": "h2",
+            "_css_classes": "ui-section__title"
+          }
+        },
+        {
+          "id": "hero-text",
+          "elType": "widget",
+          "widgetType": "text-editor",
+          "settings": {
+            "editor": "<p>Geoptimaliseerde landingspagina met heldere structuur en sterke CTA's.</p>"
+          }
+        },
+        {
+          "id": "hero-button",
+          "elType": "widget",
+          "widgetType": "button",
+          "settings": {
+            "text": "Plan je dag",
+            "link": {
+              "url": "/plan-je-dag/"
+            },
+            "_css_classes": "ui-btn ui-btn--primary"
+          }
+        }
+      ]
+    },
+    {
+      "id": "intro",
+      "elType": "container",
+      "settings": {
+        "_css_classes": "ui-section",
+        "content_width": "boxed",
+        "boxed_width": {
+          "unit": "px",
+          "size": 1240
+        }
+      },
+      "elements": [
+        {
+          "id": "intro-heading",
+          "elType": "widget",
+          "widgetType": "heading",
+          "settings": {
+            "title": "Intro",
+            "tag": "h2",
+            "_css_classes": "ui-section__title"
+          }
+        },
+        {
+          "id": "intro-text",
+          "elType": "widget",
+          "widgetType": "text-editor",
+          "settings": {
+            "editor": "<p>Gebruik deze sectie voor een korte context van 2-3 zinnen.</p>"
+          }
+        },
+        {
+          "id": "intro-button",
+          "elType": "widget",
+          "widgetType": "button",
+          "settings": {
+            "text": "Meer lezen",
+            "link": {
+              "url": "#"
+            },
+            "_css_classes": "ui-btn ui-btn--primary"
+          }
+        }
+      ]
+    },
+    {
+      "id": "highlights",
+      "elType": "container",
+      "settings": {
+        "_css_classes": "ui-section ui-section--alt",
+        "content_width": "boxed",
+        "boxed_width": {
+          "unit": "px",
+          "size": 1240
+        }
+      },
+      "elements": [
+        {
+          "id": "highlights-heading",
+          "elType": "widget",
+          "widgetType": "heading",
+          "settings": {
+            "title": "Highlights",
+            "tag": "h2",
+            "_css_classes": "ui-section__title"
+          }
+        },
+        {
+          "id": "highlights-text",
+          "elType": "widget",
+          "widgetType": "text-editor",
+          "settings": {
+            "editor": "<p>Toon hier USP's of hoofdvoordelen in compacte kaarten.</p>"
+          }
+        },
+        {
+          "id": "highlights-button",
+          "elType": "widget",
+          "widgetType": "button",
+          "settings": {
+            "text": "Bekijk highlights",
+            "link": {
+              "url": "#"
+            },
+            "_css_classes": "ui-btn ui-btn--primary"
+          }
+        }
+      ]
+    },
+    {
+      "id": "content-grid",
+      "elType": "container",
+      "settings": {
+        "_css_classes": "ui-section",
+        "content_width": "boxed",
+        "boxed_width": {
+          "unit": "px",
+          "size": 1240
+        }
+      },
+      "elements": [
+        {
+          "id": "content-grid-heading",
+          "elType": "widget",
+          "widgetType": "heading",
+          "settings": {
+            "title": "Content grid",
+            "tag": "h2",
+            "_css_classes": "ui-section__title"
+          }
+        },
+        {
+          "id": "content-grid-text",
+          "elType": "widget",
+          "widgetType": "text-editor",
+          "settings": {
+            "editor": "<p>Plaats listings of featured cards in een ui-grid layout.</p>"
+          }
+        },
+        {
+          "id": "content-grid-button",
+          "elType": "widget",
+          "widgetType": "button",
+          "settings": {
+            "text": "Bekijk alles",
+            "link": {
+              "url": "#"
+            },
+            "_css_classes": "ui-btn ui-btn--primary"
+          }
+        }
+      ]
+    },
+    {
+      "id": "cta",
+      "elType": "container",
+      "settings": {
+        "_css_classes": "ui-section ui-section--alt",
+        "content_width": "boxed",
+        "boxed_width": {
+          "unit": "px",
+          "size": 1240
+        }
+      },
+      "elements": [
+        {
+          "id": "cta-heading",
+          "elType": "widget",
+          "widgetType": "heading",
+          "settings": {
+            "title": "Call to action",
+            "tag": "h2",
+            "_css_classes": "ui-section__title"
+          }
+        },
+        {
+          "id": "cta-text",
+          "elType": "widget",
+          "widgetType": "text-editor",
+          "settings": {
+            "editor": "<p>Sluit af met een duidelijke conversiestap richting planner of boeking.</p>"
+          }
+        },
+        {
+          "id": "cta-button",
+          "elType": "widget",
+          "widgetType": "button",
+          "settings": {
+            "text": "Start planner",
+            "link": {
+              "url": "/plan-je-dag/"
+            },
+            "_css_classes": "ui-btn ui-btn--primary"
+          }
+        }
+      ]
+    },
+    {
+      "id": "faq",
+      "elType": "container",
+      "settings": {
+        "_css_classes": "ui-section",
+        "content_width": "boxed",
+        "boxed_width": {
+          "unit": "px",
+          "size": 1240
+        }
+      },
+      "elements": [
+        {
+          "id": "faq-heading",
+          "elType": "widget",
+          "widgetType": "heading",
+          "settings": {
+            "title": "Veelgestelde vragen",
+            "tag": "h2",
+            "_css_classes": "ui-section__title"
+          }
+        },
+        {
+          "id": "faq-text",
+          "elType": "widget",
+          "widgetType": "text-editor",
+          "settings": {
+            "editor": "<p>Gebruik hier een Elementor Accordion widget met maximaal 6 vragen.</p>"
+          }
+        },
+        {
+          "id": "faq-button",
+          "elType": "widget",
+          "widgetType": "button",
+          "settings": {
+            "text": "Contact",
+            "link": {
+              "url": "/contact/"
+            },
+            "_css_classes": "ui-btn ui-btn--primary"
+          }
+        }
+      ]
+    },
+    {
+      "id": "footer-cta",
+      "elType": "container",
+      "settings": {
+        "_css_classes": "ui-section ui-section--alt",
+        "content_width": "boxed",
+        "boxed_width": {
+          "unit": "px",
+          "size": 1240
+        }
+      },
+      "elements": [
+        {
+          "id": "footer-cta-heading",
+          "elType": "widget",
+          "widgetType": "heading",
+          "settings": {
+            "title": "Klaar om te plannen?",
+            "tag": "h2",
+            "_css_classes": "ui-section__title"
+          }
+        },
+        {
+          "id": "footer-cta-text",
+          "elType": "widget",
+          "widgetType": "text-editor",
+          "settings": {
+            "editor": "<p>Combineer activiteiten, horeca en deals in een compleet dagplan.</p>"
+          }
+        },
+        {
+          "id": "footer-cta-button",
+          "elType": "widget",
+          "widgetType": "button",
+          "settings": {
+            "text": "Plan je dag",
+            "link": {
+              "url": "/plan-je-dag/"
+            },
+            "_css_classes": "ui-btn ui-btn--primary"
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,137 @@
+
+html,
+html[data-theme="dark"],
+.ui-theme-dark {
+  --ui-color-bg: #000000;
+  --ui-color-surface: #0f0f0f;
+  --ui-color-surface-2: #1c1a17;
+  --ui-color-surface-3: #2a2723;
+  --ui-color-text: #f5f2ed;
+  --ui-color-text-muted: #a39c94;
+  --ui-color-border: #2a2723;
+  --ui-color-border-subtle: rgba(245, 242, 237, 0.08);
+  --ui-color-primary: #d4af37;
+  --ui-color-primary-hover: #bc992a;
+  --ui-color-primary-contrast: #100b02;
+  --ui-color-bg-rgb: 0, 0, 0;
+  --ui-color-surface-rgb: 15, 15, 15;
+}
+
+/* System dark: reageert op OS-voorkeur als geen handmatige keuze is gemaakt */
+@media (prefers-color-scheme: dark) {
+  html[data-theme="system"] {
+    --ui-color-bg: #000000;
+    --ui-color-surface: #0f0f0f;
+    --ui-color-surface-2: #1c1a17;
+    --ui-color-surface-3: #2a2723;
+    --ui-color-text: #f5f2ed;
+    --ui-color-text-muted: #a39c94;
+    --ui-color-border: #2a2723;
+    --ui-color-border-subtle: rgba(245, 242, 237, 0.08);
+    --ui-color-primary: #d4af37;
+    --ui-color-primary-hover: #bc992a;
+    --ui-color-primary-contrast: #100b02;
+  }
+}
+
+html.ddb-has-mega-menu body.theme-hello-biz .ddb-header,
+html.ddb-has-mega-menu body.theme-hello-biz .ddb-header__inner,
+html.ddb-has-mega-menu body.theme-hello-biz .ddb-header__trigger,
+html.ddb-has-mega-menu body.theme-hello-biz .ddb-header__link,
+html.ddb-has-mega-menu body.theme-hello-biz .ddb-header__action,
+html.ddb-has-mega-menu body.theme-hello-biz .ddb-header__theme-toggle,
+html.ddb-has-mega-menu body.theme-hello-biz .ddb-header__mobile-toggle,
+html.ddb-has-mega-menu body.theme-hello-biz .ddb-site-footer,
+html.ddb-has-mega-menu body.theme-hello-biz .ddb-site-footer .ui-container,
+html.ddb-has-mega-menu body.theme-hello-biz .ddb-site-footer .ui-section,
+html.ddb-has-mega-menu body.theme-hello-biz .ddb-site-footer a,
+html.ddb-has-mega-menu body.theme-hello-biz .ddb-site-footer .ui-badge,
+html.ddb-has-mega-menu body.theme-hello-biz .ddb-site-footer .ui-text-muted,
+html.ddb-has-mega-menu body.theme-hello-biz .ddb-site-footer .ui-h3,
+html.ddb-has-mega-menu body.theme-hello-biz .ddb-site-footer .ui-h4 {
+  background: #050505;
+  color: #f5f1e8;
+}
+
+html.ddb-has-mega-menu body.theme-hello-biz .ddb-header,
+html.ddb-has-mega-menu body.theme-hello-biz .ddb-site-footer,
+html.ddb-has-mega-menu body.theme-hello-biz .ddb-site-footer .ui-container {
+  border-color: #252525;
+}
+
+html.ddb-has-mega-menu body.theme-hello-biz .ddb-site-footer .ui-badge {
+  background: #101010;
+}
+
+body.woocommerce-account input.woocommerce-Input,
+body.woocommerce-account input.input-text,
+body.woocommerce-account select,
+body.woocommerce-account textarea,
+body.page-id-1638 .sbdp-vendor-portal input,
+body.page-id-1638 .sbdp-vendor-portal select,
+body.page-id-1638 .sbdp-vendor-portal textarea {
+  background: #101010;
+  color: #f5f1e8;
+  border: 1px solid #252525;
+  box-shadow: none;
+}
+
+/* WooCommerce premium button overrides */
+html[data-theme="dark"] .woocommerce a.button,
+html[data-theme="dark"] .woocommerce button.button,
+html[data-theme="dark"] .woocommerce input.button,
+html[data-theme="dark"] .woocommerce .button,
+html[data-theme="dark"] .woocommerce-button,
+html[data-theme="dark"] .wc-proceed-to-checkout .checkout-button,
+html[data-theme="dark"] .woocommerce-MyAccount-orders .button {
+  background: var(--ui-color-primary);
+  color: var(--ui-color-primary-contrast);
+  border: 1px solid transparent;
+  border-radius: 0.625rem;
+  padding: 0.6rem 1.25rem;
+  font-weight: 600;
+  font-family: var(--ui-font-sans);
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    background var(--ui-motion-fast, 150ms) ease,
+    transform var(--ui-motion-fast, 150ms) ease;
+}
+
+html[data-theme="dark"] .woocommerce a.button:hover,
+html[data-theme="dark"] .woocommerce button.button:hover,
+html[data-theme="dark"] .woocommerce .button:hover {
+  background: var(--ui-color-primary-hover);
+  transform: translateY(-1px);
+}
+
+/* WooCommerce account table premium styling */
+body.woocommerce-account .woocommerce table.shop_table,
+body.woocommerce-account .woocommerce-orders-table {
+  background: var(--ui-color-surface, #161a21);
+  border-collapse: collapse;
+  width: 100%;
+  border-radius: 0.875rem;
+  overflow: hidden;
+  border: 1px solid var(--ui-color-border, #333a46);
+}
+
+body.woocommerce-account .woocommerce table.shop_table th {
+  background: var(--ui-color-surface-2, #1d232d);
+  color: var(--ui-color-text-muted, #b6aea3);
+  font-weight: 600;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid var(--ui-color-border, #333a46);
+}
+
+body.woocommerce-account .woocommerce table.shop_table td {
+  background: transparent;
+  color: var(--ui-color-text, #f1efeb);
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--ui-color-border, #333a46) 60%, transparent);
+  vertical-align: middle;
+}
+

@@ -1,0 +1,1285 @@
+/* ================================================================
+   DDB Flow System — v1.0
+   Unified module class system for Commercial Flow + Discovery Flow.
+
+   TOKEN SOURCE:
+   - --ui-* tokens from ddb-core-ui design-system.css (canonical)
+   - --ddb-* aliases bridged in design-system.css legacy block
+
+   GOVERNANCE:
+   - No hardcoded color values — all via --ui-* token references
+   - No !important except strict Elementor section resets
+   - Dark/light mode handled automatically by html[data-theme]
+   - Elementor handles structure; this file handles visual truth
+
+   COMMERCIAL FLOW MODULES (prefix: ddb-cf-)
+   DISCOVERY FLOW MODULES  (prefix: ddb-df-)
+   SHARED PRIMITIVES       (prefix: ddb-)
+   ================================================================ */
+
+/* ================================================================
+   SHARED PRIMITIVES
+   ================================================================ */
+
+/* Max-width shell — one container to rule them all */
+.ddb-shell {
+  width: min(var(--ui-container-xl, 80rem), calc(100% - 2 * var(--ui-container-pad, 1rem)));
+  margin-inline: auto;
+}
+
+.ddb-shell--md {
+  width: min(var(--ui-container-md, 56rem), calc(100% - 2 * var(--ui-container-pad, 1rem)));
+}
+
+.ddb-shell--lg {
+  width: min(var(--ui-container-lg, 72rem), calc(100% - 2 * var(--ui-container-pad, 1rem)));
+}
+
+/* Section spacing rhythm */
+.ddb-section {
+  padding-block: clamp(3rem, 7vw, 5rem);
+}
+
+.ddb-section--sm {
+  padding-block: clamp(2rem, 4vw, 3rem);
+}
+
+.ddb-section--lg {
+  padding-block: clamp(4rem, 9vw, 7rem);
+}
+
+/* Eyebrow label — shared across all modules */
+.ddb-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--ui-font-sans);
+  font-size: var(--ui-text-sm);
+  font-weight: var(--ui-weight-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ui-color-primary);
+  margin-bottom: 0.625rem;
+}
+
+/* Premium card base */
+.ddb-card {
+  background: var(--ui-color-surface);
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-card);
+  padding: clamp(1.25rem, 2vw, 1.75rem);
+  box-shadow: var(--ui-shadow-sm);
+  color: var(--ui-color-text);
+}
+
+.ddb-card--elevated {
+  box-shadow: var(--ui-shadow-md);
+}
+
+.ddb-card--flat {
+  box-shadow: none;
+}
+
+/* ================================================================
+   COMMERCIAL FLOW MODULES
+   Applied to: offerte, cart, checkout, thankyou, account, orders
+   ================================================================ */
+
+/* ── Page Hero ── */
+.ddb-cf-hero {
+  padding: clamp(2rem, 4vw, 3.5rem) 0 clamp(1.5rem, 3vw, 2.5rem);
+  border-bottom: 1px solid var(--ui-color-border);
+  margin-bottom: clamp(1.5rem, 3vw, 2.5rem);
+}
+
+.ddb-cf-hero__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--ui-font-sans);
+  font-size: var(--ui-text-sm);
+  font-weight: var(--ui-weight-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ui-color-primary);
+  margin-bottom: 0.625rem;
+}
+
+.ddb-cf-hero__title {
+  font-family: var(--ui-font-display);
+  font-size: clamp(1.75rem, 3.5vw, 2.5rem);
+  font-weight: var(--ui-weight-bold);
+  line-height: 1.1;
+  color: var(--ui-color-text);
+  letter-spacing: -0.025em;
+  margin: 0 0 0.75rem;
+}
+
+.ddb-cf-hero__text {
+  font-family: var(--ui-font-sans);
+  font-size: var(--ui-text-lg);
+  line-height: 1.6;
+  color: var(--ui-color-text-muted);
+  margin: 0;
+  max-width: 46rem;
+}
+
+/* ── Summary Card ── */
+.ddb-cf-summary {
+  background: var(--ui-color-surface);
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-card);
+  padding: clamp(1.25rem, 2vw, 1.75rem);
+  box-shadow: var(--ui-shadow-md);
+}
+
+.ddb-cf-summary__header {
+  padding-bottom: var(--ui-space-md);
+  border-bottom: 1px solid var(--ui-color-border);
+  margin-bottom: var(--ui-space-md);
+}
+
+.ddb-cf-summary__title {
+  font-family: var(--ui-font-display);
+  font-size: var(--ui-text-xl);
+  font-weight: var(--ui-weight-bold);
+  color: var(--ui-color-text);
+  margin: 0;
+}
+
+/* ── Order Lines Card ── */
+.ddb-cf-order-lines {
+  display: grid;
+  gap: 0;
+}
+
+.ddb-cf-order-line {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: var(--ui-space-sm) var(--ui-space-lg);
+  padding: var(--ui-space-md) 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--ui-color-border) 55%, transparent);
+  align-items: baseline;
+}
+
+.ddb-cf-order-line:last-child {
+  border-bottom: 0;
+}
+
+.ddb-cf-order-line__name {
+  font-weight: var(--ui-weight-semibold);
+  color: var(--ui-color-text);
+}
+
+.ddb-cf-order-line__meta {
+  font-size: var(--ui-text-sm);
+  color: var(--ui-color-text-muted);
+  margin-top: 0.2rem;
+}
+
+.ddb-cf-order-line__price {
+  font-weight: var(--ui-weight-bold);
+  color: var(--ui-color-text);
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* ── Status Card ── */
+.ddb-cf-status {
+  background: var(--ui-color-surface);
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-card);
+  padding: clamp(1.25rem, 2vw, 1.75rem);
+  box-shadow: var(--ui-shadow-md);
+}
+
+.ddb-cf-status--success {
+  border-color: color-mix(in srgb, var(--ui-color-success) 42%, var(--ui-color-border));
+  background: color-mix(in srgb, var(--ui-color-success) 4%, var(--ui-color-surface));
+}
+
+.ddb-cf-status__header {
+  margin-bottom: var(--ui-space-md);
+}
+
+.ddb-cf-status__eyebrow {
+  font-size: var(--ui-text-sm);
+  font-weight: var(--ui-weight-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ui-color-primary);
+  margin: 0 0 0.5rem;
+}
+
+.ddb-cf-status__title {
+  font-family: var(--ui-font-display);
+  font-size: clamp(1.35rem, 2.5vw, 1.75rem);
+  font-weight: var(--ui-weight-bold);
+  color: var(--ui-color-text);
+  margin: 0;
+  line-height: 1.15;
+}
+
+.ddb-cf-status__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: var(--ui-space-sm);
+  margin-top: var(--ui-space-md);
+}
+
+.ddb-cf-status__item {
+  padding: var(--ui-space-sm) var(--ui-space-md);
+  border: 1px solid color-mix(in srgb, var(--ui-color-border) 70%, transparent);
+  border-radius: var(--ui-radius-md);
+  background: color-mix(in srgb, var(--ui-color-surface-2) 72%, transparent);
+}
+
+.ddb-cf-status__label {
+  display: block;
+  font-size: var(--ui-text-xs);
+  font-weight: var(--ui-weight-semibold);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ui-color-text-muted);
+  margin-bottom: 0.25rem;
+}
+
+.ddb-cf-status__value {
+  display: block;
+  font-size: var(--ui-text-md);
+  font-weight: var(--ui-weight-semibold);
+  color: var(--ui-color-text);
+  line-height: 1.4;
+}
+
+.ddb-cf-status__note {
+  margin-top: var(--ui-space-md);
+  font-size: var(--ui-text-sm);
+  color: var(--ui-color-text-muted);
+  line-height: 1.6;
+}
+
+/* ── Address Card ── */
+.ddb-cf-address {
+  background: var(--ui-color-surface);
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-card);
+  padding: clamp(1.25rem, 2vw, 1.75rem);
+  box-shadow: var(--ui-shadow-sm);
+}
+
+.ddb-cf-address__title {
+  font-family: var(--ui-font-display);
+  font-size: var(--ui-text-lg);
+  font-weight: var(--ui-weight-bold);
+  color: var(--ui-color-text);
+  margin: 0 0 var(--ui-space-md);
+}
+
+/* ── Sidebar Nav ── */
+.ddb-cf-sidebar-nav {
+  background: var(--ui-color-surface);
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-card);
+  padding: var(--ui-space-md);
+  box-shadow: var(--ui-shadow-sm);
+}
+
+.ddb-cf-sidebar-nav__list {
+  display: grid;
+  gap: 0.375rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.ddb-cf-sidebar-nav__item::marker,
+.ddb-cf-sidebar-nav__item::before {
+  content: none;
+}
+
+.ddb-cf-sidebar-nav__link {
+  display: flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0.5rem var(--ui-space-md);
+  border-radius: var(--ui-radius-md);
+  color: var(--ui-color-text-muted);
+  font-weight: var(--ui-weight-medium);
+  text-decoration: none;
+  border: 1px solid transparent;
+  transition:
+    background var(--ui-motion-fast) var(--ui-ease-standard),
+    color var(--ui-motion-fast) var(--ui-ease-standard),
+    border-color var(--ui-motion-fast) var(--ui-ease-standard);
+}
+
+.ddb-cf-sidebar-nav__link:hover,
+.ddb-cf-sidebar-nav__item--active .ddb-cf-sidebar-nav__link {
+  background: color-mix(in srgb, var(--ui-color-primary) 10%, var(--ui-color-surface));
+  border-color: color-mix(in srgb, var(--ui-color-primary) 28%, var(--ui-color-border));
+  color: var(--ui-color-text);
+}
+
+/* ── Flow Form ── */
+.ddb-cf-form {
+  display: grid;
+  gap: var(--ui-space-lg);
+}
+
+.ddb-cf-form__field {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.ddb-cf-form__label {
+  font-family: var(--ui-font-sans);
+  font-size: var(--ui-text-sm);
+  font-weight: var(--ui-weight-semibold);
+  color: var(--ui-color-text);
+  display: block;
+}
+
+.ddb-cf-form__label--required::after {
+  content: " *";
+  color: var(--ui-color-danger);
+}
+
+.ddb-cf-form__input,
+.ddb-cf-form__select,
+.ddb-cf-form__textarea {
+  width: 100%;
+  padding: 0.8rem 0.95rem;
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-color-surface);
+  color: var(--ui-color-text);
+  font-family: var(--ui-font-sans);
+  font-size: var(--ui-text-md);
+  line-height: 1.5;
+  box-shadow: none;
+  transition:
+    border-color var(--ui-motion-fast) var(--ui-ease-standard),
+    box-shadow var(--ui-motion-fast) var(--ui-ease-standard);
+}
+
+.ddb-cf-form__input::placeholder,
+.ddb-cf-form__textarea::placeholder {
+  color: var(--ui-color-text-muted);
+}
+
+.ddb-cf-form__input:focus,
+.ddb-cf-form__select:focus,
+.ddb-cf-form__textarea:focus {
+  outline: none;
+  border-color: var(--ui-color-focus);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ui-color-focus) 22%, transparent);
+}
+
+.ddb-cf-form__hint {
+  font-size: var(--ui-text-xs);
+  color: var(--ui-color-text-muted);
+}
+
+/* ── Payment Card ── */
+.ddb-cf-payment {
+  background: var(--ui-color-surface);
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-card);
+  padding: clamp(1.25rem, 2vw, 1.75rem);
+  box-shadow: var(--ui-shadow-sm);
+}
+
+.ddb-cf-payment__title {
+  font-family: var(--ui-font-display);
+  font-size: var(--ui-text-xl);
+  font-weight: var(--ui-weight-bold);
+  color: var(--ui-color-text);
+  margin: 0 0 var(--ui-space-md);
+}
+
+/* ── CTA Band ── */
+.ddb-cf-cta-band {
+  padding: clamp(2rem, 4vw, 3rem) 0;
+  text-align: center;
+  border-top: 1px solid var(--ui-color-border);
+  margin-top: clamp(1.5rem, 3vw, 2.5rem);
+}
+
+.ddb-cf-cta-band__title {
+  font-family: var(--ui-font-display);
+  font-size: clamp(1.35rem, 2.5vw, 1.75rem);
+  font-weight: var(--ui-weight-bold);
+  color: var(--ui-color-text);
+  margin: 0 0 var(--ui-space-sm);
+}
+
+.ddb-cf-cta-band__text {
+  color: var(--ui-color-text-muted);
+  margin: 0 0 var(--ui-space-lg);
+  max-width: 38rem;
+  margin-inline: auto;
+  margin-bottom: var(--ui-space-lg);
+}
+
+/* ── Primary CTA button ── */
+.ddb-cf-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0 var(--ui-space-xl);
+  height: 48px;
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-color-primary);
+  color: var(--ui-color-primary-contrast);
+  font-family: var(--ui-font-sans);
+  font-size: var(--ui-text-md);
+  font-weight: var(--ui-weight-semibold);
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition:
+    background var(--ui-motion-fast) var(--ui-ease-standard),
+    transform var(--ui-motion-fast) var(--ui-ease-standard),
+    box-shadow var(--ui-motion-fast) var(--ui-ease-standard);
+}
+
+.ddb-cf-btn:hover {
+  background: var(--ui-color-primary-hover);
+  transform: translateY(-1px);
+}
+
+.ddb-cf-btn:focus-visible {
+  outline: 2px solid var(--ui-color-focus);
+  outline-offset: 2px;
+}
+
+.ddb-cf-btn--secondary {
+  background: transparent;
+  color: var(--ui-color-text);
+  border: 1px solid var(--ui-color-border);
+}
+
+.ddb-cf-btn--secondary:hover {
+  background: var(--ui-color-surface-2);
+  border-color: var(--ui-color-primary);
+}
+
+/* ================================================================
+   DISCOVERY FLOW MODULES
+   Applied to: homepage, spots, activities, detail, planner entry
+   ================================================================ */
+
+/* ── Home Hero ── */
+.ddb-df-hero {
+  padding: clamp(4rem, 10vw, 7rem) 0 clamp(3rem, 7vw, 5rem);
+  text-align: center;
+}
+
+.ddb-df-hero__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-family: var(--ui-font-sans);
+  font-size: var(--ui-text-sm);
+  font-weight: var(--ui-weight-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ui-color-primary);
+  margin-bottom: 0.75rem;
+}
+
+.ddb-df-hero__title {
+  font-family: var(--ui-font-display);
+  font-size: clamp(2.25rem, 6vw, 4rem);
+  font-weight: var(--ui-weight-bold);
+  line-height: 1.05;
+  color: var(--ui-color-text);
+  letter-spacing: -0.03em;
+  margin: 0 0 1.25rem;
+}
+
+.ddb-df-hero__lede {
+  font-size: clamp(1rem, 1.8vw, 1.15rem);
+  line-height: 1.65;
+  color: var(--ui-color-text-muted);
+  max-width: 40rem;
+  margin-inline: auto;
+  margin-bottom: 2rem;
+}
+
+.ddb-df-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-md);
+  justify-content: center;
+}
+
+/* ── Start Slim Panel ── */
+.ddb-df-start-slim {
+  background: var(--ui-color-surface);
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-xl);
+  padding: clamp(1.75rem, 3vw, 2.5rem);
+  box-shadow: var(--ui-shadow-sm);
+}
+
+.ddb-df-start-slim__title {
+  font-family: var(--ui-font-display);
+  font-size: clamp(1.35rem, 2.5vw, 1.75rem);
+  font-weight: var(--ui-weight-bold);
+  color: var(--ui-color-text);
+  margin: 0 0 var(--ui-space-lg);
+}
+
+.ddb-df-start-slim__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: var(--ui-space-md);
+}
+
+.ddb-df-start-slim__item {
+  padding: var(--ui-space-md);
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-lg);
+  background: var(--ui-color-surface-2);
+  transition:
+    border-color var(--ui-motion-fast) var(--ui-ease-standard),
+    background var(--ui-motion-fast) var(--ui-ease-standard);
+}
+
+.ddb-df-start-slim__item:hover {
+  border-color: color-mix(in srgb, var(--ui-color-primary) 30%, var(--ui-color-border));
+  background: color-mix(in srgb, var(--ui-color-primary) 5%, var(--ui-color-surface));
+}
+
+.ddb-df-start-slim__item-kicker {
+  font-size: var(--ui-text-xs);
+  font-weight: var(--ui-weight-semibold);
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--ui-color-primary);
+  margin: 0 0 0.25rem;
+}
+
+.ddb-df-start-slim__item-label {
+  font-family: var(--ui-font-display);
+  font-size: var(--ui-text-lg);
+  font-weight: var(--ui-weight-bold);
+  color: var(--ui-color-text);
+  margin: 0 0 0.375rem;
+}
+
+.ddb-df-start-slim__item-desc {
+  font-size: var(--ui-text-sm);
+  color: var(--ui-color-text-muted);
+  line-height: 1.55;
+  margin: 0;
+}
+
+.ddb-df-start-slim__footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-md);
+  align-items: center;
+  margin-top: var(--ui-space-lg);
+  padding-top: var(--ui-space-lg);
+  border-top: 1px solid var(--ui-color-border);
+}
+
+/* ── Entry Points Section ── */
+.ddb-df-entry-points__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  gap: var(--ui-space-lg);
+  margin-top: var(--ui-space-xl);
+}
+
+.ddb-df-entry-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--ui-color-surface);
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-xl);
+  padding: clamp(1.5rem, 2.5vw, 2rem);
+  box-shadow: var(--ui-shadow-sm);
+  transition:
+    transform var(--ui-motion-base) var(--ui-ease-standard),
+    border-color var(--ui-motion-fast) var(--ui-ease-standard),
+    box-shadow var(--ui-motion-base) var(--ui-ease-standard);
+}
+
+.ddb-df-entry-card:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in srgb, var(--ui-color-primary) 28%, var(--ui-color-border));
+  box-shadow: var(--ui-shadow-md);
+}
+
+.ddb-df-entry-card__kicker {
+  font-size: var(--ui-text-xs);
+  font-weight: var(--ui-weight-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ui-color-primary);
+  margin: 0 0 0.375rem;
+}
+
+.ddb-df-entry-card__title {
+  font-family: var(--ui-font-display);
+  font-size: var(--ui-text-xl);
+  font-weight: var(--ui-weight-bold);
+  color: var(--ui-color-text);
+  margin: 0 0 var(--ui-space-sm);
+  line-height: 1.15;
+}
+
+.ddb-df-entry-card__desc {
+  flex: 1;
+  font-size: var(--ui-text-sm);
+  line-height: 1.6;
+  color: var(--ui-color-text-muted);
+  margin: 0 0 var(--ui-space-lg);
+}
+
+.ddb-df-entry-card__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: var(--ui-weight-semibold);
+  color: var(--ui-color-primary);
+  text-decoration: none;
+  font-size: var(--ui-text-sm);
+  margin-top: auto;
+}
+
+.ddb-df-entry-card__cta:hover {
+  color: var(--ui-color-primary-hover);
+}
+
+/* ── How It Works / Step Cards ── */
+.ddb-df-how-it-works__steps {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  gap: var(--ui-space-lg);
+  margin-top: var(--ui-space-xl);
+  counter-reset: step;
+}
+
+.ddb-df-step-card {
+  position: relative;
+  padding: var(--ui-space-lg) var(--ui-space-md) var(--ui-space-md);
+  background: var(--ui-color-surface);
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-xl);
+  counter-increment: step;
+}
+
+.ddb-df-step-card::before {
+  content: counter(step, decimal-leading-zero);
+  display: block;
+  font-family: var(--ui-font-display);
+  font-size: var(--ui-text-2xl);
+  font-weight: var(--ui-weight-bold);
+  color: var(--ui-color-primary);
+  margin-bottom: var(--ui-space-sm);
+  opacity: 0.85;
+}
+
+.ddb-df-step-card__title {
+  font-family: var(--ui-font-display);
+  font-size: var(--ui-text-lg);
+  font-weight: var(--ui-weight-bold);
+  color: var(--ui-color-text);
+  margin: 0 0 0.5rem;
+}
+
+.ddb-df-step-card__desc {
+  font-size: var(--ui-text-sm);
+  color: var(--ui-color-text-muted);
+  line-height: 1.55;
+  margin: 0;
+}
+
+/* ── Filter Bar ── */
+.ddb-df-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-sm);
+  padding: var(--ui-space-md) 0;
+  border-bottom: 1px solid var(--ui-color-border);
+  margin-bottom: var(--ui-space-lg);
+  align-items: center;
+}
+
+.ddb-df-filter-bar__label {
+  font-size: var(--ui-text-sm);
+  font-weight: var(--ui-weight-semibold);
+  color: var(--ui-color-text-muted);
+  margin-right: var(--ui-space-sm);
+}
+
+.ddb-df-filter-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.375rem 0.875rem;
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-pill);
+  background: var(--ui-color-surface);
+  color: var(--ui-color-text-muted);
+  font-size: var(--ui-text-sm);
+  font-weight: var(--ui-weight-medium);
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background var(--ui-motion-fast) var(--ui-ease-standard),
+    border-color var(--ui-motion-fast) var(--ui-ease-standard),
+    color var(--ui-motion-fast) var(--ui-ease-standard);
+}
+
+.ddb-df-filter-pill:hover,
+.ddb-df-filter-pill--active {
+  background: color-mix(in srgb, var(--ui-color-primary) 10%, var(--ui-color-surface));
+  border-color: color-mix(in srgb, var(--ui-color-primary) 32%, var(--ui-color-border));
+  color: var(--ui-color-text);
+}
+
+.ddb-df-filter-pill--active {
+  font-weight: var(--ui-weight-semibold);
+}
+
+/* ── Result Header ── */
+.ddb-df-result-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--ui-space-sm);
+  padding: var(--ui-space-sm) 0 var(--ui-space-md);
+}
+
+.ddb-df-result-header__count {
+  font-size: var(--ui-text-sm);
+  font-weight: var(--ui-weight-semibold);
+  color: var(--ui-color-text-muted);
+}
+
+.ddb-df-result-header__count strong {
+  color: var(--ui-color-text);
+  font-weight: var(--ui-weight-bold);
+}
+
+/* ── Spot Card — thin layer on top of ui-listing-card ── */
+.ddb-df-spot-card {
+  /* Inherits from .ui-listing-card — add spot-specific overrides here */
+}
+
+.ddb-df-spot-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+  margin-top: 0.5rem;
+}
+
+/* ── Sticky Map Panel ── */
+.ddb-df-map-panel {
+  position: sticky;
+  top: var(--ui-space-lg);
+  background: var(--ui-color-surface);
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-xl);
+  overflow: hidden;
+  box-shadow: var(--ui-shadow-md);
+  min-height: 24rem;
+}
+
+.ddb-df-map-panel__map {
+  width: 100%;
+  height: 100%;
+  min-height: 24rem;
+}
+
+/* ── Context Card ── */
+.ddb-df-context-card {
+  background: var(--ui-color-surface);
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-xl);
+  padding: var(--ui-space-lg);
+  box-shadow: var(--ui-shadow-sm);
+}
+
+.ddb-df-context-card__title {
+  font-family: var(--ui-font-display);
+  font-size: var(--ui-text-xl);
+  font-weight: var(--ui-weight-bold);
+  color: var(--ui-color-text);
+  margin: 0 0 var(--ui-space-sm);
+}
+
+.ddb-df-context-card__desc {
+  font-size: var(--ui-text-sm);
+  line-height: 1.6;
+  color: var(--ui-color-text-muted);
+  margin: 0;
+}
+
+/* ── Planner CTA ── */
+.ddb-df-planner-cta {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-lg);
+  padding: clamp(1.5rem, 3vw, 2.25rem);
+  background: color-mix(in srgb, var(--ui-color-primary) 7%, var(--ui-color-surface));
+  border: 1px solid color-mix(in srgb, var(--ui-color-primary) 18%, var(--ui-color-border));
+  border-radius: var(--ui-radius-xl);
+  box-shadow: var(--ui-shadow-sm);
+}
+
+.ddb-df-planner-cta__text {
+  flex: 1;
+  min-width: 0;
+}
+
+.ddb-df-planner-cta__title {
+  font-family: var(--ui-font-display);
+  font-size: var(--ui-text-xl);
+  font-weight: var(--ui-weight-bold);
+  color: var(--ui-color-text);
+  margin: 0 0 0.4rem;
+}
+
+.ddb-df-planner-cta__desc {
+  font-size: var(--ui-text-sm);
+  color: var(--ui-color-text-muted);
+  margin: 0;
+  line-height: 1.55;
+}
+
+/* ── Trust / Quality Cards ── */
+.ddb-df-trust__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: var(--ui-space-lg);
+  margin-top: var(--ui-space-xl);
+}
+
+.ddb-df-trust-card {
+  padding: var(--ui-space-lg);
+  background: var(--ui-color-surface);
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-lg);
+}
+
+.ddb-df-trust-card__number {
+  font-family: var(--ui-font-display);
+  font-size: var(--ui-text-xl);
+  font-weight: var(--ui-weight-bold);
+  color: var(--ui-color-primary);
+  margin: 0 0 0.5rem;
+}
+
+.ddb-df-trust-card__title {
+  font-family: var(--ui-font-display);
+  font-size: var(--ui-text-lg);
+  font-weight: var(--ui-weight-bold);
+  color: var(--ui-color-text);
+  margin: 0 0 0.5rem;
+}
+
+.ddb-df-trust-card__desc {
+  font-size: var(--ui-text-sm);
+  color: var(--ui-color-text-muted);
+  line-height: 1.55;
+  margin: 0;
+}
+
+/* ── Dayflow Timeline ── */
+.ddb-df-timeline {
+  position: relative;
+  display: grid;
+  gap: 0;
+  padding-left: var(--ui-space-2xl);
+  margin: var(--ui-space-xl) 0 0;
+}
+
+.ddb-df-timeline::before {
+  content: "";
+  position: absolute;
+  left: 0.75rem;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(to bottom, var(--ui-color-primary), color-mix(in srgb, var(--ui-color-primary) 30%, transparent));
+  border-radius: 1px;
+}
+
+.ddb-df-timeline-event {
+  position: relative;
+  padding: var(--ui-space-md) 0 var(--ui-space-lg);
+}
+
+.ddb-df-timeline-event::before {
+  content: "";
+  position: absolute;
+  left: calc(-1 * var(--ui-space-2xl) + 0.625rem);
+  top: calc(var(--ui-space-md) + 0.3em);
+  width: 0.625rem;
+  height: 0.625rem;
+  border-radius: 50%;
+  background: var(--ui-color-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--ui-color-primary) 18%, transparent);
+}
+
+.ddb-df-timeline-event__time {
+  font-size: var(--ui-text-sm);
+  font-weight: var(--ui-weight-bold);
+  color: var(--ui-color-primary);
+  letter-spacing: 0.04em;
+  margin-bottom: 0.25rem;
+}
+
+.ddb-df-timeline-event__label {
+  font-family: var(--ui-font-display);
+  font-size: var(--ui-text-lg);
+  font-weight: var(--ui-weight-bold);
+  color: var(--ui-color-text);
+  margin: 0 0 0.375rem;
+}
+
+.ddb-df-timeline-event__desc {
+  font-size: var(--ui-text-sm);
+  color: var(--ui-color-text-muted);
+  line-height: 1.55;
+  margin: 0;
+}
+
+/* ── Final CTA Band ── */
+.ddb-df-final-cta {
+  padding: clamp(3.5rem, 8vw, 6rem) 0;
+  text-align: center;
+}
+
+.ddb-df-final-cta__title {
+  font-family: var(--ui-font-display);
+  font-size: clamp(1.75rem, 4vw, 2.75rem);
+  font-weight: var(--ui-weight-bold);
+  color: var(--ui-color-text);
+  letter-spacing: -0.025em;
+  margin: 0 0 1rem;
+  line-height: 1.1;
+}
+
+.ddb-df-final-cta__text {
+  font-size: clamp(1rem, 1.8vw, 1.1rem);
+  line-height: 1.65;
+  color: var(--ui-color-text-muted);
+  max-width: 38rem;
+  margin-inline: auto;
+  margin-bottom: var(--ui-space-xl);
+}
+
+.ddb-df-final-cta__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-md);
+  justify-content: center;
+}
+
+/* ── Shared discovery flow buttons ── */
+.ddb-df-btn,
+.ddb-df-btn--primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0 var(--ui-space-xl);
+  height: 48px;
+  border-radius: var(--ui-radius-md);
+  background: var(--ui-color-cta);
+  color: var(--ui-color-cta-contrast);
+  font-family: var(--ui-font-sans);
+  font-size: var(--ui-text-md);
+  font-weight: var(--ui-weight-semibold);
+  text-decoration: none;
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background var(--ui-motion-fast) var(--ui-ease-standard),
+    transform var(--ui-motion-fast) var(--ui-ease-standard);
+}
+
+.ddb-df-btn:hover,
+.ddb-df-btn--primary:hover {
+  background: var(--ui-color-cta-hover);
+  transform: translateY(-1px);
+}
+
+.ddb-df-btn--secondary {
+  background: transparent;
+  color: var(--ui-color-text);
+  border-color: var(--ui-color-border);
+}
+
+.ddb-df-btn--secondary:hover {
+  background: var(--ui-color-surface-2);
+  border-color: color-mix(in srgb, var(--ui-color-primary) 30%, var(--ui-color-border));
+  color: var(--ui-color-text);
+}
+
+.ddb-df-btn--accent {
+  background: var(--ui-color-primary);
+  color: var(--ui-color-primary-contrast);
+  border-color: transparent;
+}
+
+.ddb-df-btn--accent:hover {
+  background: var(--ui-color-primary-hover);
+}
+
+/* ================================================================
+   SPOTS OVERVIEW LAYOUT
+   Discovery family layout grid for the spots/activities overview page
+   ================================================================ */
+
+/* Two-column: list left, map right */
+.ddb-discovery-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(22rem, 28rem);
+  gap: var(--ui-space-xl);
+  align-items: start;
+}
+
+.ddb-discovery-layout__list {
+  min-width: 0;
+}
+
+.ddb-discovery-layout__map {
+  position: sticky;
+  top: var(--ui-space-lg);
+}
+
+/* Cards grid in list column */
+.ddb-discovery-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+  gap: var(--ui-space-lg);
+}
+
+/* Override: spots page Elementor sections should follow discovery surface */
+body.post-type-archive-spot .elementor-section,
+body.post-type-archive-activity .elementor-section,
+body.post-type-archive-activiteit .elementor-section,
+body.post-type-archive-activiteiten .elementor-section {
+  background-color: var(--ui-color-bg) !important;
+  background-image: none !important;
+}
+
+/* ================================================================
+   MOBILE-FIRST RESPONSIVE
+   ================================================================ */
+
+@media (max-width: 860px) {
+  .ddb-discovery-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .ddb-discovery-layout__map {
+    position: static;
+    order: -1;
+    min-height: 22rem;
+  }
+
+  .ddb-df-start-slim__footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ddb-df-start-slim__footer .ddb-df-btn,
+  .ddb-df-start-slim__footer .ddb-cf-btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 640px) {
+  .ddb-df-hero__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ddb-df-hero__actions .ddb-df-btn,
+  .ddb-df-hero__actions .ddb-cf-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .ddb-df-final-cta__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .ddb-df-entry-points__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ddb-df-how-it-works__steps {
+    grid-template-columns: 1fr;
+  }
+
+  .ddb-df-trust__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ddb-df-planner-cta {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .ddb-cf-status__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .ddb-cf-sidebar-nav__list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.375rem;
+  }
+
+  .ddb-cf-sidebar-nav__link {
+    min-height: 2.25rem;
+    padding: 0.4rem 0.75rem;
+    font-size: var(--ui-text-sm);
+  }
+}
+
+/* ================================================================
+   HOMEPAGE SURFACE SYSTEM — ELEMENTOR INTEGRATION
+   Apply these CSS classes to Elementor section via Advanced > CSS Classes.
+
+   Available section surface classes:
+   body.home .ddb-hp-hero       → full-bleed hero
+   body.home .ddb-hp-surface    → page background
+   body.home .ddb-hp-raised     → slight lift
+   body.home .ddb-hp-feature    → warm primary tint
+   ================================================================ */
+
+/* Reset random Elementor background injections on home */
+body.home .elementor-section:not([class*="ddb-hp-"]):not([class*="ddb-df-"]) {
+  background-color: var(--ui-color-bg) !important;
+  background-image: none !important;
+}
+
+body.home .elementor-section > .elementor-container,
+body.home .e-con-full > .e-con-inner {
+  background: transparent;
+}
+
+/* ================================================================
+   Discovery finish pass
+   Sharpen hierarchy for filters, cards, and map/detail panels.
+   ================================================================ */
+
+body.post-type-archive-spot,
+body.post-type-archive-activity,
+body.post-type-archive-activiteit,
+body.post-type-archive-activiteiten {
+  background:
+    radial-gradient(circle at 92% 6%, color-mix(in srgb, var(--ui-color-primary) 10%, transparent), transparent 40%),
+    linear-gradient(180deg, color-mix(in srgb, var(--ui-color-bg) 96%, var(--ui-color-surface) 4%), var(--ui-color-bg));
+}
+
+.ddb-df-filter-bar {
+  padding: var(--ui-space-md);
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-xl);
+  background: color-mix(in srgb, var(--ui-color-surface) 94%, transparent);
+  box-shadow: var(--ui-shadow-sm);
+  margin-bottom: var(--ui-space-md);
+}
+
+.ddb-df-filter-bar__group {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.ddb-df-result-header {
+  margin-bottom: var(--ui-space-sm);
+}
+
+.ddb-df-result-header__title {
+  font-family: var(--ui-font-display);
+  font-size: clamp(1.25rem, 2.3vw, 1.7rem);
+  font-weight: var(--ui-weight-bold);
+  line-height: 1.15;
+  color: var(--ui-color-text);
+  margin: 0;
+}
+
+.ddb-discovery-cards {
+  align-items: stretch;
+}
+
+.ddb-discovery-cards .ui-listing-card,
+.ddb-df-spot-card {
+  min-height: 100%;
+  --ui-listing-card-aspect: auto;
+  --ui-listing-card-radius: var(--ui-radius-xl);
+}
+
+.ddb-discovery-cards .ui-listing-card__title,
+.ddb-df-spot-card .ui-listing-card__title {
+  font-size: clamp(1.04rem, 1.8vw, 1.2rem);
+  line-height: 1.3;
+}
+
+.ddb-discovery-cards .ui-listing-card__price,
+.ddb-df-spot-card .ui-listing-card__price {
+  font-size: 1.02rem;
+}
+
+.ddb-discovery-cards .ui-listing-card__meta,
+.ddb-df-spot-card .ui-listing-card__meta {
+  gap: 0.32rem;
+}
+
+.ddb-discovery-layout__map {
+  align-self: start;
+}
+
+.ddb-df-map-panel {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--ui-color-surface) 95%, transparent), color-mix(in srgb, var(--ui-color-surface-2) 72%, transparent)),
+    var(--ui-color-surface);
+}
+
+.ddb-df-map-panel__header {
+  padding: 0.75rem 0.9rem;
+  border-bottom: 1px solid color-mix(in srgb, var(--ui-color-border) 75%, transparent);
+  font-size: var(--ui-text-sm);
+  font-weight: var(--ui-weight-semibold);
+  color: var(--ui-color-text-muted);
+}
+
+.ddb-df-map-panel__map {
+  min-height: clamp(21rem, 48vh, 32rem);
+}
+
+.ddb-df-context-card {
+  margin-top: var(--ui-space-md);
+  background: color-mix(in srgb, var(--ui-color-surface) 96%, transparent);
+}
+
+@media (max-width: 860px) {
+  .ddb-df-filter-bar {
+    padding: 0.75rem;
+  }
+
+  .ddb-df-map-panel,
+  .ddb-df-context-card {
+    margin-top: 0;
+  }
+}

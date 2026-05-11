@@ -1,0 +1,259 @@
+# ==========================================================================
+#  FILE: build-master-product-dayplanner-v5.codex
+#  DESCRIPTION: Volledige end-to-end integratie — Productplanner → Dayplanner
+#               met AI-suggesties, Vendor-sync, nieuwe UI-laag (BSP v5)
+#  AUTHOR: Codex CLI — DagjeDenBosch Edition
+#  VERSION: 5.0.0
+# ==========================================================================
+
+task: build-master-product-dayplanner-v5
+output-policy: [verbose, color, fail-fast]
+
+steps:
+
+# ==========================================================================
+# 1️⃣  CORE INITIALISATIE — REGISTER MODULES & SERVICES
+# ==========================================================================
+- name: "Register Booking System Pro modules"
+  run: >
+    agent.run("booking_core.register", {
+      modules: ["commerce","planner","sales","intelligence","vendor","plan","ui"],
+      autoload: true,
+      version_check: true
+    })
+
+- name: "Init core services (EventBus + Cache + AI)"
+  run: >
+    agent.run("core.services.enable", {
+      services: ["EventBus","Cache","AI"],
+      cache_driver: "transient",
+      ai_model: "gpt-planner-mini",
+      ai_context: ["weer","budget","afstand","categorie"]
+    })
+
+# ==========================================================================
+# 2️⃣  PRODUCT → PLANNER KOPPELING + SLOT BEHEER
+# ==========================================================================
+- name: "Enable 'Plan mijn dag' knop op producten"
+  run: >
+    agent.run("planner.integration.enable", {
+      product_types: ["bookable","tour","workshop"],
+      button_label: "🗓 Plan mijn dag",
+      on_click: "PlannerRouter@startWithProduct",
+      style: "btn-primary-rounded"
+    })
+
+- name: "Configure Planner Router"
+  run: >
+    agent.run("planner.router.configure", {
+      route: "/planner/start",
+      accepts: ["product_id","date","time","people"],
+      redirects_to: "/planner/edit/:plan_id",
+      ui_variant: "modal"
+    })
+
+- name: "Auto-create plan from product"
+  run: >
+    agent.run("planner.autofill.create", {
+      source: "product",
+      map: {
+        "product_id": "slot.activity_id",
+        "date": "slot.start_date",
+        "time": "slot.start_time",
+        "people": "slot.people",
+        "vendor_id": "slot.vendor"
+      },
+      lock_first_slot: true,
+      notify_vendor: true
+    })
+
+- name: "Dynamic activity filters"
+  run: >
+    agent.run("planner.activities.filter", {
+      include_primary_product: true,
+      match_by: ["location","category","vendor"],
+      ai_suggest_similar: true
+    })
+
+- name: "Setup slot timing rules"
+  run: >
+    agent.run("planner.logic.set", {
+      rules: {
+        auto_block_duration: true,
+        start_time: "08:00",
+        end_time: "23:00",
+        spacing: 15,
+        snap_interval: 30,
+        travel_gap_auto: true
+      }
+    })
+
+# ==========================================================================
+# 3️⃣  COMMERCE + PRIJZEN + CHECKOUT
+# ==========================================================================
+- name: "Enable prijsengine (Commerce ↔ Planner)"
+  run: >
+    agent.run("planner.pricing.setup", {
+      rules: {
+        base: "sum(slot.people * slot.price_pp + slot.fixed_cost)",
+        services: "sum(service.price)",
+        discounts: {"group":5,"bundle":7},
+        booking_fee: 4.95
+      },
+      ai_optimize: true,
+      seasonal_adjustment: true,
+      output_targets: ["#planner-total","#planner-total-pp"]
+    })
+
+- name: "Inject Planner → WooCommerce cart"
+  run: >
+    agent.run("planner.cart.inject", {
+      format: "single_order_multi_line",
+      meta_keys: ["plan_id","activity_ids","start_times","people","notes"],
+      validate_availability: true,
+      auto_confirm_if_all_available: true
+    })
+
+- name: "Enable checkout buttons"
+  run: >
+    agent.run("planner.checkout.enable", {
+      buttons: [
+        {"id":"add_to_cart","label":"🛒 Voeg toe aan winkelwagen","action":"Planner@addToCart"},
+        {"id":"request_quote","label":"💬 Vraag offerte aan","action":"Planner@requestQuote"}
+      ],
+      sticky_on_mobile: true
+    })
+
+# ==========================================================================
+# 4️⃣  VENDOR PORTAL SYNC
+# ==========================================================================
+- name: "Activate Vendor module & rechten"
+  run: >
+    agent.run("vendor.permissions.set", {
+      roles: {
+        "vendor_manager": ["view_products","edit_availability","approve_bookings","view_sales"],
+        "vendor_staff": ["view_own","update_status"]
+      }
+    })
+
+- name: "Sync Vendor agenda met Planner"
+  run: >
+    agent.run("vendor.sync.planner", {
+      trigger_on: ["booking.created","booking.updated"],
+      include_fields: ["product_id","start_time","end_time","people"],
+      notify_on_conflict: true
+    })
+
+- name: "Vendor dashboard metrics"
+  run: >
+    agent.run("vendor.metrics.enable", {
+      metrics: ["today_bookings","weekly_revenue","top_products"],
+      source: "Sales@getVendorReport"
+    })
+
+# ==========================================================================
+# 5️⃣  INTELLIGENCE & AI SUGGESTIES
+# ==========================================================================
+- name: "Enable AI suggestie-engine"
+  run: >
+    agent.run("intelligence.ai.enable", {
+      models: ["gpt-planner-mini","gpt-travel-opt"],
+      features: ["suggest_dayplan","optimize_order","weather_adjust","popular_combos"],
+      input_fields: ["people","duration_pref","budget","categories","date","weather"],
+      output_targets: ["AIDialog","ActivityList"]
+    })
+
+- name: "Auto-recommend routes"
+  run: >
+    agent.run("intelligence.routes.recommend", {
+      based_on: ["distance","time_between","user_mood"],
+      display_as: "timeline_map"
+    })
+
+- name: "Enable upsell tips"
+  run: >
+    agent.run("intelligence.upsell.enable", {
+      strategy: "similar_category",
+      limit: 3,
+      display_position: "after_add_to_cart"
+    })
+
+# ==========================================================================
+# 6️⃣  UI / DESIGN / DEVICE AWARENESS
+# ==========================================================================
+- name: "Detect device type"
+  run: >
+    agent.run("cli.detect", {
+      env_key: "DEVICE_TYPE",
+      methods: ["user_agent","env_override"],
+      values: {"mobile": true, "desktop": false},
+      default: "mobile"
+    })
+
+- name: "Load juiste UI-variant"
+  run: >
+    agent.run("cli.load_script", {
+      if_choice: {
+        "mobile": "scripts/ui/build-planner-ui-mobile-v5.codex",
+        "desktop": "scripts/ui/build-planner-ui-desktop-v5.codex"
+      },
+      fallback: "scripts/ui/build-planner-ui-mobile-v5.codex"
+    })
+
+- name: "Apply DagjeDenBosch theme"
+  run: >
+    agent.run("ui.theme.apply", {
+      palette: {"primary":"#2A6F6F","accent":"#4FBFA5","neutral":"#F7F7F7"},
+      font: "Inter, sans-serif",
+      border_radius: "1rem",
+      motion: {"duration":0.25,"easing":"ease-in-out"}
+    })
+
+# ==========================================================================
+# 7️⃣  SALES & RAPPORTAGE
+# ==========================================================================
+- name: "Enable Sales reporting API"
+  run: >
+    agent.run("sales.reports.enable", {
+      endpoints: [
+        {"method":"GET","path":"/sales/report/vendor/(?P<id>\\d+)","handler":"Sales@getVendorReport"},
+        {"method":"GET","path":"/sales/summary","handler":"Sales@getSummary"}
+      ]
+    })
+
+- name: "Generate realtime dashboard widgets"
+  run: >
+    agent.run("sales.ui.dashboard", {
+      widgets: ["daily_revenue","conversion_rate","top_products","active_vendors"],
+      refresh_interval: 60
+    })
+
+# ==========================================================================
+# 8️⃣  EXPORT & SHARE FUNCTIES
+# ==========================================================================
+- name: "Enable exporters (PDF + ICS + Share Link)"
+  run: >
+    agent.run("planner.export.enable", {
+      pdf: {template:"templates/planner/itinerary.pdf.html", include_map:true, include_qr:true},
+      ics: {one_event_per_slot:true, organizer:"DagjeDenBosch.nl"},
+      share_link: {enabled:true, qr:true, key_length:12}
+    })
+
+# ==========================================================================
+# 9️⃣  VALIDATIE & TESTS
+# ==========================================================================
+- name: "Validate Booking System Pro v5"
+  run: >
+    agent.run("booking_core.validate", {
+      expect_modules: 7,
+      run_tests: true,
+      test_endpoints: ["/planner/v1/plan","/vendor/v1/bookings","/sales/v1/summary"],
+      write_to_log: true
+    })
+
+# ==========================================================================
+# ✅  SUCCES
+# ==========================================================================
+- name: "✅ BSP v5 Product Dayplanner Build succesvol"
+  run: >
+    log.success("🎉 Booking System Pro v5 met Planner + Product + AI + UI succesvol gebouwd.")

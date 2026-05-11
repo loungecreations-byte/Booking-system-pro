@@ -1,0 +1,252 @@
+task: pricing.yield-compat-bookings
+output-policy: [verbose, color, fail-fast]
+
+vars:
+  plugin_dir: "wp-content/plugins/ddb-product-layout"
+  ns: "DDB\\ProductLayout"
+
+steps:
+- name: "Create/Update BookingsCompat (maps Booking Settings → DDB)"
+  run: >
+    agent.run("fs.write", {
+      path: "${{vars.plugin_dir}}/includes/Services/BookingsCompat.php",
+      content: "<?php
+namespace ${{vars.ns}}\\Services;
+
+/**
+ * WooCommerce Bookings → DDB compat
+ *
+ * Doel:
+ * - Gebruik Booking Settings als onze DDB-velden leeg zijn.
+ * - Genereer /slots op basis van: duration (+buffer), check-in/out venster, allowed start days,
+ *   min/max advance (dagen), resource/qty capaciteit.
+ * - Val terug op base/person cost voor /price wanneer DDB prijsvelden leeg zijn.
+ *
+ * NB: Dit is een lichte, veilige mapping. Complexe 'Pricing & Discounts' rules van Bookings
+ * (seizoenen, condities, person types, resources met eigen prijs) zijn buiten scope, maar je kunt
+ * via filters inprikken.
+ */
+class BookingsCompat {
+
+  public function init(){
+    // 1) /slots voeden als _ddb_timeslots leeg is
+    add_filter('ddb_planner_slots', [$this,'map_slots'], 5, 3);
+
+    // 2) Capaciteit voor slot
+    add_filter('ddb_reserved_count', [$this,'reserved_count'], 10, 4);
+
+    // 3) Cart/checkout prijs fallback (base + person cost)
+    add_filter('ddb_cart_line_quote', [$this,'cart_line_quote'], 10, 4);
+
+    // 4) Min/Max personen fallback in availability (als DDB meta leeg)
+    add_filter('ddb_planner_is_available', [$this,'inject_minmax_constraints'], 5, 5);
+  }
+
+  /**
+   * Genereer timeslots voor een dag op basis van Bookings.
+   * - Respecteert allowed start days
+   * - Respecteert min/max advance
+   * - Bouwt slots in increments: duration + buffer
+   * - Markeert 'full' als used >= capacity
+   */
+  public function map_slots($slots, $product_id, $date){
+    // Als er expliciet _ddb_timeslots staan → laat liggen
+    $ts = get_post_meta($product_id, '_ddb_timeslots', true);
+    if (!empty($ts)) return $slots;
+
+    if (!function_exists('get_wc_booking_product')) return $slots;
+    $p = get_wc_booking_product($product_id);
+    if (!$p) return $slots;
+
+    // ---- Lees kernwaarden uit Bookings (met veilige fallbacks) ----
+    $duration_min = $this->read_minutes($p, '_wc_booking_duration', '_wc_booking_duration_unit', 120); // default 120
+    $buffer_min   = $this->read_hours_to_minutes($p, '_wc_booking_buffer', 0);
+
+    // Venster (check-in/out). Sommige set-ups gebruiken begin/eindtijd velden;
+    // we laten dit overridebaar via filters.
+    $start_time = apply_filters('ddb_wc_bookings_start_time', $this->get_meta_time($product_id, '10:00'), $product_id, $date);
+    $end_time   = apply_filters('ddb_wc_bookings_end_time',   $this->get_meta_time($product_id, '21:00', 'checkout'), $product_id, $date);
+
+    // Allowed start days (1..7). Als Bookings geen restrictie geeft → alle dagen.
+    $allowed_days = $this->read_allowed_days($product_id);
+    $weekday = (int) date('N', strtotime($date));
+    if (!empty($allowed_days) && !in_array($weekday, $allowed_days, true)) {
+      return ['date'=>$date,'slots'=>[]];
+    }
+
+    // Min/Max advance (dagen)
+    $today = current_time('timestamp');
+    $target = strtotime($date . ' 00:00:00', $today);
+    $diff_days = (int) floor(($target - strtotime(date('Y-m-d', $today))) / DAY_IN_SECONDS);
+    $min_adv = (int) get_post_meta($product_id, '_wc_booking_min_date', true);  // bv. 3
+    $max_adv = (int) get_post_meta($product_id, '_wc_booking_max_date', true);  // bv. 365
+    if ($min_adv && $diff_days < $min_adv) return ['date'=>$date,'slots'=>[]];
+    if ($max_adv && $diff_days > $max_adv) return ['date'=>$date,'slots'=>[]];
+
+    // Capaciteit per slot
+    $capacity = $this->read_capacity($p); // qty of resource capacity
+
+    // ---- Bouw de slots ----
+    $slots = [];
+    $cursor = $this->hm_to_minutes($start_time);
+    $end    = $this->hm_to_minutes($end_time);
+    $step   = max(5, $duration_min + $buffer_min); // duration + buffer
+
+    while ($cursor + $duration_min <= $end) {
+      $t = $this->minutes_to_hm($cursor);
+      $used = apply_filters('ddb_reserved_count', 0, $product_id, $date, $t);
+      $status = ($capacity > 0 && $used >= $capacity) ? 'full' : 'free';
+      $slots[] = ['time'=>$t, 'status'=>$status, 'used'=>$used, 'cap'=>$capacity];
+      $cursor += $step;
+    }
+
+    // Laat externe systemen overriden
+    $slots = apply_filters('ddb_wc_bookings_slots', $slots, $product_id, $date, [
+      'duration_min'=>$duration_min, 'buffer_min'=>$buffer_min,
+      'start_time'=>$start_time, 'end_time'=>$end_time, 'capacity'=>$capacity
+    ]);
+
+    return ['date'=>$date, 'slots'=>$slots];
+  }
+
+  /** Gebruik bestaande bookings om bezetting te bepalen (optioneel via filter). */
+  public function reserved_count($count, $product_id, $date, $time){
+    // Laat externe plugin/API de telling doen
+    $override = apply_filters('ddb_wc_bookings_reserved_count', null, $product_id, $date, $time);
+    if (is_int($override)) return max(0, $override);
+
+    // Fallback: geen kennis van bestaande boekingen → geef bestaande waarde door
+    return $count;
+  }
+
+  /**
+   * Prijs fallback: als DDB _ddb_base_price/_ddb_per_person leeg zijn,
+   * pak dan _wc_booking_cost + _wc_booking_person_cost (eenvoudig model).
+   */
+  public function cart_line_quote($res, $product_id, $pax, $date, $time){
+    $has_ddb = get_post_meta($product_id,'_ddb_per_person', true) || get_post_meta($product_id,'_ddb_base_price', true);
+    if ($has_ddb) return $res;
+
+    if (function_exists('get_wc_booking_product')){
+      $base = (float) get_post_meta($product_id,'_wc_booking_cost', true);
+      $per  = (float) get_post_meta($product_id,'_wc_booking_person_cost', true);
+      $subtotal = max(0,$base) + max(0,$per) * max(1,$pax);
+      return ['subtotal' => round($subtotal, 2)];
+    }
+    return $res;
+  }
+
+  /**
+   * Injecteer min/max personen restricties in availability-resultaat
+   * als onze DDB velden leeg zijn maar Bookings wel grenzen heeft.
+   */
+  public function inject_minmax_constraints($result, $product_id, $date, $time, $pax){
+    if (!function_exists('get_wc_booking_product')) return $result;
+    $has_ddb_min = get_post_meta($product_id,'_ddb_min_pax', true);
+    $has_ddb_max = get_post_meta($product_id,'_ddb_max_pax', true);
+    if ($has_ddb_min || $has_ddb_max) return $result;
+
+    $min = (int) get_post_meta($product_id, '_wc_booking_min_persons_group', true);
+    $max = (int) get_post_meta($product_id, '_wc_booking_max_persons_group', true);
+    $errors = $result['errors'] ?? [];
+
+    if ($min && $pax < $min) $errors[] = sprintf(__('Minimaal %d personen','ddb'), $min);
+    if ($max && $max > 0 && $pax > $max) $errors[] = sprintf(__('Maximaal %d personen','ddb'), $max);
+
+    $result['ok'] = empty($errors);
+    $result['errors'] = $errors;
+    return $result;
+  }
+
+  // ------------------- Helpers -------------------
+
+  /** Duration in minuten (leest _wc_booking_duration + unit). */
+  private function read_minutes($p, $meta_key='_wc_booking_duration', $unit_key='_wc_booking_duration_unit', $fallback=120){
+    $dur = (int) get_post_meta($p->get_id(), $meta_key, true);
+    $unit = get_post_meta($p->get_id(), $unit_key, true) ?: 'minute';
+    if ($dur <= 0) $dur = (method_exists($p, 'get_duration') ? (int)$p->get_duration() : 0);
+    if ($dur <= 0) return $fallback;
+    switch (strtolower($unit)) {
+      case 'hour':
+      case 'hours': return $dur * 60;
+      case 'day':
+      case 'days':  return $dur * 60 * 24;
+      default:      return $dur; // minutes
+    }
+  }
+
+  /** Buffer in uren → minuten (meta _wc_booking_buffer). */
+  private function read_hours_to_minutes($p, $meta_key='_wc_booking_buffer', $fallback=0){
+    $h = (float) get_post_meta($p->get_id(), $meta_key, true);
+    if ($h <= 0 && method_exists($p, 'get_buffer_period')) $h = (float) $p->get_buffer_period();
+    return (int) round(max(0, $h) * 60);
+    }
+
+  /** Allowed days uit Bookings. Filterbaar. */
+  private function read_allowed_days($product_id){
+    // Sommige setups slaan booleans per dag op; anderen werken met availability-rules.
+    // We laten een filter toe zodat je 1-op-1 je setup kunt mappen.
+    $from_meta = get_post_meta($product_id, '_wc_booking_allowed_days', true); // verwacht JSON [1..7]
+    $days = [];
+    if ($from_meta) {
+      $d = json_decode((string)$from_meta, true);
+      if (is_array($d)) $days = array_values(array_filter(array_map('intval', $d)));
+    }
+    return apply_filters('ddb_wc_bookings_allowed_days', $days, $product_id);
+  }
+
+  /** Haal een tijd HH:MM uit meta of fallback (start/checkout). */
+  private function get_meta_time($product_id, $fallback='10:00', $kind='checkin'){
+    $key = ($kind==='checkout') ? '_wc_booking_check_out_time' : '_wc_booking_check_in_time';
+    $t = trim((string) get_post_meta($product_id, $key, true));
+    return $this->is_hm($t) ? $t : $fallback;
+  }
+
+  /** Lees capaciteit (qty / resources). */
+  private function read_capacity($p){
+    // 1) Productbrede qty
+    if (method_exists($p,'get_qty')) {
+      $q = (int) $p->get_qty();
+      if ($q > 0) return $q;
+    }
+    $q = (int) get_post_meta($p->get_id(), '_wc_booking_qty', true);
+    if ($q > 0) return $q;
+
+    // 2) Resource-based (laat extern systeem beslissen via filter)
+    return (int) apply_filters('ddb_wc_bookings_capacity', 0, $p);
+  }
+
+  private function hm_to_minutes($hm){
+    list($h,$m) = array_map('intval', explode(':', $hm.':0'));
+    return $h*60 + $m;
+  }
+  private function minutes_to_hm($min){
+    $h = floor($min/60); $m = $min%60;
+    return sprintf('%02d:%02d', $h, $m);
+  }
+  private function is_hm($t){
+    return (bool) preg_match('/^\\d{1,2}:\\d{2}$/', $t ?: '');
+  }
+}
+"
+    });
+
+- name: "Wire compat in plugin loader"
+  run: >
+    const f = "${{vars.plugin_dir}}/ddb-product-layout.php";
+    let s = agent.run("fs.read", {"path": f});
+    if (!s.includes("Services\\BookingsCompat")) {
+      s = s.replace("(new DDB\\\\ProductLayout\\\\Rest\\\\Slots())->init();",
+        "$&\n  // Compat voor Woo Bookings (optioneel)\n  if (function_exists('WC')) { (new \\\\DDB\\\\ProductLayout\\\\Services\\\\BookingsCompat())->init(); }");
+      agent.run("fs.write", {"path": f, "content": s});
+    }
+
+- name: "Docs / filters"
+  run: >
+    agent.log.info("Compat actief. Aansluitpunten:");
+    agent.log.info(" - ddb_wc_bookings_start_time($default, $product_id, $date) → HH:MM");
+    agent.log.info(" - ddb_wc_bookings_end_time($default, $product_id, $date) → HH:MM");
+    agent.log.info(" - ddb_wc_bookings_allowed_days($days[1..7], $product_id)");
+    agent.log.info(" - ddb_wc_bookings_capacity($cap, $wc_booking_product)");
+    agent.log.info(" - ddb_wc_bookings_reserved_count($int|null, $product_id, $date, $time)");
+    agent.log.info("Let op: complexe Pricing & Discounts rules vereisen aparte mapping.");

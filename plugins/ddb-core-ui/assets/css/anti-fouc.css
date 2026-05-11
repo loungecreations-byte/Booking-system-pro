@@ -1,0 +1,13 @@
+html[data-theme="dark"],
+html[data-theme="dark"] body {
+  background-color: var(--ddb-dark-bg, #000000);
+  color: var(--ddb-dark-text, #ffffff);
+}
+
+html[data-theme="light"],
+html[data-theme="light"] body,
+html[data-theme="system"],
+html[data-theme="system"] body {
+  background-color: var(--ddb-light-bg, #fafafa);
+  color: var(--ddb-light-text, #09090b);
+}

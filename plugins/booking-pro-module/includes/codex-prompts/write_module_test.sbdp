@@ -1,0 +1,5 @@
+Schrijf een PHPUnit test voor `BSP\Notifications\Module` in `tests/notifications/ModuleTest.php`.  
+- Test dat `init()` een hook registreert op `bsp/notifications/send`  
+- Gebruik `Brain\Monkey` om WordPress functies te mocken  
+- Zorg dat `handle_send()` wordt aangeroepen wanneer de action gefired wordt  
+- PSR-12 structuur, namespaces en `@covers` annotations  

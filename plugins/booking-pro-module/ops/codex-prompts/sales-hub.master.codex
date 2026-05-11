@@ -1,0 +1,24 @@
+# =====================================================================
+# FILE: sales-hub.master.codex
+# PURPOSE: High-level orchestration notes for the Sales Hub pricing
+#          upgrade shipped in Booking Pro 4.11 (admin, engine, REST).
+# NOTE: The implementation is already present in the repository.
+#       This prompt documents the manual steps so future runs can audit
+#       or replay the build if needed.
+# =====================================================================
+
+task: saleshub.setup-master
+output-policy: [verbose, color, fail-fast]
+
+steps:
+- name: "Context"
+  run: >
+    agent.log.info("Sales Hub pricing engine, admin UI, REST endpoints, and unit tests already live under includes/SalesHub/*, assets/admin/sales-hub/*, views/admin/sales-hub/, and tests/Unit/SalesHub/. No automatic code generation required.")
+
+- name: "Manual verification checklist"
+  run: >
+    agent.log.info("1) Review booking-pro-module.php to confirm SalesHubBootstrap is required and booted.\n2) Inspect includes/SalesHub/ for autoloader, repositories, engine, bootstrap.\n3) Validate admin assets + view under assets/admin/sales-hub/ and views/admin/sales-hub/.\n4) Confirm REST wiring in includes/REST/SalesHubRoutes.php.\n5) Run phpunit to execute tests/Unit/SalesHub/PricingRuleEngineTest.php when environment permits.")
+
+- name: "Reminder"
+  run: >
+    agent.log.info("This codex entry is intentionally light-touch; use git history for the authoritative diff of the Sales Hub rollout.")

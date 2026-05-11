@@ -1,0 +1,219 @@
+# ==========================================================
+#  BOOKING BOARD PRO — WooCommerce Connected Booking Planner
+#  Uitgebreide versie met drag-drop, kalender, notificaties en AI-suggesties.
+# ==========================================================
+
+task: build-booking-board-pro
+
+output-policy:
+  - verbose
+  - color
+  - fail-fast
+
+steps:
+
+# 1️⃣ Module-registratie
+- name: "Register booking-board module"
+  run: >
+    agent.run("booking_core.register", {
+      modules: ["booking-board"],
+      autoload: true,
+      version_check: true
+    })
+
+# 2️⃣ UI-componenten bouwen
+- name: "Create booking board interface"
+  run: >
+    ui.generate("booking-board-pro", {
+      framework: "react",
+      components: [
+        "BookingList","BookingFilters","BookingStatsBar","BookingDetailsPanel",
+        "AddBookingModal","QuickActions","InlineStatusEdit","SearchBar",
+        "ExportButton","CalendarView","DragDropScheduler","AIRecommendations"
+      ],
+      output: "assets/js/admin/booking-board/"
+    })
+
+# 3️⃣ Bookinglijst en filters
+- name: "Generate booking list with smart filters"
+  run: >
+    agent.run("booking_board.build_list", {
+      columns: [
+        {id:"booking_id", label:"Boeking #", sortable:true},
+        {id:"product", label:"Activiteit"},
+        {id:"customer", label:"Klant"},
+        {id:"from", label:"Van"},
+        {id:"to", label:"Tot"},
+        {id:"duration", label:"Duur"},
+        {id:"people", label:"Personen"},
+        {id:"status", label:"Status", filter:true, color:true},
+        {id:"price", label:"Totaal"},
+        {id:"actions", label:"Acties"}
+      ],
+      filters: {
+        status: ["Pending","Paid","Completed","Cancelled"],
+        date_range: true,
+        search: ["product","customer","email"],
+        shortcuts: [
+          {label:"Vandaag", range:"today"},
+          {label:"Volgende week", range:"next7days"},
+          {label:"Deze maand", range:"this_month"}
+        ]
+      },
+      row_click: "openDetailsPanel",
+      color_map: {"Paid":"#16a34a","Pending":"#eab308","Cancelled":"#ef4444","Completed":"#3b82f6"},
+      auto_refresh: 30
+    })
+
+# 4️⃣ Booking detailpanel + drag & drop verplaatsing
+- name: "Enable drag-and-drop rescheduling"
+  run: >
+    agent.run("booking_board.enable_dragdrop", {
+      selector: "#calendar-view",
+      draggable: ".booking-item",
+      on_drop: "update_booking_date",
+      backend_action: "/booking/v1/reschedule",
+      confirm_prompt: "Wil je deze boeking verplaatsen naar de nieuwe datum?"
+    })
+
+- name: "Create booking details panel"
+  run: >
+    agent.run("booking_board.build_details", {
+      fields: [
+        "Order ID","Product","Date Start","Date End","Duration","Persons",
+        "Customer","Email","Phone","Total","Payment Status","Notes"
+      ],
+      editable: ["Notes","Status","Date Start","Date End"],
+      meta_source: "wc_order_meta",
+      save_endpoint: "/booking/v1/update-details"
+    })
+
+# 5️⃣ Agendaweergave met toggle
+- name: "Add list/calendar toggle view"
+  run: >
+    agent.run("booking_board.add_toggle", {
+      modes: [
+        {id:"list", label:"Lijstweergave", default:true},
+        {id:"calendar_day", label:"Dag"},
+        {id:"calendar_week", label:"Week"},
+        {id:"calendar_month", label:"Maand"}
+      ],
+      storage_key: "booking_board_view_mode"
+    })
+
+# 6️⃣ Boeking handmatig toevoegen (+ knop)
+- name: "Add manual booking button in header"
+  run: >
+    agent.run("booking_board.add_button", {
+      label: "+ Nieuwe boeking",
+      icon: "plus",
+      position: "header-right",
+      action: "openAddBookingModal"
+    })
+
+- name: "Add manual booking modal"
+  run: >
+    agent.run("booking_board.add_manual", {
+      form_fields: [
+        {id:"product", label:"Activiteit", type:"select", source:"products?type=bookable"},
+        {id:"date_start", label:"Startdatum", type:"datetime"},
+        {id:"date_end", label:"Einddatum", type:"datetime"},
+        {id:"persons", label:"Aantal personen", type:"number"},
+        {id:"customer_name", label:"Naam klant", type:"text"},
+        {id:"customer_email", label:"E-mailadres", type:"email"},
+        {id:"price", label:"Prijs (€)", type:"number"},
+        {id:"status", label:"Status", type:"select", options:["Paid","Pending","Cancelled"]}
+      ],
+      backend_action: "wc_order.create_booking",
+      redirect_after_save: "booking-board"
+    })
+
+# 7️⃣ Integratie met notificatiesysteem
+- name: "Connect notification system"
+  run: >
+    agent.run("booking_notifications.link", {
+      events: [
+        {"event":"booking_created","methods":["email","push"],"template":"booking-created.html"},
+        {"event":"booking_rescheduled","methods":["email"],"template":"booking-moved.html"}
+      ],
+      recipients: ["admin","provider"],
+      include_customer_copy: true
+    })
+
+# 8️⃣ Vendor toegang & zichtbaarheid
+- name: "Configure vendor permissions"
+  run: >
+    agent.run("booking_board.access_control", {
+      roles: {
+        admin: "full",
+        vendor: "limited",
+        employee: "read-only"
+      },
+      vendor_scope: "filter by assigned resources or products"
+    })
+
+# 9️⃣ Statistiekenbalk + AI-suggesties
+- name: "Add dashboard stats & AI recommendations"
+  run: >
+    agent.run("booking_dashboard.add_widget", {
+      id: "booking-stats-ai",
+      type: "inline",
+      widgets: [
+        {id:"total_bookings", label:"Totaal", icon:"calendar"},
+        {id:"paid_bookings", label:"Betaald", icon:"check"},
+        {id:"pending_bookings", label:"In behandeling", icon:"clock"},
+        {id:"cancelled_bookings", label:"Geannuleerd", icon:"x-circle"},
+        {id:"revenue_today", label:"Omzet vandaag", icon:"euro"},
+        {id:"ai_peak_day", label:"Drukste dag (AI)", icon:"trending-up"},
+        {id:"ai_best_slot", label:"Beste tijdslot (AI)", icon:"lightbulb"}
+      ]
+    })
+
+- name: "Enable AI insights engine"
+  run: >
+    agent.run("booking_ai.recommendations", {
+      data_source: "booking_history",
+      features: ["peak_day_prediction","best_time_suggestion"],
+      ui_update_interval: 3600
+    })
+
+# 🔟 Rapportage & export
+- name: "Add export & reporting tools"
+  run: >
+    agent.run("booking_board.add_exports", {
+      formats: ["csv","xlsx","pdf"],
+      include_columns: ["product","date_start","date_end","status","price","vendor"],
+      file_name: "booking_board_{date}"
+    })
+
+# 11️⃣ Sync met WooCommerce Orders
+- name: "Integrate with WooCommerce order data"
+  run: >
+    agent.run("booking_wc.sync_orders", {
+      mapping: {
+        booking_id: "_booking_id",
+        customer: "_billing_email",
+        product: "_booking_product_id",
+        persons: "_booking_persons",
+        date_start: "_booking_start",
+        date_end: "_booking_end",
+        status: "_booking_status",
+        total: "_order_total"
+      },
+      auto_sync: true,
+      two_way: true
+    })
+
+# 12️⃣ Validatie & afronding
+- name: "Validate booking board module"
+  run: >
+    agent.run("booking_core.validate", {
+      expect_modules: ["booking-board"],
+      run_tests: true,
+      write_to_log: true
+    })
+
+# ✅ Einde
+- name: "Finish build"
+  run: >
+    log.success("✅ Booking Board PRO volledig opgebouwd met drag-drop, kalenderweergave, AI & notificaties.")

@@ -1,0 +1,44 @@
+/* Partner Program — WP Admin Styles */
+
+.bsp-partner-admin h1 {
+    margin-bottom: 16px;
+}
+
+.bsp-tier {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.bsp-tier--basis {
+    background: #e8f4fd;
+    color: #1d6fa4;
+}
+
+.bsp-tier--premium {
+    background: #f0e6ff;
+    color: #6a1fa4;
+}
+
+.bsp-tier--gold {
+    background: #fff8e1;
+    color: #b8860b;
+    border: 1px solid #e6c84a;
+}
+
+.bsp-settlement-create {
+    max-width: 640px;
+}
+
+.bsp-settlement-create .form-table th {
+    width: 160px;
+    padding-left: 0;
+}
+
+.bsp-partner-admin .wp-list-table td code {
+    font-size: 11px;
+}

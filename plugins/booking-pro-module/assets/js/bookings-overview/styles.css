@@ -1,0 +1,96 @@
+.sbdp-bookings-overview-root {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.sbdp-bookings-overview-root table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #fff;
+}
+
+.sbdp-bookings-overview-root th,
+.sbdp-bookings-overview-root td {
+    padding: 12px 16px;
+    border-bottom: 1px solid #e2e8f0;
+    text-align: left;
+    vertical-align: top;
+    font-size: 14px;
+}
+
+.sbdp-bookings-overview-root th {
+    background:#fff;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-size: 12px;
+    font-weight: 600;
+    color: #334155;
+}
+
+.sbdp-bookings-overview-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: flex-end;
+}
+
+.sbdp-bookings-overview-filters .field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.sbdp-bookings-overview-filters input,
+.sbdp-bookings-overview-filters select {
+    min-width: 190px;
+    padding: 6px 10px;
+}
+
+.sbdp-bookings-overview-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+}
+
+.sbdp-bookings-overview-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background:#fff;
+    border-radius: 9999px;
+    padding: 4px 10px;
+    font-weight: 500;
+}
+
+.sbdp-bookings-overview-countdown {
+    display: block;
+    font-size: 12px;
+    color: #64748b;
+    margin-top: 4px;
+}
+
+.sbdp-bookings-overview-empty {
+    padding: 24px;
+    background: #fff;
+    border: 1px dashed #cbd5f5;
+    text-align: center;
+    color: #475569;
+}
+
+.sbdp-bookings-overview-root .error {
+    color: #b91c1c;
+}
+
+.sbdp-bookings-overview-pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+}
+
+.sbdp-bookings-overview-pagination button[disabled] {
+    opacity: 0.5;
+    cursor: not-allowed;
+}

@@ -1,0 +1,622 @@
+.sbdp-tour-fields {
+    display: grid;
+    gap: 1rem;
+    margin-top: 0.5rem;
+    padding: 1rem;
+    background: var(--ui-color-surface);
+    border: 1px solid var(--ui-color-border);
+    border-radius: 16px;
+}
+
+.sbdp-tour-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+}
+
+.sbdp-tour-field strong {
+    color: var(--ui-color-text);
+}
+
+.sbdp-tour-field--notice {
+    padding: 0.9rem 1rem;
+    border: 1px solid var(--ui-color-border);
+    border-radius: 12px;
+    background: var(--ui-color-surface);
+}
+
+.sbdp-tour-field--inline {
+    flex-direction: row;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.sbdp-tour-field--inline input {
+    max-width: 160px;
+}
+
+.sbdp-tour-product__controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.sbdp-product-search-panel {
+    margin-top: 0.5rem;
+    border: 1px solid var(--ui-color-border);
+    border-radius: 12px;
+    background: var(--ui-color-surface);
+    padding: 0.75rem;
+}
+
+.sbdp-product-search-panel input[type="search"] {
+    width: 100%;
+}
+
+.sbdp-product-search-panel__body {
+    margin-top: 0.75rem;
+    max-height: 240px;
+    overflow-y: auto;
+}
+
+.sbdp-product-search-panel__results {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.sbdp-product-search__result {
+    border-bottom: 1px solid var(--ui-color-border);
+    padding: 0.35rem 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.sbdp-product-search__result:last-child {
+    border-bottom: none;
+}
+
+.sbdp-product-search__result-btn {
+    padding: 0;
+    text-align: left;
+}
+
+.sbdp-product-search__meta {
+    font-size: 11px;
+    color: var(--ui-color-text-muted);
+    white-space: nowrap;
+}
+
+.sbdp-product-search-panel__results.is-loading::after,
+.sbdp-product-search__result::after {
+    content: '';
+}
+
+.sbdp-private-tour-builder {
+    border: 1px solid var(--ui-color-border);
+    border-radius: 6px;
+    background: var(--ui-color-surface);
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.sbdp-private-tour-builder__list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.sbdp-private-tour-builder__empty {
+    font-style: italic;
+    color: var(--ui-color-text-muted);
+}
+
+.sbdp-private-tour-builder__actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.sbdp-step-card {
+    border: 1px solid var(--ui-color-border);
+    border-radius: 6px;
+    background: var(--ui-color-surface);
+    padding: 1rem;
+    box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.sbdp-step-card__header {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+}
+
+.sbdp-step-card__title-group {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex: 1 1 240px;
+}
+
+.sbdp-step-card__number {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: var(--ui-color-primary);
+    color: var(--ui-color-primary-contrast);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+.sbdp-step-card__title {
+    flex: 1;
+}
+
+.sbdp-step-card__actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.sbdp-step-card__body {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.sbdp-step-card__field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.sbdp-step-card__field span {
+    font-weight: 500;
+}
+
+.sbdp-step-card__select,
+.sbdp-step-card__textarea,
+.sbdp-step-card__field input {
+    width: 100%;
+}
+
+.sbdp-step-card__textarea {
+    resize: vertical;
+}
+
+.sbdp-step-card__advanced {
+    border-top: 1px solid var(--ui-color-border);
+    padding-top: 0.75rem;
+}
+
+.sbdp-step-card__advanced summary {
+    cursor: pointer;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+}
+
+.sbdp-step-card__advanced[open] summary {
+    color: var(--ui-color-primary);
+}
+
+.sbdp-product-search__result-btn {
+    background: none;
+}
+
+.sbdp-product-search-panel.is-loading::after,
+.sbdp-product-search-panel__results.is-loading::after {
+    content: 'Bezig met laden...';
+    display: block;
+    font-size: 12px;
+    color: #6c6f76;
+    margin-top: 0.5rem;
+}
+
+.sbdp-step-card__field--template {
+    padding: 0.5rem;
+    border: 1px solid var(--ui-color-border);
+    border-radius: 6px;
+    background: var(--ui-color-surface);
+}
+
+.sbdp-template-picker__summary {
+    font-weight: 600;
+    margin: 0;
+}
+
+.sbdp-template-picker__note {
+    margin: 0.25rem 0 0;
+}
+
+.sbdp-template-picker__controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-top: 0.5rem;
+}
+
+.sbdp-template-picker__clear {
+    padding-left: 0;
+}
+
+.sbdp-template-search {
+    margin-top: 0.75rem;
+    border: 1px solid var(--ui-color-border);
+    border-radius: 6px;
+    background: var(--ui-color-surface);
+    padding: 0.75rem;
+}
+
+.sbdp-template-search__input {
+    width: 100%;
+}
+
+.sbdp-template-search__results {
+    list-style: none;
+    margin: 0.75rem 0 0;
+    padding: 0;
+    max-height: 220px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+}
+
+.sbdp-template-search__result {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    padding-bottom: 0.35rem;
+    border-bottom: 1px solid #ececec;
+}
+
+.sbdp-template-search__result:last-child {
+    border-bottom: none;
+}
+
+.sbdp-template-search__result-btn {
+    padding: 0;
+    text-align: left;
+}
+
+.sbdp-template-search__meta {
+    font-size: 11px;
+    color: #6c6f76;
+    white-space: nowrap;
+}
+
+.sbdp-template-search__empty {
+    margin: 0.5rem 0 0;
+}
+
+.sbdp-step-card__textarea--disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+#sbdp_tour_steps_builder.postbox,
+#sbdp_tour_details.postbox {
+    border-radius: 16px;
+    overflow: hidden;
+    border-color: #d7e0e8;
+    box-shadow: 0 10px 24px rgba(25, 39, 52, 0.05);
+}
+
+#sbdp_tour_steps_builder .postbox-header,
+#sbdp_tour_details .postbox-header {
+    background: var(--ui-color-surface);
+}
+
+#sbdp_tour_steps_builder .hndle,
+#sbdp_tour_details .hndle {
+    font-size: 15px;
+    font-weight: 650;
+}
+
+body.sbdp-tour-admin {
+    --sbdp-admin-bg: #f3f6f9;
+    --sbdp-admin-surface: var(--ui-color-surface);
+    --sbdp-admin-surface-2: var(--ui-color-surface-2);
+    --sbdp-admin-border: var(--ui-color-border);
+    --sbdp-admin-text: var(--ui-color-text);
+    --sbdp-admin-muted: var(--ui-color-text-muted);
+    --sbdp-admin-accent: var(--ui-color-primary);
+    --sbdp-admin-accent-2: var(--ui-color-primary-hover);
+    --sbdp-admin-shadow: var(--ui-shadow-md);
+}
+
+body.sbdp-tour-admin.admin-color-midnight,
+body.sbdp-tour-admin.admin-color-coffee,
+body.sbdp-tour-admin.admin-color-ectoplasm,
+body.sbdp-tour-admin.admin-color-ocean {
+    --sbdp-admin-bg: #0f151c;
+    --sbdp-admin-surface: #141c24;
+    --sbdp-admin-surface-2: #10171e;
+    --sbdp-admin-border: #253240;
+    --sbdp-admin-text: #edf3f8;
+    --sbdp-admin-muted: #9fb0bf;
+    --sbdp-admin-accent: #d88148;
+    --sbdp-admin-accent-2: #efb07a;
+    --sbdp-admin-shadow: 0 22px 56px rgba(0, 0, 0, 0.28);
+}
+
+body.sbdp-tour-admin #wpcontent,
+body.sbdp-tour-admin #wpbody,
+body.sbdp-tour-admin #wpbody-content,
+body.sbdp-tour-admin .wrap {
+    background: var(--sbdp-admin-bg);
+}
+
+body.sbdp-tour-admin .wrap {
+    padding-right: 18px;
+}
+
+body.sbdp-tour-admin .wrap h1.wp-heading-inline,
+body.sbdp-tour-admin .wrap .page-title-action,
+body.sbdp-tour-admin .wrap .subtitle,
+body.sbdp-tour-admin #screen-meta-links {
+    position: relative;
+    z-index: 2;
+}
+
+body.sbdp-tour-admin .wrap h1.wp-heading-inline {
+    color: var(--sbdp-admin-text);
+    font-size: 28px;
+    line-height: 1.1;
+    font-weight: 650;
+}
+
+body.sbdp-tour-admin .page-title-action,
+body.sbdp-tour-admin .button,
+body.sbdp-tour-admin .button-secondary {
+    border-radius: 999px;
+}
+
+body.sbdp-tour-admin #poststuff {
+    padding-top: 12px;
+}
+
+body.sbdp-tour-admin #poststuff #post-body.columns-2 {
+    margin-right: 320px;
+}
+
+body.sbdp-tour-admin #post-body-content,
+body.sbdp-tour-admin #postbox-container-1 .meta-box-sortables,
+body.sbdp-tour-admin #postbox-container-2 .meta-box-sortables {
+    display: grid;
+    gap: 16px;
+}
+
+body.sbdp-tour-admin #postbox-container-1 {
+    width: 300px;
+}
+
+body.sbdp-tour-admin #post-body.columns-2 #side-sortables,
+body.sbdp-tour-admin #post-body.columns-2 #normal-sortables,
+body.sbdp-tour-admin #post-body.columns-2 #advanced-sortables {
+    min-height: 0;
+}
+
+body.sbdp-tour-admin #titlediv,
+body.sbdp-tour-admin .postbox,
+body.sbdp-tour-admin #submitpost,
+body.sbdp-tour-admin #minor-publishing,
+body.sbdp-tour-admin #major-publishing-actions {
+    background: var(--sbdp-admin-surface);
+    border: 1px solid var(--sbdp-admin-border);
+    border-radius: 18px;
+    box-shadow: var(--sbdp-admin-shadow);
+}
+
+body.sbdp-tour-admin .postbox {
+    overflow: hidden;
+}
+
+body.sbdp-tour-admin .postbox .inside {
+    padding: 16px 18px 18px;
+    color: var(--sbdp-admin-text);
+}
+
+body.sbdp-tour-admin .postbox-header,
+body.sbdp-tour-admin #submitdiv .postbox-header,
+body.sbdp-tour-admin #titlediv .inside {
+    background: var(--sbdp-admin-surface);
+    border-bottom: 1px solid var(--sbdp-admin-border);
+}
+
+body.sbdp-tour-admin .postbox .hndle,
+body.sbdp-tour-admin .postbox .handle-actions,
+body.sbdp-tour-admin #titlediv label,
+body.sbdp-tour-admin .misc-pub-section,
+body.sbdp-tour-admin .description,
+body.sbdp-tour-admin #sample-permalink {
+    color: var(--sbdp-admin-text);
+}
+
+body.sbdp-tour-admin .postbox .hndle {
+    padding: 14px 18px;
+    font-size: 15px;
+    font-weight: 650;
+}
+
+body.sbdp-tour-admin #titlediv {
+    padding: 16px 16px 10px;
+}
+
+body.sbdp-tour-admin #titlediv .inside {
+    border: 0;
+    padding: 0;
+}
+
+body.sbdp-tour-admin #titlediv #titlewrap {
+    margin-bottom: 10px;
+}
+
+body.sbdp-tour-admin #titlediv input[type="text"],
+body.sbdp-tour-admin #titlediv textarea,
+body.sbdp-tour-admin .postbox input[type="text"],
+body.sbdp-tour-admin .postbox input[type="email"],
+body.sbdp-tour-admin .postbox input[type="url"],
+body.sbdp-tour-admin .postbox input[type="number"],
+body.sbdp-tour-admin .postbox select,
+body.sbdp-tour-admin .postbox textarea {
+    border: 1px solid var(--sbdp-admin-border);
+    border-radius: 14px;
+    background: var(--sbdp-admin-surface-2);
+    color: var(--sbdp-admin-text);
+    padding: 10px 12px;
+    box-shadow: none;
+}
+
+body.sbdp-tour-admin #titlediv #title {
+    min-height: 54px;
+    font-size: 20px;
+    line-height: 1.2;
+}
+
+body.sbdp-tour-admin #titlediv input:focus,
+body.sbdp-tour-admin .postbox input:focus,
+body.sbdp-tour-admin .postbox select:focus,
+body.sbdp-tour-admin .postbox textarea:focus {
+    border-color: var(--sbdp-admin-accent);
+    box-shadow: 0 0 0 1px var(--sbdp-admin-accent);
+    outline: none;
+    background: var(--sbdp-admin-surface);
+}
+
+body.sbdp-tour-admin #edit-slug-box,
+body.sbdp-tour-admin #sample-permalink {
+    padding-left: 4px;
+    color: var(--sbdp-admin-muted);
+}
+
+body.sbdp-tour-admin #submitpost {
+    padding: 0;
+}
+
+body.sbdp-tour-admin #minor-publishing,
+body.sbdp-tour-admin #major-publishing-actions {
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: transparent;
+}
+
+body.sbdp-tour-admin #minor-publishing {
+    padding: 12px 16px 0;
+}
+
+body.sbdp-tour-admin #major-publishing-actions {
+    padding: 14px 16px 16px;
+    border-top: 1px solid var(--sbdp-admin-border);
+}
+
+body.sbdp-tour-admin #misc-publishing-actions .misc-pub-section,
+body.sbdp-tour-admin #minor-publishing-actions,
+body.sbdp-tour-admin #submitpost .inside {
+    color: var(--sbdp-admin-muted);
+}
+
+body.sbdp-tour-admin #publish,
+body.sbdp-tour-admin #save-post,
+body.sbdp-tour-admin #post-preview,
+body.sbdp-tour-admin #submitpost .button {
+    min-height: 36px;
+    border-radius: 999px;
+}
+
+body.sbdp-tour-admin .button-primary {
+    background: var(--sbdp-admin-accent);
+    border-color: var(--sbdp-admin-accent);
+}
+
+body.sbdp-tour-admin .button-primary:hover,
+body.sbdp-tour-admin .button-primary:focus {
+    background: #b86130;
+    border-color: #b86130;
+}
+
+body.sbdp-tour-admin #postimagediv .inside {
+    padding-top: 14px;
+}
+
+body.sbdp-tour-admin #postimagediv #set-post-thumbnail,
+body.sbdp-tour-admin #postimagediv #remove-post-thumbnail {
+    display: inline-flex;
+    margin-top: 8px;
+}
+
+body.sbdp-tour-admin #post-body-content > * + * {
+    margin-top: 16px;
+}
+
+body.sbdp-tour-admin .notice,
+body.sbdp-tour-admin .notice.inline,
+body.sbdp-tour-admin div.updated,
+body.sbdp-tour-admin div.error {
+    border-radius: 14px;
+    border: 1px solid var(--sbdp-admin-border);
+    box-shadow: none;
+}
+
+body.sbdp-tour-admin .sbdp-tour-fields,
+body.sbdp-tour-admin .sbdp-tour-field--notice,
+body.sbdp-tour-admin .sbdp-product-search-panel,
+body.sbdp-tour-admin .sbdp-builder-instructions {
+    background: var(--sbdp-admin-surface-2);
+    border-color: var(--sbdp-admin-border);
+    color: var(--sbdp-admin-text);
+}
+
+body.sbdp-tour-admin .sbdp-tour-fields .description,
+body.sbdp-tour-admin .sbdp-builder-instructions__list,
+body.sbdp-tour-admin .sbdp-tour-product__controls span,
+body.sbdp-tour-admin .sbdp-product-search__meta {
+    color: var(--sbdp-admin-muted);
+}
+
+body.sbdp-tour-admin .sbdp-builder-instructions__title,
+body.sbdp-tour-admin .sbdp-tour-field strong {
+    color: var(--sbdp-admin-text);
+}
+
+body.sbdp-tour-admin #sbdp_tour_details.postbox,
+body.sbdp-tour-admin #sbdp_tour_steps_builder.postbox,
+body.sbdp-tour-admin #sbdp_tour_step_details.postbox {
+    border-radius: 20px;
+}
+
+body.sbdp-tour-admin #sbdp_tour_steps_builder .inside,
+body.sbdp-tour-admin #sbdp_tour_details .inside,
+body.sbdp-tour-admin #sbdp_tour_step_details .inside {
+    padding: 18px;
+}
+
+@media (max-width: 1200px) {
+    body.sbdp-tour-admin #poststuff #post-body.columns-2 {
+        margin-right: 0;
+    }
+
+    body.sbdp-tour-admin #postbox-container-1,
+    body.sbdp-tour-admin #post-body.columns-2 #postbox-container-1 {
+        width: 100%;
+        margin-right: 0;
+    }
+}

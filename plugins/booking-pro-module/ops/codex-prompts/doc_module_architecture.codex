@@ -1,0 +1,136 @@
+# ================================================================
+#  DOCUMENTATIE: MODULE LIFECYCLE — BOOKING PRO PLATFORM
+#  Beschrijft init-sequence, events, hooks en extensiepunten
+# ================================================================
+
+task: doc_module_lifecycle
+output-policy: [verbose, color]
+
+steps:
+
+# 1️⃣ INIT SEQUENCE — WORDPRESS & BSP BOOT
+- name: "Document init-sequence"
+  run: >
+    doc.define("lifecycle.init", {
+      order: [
+        "WordPress core loads plugins",
+        "booking-system-pro.php calls core/bootstrap.php",
+        "BSP\\Core\\Bootstrap::init() registers modules",
+        "Modules::loadAll() instantiate & call init() per module",
+        "Module::init() registers WP hooks, REST, services"
+      ],
+      note: "Alle BSP-modules starten via init(), nooit via constructor."
+    })
+
+# 2️⃣ MODULE LIFECYCLE STAGES
+- name: "Describe lifecycle stages"
+  run: >
+    doc.define("lifecycle.stages", {
+      stages: {
+        "init"          : "Registreer hooks, REST-routes, event listeners",
+        "booted"        : "Alle modules geladen; EventBus actief",
+        "ready"         : "Database, REST, en UI klaar; modules kunnen interacteren",
+        "shutdown"      : "WordPress 'shutdown' event — resources sluiten, flush caches"
+      },
+      transition: "Modules kunnen EventBus gebruiken om te luisteren naar stage-wijzigingen"
+    })
+
+# 3️⃣ CORE EVENTS — WORDPRESS HOOKS & EVENTBUS
+- name: "Core EventBus flow"
+  run: >
+    doc.define("lifecycle.events.core", {
+      event_source: "BSP\\Core\\EventBus",
+      common_events: [
+        "core.boot"     : "na Bootstrap::init()",
+        "module.loaded" : "voor elke geladen module",
+        "rest.register" : "tijdens REST endpoint-registratie",
+        "booking.created"  : "wanneer nieuwe boeking is opgeslagen",
+        "booking.updated"  : "wanneer status of tijden wijzigen",
+        "plan.shared"      : "wanneer plan is gedeeld of geëxporteerd",
+        "vendor.notified"  : "na succesvolle vendor notificatie"
+      ],
+      usage: "Gebruik EventBus::dispatch() en EventBus::listen() om events te verzenden en op te vangen."
+    })
+
+# 4️⃣ MODULE → MODULE COMMUNICATIE
+- name: "Inter-module communication"
+  run: >
+    doc.define("lifecycle.module_comm", {
+      mechanism: "EventBus en WP filters",
+      example: {
+        dispatch: "EventBus::dispatch('booking.created', ['id'=>123])",
+        listen: "EventBus::listen('booking.created', [BSP\\Sales\\Module::class, 'onBookingCreated'])"
+      },
+      benefit: "Losse koppeling — modules weten niets van elkaar, alleen van eventnamen."
+    })
+
+# 5️⃣ REST FLOW
+- name: "REST request lifecycle"
+  run: >
+    doc.define("lifecycle.rest", {
+      sequence: [
+        "Client verstuurt HTTP request naar /wp-json/bsp/v1/<endpoint>",
+        "WordPress REST bootstrap activeert BSP route",
+        "BSP REST Controller voert methode uit",
+        "Controller roept module service aan",
+        "Response wordt via rest_ensure_response() teruggestuurd"
+      ],
+      note: "Input altijd sanitizen; output via associative array of WP_REST_Response."
+    })
+
+# 6️⃣ BOOKING FLOW — END-TO-END
+- name: "Booking lifecycle overview"
+  run: >
+    doc.define("lifecycle.booking", {
+      steps: [
+        "1️⃣ Gebruiker kiest activiteit of plan in frontend (Plan-je-Dag)",
+        "2️⃣ PlannerModule valideert slot en beschikbaarheid",
+        "3️⃣ CommerceModule berekent prijs",
+        "4️⃣ BookingModule maakt boeking aan in DB",
+        "5️⃣ EventBus dispatch: booking.created",
+        "6️⃣ SalesModule registreert omzet",
+        "7️⃣ VendorModule ontvangt melding → Event: vendor.notified",
+        "8️⃣ NotificationsModule stuurt e-mail of push",
+        "9️⃣ IntelligenceModule leert van data (trends/AI)"
+      ],
+      key_events: ["booking.created","booking.updated","booking.cancelled"]
+    })
+
+# 7️⃣ QUOTE / OFFERTE FLOW
+- name: "Quote request lifecycle"
+  run: >
+    doc.define("lifecycle.quote", {
+      stages: [
+        "User klikt 'Vraag offerte aan'",
+        "PlannerModule verzamelt plan-data",
+        "VendorModule maakt 'quote draft'",
+        "EventBus dispatch 'quote.requested'",
+        "Notifications stuurt bevestiging naar klant & vendor",
+        "SalesModule registreert 'pending revenue'",
+        "VendorManager keurt goed of wijzigt"
+      ]
+    })
+
+# 8️⃣ NOTIFICATIONS & FEEDBACK LOOP
+- name: "Notification bridge"
+  run: >
+    doc.define("lifecycle.notifications", {
+      module: "BSP\\Notifications\\Module",
+      events: ["bsp/notifications/send","bsp/notifications/sent"],
+      typical_usage: "do_action('bsp/notifications/send', ['type'=>'email','recipient'=>'user@site','message'=>'...'])",
+      feedback: "na verzending → IntelligenceModule registreert response rate en latency"
+    })
+
+# 9️⃣ EXTENSIE- EN SHUTDOWN FASE
+- name: "Extensibility and shutdown"
+  run: >
+    doc.define("lifecycle.shutdown", {
+      extend_via: "add_action('bsp/modules/register', MyPlugin\\MyModule::class)",
+      shutdown_hooks: ["core.shutdown","module.shutdown"],
+      cleanup: "sluit resources, leeg cache, schrijf logs"
+    })
+
+# ✅ KLAAR
+- name: "Complete"
+  run: >
+    log.success("📚 BSP module lifecycle & eventflow gedocumenteerd voor CLI-referencing.")

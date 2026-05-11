@@ -1,0 +1,9 @@
+Maak een nieuwe BSP-module genaamd `Notifications` onder `modules/notifications/`.  
+- Class: `BSP\Notifications\Module` in `Module.php`  
+- Implementeert `BSP\Core\ModuleInterface`  
+- Voeg method `init(): void` toe  
+- In `init()` koppel aan WordPress action `bsp/notifications/send` met callback `handle_send()`  
+- Voeg lege method `handle_send()` toe  
+- Gebruik PSR-4 conventions  
+- Voeg namespace toe aan `composer.json`: `"BSP\\Notifications\\": "modules/notifications/"`  
+- Geef commando voor `composer dump-autoload`

@@ -1,0 +1,68 @@
+{
+  "Product": {
+    "name": "Dagje Den Bosch Deluxe",
+    "slug": "dagje-den-bosch-deluxe",
+    "base_price": 119.0,
+    "status": "draft"
+  },
+  "Booking": {
+    "enable_range_picker": false,
+    "max_per_unit": 8,
+    "min_advance_days": 2,
+    "max_advance_days": 180
+  },
+  "People": {
+    "max": 16,
+    "types": [
+      {
+        "name": "Volwassene",
+        "slug": "adult",
+        "cost": 0,
+        "desc": "18+"
+      },
+      {
+        "name": "Tiener",
+        "slug": "teen",
+        "cost": -10,
+        "desc": "13-17 jaar"
+      }
+    ]
+  },
+  "Costs": {
+    "extra_costs": [
+      {
+        "title": "Stadsbelasting",
+        "amount": 2.5,
+        "apply": "per_person"
+      }
+    ]
+  },
+  "Services": [
+    {
+      "name": "Lunchpakket",
+      "cost": 14.5,
+      "optional": true,
+      "desc": "Vers belegde broodjes en drankjes"
+    },
+    {
+      "name": "Rondvaart",
+      "cost": 22.0,
+      "optional": true,
+      "desc": "1 uur boottocht over de Binnendieze"
+    }
+  ],
+  "Resources": [
+    {
+      "name": "Team Noord",
+      "qty": 2,
+      "base_cost": 0,
+      "desc": "Gidsenteam voor noordelijke route"
+    },
+    {
+      "name": "Team Zuid",
+      "qty": 2,
+      "base_cost": 0,
+      "desc": "Gidsenteam voor zuidelijke route"
+    }
+  ]
+}

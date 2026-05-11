@@ -1,0 +1,68 @@
+module: product-overview
+namespace: booking-module-pro.modules.product-overview
+description: >
+  A modular Product Overview component for Booking Module Pro that displays booking items
+  (activities, restaurants, hotels, etc.) in a grid or map layout. Supports filters, sorting,
+  and responsive interaction. Styled with a minimalist, Google-style UI.
+
+type: wordpress-plugin-module
+
+features:
+  - shortcode: bmp_product_overview
+  - responsive grid layout for CPT `booking_item`
+  - display:
+      - title
+      - featured image
+      - custom field: duration
+      - custom field: price
+      - taxonomy: booking_type (e.g. activity, restaurant, hotel)
+  - map toggle using Leaflet.js
+  - AJAX filters for type, date, and price range
+  - interactive map markers synced with grid
+  - highlight on marker click → scroll to product
+  - marker click opens mini-card preview
+  - full module assets: JS, CSS, templates
+
+structure:
+  - product-overview.class.php
+  - templates/
+      - overview-grid.php
+      - map-view.php
+  - assets/
+      - css/
+          - product-overview.css
+          - product-map.css
+      - js/
+          - product-overview.js
+          - product-map.js
+  - ajax/
+      - fetch-products.php (returns product data with lat/lng and metadata)
+
+dependencies:
+  - WordPress 6+
+  - Leaflet.js (CDN or enqueued)
+  - CPT: booking_item
+  - Taxonomy: booking_type
+  - Custom fields: price, duration, latitude, longitude
+
+commands:
+  init:
+    - register shortcode `[bmp_product_overview]`
+    - enqueue CSS/JS assets
+  render:
+    - detect if "map view" is enabled
+    - load `overview-grid.php` or `map-view.php` accordingly
+  ajax:
+    - `/wp-admin/admin-ajax.php?action=bmp_fetch_products`
+    - returns JSON with filtered product data
+
+styling:
+  - Google Maps-style UX
+  - Soft shadows, minimal borders
+  - Fully responsive: mobile-first
+  - Toggle switch for grid ↔ map
+
+output:
+  plugin-ready PHP module
+  Enqueuable via Booking Module Pro core
+  Clean shortcode for use in pages or Gutenberg blocks

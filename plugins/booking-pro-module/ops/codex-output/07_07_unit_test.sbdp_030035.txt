@@ -1,0 +1,601 @@
+[2025-10-10T01:00:35] OpenAI Codex v0.42.0 (research preview)
+--------
+workdir: C:\booking-pro-module-4.0
+model: gpt-5-codex
+provider: openai
+approval: never
+sandbox: workspace-write [workdir, /tmp, $TMPDIR]
+reasoning effort: high
+reasoning summaries: auto
+--------
+[2025-10-10T01:00:35] User instructions:
+PHPUNIT TESTS + BRAIN MONKEY
+
+OPDRACHT
+- Voeg `/tests/bootstrap.php` toe met autoload + Brain Monkey init
+- Maak `/tests/{{SLUG}}/ModuleTest.php` die:
+  - WordPress hooks mocked met Brain Monkey
+  - Verifieert dat `init()` de admin_menu en rest_api_init hooks registreert (indien van toepassing)
+- Update composer.json require-dev indien `brain/monkey` ontbreekt
+- Voeg `tests/phpunit.xml.dist`
+
+OUTPUT
+- Toon alle testbestanden
+- Toon voorbeeld-run: `vendor/bin/phpunit --configuration tests/phpunit.xml.dist`
+
+[2025-10-10T01:00:40] thinking
+
+**Adapting PowerShell commands and planning tests**
+[2025-10-10T01:00:41] tokens used: 1.615
+[2025-10-10T01:00:41] tokens used: 1.615
+
+[2025-10-10T01:00:43] thinking
+
+**Analyzing command restrictions**
+[2025-10-10T01:00:43] tokens used: 2.363
+[2025-10-10T01:00:43] tokens used: 2.363
+
+[2025-10-10T01:00:46] thinking
+
+**Evaluating allowed shell commands**
+[2025-10-10T01:00:47] exec bash -lc ls in C:\booking-pro-module-4.0
+[2025-10-10T01:00:47] bash -lc ls succeeded in 555ms:
+AGENTS.md
+assets
+booking-pro-suite.php
+composer.bat
+composer.json
+composer.lock
+composer.phar
+core
+dist
+docs
+includes
+languages
+logs
+modules
+mu-plugins
+node_modules
+ops
+package.json
+package-lock.json
+phpcs.xml
+[2025-10-10T01:00:47] tokens used: 2.751
+[2025-10-10T01:00:47] tokens used: 2.751
+
+[2025-10-10T01:00:48] thinking
+
+**Inspecting existing tests in tests directory**
+[2025-10-10T01:00:49] exec bash -lc 'ls tests' in C:\booking-pro-module-4.0
+[2025-10-10T01:00:49] bash -lc 'ls tests' succeeded in 681ms:
+bootstrap.php
+e2e
+phpunit.xml.dist
+Unit
+[2025-10-10T01:00:49] tokens used: 3.052
+[2025-10-10T01:00:50] tokens used: 3.052
+
+[2025-10-10T01:00:51] thinking
+
+**Checking existing bootstrap file**
+[2025-10-10T01:00:51] exec bash -lc 'cat tests/bootstrap.php' in C:\booking-pro-module-4.0
+[2025-10-10T01:00:52] bash -lc 'cat tests/bootstrap.php' succeeded in 609ms:
+<?php
+
+$autoload = __DIR__ . '/../vendor/autoload.php';
+if (is_readable($autoload)) {
+    require $autoload;
+}
+
+// Ensure core constants that might be referenced in isolated tests.
+define('DAY_IN_SECONDS', 24 * 60 * 60);
+define('HOUR_IN_SECONDS', 60 * 60);
+define('MINUTE_IN_SECONDS', 60);
+
+// Provide lightweight shims for common WordPress helpers when not running inside WP.
+if (!function_exists('add_action')) {
+    function add_action($hook, $callback, $priority = 10, $accepted_args = 1) {
+        global $bsp_test_actions;
+        if (! is_array($bsp_test_actions ?? null)) {
+            $bsp_test_actions = array();
+        }
+
+[2025-10-10T01:00:52] tokens used: 3.210
+[2025-10-10T01:00:52] tokens used: 3.210
+
+[2025-10-10T01:00:56] thinking
+
+**Planning bootstrap and module test setup**
+[2025-10-10T01:00:56] exec bash -lc 'ls modules' in C:\booking-pro-module-4.0
+[2025-10-10T01:00:57] bash -lc 'ls modules' succeeded in 684ms:
+commerce
+core
+data
+finance
+intelligence
+notifications
+planner
+sales
+support
+[2025-10-10T01:00:57] tokens used: 7.053
+[2025-10-10T01:00:57] tokens used: 7.053
+
+[2025-10-10T01:00:58] thinking
+
+**Searching for plugin module hooking points**
+[2025-10-10T01:00:59] tokens used: 7.360
+[2025-10-10T01:00:59] tokens used: 7.360
+
+[2025-10-10T01:01:03] thinking
+
+**Testing command restrictions and alternatives**
+[2025-10-10T01:01:03] tokens used: 7.681
+[2025-10-10T01:01:04] tokens used: 7.681
+
+[2025-10-10T01:01:06] thinking
+
+**Investigating module slug origin**
+[2025-10-10T01:01:07] exec bash -lc 'cat composer.json' in C:\booking-pro-module-4.0
+[2025-10-10T01:01:07] bash -lc 'cat composer.json' succeeded in 623ms:
+{
+  "name": "owncreations/booking-pro-module",
+  "description": "Development tooling for Booking Pro Module",
+  "type": "project",
+  "require-dev": {
+    "phpunit/phpunit": "^9.6",
+    "squizlabs/php_codesniffer": "^3.9",
+    "phpstan/phpstan": "^2.1",
+    "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
+    "wp-coding-standards/wpcs": "^3.0",
+    "php-stubs/wordpress-stubs": "^6.8",
+    "php-stubs/woocommerce-stubs": "^10.2",
+    "brain/monkey": "^2.6"
+  },
+  "autoload": {
+    "psr-4": {
+      "BSP\\Core\\": "core/src/",
+      "BSP\\Commerce\\": "modules/commerce/",
+      "BSP\\Planner\\": "modules/planner/",
+      "BSP\\Sales\\": "modules/sales/",
+[2025-10-10T01:01:07] tokens used: 7.940
+[2025-10-10T01:01:08] tokens used: 7.940
+
+[2025-10-10T01:01:10] thinking
+
+**Reviewing test setup and dependencies**
+[2025-10-10T01:01:10] exec bash -lc 'cat tests/phpunit.xml.dist' in C:\booking-pro-module-4.0
+[2025-10-10T01:01:10] bash -lc 'cat tests/phpunit.xml.dist' succeeded in 631ms:
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.6/phpunit.xsd"
+         bootstrap="bootstrap.php"
+         colors="true"
+         verbose="true">
+    <testsuites>
+        <testsuite name="Booking Pro Module Tests">
+            <directory suffix="Test.php">Unit</directory>
+        </testsuite>
+    </testsuites>
+</phpunit>
+[2025-10-10T01:01:10] tokens used: 8.763
+[2025-10-10T01:01:11] tokens used: 8.763
+
+[2025-10-10T01:01:13] thinking
+
+**Reviewing phpunit.xml and test structure**
+[2025-10-10T01:01:13] exec bash -lc 'ls tests/Unit' in C:\booking-pro-module-4.0
+[2025-10-10T01:01:14] bash -lc 'ls tests/Unit' succeeded in 668ms:
+Core
+Notifications
+Planner
+Sales
+Support
+[2025-10-10T01:01:14] tokens used: 9.096
+[2025-10-10T01:01:14] tokens used: 9.096
+
+[2025-10-10T01:01:16] thinking
+
+**Investigating module slug location**
+[2025-10-10T01:01:17] exec bash -lc 'cat README.md' in C:\booking-pro-module-4.0
+[2025-10-10T01:01:17] bash -lc 'cat README.md' succeeded in 612ms:
+﻿# Booking System Pro Modular Architecture
+
+This skeleton defines the **Booking System Pro** plugin architecture with a clear separation between the shared core bootstrap and individual feature modules. It is designed to live inside a WordPress plugin folder such as `wp-content/plugins/booking-pro-suite/`.
+
+## Directory Layout
+
+- `core/` – framework services, including the module registry and WordPress bootstrap entry point.
+- `modules/commerce/` – `BSP\Commerce\Module` class for ecommerce flows.
+- `modules/planner/` – `BSP\Planner\Module` class for scheduling and planner UI.
+- `modules/sales/` – `BSP\Sales\Module` class for sales enablement and channel sync.
+- `modules/intelligence/` – `BSP\Intelligence\Module` class for analytics and insights.
+
+Each module exposes an `init()` method and depends on the contracts provided in `core/`. The core never imports module classes directly; modules register themselves through WordPress hooks or external bootstrap code.
+
+## Bootstrapping Flow
+
+1. `core/bootstrap.php` returns a `BSP\Core\CoreServiceProvider` instance and attaches its `boot()` method to `plugins_loaded`.
+2. On `plugins_loaded`, the provider fires the `bsp/core/modules/register` action so themes or plugins can register modules by calling `$modules->register( MyModuleClass::class )`.
+3. The provider calls `$modules->boot()` to instantiate every registered module and execute its `init()` method.
+4. After bootstrapping, the `bsp/core/modules/booted` action is emitted for follow-up wiring.
+[2025-10-10T01:01:17] tokens used: 9.413
+[2025-10-10T01:01:18] tokens used: 9.413
+
+[2025-10-10T01:01:18] thinking
+
+**Searching for specific module files**
+[2025-10-10T01:01:19] exec bash -lc 'ls modules/support' in C:\booking-pro-module-4.0
+[2025-10-10T01:01:19] bash -lc 'ls modules/support' succeeded in 615ms:
+Admin
+Agent
+Module.php
+[2025-10-10T01:01:19] tokens used: 10.387
+[2025-10-10T01:01:20] tokens used: 10.387
+
+[2025-10-10T01:01:20] thinking
+
+**Opening module for inspection**
+[2025-10-10T01:01:21] exec bash -lc 'cat modules/support/Module.php' in C:\booking-pro-module-4.0
+[2025-10-10T01:01:21] bash -lc 'cat modules/support/Module.php' succeeded in 604ms:
+<?php
+
+declare(strict_types=1);
+
+namespace BSP\Support;
+
+use BSP\Core\ModuleInterface;
+use BSPModule\Support\LegacyModule as SupportLegacyModule;
+
+final class Module implements ModuleInterface
+{
+    private static bool $booted = false;
+
+    private SupportLegacyModule $legacy;
+
+    public function __construct(?SupportLegacyModule $legacy = null)
+    {
+        $this->legacy = $legacy ?? new SupportLegacyModule();
+    }
+
+[2025-10-10T01:01:21] tokens used: 10.569
+[2025-10-10T01:01:22] tokens used: 10.569
+
+[2025-10-10T01:01:23] thinking
+
+**Examining module initialization and admin hooks**
+[2025-10-10T01:01:23] exec bash -lc 'cat modules/support/Admin/Menu.php' in C:\booking-pro-module-4.0
+[2025-10-10T01:01:24] bash -lc 'cat modules/support/Admin/Menu.php' succeeded in 734ms:
+<?php
+
+declare(strict_types=1);
+
+namespace BSP\Support\Admin;
+
+use function add_action;
+use function add_submenu_page;
+use function esc_html;
+use function esc_html__;
+
+final class Menu
+{
+    public static function init(): void
+    {
+        add_action('admin_menu', array(__CLASS__, 'register_menu'));
+    }
+
+    public static function register_menu(): void
+    {
+[2025-10-10T01:01:24] tokens used: 11.169
+[2025-10-10T01:01:24] tokens used: 11.169
+
+[2025-10-10T01:01:27] thinking
+
+**Searching for REST API initialization hooks**
+[2025-10-10T01:01:27] exec bash -lc 'grep -R "rest_api_init" -n' in C:\booking-pro-module-4.0
+[2025-10-10T01:01:37] bash -lc 'grep -R "rest_api_init" -n' succeeded in 9.76s:
+.build_tmp/booking-pro-suite/modules/core/Agent/CoreModuleAgent.php:77:		add_action( 'rest_api_init', array( $this, 'register_rest_routes' ) );
+.build_tmp/booking-pro-suite/modules/core/Rest/RestService.php:58:		add_action( 'rest_api_init', array( __CLASS__, 'routes' ) );
+.build_tmp/booking-pro-suite/modules/notifications/Module.php:26:            add_action('rest_api_init', array($this->restController, 'register_routes'));
+.build_tmp/booking-pro-suite/modules/planner/Bundles/PlannerBundleService.php:37:        add_action('rest_api_init', array($this, 'registerRestRoutes'));
+.build_tmp/booking-pro-suite/modules/sales/Channels/RestController.php:22:		add_action( 'rest_api_init', array( self::class, 'registerRoutes' ) );
+.build_tmp/booking-pro-suite/modules/sales/Pricing/PricingRestController.php:31:		add_action( 'rest_api_init', array( self::class, 'registerRoutes' ) );
+.build_tmp/booking-pro-suite/modules/sales/Promotions/PromotionsRestController.php:30:		add_action( 'rest_api_init', array( self::class, 'registerRoutes' ) );
+.build_tmp/booking-pro-suite/modules/sales/ReviewManager.php:45:		add_action( 'rest_api_init', array( self::class, 'registerRoutes' ) );
+.build_tmp/booking-pro-suite/modules/sales/Vendors/VendorRestController.php:32:        add_action('rest_api_init', array(self::class, 'registerRoutes'));
+.build_tmp/booking-pro-suite/modules/sales/Vendors/VendorScheduleRestController.php:25:        add_action('rest_api_init', array(self::class, 'registerRoutes'));
+.build_tmp/booking-pro-suite/mu-plugins/wfb-rest-permissions.php:8:	'rest_api_init',
+dist/booking-pro-4.01/booking-pro-4.01/booking-core/includes/class-rest-api.php:21:		add_action( 'rest_api_init', array( __CLASS__, 'register_routes' ) );
+dist/booking-pro-4.01/booking-pro-4.01/booking-core/src/Agent/CoreModuleAgent.php:77:		add_action( 'rest_api_init', array( $this, 'register_rest_routes' ) );
+dist/booking-pro-4.01/booking-pro-4.01/booking-core/src/Rest/RestService.php:21:		add_action( 'rest_api_init', array( __CLASS__, 'routes' ) );
+dist/booking-pro-4.01/booking-pro-4.01/booking-sales/src/Channels/RestController.php:22:		add_action( 'rest_api_init', array( self::class, 'registerRoutes' ) );
+dist/booking-pro-4.01/booking-pro-4.01/booking-sales/src/Pricing/PricingRestController.php:30:		add_action( 'rest_api_init', array( self::class, 'registerRoutes' ) );
+dist/booking-pro-4.01/booking-pro-4.01/booking-sales/src/Promotions/PromotionsRestController.php:30:		add_action( 'rest_api_init', array( self::class, 'registerRoutes' ) );
+dist/booking-pro-4.01/booking-pro-4.01/booking-sales/src/ReviewManager.php:45:		add_action( 'rest_api_init', array( self::class, 'registerRoutes' ) );
+dist/booking-pro-4.01/booking-pro-4.01/booking-sales/src/Vendors/VendorRestController.php:32:        add_action('rest_api_init', array(self::class, 'registerRoutes'));
+dist/booking-pro-4.01/booking-pro-4.01/booking-sales/src/Vendors/VendorScheduleRestController.php:25:        add_action('rest_api_init', array(self::class, 'registerRoutes'));
+[2025-10-10T01:01:37] tokens used: 11.780
+[2025-10-10T01:01:37] tokens used: 11.780
+
+[2025-10-10T01:01:38] thinking
+
+**Inspecting existing test files**
+[2025-10-10T01:01:39] exec bash -lc 'cat tests/Unit/Notifications/ModuleTest.php' in C:\booking-pro-module-4.0
+[2025-10-10T01:01:39] bash -lc 'cat tests/Unit/Notifications/ModuleTest.php' succeeded in 589ms:
+<?php
+
+declare(strict_types=1);
+
+namespace BSP\Tests\Unit\Notifications;
+
+use function Brain\Monkey\Functions\expect;
+use BSP\Notifications\Admin_Settings_Page;
+use BSP\Notifications\Module;
+use BSP\Notifications\Rest_Controller;
+use PHPUnit\Framework\TestCase;
+
+final class ModuleTest extends TestCase
+{
+    private array $actionsBackup = array();
+
+    private array $shortcodesBackup = array();
+
+    private array $restRoutesBackup = array();
+
+[2025-10-10T01:01:39] tokens used: 15.005
+[2025-10-10T01:01:40] tokens used: 15.005
+
+[2025-10-10T01:01:43] thinking
+
+**Assessing test setup and module integration**
+[2025-10-10T01:01:43] exec bash -lc 'cat modules/notifications/Module.php' in C:\booking-pro-module-4.0
+[2025-10-10T01:01:44] bash -lc 'cat modules/notifications/Module.php' succeeded in 713ms:
+<?php
+
+declare(strict_types=1);
+
+namespace BSP\Notifications;
+
+use BSP\Core\ModuleInterface;
+
+final class Module implements ModuleInterface
+{
+    private const SHORTCODE_TAG = 'booking_notifications';
+
+    private Rest_Controller $restController;
+
+    private Admin_Settings_Page $adminSettingsPage;
+
+    public function __construct(?Rest_Controller $restController = null, ?Admin_Settings_Page $adminSettingsPage = null)
+    {
+        $this->restController = $restController ?? new Rest_Controller();
+        $this->adminSettingsPage = $adminSettingsPage ?? new Admin_Settings_Page();
+[2025-10-10T01:01:44] tokens used: 16.384
+[2025-10-10T01:01:44] tokens used: 16.384
+
+[2025-10-10T01:01:54] thinking
+
+**Planning test restructuring with Brain Monkey**
+[2025-10-10T01:01:54] exec bash -lc 'ls tests' in C:\booking-pro-module-4.0
+[2025-10-10T01:01:55] bash -lc 'ls tests' succeeded in 593ms:
+bootstrap.php
+e2e
+phpunit.xml.dist
+Unit
+[2025-10-10T01:01:55] tokens used: 18.061
+[2025-10-10T01:01:55] tokens used: 18.061
+
+[2025-10-10T01:02:02] thinking
+
+**Assessing notifications module testing**
+[2025-10-10T01:02:03] exec bash -lc 'find tests/Unit -name "ModuleTest.php" -print' in C:\booking-pro-module-4.0
+[2025-10-10T01:02:03] bash -lc 'find tests/Unit -name "ModuleTest.php" -print' succeeded in 668ms:
+tests/Unit/Notifications/ModuleTest.php
+[2025-10-10T01:02:03] tokens used: 18.733
+[2025-10-10T01:02:04] tokens used: 18.733
+
+[2025-10-10T01:02:39] thinking
+
+**Planning test restructuring and Brain Monkey integration**
+[2025-10-10T01:02:39] exec bash -lc 'rg "bsp_test" -n tests' in C:\booking-pro-module-4.0
+[2025-10-10T01:02:40] bash -lc 'rg "bsp_test" -n tests' succeeded in 634ms:
+tests\bootstrap.php:16:        global $bsp_test_actions;
+tests\bootstrap.php:17:        if (! is_array($bsp_test_actions ?? null)) {
+tests\bootstrap.php:18:            $bsp_test_actions = array();
+tests\bootstrap.php:21:        $bsp_test_actions[] = array(
+tests\bootstrap.php:34:        global $bsp_test_shortcodes;
+tests\bootstrap.php:35:        if (! is_array($bsp_test_shortcodes ?? null)) {
+tests\bootstrap.php:36:            $bsp_test_shortcodes = array();
+tests\bootstrap.php:39:        $bsp_test_shortcodes[$tag] = $callback;
+tests\bootstrap.php:47:        global $bsp_test_rest_routes;
+tests\bootstrap.php:48:        if (! is_array($bsp_test_rest_routes ?? null)) {
+tests\bootstrap.php:49:            $bsp_test_rest_routes = array();
+tests\bootstrap.php:52:        $bsp_test_rest_routes[] = array(
+tests\Unit\Notifications\ModuleTest.php:26:        global $bsp_test_actions, $bsp_test_shortcodes, $bsp_test_rest_routes;
+tests\Unit\Notifications\ModuleTest.php:28:        $this->actionsBackup    = is_array($bsp_test_actions ?? null) ? $bsp_test_actions : array();
+tests\Unit\Notifications\ModuleTest.php:29:        $this->shortcodesBackup = is_array($bsp_test_shortcodes ?? null) ? $bsp_test_shortcodes : array();
+tests\Unit\Notifications\ModuleTest.php:30:        $this->restRoutesBackup = is_array($bsp_test_rest_routes ?? null) ? $bsp_test_rest_routes : array();
+tests\Unit\Notifications\ModuleTest.php:32:        $bsp_test_actions     = array();
+tests\Unit\Notifications\ModuleTest.php:33:        $bsp_test_shortcodes  = array();
+tests\Unit\Notifications\ModuleTest.php:34:        $bsp_test_rest_routes = array();
+tests\Unit\Notifications\ModuleTest.php:41:        global $bsp_test_actions, $bsp_test_shortcodes, $bsp_test_rest_routes;
+[2025-10-10T01:02:40] tokens used: 21.754
+[2025-10-10T01:02:40] tokens used: 21.754
+
+[2025-10-10T01:02:43] thinking
+
+**Planning test refactor to remove globals**
+[2025-10-10T01:02:43] exec bash -lc 'find tests/Unit -type f -print' in C:\booking-pro-module-4.0
+[2025-10-10T01:02:44] bash -lc 'find tests/Unit -type f -print' succeeded in 655ms:
+tests/Unit/Core/ModuleRegistryTest.php
+tests/Unit/Notifications/ModuleTest.php
+tests/Unit/Planner/Bundles/BundleDefinitionTest.php
+tests/Unit/Planner/Bundles/PlannerBundleServiceTest.php
+tests/Unit/Sales/Funnels/FunnelServiceTest.php
+tests/Unit/Sales/Pricing/YieldEngineTest.php
+tests/Unit/Sales/Promotions/PromotionServiceTest.php
+tests/Unit/Support/NamespaceTest.php
+[2025-10-10T01:02:44] tokens used: 22.858
+[2025-10-10T01:02:44] tokens used: 22.858
+
+[2025-10-10T01:02:45] thinking
+
+**Checking bootstrap dependencies in tests**
+[2025-10-10T01:02:46] exec bash -lc 'cat tests/Unit/Core/ModuleRegistryTest.php' in C:\booking-pro-module-4.0
+[2025-10-10T01:02:46] bash -lc 'cat tests/Unit/Core/ModuleRegistryTest.php' succeeded in 641ms:
+<?php
+
+declare(strict_types=1);
+
+namespace BSP\Tests\Unit\Core;
+
+use BSPModule\Shared\Modules\ModuleInterface;
+use BSPModule\Shared\Modules\ModuleRegistry;
+use PHPUnit\Framework\TestCase;
+
+final class ModuleRegistryTest extends TestCase
+{
+    public function testAddStoresModuleOnce(): void
+    {
+        $registry = new ModuleRegistry();
+
+        $module = new class() implements ModuleInterface {
+            public bool $registered = false;
+
+            public function moduleName(): string
+[2025-10-10T01:02:46] tokens used: 23.142
+[2025-10-10T01:02:47] tokens used: 23.142
+
+[2025-10-10T01:02:47] thinking
+
+**Reviewing test dependencies**
+[2025-10-10T01:02:48] exec bash -lc 'cat tests/Unit/Planner/Bundles/PlannerBundleServiceTest.php' in C:\booking-pro-module-4.0
+[2025-10-10T01:02:49] bash -lc 'cat tests/Unit/Planner/Bundles/PlannerBundleServiceTest.php' succeeded in 635ms:
+<?php
+declare(strict_types=1);
+
+namespace BSP\Tests\Unit\Planner\Bundles;
+
+use BSP\Planner\Bundles\BundleRegistry;
+use BSP\Planner\Bundles\PlannerBundleService;
+use PHPUnit\Framework\TestCase;
+
+final class PlannerBundleServiceTest extends TestCase
+{
+    public function testExposeFrontendBundlesMergesRegistryBundles(): void
+    {
+        $registry = new BundleRegistry();
+        $service  = new PlannerBundleService($registry);
+
+        $registry->registerFromArray(array(
+            'id'      => 'BND-1',
+            'label'   => 'Registered Bundle',
+            'meta'    => array(
+[2025-10-10T01:02:49] tokens used: 23.752
+[2025-10-10T01:02:49] tokens used: 23.752
+
+[2025-10-10T01:02:50] thinking
+
+**Checking for add_action usage in tests**
+[2025-10-10T01:02:50] exec bash -lc 'rg "add_action" tests/Unit -n' in C:\booking-pro-module-4.0
+[2025-10-10T01:02:51] bash -lc 'rg "add_action" tests/Unit -n' exited 1 in 696ms:
+
+[2025-10-10T01:02:51] tokens used: 24.522
+[2025-10-10T01:02:52] tokens used: 24.522
+
+[2025-10-10T01:02:53] thinking
+
+**Reviewing test setup dependencies**
+[2025-10-10T01:02:53] exec bash -lc 'cat tests/Unit/Support/NamespaceTest.php' in C:\booking-pro-module-4.0
+[2025-10-10T01:02:54] bash -lc 'cat tests/Unit/Support/NamespaceTest.php' succeeded in 643ms:
+<?php
+
+declare(strict_types=1);
+
+namespace BSP\Tests\Unit\Support;
+
+use PHPUnit\Framework\TestCase;
+
+final class NamespaceTest extends TestCase
+{
+    public function testLegacyAdminAliasExists(): void
+    {
+        $this->assertTrue(
+            class_exists('BSPModule\\Support\\Admin\\Menu'),
+            'Support admin menu alias missing'
+        );
+    }
+
+    public function testLegacyAgentAliasExists(): void
+    {
+[2025-10-10T01:02:54] tokens used: 24.702
+[2025-10-10T01:02:54] tokens used: 24.702
+
+[2025-10-10T01:02:57] thinking
+
+**Preparing to remove WordPress stubs**
+[2025-10-10T01:02:58] exec bash -lc 'rg "wp_" tests/Unit -n' in C:\booking-pro-module-4.0
+[2025-10-10T01:02:58] bash -lc 'rg "wp_" tests/Unit -n' exited 1 in 600ms:
+
+[2025-10-10T01:02:58] tokens used: 25.776
+[2025-10-10T01:02:59] tokens used: 25.776
+
+[2025-10-10T01:03:33] thinking
+
+**Designing new test bootstrap setup**
+[2025-10-10T01:03:34] exec bash -lc 'cat tests/Unit/Sales/Pricing/YieldEngineTest.php' in C:\booking-pro-module-4.0
+[2025-10-10T01:03:35] bash -lc 'cat tests/Unit/Sales/Pricing/YieldEngineTest.php' succeeded in 715ms:
+<?php
+
+declare(strict_types=1);
+
+namespace BSP\Tests\Unit\Sales\Pricing;
+
+use BSP\Sales\Pricing\YieldEngine;
+use PHPUnit\Framework\TestCase;
+
+final class YieldEngineTest extends TestCase {
+
+	public function testGetMatchedRulesDefaultsToEmptyArray(): void {
+		$this->assertSame( array(), YieldEngine::getMatchedRules() );
+	}
+}
+[2025-10-10T01:03:35] tokens used: 28.645
+[2025-10-10T01:03:35] tokens used: 28.645
+
+[2025-10-10T01:03:36] thinking
+
+**Checking for test file presence**
+[2025-10-10T01:03:36] exec bash -lc 'cat tests/Unit/Sales/Promotions/PromotionServiceTest.php' in C:\booking-pro-module-4.0
+[2025-10-10T01:03:37] bash -lc 'cat tests/Unit/Sales/Promotions/PromotionServiceTest.php' succeeded in 593ms:
+<?php
+
+declare(strict_types=1);
+
+namespace BSP\Tests\Unit\Sales\Promotions;
+
+use PHPUnit\Framework\TestCase;
+
+final class PromotionServiceTest extends TestCase {
+
+	public function testPlaceholder(): void {
+		$this->assertTrue( true, 'Promotion service tests pending implementation.' );
+	}
+}
+[2025-10-10T01:03:37] tokens used: 28.899
+[2025-10-10T01:03:38] tokens used: 28.899
+
+[2025-10-10T01:04:23] thinking
+
+**Rewriting PHPUnit bootstrap and test setup**
+[2025-10-10T01:04:24] tokens used: 32.622
+[2025-10-10T01:04:25] tokens used: 32.622
+
+[2025-10-10T01:04:29] thinking
+
+**Exploring alternative file write methods**
+[2025-10-10T01:04:30] tokens used: 33.684
+[2025-10-10T01:04:31] tokens used: 33.684
+
+[2025-10-10T01:04:34] thinking
+
+**Investigating command restrictions**

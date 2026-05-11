@@ -1,0 +1,15 @@
+VOEG SHORTCODE TOE AAN MODULE
+
+PARAMS
+- {{MODULE_NAME}}, {{SLUG}}, {{SHORTCODE_TAG}} (bv: booking_notifications)
+
+OPDRACHT
+- In `Module.php` → in `init()` roep: `add_shortcode('{{SHORTCODE_TAG}}', [$this, 'render_shortcode']);`
+- Implementeer `render_shortcode($atts = []): string`
+- Return veilige HTML (use `esc_html`, `esc_attr`, `wp_kses_post`)
+- Voeg voorbeeld CSS in `/assets/{{SLUG}}/shortcode.css` en enqueue op shortcode-render via `wp_enqueue_style`
+
+OUTPUT
+- Gehele Module.php (bijgewerkte versie)
+- `# File: assets/{{SLUG}}/shortcode.css`
+- Voorbeeld gebruik: `[{{SHORTCODE_TAG}}]`

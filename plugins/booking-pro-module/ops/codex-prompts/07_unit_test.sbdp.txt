@@ -1,0 +1,13 @@
+PHPUNIT TESTS + BRAIN MONKEY
+
+OPDRACHT
+- Voeg `/tests/bootstrap.php` toe met autoload + Brain Monkey init
+- Maak `/tests/{{SLUG}}/ModuleTest.php` die:
+  - WordPress hooks mocked met Brain Monkey
+  - Verifieert dat `init()` de admin_menu en rest_api_init hooks registreert (indien van toepassing)
+- Update composer.json require-dev indien `brain/monkey` ontbreekt
+- Voeg `tests/phpunit.xml.dist`
+
+OUTPUT
+- Toon alle testbestanden
+- Toon voorbeeld-run: `vendor/bin/phpunit --configuration tests/phpunit.xml.dist`

@@ -1,0 +1,834 @@
+[2025-10-09T11:40:28] OpenAI Codex v0.42.0 (research preview)
+--------
+workdir: C:\booking-pro-module-4.0
+model: gpt-5-codex
+provider: openai
+approval: never
+sandbox: workspace-write [workdir, /tmp, $TMPDIR]
+reasoning effort: high
+reasoning summaries: auto
+--------
+[2025-10-09T11:40:28] User instructions:
+Je gaat een werkende WordPress plugin bouwen in 9 stappen: **Booking Pro Suite**.
+
+EIS: Lever per stap volledige filestructuur en code. Gebruik het OUTPUTFORMAAT uit de primer.
+
+STAPPEN
+1) SKELETON
+- Maak mappen: /core, /modules/notifications, /assets, /languages, /tests, /scripts, /dist (leeg)
+- `plugin.php` met geldige header, textdomain `sbdp`, require vendor autoload, require core/bootstrap.php
+
+2) COMPOSER
+- Genereer `composer.json` met:
+  - psr-4:
+    "BSP\\Core\\": "core/src/",
+    "BSP\\Notifications\\": "modules/notifications/"
+  - require-dev: phpunit/phpunit ^9.6, squizlabs/php_codesniffer ^3.9, phpstan/phpstan ^2.1, brain/monkey ^2.6, wp-coding-standards/wpcs ^3.0
+- Toon commando: `composer install && composer dump-autoload`
+
+3) CORE
+- `/core/bootstrap.php` dat:
+  - CoreServiceProvider instantieert
+  - `plugins_loaded` → `boot()`
+  - `do_action('bsp/core/modules/register', $modules)` laat modules registreren
+  - Na registreren: `$modules->boot();` en `do_action('bsp/core/modules/booted')`
+- `/core/src/ModuleInterface.php`
+- `/core/src/Modules.php`
+- `/core/src/CoreServiceProvider.php`
+
+4) MODULE `Notifications`
+- `/modules/notifications/Module.php` met `BSP\Notifications\Module implements BSP\Core\ModuleInterface`
+- `init()` registreert hooks/shortcodes later
+- In `plugin.php` module registreren via `add_action('bsp/core/modules/register', ...)`
+
+5) REST ENDPOINT
+- In Notifications module: REST controller class toevoegen (zelfde folder)
+- Registreer route GET `/bsp/v1/notifications` → JSON `{ "ok": true }`
+- Auth permissiecallback (`current_user_can` of public)
+
+6) SHORTCODE UI
+- Shortcode `[booking_notifications]` → eenvoudige HTML (div + list placeholder)
+- Veilig outputten (esc_html/esc_attr) en `wp_kses_post` waar nodig
+
+7) ADMIN PAGE
+- Admin settings pagina onder Settings > Booking Pro
+- Opties registreren via `register_setting`, `add_settings_section`, `add_settings_field`
+- Basic veld `bsp_notifications_enabled`
+
+8) TESTS
+- PHPUnit bootstrap + voorbeeldtest voor Module init hook
+- Brain Monkey gebruiken voor WP hooks mocking
+- Map: `/tests/notifications/ModuleTest.php` + `/tests/bootstrap.php`
+
+9) VALIDATIE & ZIP
+- Toon `scripts/build-plugin.sh` die:
+  - `composer install --no-dev`
+  - syntax check
+  - zip maakt naar `dist/booking-pro-suite.zip` (INCLUSIEF vendor/)
+- Noem commando’s om te draaien
+
+LEVERING
+- Lever ALLE bestanden met volledige inhoud in correcte paden.
+
+[2025-10-09T11:40:36] thinking
+
+**Considering multi-step plan approach**
+
+I’m sorting out whether to use the planning tool for this complex multi-step task and how to structure step-by-step output with directories, file contents, and shell commands, following the user’s instructions about workspace setup and output format from an unseen primer.
+[2025-10-09T11:40:37] tokens used: 4.382
+[2025-10-09T11:40:37] tokens used: 4.382
+
+[2025-10-09T11:40:45] thinking
+
+**Investigating allowed commands under approval_policy**
+[2025-10-09T11:40:46] tokens used: 4.885
+[2025-10-09T11:40:46] tokens used: 4.885
+
+[2025-10-09T11:40:52] thinking
+
+**Exploring command restrictions**
+[2025-10-09T11:40:52] tokens used: 5.413
+[2025-10-09T11:40:52] tokens used: 5.413
+
+[2025-10-09T11:41:50] thinking
+
+**Evaluating command execution restrictions**
+
+This is a deep reflection on the inability to run shell commands or create files directly, so I'm piecing together how to deliver the complete plugin code textually while noting that actual file creation isn’t possible due to environment constraints. I plan to produce full code content step-by-step for each file and directory, simulating the plugin structure as best as I can without executing commands, and acknowledging these limitations in the final output.
+**Designing module hooking and test strategy**
+
+I’m working through restructuring the Module class so that it adds WordPress action hooks properly in its `init()` method, ensuring the REST controller registers its routes via hooked callbacks. I’m also figuring out how to test the hooking using BrainMonkey by aliasing `add_action` and `add_shortcode` to record calls, then asserting those hooks are present. To avoid direct WP function calls in tests, I plan to inject a stubbed REST controller that marks when its `register()` is called, making the tests clearer and safer without external dependencies.
+**Assembling core module management and notification module basics**
+
+I’m clarifying the core module lifecycle: firing a hook with the modules list before booting them, then firing a hook afterward with no argument as specified. The `ModuleInterface` declares `init()`, and the `Modules` class manages modules and calls their `init()` on `boot()`. For Step 4, I’m preparing a bare notification module implementing the interface, plus updating `plugin.php` to register this notification module on the core modules register hook. The actual REST controller and hooking come in later steps.
+[2025-10-09T11:43:34] codex
+**Designing module hooking and test strategy**
+
+I’m working through restructuring the Module class so that it adds WordPress action hooks properly in its `init()` method, ensuring the REST controller registers its routes via hooked callbacks. I’m also figuring out how to test the hooking using BrainMonkey by aliasing `add_action` and `add_shortcode` to record calls, then asserting those hooks are present. To avoid direct WP function calls in tests, I plan to inject a stubbed REST controller that marks when its `register()` is called, making the tests clearer and safer without external dependencies.
+[2025-10-09T11:43:34] codex
+**Assembling core module management and notification module basics**
+
+I’m clarifying the core module lifecycle: firing a hook with the modules list before booting them, then firing a hook afterward with no argument as specified. The `ModuleInterface` declares `init()`, and the `Modules` class manages modules and calls their `init()` on `boot()`. For Step 4, I’m preparing a bare notification module implementing the interface, plus updating `plugin.php` to register this notification module on the core modules register hook. The actual REST controller and hooking come in later steps.
+[2025-10-09T11:43:34] codex
+
+**Step 1**
+- Structure:
+```
+.
+├── plugin.php
+├── core/
+├── modules/
+│   └── notifications/
+├── assets/
+├── languages/
+├── tests/
+├── scripts/
+└── dist/
+```
+- `plugin.php`:
+```php
+<?php
+/**
+ * Plugin Name: Booking Pro Suite
+ * Plugin URI: https://example.com/booking-pro-suite
+ * Description: Modular booking suite plugin scaffold.
+ * Version: 0.1.0
+ * Author: Booking Pro Team
+ * Author URI: https://example.com
+ * Text Domain: sbdp
+ * Domain Path: /languages
+ */
+
+defined('ABSPATH') || exit;
+
+$autoload = __DIR__ . '/vendor/autoload.php';
+if (file_exists($autoload)) {
+    require $autoload;
+}
+
+require __DIR__ . '/core/bootstrap.php';
+```
+
+**Step 2**
+- Structure (new files highlighted):
+```
+.
+├── composer.json
+├── plugin.php
+├── core/
+├── modules/
+│   └── notifications/
+├── assets/
+├── languages/
+├── tests/
+├── scripts/
+└── dist/
+```
+- `composer.json`:
+```json
+{
+    "name": "booking/pro-suite",
+    "description": "Booking Pro Suite WordPress plugin",
+    "type": "wordpress-plugin",
+    "license": "GPL-3.0-or-later",
+    "require": {},
+    "require-dev": {
+        "phpunit/phpunit": "^9.6",
+        "squizlabs/php_codesniffer": "^3.9",
+        "phpstan/phpstan": "^2.1",
+        "brain/monkey": "^2.6",
+        "wp-coding-standards/wpcs": "^3.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "BSP\\Core\\": "core/src/",
+            "BSP\\Notifications\\": "modules/notifications/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "BSP\\Core\\Tests\\": "tests/"
+        }
+    }
+}
+```
+- Command to run: `composer install && composer dump-autoload`
+
+**Step 3**
+- Structure:
+```
+.
+├── composer.json
+├── plugin.php
+├── core/
+│   ├── bootstrap.php
+│   └── src/
+│       ├── CoreServiceProvider.php
+│       ├── ModuleInterface.php
+│       └── Modules.php
+├── modules/
+│   └── notifications/
+├── assets/
+├── languages/
+├── tests/
+├── scripts/
+└── dist/
+```
+- `core/bootstrap.php`:
+```php
+<?php
+
+declare(strict_types=1);
+
+use BSP\Core\CoreServiceProvider;
+
+defined('ABSPATH') || exit;
+
+$service_provider = new CoreServiceProvider();
+
+add_action(
+    'plugins_loaded',
+    static function () use ($service_provider): void {
+        $service_provider->boot();
+    }
+);
+```
+- `core/src/ModuleInterface.php`:
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace BSP\Core;
+
+interface ModuleInterface
+{
+    public function init(): void;
+}
+```
+- `core/src/Modules.php`:
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace BSP\Core;
+
+final class Modules
+{
+    /**
+     * @var ModuleInterface[]
+     */
+    private array $modules = [];
+
+    public function add(ModuleInterface $module): void
+    {
+        $this->modules[] = $module;
+    }
+
+    /**
+     * @return ModuleInterface[]
+     */
+    public function all(): array
+    {
+        return $this->modules;
+    }
+
+    public function boot(): void
+    {
+        foreach ($this->modules as $module) {
+            $module->init();
+        }
+    }
+}
+```
+- `core/src/CoreServiceProvider.php`:
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace BSP\Core;
+
+final class CoreServiceProvider
+{
+    private Modules $modules;
+
+    public function __construct(?Modules $modules = null)
+    {
+        $this->modules = $modules ?? new Modules();
+    }
+
+    public function modules(): Modules
+    {
+        return $this->modules;
+    }
+
+    public function boot(): void
+    {
+        $modules = $this->modules;
+
+        do_action('bsp/core/modules/register', $modules);
+
+        $modules->boot();
+
+        do_action('bsp/core/modules/booted');
+    }
+}
+```
+
+**Step 4**
+- Structure (module bootstrap added):
+```
+.
+├── composer.json
+├── plugin.php
+├── core/
+│   ├── bootstrap.php
+│   └── src/
+│       ├── CoreServiceProvider.php
+│       ├── ModuleInterface.php
+│       └── Modules.php
+├── modules/
+│   └── notifications/
+│       └── Module.php
+├── assets/
+├── languages/
+├── tests/
+├── scripts/
+└── dist/
+```
+- `plugin.php` (updated to register module):
+```php
+<?php
+/**
+ * Plugin Name: Booking Pro Suite
+ * Plugin URI: https://example.com/booking-pro-suite
+ * Description: Modular booking suite plugin scaffold.
+ * Version: 0.1.0
+ * Author: Booking Pro Team
+ * Author URI: https://example.com
+ * Text Domain: sbdp
+ * Domain Path: /languages
+ */
+
+defined('ABSPATH') || exit;
+
+$autoload = __DIR__ . '/vendor/autoload.php';
+if (file_exists($autoload)) {
+    require $autoload;
+}
+
+require __DIR__ . '/core/bootstrap.php';
+
+add_action(
+    'bsp/core/modules/register',
+    static function (\BSP\Core\Modules $modules): void {
+        $modules->add(new \BSP\Notifications\Module());
+    }
+);
+```
+- `modules/notifications/Module.php`:
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace BSP\Notifications;
+
+use BSP\Core\ModuleInterface;
+
+final class Module implements ModuleInterface
+{
+    public function init(): void
+    {
+        // Hooks will be registered in subsequent steps.
+    }
+}
+```
+
+**Step 5**
+- Structure:
+```
+.
+├── composer.json
+├── plugin.php
+├── core/
+│   ├── bootstrap.php
+│   └── src/
+│       ├── CoreServiceProvider.php
+│       ├── ModuleInterface.php
+│       └── Modules.php
+├── modules/
+│   └── notifications/
+│       ├── Module.php
+│       └── RestController.php
+├── assets/
+├── languages/
+├── tests/
+├── scripts/
+└── dist/
+```
+- `modules/notifications/RestController.php`:
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace BSP\Notifications;
+
+use WP_REST_Request;
+use WP_REST_Response;
+use WP_REST_Server;
+
+final class RestController
+{
+    public function register(): void
+    {
+        add_action('rest_api_init', [$this, 'register_routes']);
+    }
+
+    public function register_routes(): void
+    {
+        register_rest_route(
+            'bsp/v1',
+            '/notifications',
+            [
+                'methods'             => WP_REST_Server::READABLE,
+                'callback'            => [$this, 'get_notifications'],
+                'permission_callback' => [$this, 'permissions_check'],
+            ]
+        );
+    }
+
+    public function permissions_check($request): bool
+    {
+        return current_user_can('read');
+    }
+
+    public function get_notifications(WP_REST_Request $request): WP_REST_Response
+    {
+        return rest_ensure_response(['ok' => true]);
+    }
+}
+```
+- `modules/notifications/Module.php` (rest bootstrap wired):
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace BSP\Notifications;
+
+use BSP\Core\ModuleInterface;
+
+final class Module implements ModuleInterface
+{
+    private RestController $rest_controller;
+
+    public function __construct(?RestController $rest_controller = null)
+    {
+        $this->rest_controller = $rest_controller ?? new RestController();
+    }
+
+    public function init(): void
+    {
+        $this->rest_controller->register();
+    }
+}
+```
+
+**Step 6**
+- Structure unchanged; module extended for shortcode:
+- `modules/notifications/Module.php`:
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace BSP\Notifications;
+
+use BSP\Core\ModuleInterface;
+
+final class Module implements ModuleInterface
+{
+    private RestController $rest_controller;
+
+    public function __construct(?RestController $rest_controller = null)
+    {
+        $this->rest_controller = $rest_controller ?? new RestController();
+    }
+
+    public function init(): void
+    {
+        $this->rest_controller->register();
+
+        add_shortcode('booking_notifications', [$this, 'render_notifications_shortcode']);
+    }
+
+    public function render_notifications_shortcode(array $atts = []): string
+    {
+        $atts = shortcode_atts(
+            [
+                'title' => __('Notifications', 'sbdp'),
+            ],
+            $atts,
+            'booking_notifications'
+        );
+
+        $title = isset($atts['title']) ? sanitize_text_field($atts['title']) : '';
+
+        $html  = '<div class="bsp-notifications" data-bsp-component="notifications">';
+        if ('' !== $title) {
+            $html .= '<h3 class="bsp-notifications__title">' . esc_html($title) . '</h3>';
+        }
+        $html .= '<ul class="bsp-notifications__list">';
+        $html .= '<li class="bsp-notifications__item bsp-notifications__item--placeholder">'
+            . esc_html__('Loading notifications…', 'sbdp')
+            . '</li>';
+        $html .= '</ul>';
+        $html .= '</div>';
+
+        return (string) wp_kses_post($html);
+    }
+}
+```
+
+**Step 7**
+- Structure unchanged; module now handles admin settings:
+- `modules/notifications/Module.php`:
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace BSP\Notifications;
+
+use BSP\Core\ModuleInterface;
+
+final class Module implements ModuleInterface
+{
+    private RestController $rest_controller;
+
+    public function __construct(?RestController $rest_controller = null)
+    {
+        $this->rest_controller = $rest_controller ?? new RestController();
+    }
+
+    public function init(): void
+    {
+        $this->rest_controller->register();
+
+        add_shortcode('booking_notifications', [$this, 'render_notifications_shortcode']);
+        add_action('admin_menu', [$this, 'register_admin_page']);
+        add_action('admin_init', [$this, 'register_settings']);
+    }
+
+    public function render_notifications_shortcode(array $atts = []): string
+    {
+        $atts = shortcode_atts(
+            [
+                'title' => __('Notifications', 'sbdp'),
+            ],
+            $atts,
+            'booking_notifications'
+        );
+
+        $title = isset($atts['title']) ? sanitize_text_field($atts['title']) : '';
+
+        $html  = '<div class="bsp-notifications" data-bsp-component="notifications">';
+        if ('' !== $title) {
+            $html .= '<h3 class="bsp-notifications__title">' . esc_html($title) . '</h3>';
+        }
+        $html .= '<ul class="bsp-notifications__list">';
+        $html .= '<li class="bsp-notifications__item bsp-notifications__item--placeholder">'
+            . esc_html__('Loading notifications…', 'sbdp')
+            . '</li>';
+        $html .= '</ul>';
+        $html .= '</div>';
+
+        return (string) wp_kses_post($html);
+    }
+
+    public function register_admin_page(): void
+    {
+        add_options_page(
+            __('Booking Pro Notifications', 'sbdp'),
+            __('Booking Pro', 'sbdp'),
+            'manage_options',
+            'bsp-notifications',
+            [$this, 'render_admin_page']
+        );
+    }
+
+    public function register_settings(): void
+    {
+        register_setting(
+            'bsp_notifications',
+            'bsp_notifications_enabled',
+            [
+                'type'              => 'boolean',
+                'sanitize_callback' => [$this, 'sanitize_enabled_option'],
+                'default'           => true,
+            ]
+        );
+
+        add_settings_section(
+            'bsp_notifications_main',
+            __('Notification Settings', 'sbdp'),
+            '__return_false',
+            'bsp_notifications'
+        );
+
+        add_settings_field(
+            'bsp_notifications_enabled',
+            __('Enable notifications', 'sbdp'),
+            [$this, 'render_enabled_field'],
+            'bsp_notifications',
+            'bsp_notifications_main'
+        );
+    }
+
+    public function render_admin_page(): void
+    {
+        if (! current_user_can('manage_options')) {
+            return;
+        }
+
+        ?>
+        <div class="wrap">
+            <h1><?php echo esc_html__('Booking Pro Notifications', 'sbdp'); ?></h1>
+            <form action="options.php" method="post">
+                <?php
+                settings_fields('bsp_notifications');
+                do_settings_sections('bsp_notifications');
+                submit_button(__('Save Changes', 'sbdp'));
+                ?>
+            </form>
+        </div>
+        <?php
+    }
+
+    public function render_enabled_field(): void
+    {
+        $value = (bool) get_option('bsp_notifications_enabled', true);
+        ?>
+        <label for="bsp_notifications_enabled">
+            <input
+                type="checkbox"
+                id="bsp_notifications_enabled"
+                name="bsp_notifications_enabled"
+                value="1"
+                <?php checked(true, $value); ?>
+            />
+            <?php echo esc_html__('Send booking notifications to subscribed contacts.', 'sbdp'); ?>
+        </label>
+        <?php
+    }
+
+    public function sanitize_enabled_option($value): bool
+    {
+        return (bool) filter_var($value, FILTER_VALIDATE_BOOLEAN);
+    }
+}
+```
+
+**Step 8**
+- Structure:
+```
+.
+├── composer.json
+├── plugin.php
+├── core/
+│   ├── bootstrap.php
+│   └── src/
+│       ├── CoreServiceProvider.php
+│       ├── ModuleInterface.php
+│       └── Modules.php
+├── modules/
+│   └── notifications/
+│       ├── Module.php
+│       └── RestController.php
+├── tests/
+│   ├── bootstrap.php
+│   └── notifications/
+│       └── ModuleTest.php
+├── assets/
+├── languages/
+├── scripts/
+└── dist/
+```
+- `tests/bootstrap.php`:
+```php
+<?php
+
+declare(strict_types=1);
+
+require dirname(__DIR__) . '/vendor/autoload.php';
+```
+- `tests/notifications/ModuleTest.php`:
+```php
+<?php
+
+declare(strict_types=1);
+
+namespace BSP\Core\Tests\Notifications;
+
+use BSP\Notifications\Module;
+use BSP\Notifications\RestController;
+use Brain\Monkey;
+use Brain\Monkey\Functions;
+use PHPUnit\Framework\TestCase;
+
+final class ModuleTest extends TestCase
+{
+    protected function setUp(): void
+    {
+        parent::setUp();
+        Monkey\setUp();
+    }
+
+    protected function tearDown(): void
+    {
+        Monkey\tearDown();
+        parent::tearDown();
+    }
+
+    public function testInitRegistersHooks(): void
+    {
+        $hooks = [];
+        Functions\when('add_action')->alias(
+            static function ($hook, $callback, $priority = 10, $accepted_args = 1) use (&$hooks) {
+                $hooks[] = [$hook, $callback, $priority, $accepted_args];
+                return true;
+            }
+        );
+
+        $shortcodes = [];
+        Functions\when('add_shortcode')->alias(
+            static function ($tag, $callback) use (&$shortcodes) {
+                $shortcodes[] = [$tag, $callback];
+                return true;
+            }
+        );
+
+        $module = new Module(new RestController());
+        $module->init();
+
+        $hookNames = array_map(static fn($item) => $item[0], $hooks);
+        $this->assertContains('rest_api_init', $hookNames);
+        $this->assertContains('admin_menu', $hookNames);
+        $this->assertContains('admin_init', $hookNames);
+
+        $shortcodeTags = array_map(static fn($item) => $item[0], $shortcodes);
+        $this->assertContains('booking_notifications', $shortcodeTags);
+    }
+}
+```
+
+**Step 9**
+- Structure (new script):
+```
+.
+├── composer.json
+├── plugin.php
+├── core/
+│   ├── bootstrap.php
+│   └── src/
+│       ├── CoreServiceProvider.php
+│       ├── ModuleInterface.php
+│       └── Modules.php
+├── modules/
+│   └── notifications/
+│       ├── Module.php
+│       └── RestController.php
+├── tests/
+│   ├── bootstrap.php
+│   └── notifications/
+│       └── ModuleTest.php
+├── scripts/
+│   └── build-plugin.sh
+├── assets/
+├── languages/
+└── dist/
+```
+- `scripts/build-plugin.sh`:
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+
+pushd "$ROOT_DIR" >/dev/null
+
+composer install --no-dev --optimize-autoloader
+
+find core modules -name '*.php' -print0 | xargs -0 -n1 php -l
+
+ZIP_PATH="$ROOT_DIR/dist/booking-pro-suite.zip"
+rm -f "$ZIP_PATH"
+mkdir -p "$(dirname "$ZIP_PATH")"
+
+zip -r "$ZIP_PATH" \
+    plugin.php \
+    core \
+    modules \
+    assets \
+    languages \
+    vendor \
+    composer.json \
+    composer.lock 2>/dev/null || true
+
+popd >/dev/null
+```
+- Build commands:
+  - `composer install --no-dev --optimize-autoloader`
+  - `bash scripts/build-plugin.sh`
+
+Limiter: commands/tests not executed here due to sandbox restrictions; run them locally after creating the files.
+
+Next steps:
+1. Run `composer install && composer dump-autoload`.
+2. Execute `vendor/bin/phpunit --configuration tests/phpunit.xml.dist` once configuration exists.
+3. Generate the distributable via `bash scripts/build-plugin.sh` and verify the ZIP inside `dist/`.
+[2025-10-09T11:44:00] tokens used: 22.477

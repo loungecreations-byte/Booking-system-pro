@@ -1,0 +1,376 @@
+{
+    "version": "0.4",
+    "title": "Bookable Experience Template",
+    "type": "page",
+    "content": [
+        {
+            "id": "hero-section",
+            "elType": "section",
+            "settings": {
+                "structure": "1",
+                "background_background": "classic",
+                "background_image": {
+                    "url": "https://example.com/path/to/your-hero.jpg"
+                },
+                "background_overlay_color": "#0f172acc",
+                "padding": {
+                    "unit": "px",
+                    "top": "140",
+                    "right": "0",
+                    "bottom": "140",
+                    "left": "0",
+                    "isLinked": true
+                }
+            },
+            "elements": [
+                {
+                    "id": "hero-container",
+                    "elType": "container",
+                    "isInner": false,
+                    "settings": {
+                        "content_width": "boxed",
+                        "boxed_width": {
+                            "unit": "px",
+                            "size": 1180
+                        }
+                    },
+                    "elements": [
+                        {
+                            "id": "hero-columns",
+                            "elType": "section",
+                            "settings": {
+                                "structure": "20"
+                            },
+                            "elements": [
+                                {
+                                    "id": "hero-column-left",
+                                    "elType": "column",
+                                    "settings": {
+                                        "column_width": 60
+                                    },
+                                    "elements": [
+                                        {
+                                            "id": "hero-heading",
+                                            "elType": "widget",
+                                            "widgetType": "heading",
+                                            "settings": {
+                                                "title": "Plan je dag op zijn best",
+                                                "tag": "h1",
+                                                "align": "left",
+                                                "typography_typography": "custom",
+                                                "typography_font_size": {
+                                                    "unit": "px",
+                                                    "size": 56
+                                                },
+                                                "text_color": "#ffffff"
+                                            }
+                                        },
+                                        {
+                                            "id": "hero-highlight",
+                                            "elType": "widget",
+                                            "widgetType": "text-editor",
+                                            "settings": {
+                                                "editor": "<p style=\"color:#e2e8f0;font-size:18px;\">Een premium dagprogramma met lokale hosts, realtime beschikbaarheid en directe planner-integratie.</p>"
+                                            }
+                                        },
+                                        {
+                                            "id": "hero-buttons",
+                                            "elType": "section",
+                                            "isInner": true,
+                                            "settings": {
+                                                "layout": "inline"
+                                            },
+                                            "elements": [
+                                                {
+                                                    "id": "btn-primary",
+                                                    "elType": "column",
+                                                    "elements": [
+                                                        {
+                                                            "id": "hero-book-button",
+                                                            "elType": "widget",
+                                                            "widgetType": "button",
+                                                            "settings": {
+                                                                "text": "Bekijk beschikbaarheid",
+                                                                "link": {
+                                                                    "url": "#sbdp-availability-card"
+                                                                },
+                                                                "button_type": "cta",
+                                                                "background_color": "#22d3ee",
+                                                                "text_color": "#0f172a"
+                                                            }
+                                                        }
+                                                    ]
+                                                },
+                                                {
+                                                    "id": "btn-secondary",
+                                                    "elType": "column",
+                                                    "elements": [
+                                                        {
+                                                            "id": "hero-plan-button",
+                                                            "elType": "widget",
+                                                            "widgetType": "button",
+                                                            "settings": {
+                                                                "text": "Plan je dag",
+                                                                "link": {
+                                                                    "url": "#sbdp-availability-card"
+                                                                },
+                                                                "button_type": "secondary",
+                                                                "background_color": "#ffffff0d",
+                                                                "text_color": "#ffffff",
+                                                                "border_color": "#66eefa",
+                                                                "border_width": {
+                                                                    "unit": "px",
+                                                                    "size": 1
+                                                                }
+                                                            }
+                                                        }
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                },
+                                {
+                                    "id": "hero-column-right",
+                                    "elType": "column",
+                                    "settings": {
+                                        "column_width": 40
+                                    },
+                                    "elements": [
+                                        {
+                                            "id": "hero-badge",
+                                            "elType": "widget",
+                                            "widgetType": "text-editor",
+                                            "settings": {
+                                                "editor": "<div style=\"background:rgba(15,23,42,0.35);padding:18px;border-radius:18px;color:#e2e8f0;font-size:15px;\">⭐ &nbsp;Meest geboekt door groepen &amp; gezinnen</div>"
+                                            }
+                                        },
+                                        {
+                                            "id": "hero-gallery",
+                                            "elType": "widget",
+                                            "widgetType": "image",
+                                            "settings": {
+                                                "image": {
+                                                    "url": "https://example.com/path/to/gallery.jpg"
+                                                },
+                                                "image_size": "large",
+                                                "border_radius": {
+                                                    "unit": "px",
+                                                    "top": "24",
+                                                    "right": "24",
+                                                    "bottom": "24",
+                                                    "left": "24",
+                                                    "isLinked": true
+                                                }
+                                            }
+                                        }
+                                    ]
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "booking-layout",
+            "elType": "section",
+            "settings": {
+                "structure": "20",
+                "background_color": "#f8fafc",
+                "padding": {
+                    "unit": "px",
+                    "top": "60",
+                    "right": "0",
+                    "bottom": "60",
+                    "left": "0",
+                    "isLinked": true
+                }
+            },
+            "elements": [
+                {
+                    "id": "booking-columns",
+                    "elType": "section",
+                    "settings": {
+                        "structure": "20"
+                    },
+                    "elements": [
+                        {
+                            "id": "booking-content-column",
+                            "elType": "column",
+                            "settings": {
+                                "column_width": 60,
+                                "padding": {
+                                    "unit": "px",
+                                    "top": "0",
+                                    "right": "40",
+                                    "bottom": "0",
+                                    "left": "0",
+                                    "isLinked": false
+                                }
+                            },
+                            "elements": [
+                                {
+                                    "id": "experience-intro",
+                                    "elType": "widget",
+                                    "widgetType": "text-editor",
+                                    "settings": {
+                                        "editor": "<p style=\"font-size:16px;color:#475569;\">Combineer de beste lokale ervaringen in één reservering. Scroll verder voor het volledige programma of voeg direct meerdere activiteiten toe via onze planner.</p>"
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "id": "booking-sidebar-column",
+                            "elType": "column",
+                            "settings": {
+                                "column_width": 40,
+                                "padding": {
+                                    "unit": "px",
+                                    "top": "0",
+                                    "right": "0",
+                                    "bottom": "0",
+                                    "left": "40",
+                                    "isLinked": false
+                                },
+                                "sticky": "top",
+                                "sticky_offset": {
+                                    "unit": "px",
+                                    "size": 120
+                                }
+                            },
+                            "elements": [
+                                {
+                                    "id": "booking-widget",
+                                    "elType": "widget",
+                                    "widgetType": "woocommerce-product-add-to-cart",
+                                    "settings": {
+                                        "form_layout": "inline"
+                                    }
+                                },
+                                {
+                                    "id": "assistance-note",
+                                    "elType": "widget",
+                                    "widgetType": "text-editor",
+                                    "settings": {
+                                        "editor": "<div style=\"margin-top:20px;padding:16px;border-radius:14px;background:#ffffff;border:1px solid #e2e8f0;font-size:14px;color:#475569;\">🤝 &nbsp;<strong>Service team</strong><br>Hulp nodig bij maatwerk? Bel ons op <a href=\"tel:+31102040000\">010-204 0000</a> of chat via de planning.</div>"
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "experience-sections",
+            "elType": "section",
+            "settings": {
+                "structure": "1",
+                "padding": {
+                    "unit": "px",
+                    "top": "60",
+                    "right": "0",
+                    "bottom": "60",
+                    "left": "0",
+                    "isLinked": true
+                }
+            },
+            "elements": [
+                {
+                    "id": "experience-container",
+                    "elType": "container",
+                    "settings": {
+                        "content_width": "boxed",
+                        "boxed_width": {
+                            "unit": "px",
+                            "size": 1180
+                        }
+                    },
+                    "elements": [
+                        {
+                            "id": "experience-text",
+                            "elType": "widget",
+                            "widgetType": "text-editor",
+                            "settings": {
+                                "editor": "<p style=\"font-size:15px;color:#64748b;\">Hieronder tonen we automatisch de highlights, dagindeling en praktische details uit het Booking Pro template. Gebruik filters in WordPress om de inhoud verder te verfijnen.</p>"
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "id": "faq-contact",
+            "elType": "section",
+            "settings": {
+                "structure": "20",
+                "background_color": "#0f172a",
+                "padding": {
+                    "unit": "px",
+                    "top": "80",
+                    "right": "0",
+                    "bottom": "80",
+                    "left": "0",
+                    "isLinked": true
+                }
+            },
+            "elements": [
+                {
+                    "id": "faq-columns",
+                    "elType": "section",
+                    "settings": {
+                        "structure": "20"
+                    },
+                    "elements": [
+                        {
+                            "id": "faq-left",
+                            "elType": "column",
+                            "settings": {
+                                "column_width": 60
+                            },
+                            "elements": [
+                                {
+                                    "id": "faq-heading",
+                                    "elType": "widget",
+                                    "widgetType": "heading",
+                                    "settings": {
+                                        "title": "Veelgestelde vragen",
+                                        "tag": "h2",
+                                        "align": "left",
+                                        "text_color": "#ffffff"
+                                    }
+                                },
+                                {
+                                    "id": "faq-text",
+                                    "elType": "widget",
+                                    "widgetType": "text-editor",
+                                    "settings": {
+                                        "editor": "<p style=\"color:#e2e8f0;\">De booking form vult automatisch FAQ-items via filters. Voeg hier gerust een extra tekst of een Elementor-accordion toe.</p>"
+                                    }
+                                }
+                            ]
+                        },
+                        {
+                            "id": "faq-right",
+                            "elType": "column",
+                            "settings": {
+                                "column_width": 40
+                            },
+                            "elements": [
+                                {
+                                    "id": "faq-contact-box",
+                                    "elType": "widget",
+                                    "widgetType": "text-editor",
+                                    "settings": {
+                                        "editor": "<div style=\"background:rgba(15,23,42,0.45);padding:24px;border-radius:18px;color:#e2e8f0;font-size:15px;\"><strong>Persoonlijk advies</strong><br>Plan een videocall met onze planners of mail ons op <a href=\"mailto:service@owncreations.com\" style=\"color:#38bdf8;\">service@owncreations.com</a>.</div>"
+                                    }
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

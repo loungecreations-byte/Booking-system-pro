@@ -1,0 +1,146 @@
+# ==========================================================
+#  BOOKING PRO 4.0 — Productconfiguratie & Instellingen
+#  Doel: Bouw backend-configuraties voor boekbare producten.
+#  Compatibel met booking-pro-module-4.0 backend-refresh
+# ==========================================================
+
+task: build-booking-settings
+
+output-policy:
+  - verbose
+  - color
+  - fail-fast
+
+steps:
+
+# 1️⃣ Module-registratie
+- name: "Register booking settings module"
+  run: >
+    agent.run("booking_core.register", {
+      modules: ["settings"],
+      autoload: true,
+      version_check: true
+    })
+
+# 2️⃣ Basisinstellingen — boekingsduur
+- name: "Configure booking duration"
+  run: >
+    agent.run("booking_settings.set", {
+      key: "booking_duration",
+      type: "select",
+      label: "Boekingsduur",
+      options: ["vast", "variabel"],
+      default: "vast",
+      description: "Stel vaste of variabele duur in (bijv. 1 dag of 30 minuten)."
+    })
+
+# 3️⃣ Eenheidstype — dag/nacht/uur
+- name: "Configure duration unit"
+  run: >
+    agent.run("booking_settings.set", {
+      key: "duration_unit",
+      type: "select",
+      label: "Eenheidstype",
+      options: ["per_dag", "per_nacht", "per_uur"],
+      default: "per_dag",
+      description: "Kies tussen ‘per dag’, ‘per nacht’ of ‘per uur’."
+    })
+
+# 4️⃣ Max. aantal boekingen per tijdseenheid
+- name: "Configure max bookings per unit"
+  run: >
+    agent.run("booking_settings.set", {
+      key: "max_bookings_per_unit",
+      type: "number",
+      label: "Max. aantal boekingen per tijdseenheid",
+      min: 1,
+      max: 100,
+      default: 1,
+      description: "Beperk het aantal gelijktijdige reserveringen voor capaciteitsbeheer."
+    })
+
+# 5️⃣ Bevestiging vereisen
+- name: "Configure confirmation requirement"
+  run: >
+    agent.run("booking_settings.set", {
+      key: "requires_confirmation",
+      type: "toggle",
+      label: "Bevestiging vereisen",
+      default: false,
+      description: "Optie: klant boekt → admin bevestigt handmatig voor meer controle."
+    })
+
+# 6️⃣ Annulering toestaan
+- name: "Configure cancellation policy"
+  run: >
+    agent.run("booking_settings.set", {
+      key: "allow_cancellation",
+      type: "toggle",
+      label: "Annulering toestaan",
+      default: true,
+      description: "Sta klanten toe hun boeking te annuleren binnen een bepaalde periode."
+    })
+
+# 7️⃣ Annuleringstermijn (dagen)
+- name: "Configure cancellation days limit"
+  run: >
+    agent.run("booking_settings.set", {
+      key: "cancellation_days_limit",
+      type: "number",
+      label: "Annuleringstermijn (dagen)",
+      min: 0,
+      max: 30,
+      default: 2,
+      description: "Instellen hoeveel dagen op voorhand geannuleerd mag worden."
+    })
+
+# 8️⃣ Buffer tussen boekingen
+- name: "Configure booking buffer"
+  run: >
+    agent.run("booking_settings.set", {
+      key: "buffer_between_bookings",
+      type: "number",
+      label: "Buffer tussen boekingen (uren)",
+      min: 0,
+      max: 24,
+      default: 1,
+      description: "Pauze tussen boekingen voor schoonmaak of voorbereiding."
+    })
+
+# 9️⃣ Prijsaanpassing per duur
+- name: "Configure duration price adjustment"
+  run: >
+    agent.run("booking_settings.set", {
+      key: "duration_price_adjustment",
+      type: "slider",
+      label: "Prijsaanpassing per duur",
+      min: -50,
+      max: 50,
+      step: 5,
+      default: 0,
+      unit: "%",
+      description: "Stel prijsaanpassing in op basis van boekingsduur (korting of toeslag)."
+    })
+
+# 🔟 Validatie & afronding
+- name: "Validate and register settings"
+  run: >
+    agent.run("booking_settings.validate", {
+      required_keys: [
+        "booking_duration",
+        "duration_unit",
+        "max_bookings_per_unit",
+        "requires_confirmation",
+        "allow_cancellation",
+        "cancellation_days_limit",
+        "buffer_between_bookings",
+        "duration_price_adjustment"
+      ],
+      save_to: "modules/settings/config.json",
+      log_results: true
+    })
+
+# ✅ Klaar
+- name: "Finish build"
+  run: >
+    log.success("✅ Booking Settings-module succesvol opgebouwd en geregistreerd in Booking Pro 4.0 backend.")

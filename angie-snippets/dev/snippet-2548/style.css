@@ -1,0 +1,127 @@
+.partner-comparison-wrapper-af636d83 {
+    font-family: inherit;
+    color: #fff; /* Ensure text matches the dark theme base */
+}
+.partner-comparison-wrapper-af636d83 .pc-header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+.partner-comparison-wrapper-af636d83 .pc-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: center;
+}
+.partner-comparison-wrapper-af636d83 .pc-card {
+    background: #252525; /* Noticeable dark grey card background */
+    border: 1px solid #444;
+    border-radius: 8px;
+    padding: 30px;
+    flex: 1 1 300px;
+    max-width: 350px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.5);
+    color: #f1f1f1; /* Explicit light text color for dark background */
+}
+.partner-comparison-wrapper-af636d83 .pc-card.recommended {
+    border: 2px solid #D4AF37; /* Gold accent border */
+    transform: scale(1.02);
+    box-shadow: 0 8px 15px rgba(212,175,55,0.15);
+    z-index: 1;
+}
+.partner-comparison-wrapper-af636d83 .pc-badge {
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #D4AF37;
+    color: #000;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+.partner-comparison-wrapper-af636d83 .pc-label {
+    font-size: 12px;
+    color: #aaa;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+}
+.partner-comparison-wrapper-af636d83 h3 {
+    margin: 0 0 10px;
+    font-size: 22px;
+    color: #fff; /* Ensure headers inside cards are visible */
+}
+.partner-comparison-wrapper-af636d83 .pc-price {
+    font-size: 24px;
+    font-weight: bold;
+    margin-bottom: 15px;
+    color: #D4AF37; /* Highlighted price text */
+}
+.partner-comparison-wrapper-af636d83 .pc-desc {
+    font-size: 14px;
+    margin-bottom: 20px;
+    color: #ddd;
+}
+.partner-comparison-wrapper-af636d83 .pc-features {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 20px;
+    flex-grow: 1;
+}
+.partner-comparison-wrapper-af636d83 .pc-features li {
+    position: relative;
+    padding-left: 20px;
+    margin-bottom: 10px;
+    font-size: 14px;
+    color: #ccc;
+}
+.partner-comparison-wrapper-af636d83 .pc-features li::before {
+    content: "✓";
+    position: absolute;
+    left: 0;
+    color: #D4AF37; /* Match checkmarks with accent */
+}
+.partner-comparison-wrapper-af636d83 .pc-best-for {
+    background: #1a1a1a; /* Darker block for contrast inside card */
+    padding: 15px;
+    border-radius: 6px;
+    font-size: 13px;
+    margin-bottom: 20px;
+    color: #eee;
+}
+.partner-comparison-wrapper-af636d83 .pc-button {
+    display: block;
+    text-align: center;
+    background: #444;
+    color: #fff;
+    padding: 12px;
+    border-radius: 4px;
+    text-decoration: none;
+    font-weight: bold;
+    transition: 0.3s;
+}
+.partner-comparison-wrapper-af636d83 .pc-button:hover {
+    background: #555;
+}
+.partner-comparison-wrapper-af636d83 .pc-card.recommended .pc-button {
+    background: #D4AF37;
+    color: #000; /* Dark text for contrast on gold button */
+}
+.partner-comparison-wrapper-af636d83 .pc-card.recommended .pc-button:hover {
+    background: #c49d28;
+}
+.partner-comparison-wrapper-af636d83 .pc-footer {
+    text-align: center;
+    margin-top: 40px;
+    font-size: 14px;
+    color: #aaa;
+}
+@media (max-width: 768px) {
+    .partner-comparison-wrapper-af636d83 .pc-card.recommended {
+        transform: scale(1);
+    }
+}

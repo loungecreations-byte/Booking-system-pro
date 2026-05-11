@@ -1,0 +1,673 @@
+# ============================================================================
+#  FILE: ddb-planning-sessions.codex
+#  PURPOSE: Volledige DagjeDenBosch Planning Suite:
+#           - Planning sessions (DB + JSON)
+#           - Home widget + Jeroen Bosch popup (3 vragen)
+#           - Plan je Dag integratie (sessie inladen + auto-suggesties)
+#           - REST: sessions, activities, to-cart, day-plan/suggest, spin
+#           - Woo integratie (cart, checkout, mijn-account "Mijn dagen")
+#           - Bossche Rad met rewards (message/credit/coupon)
+#           - Bedanktpagina timeline + Rad
+# ============================================================================
+
+task: ddb.planning-suite
+output-policy: [verbose, color, fail-fast]
+
+vars:
+  plugin_slug: "ddb-planning-sessions"
+  plugin_dir: "wp-content/plugins/ddb-planning-sessions"
+  ns: "DDB\\Planning"
+  rest_ns: "ddb/v1"
+  session_table: "ddb_planning_sessions"
+  reward_table: "ddb_rewards"
+
+steps:
+
+# 0) Plugin scaffold
+- name: "Scaffold DDB Planning Sessions plugin"
+  run: >
+    Maak of update een WordPress plugin in ${vars.plugin_dir} met:
+
+    - Hoofdpluginbestand: ${vars.plugin_slug}.php
+    - Mappenstructuur:
+      - ${vars.plugin_dir}/includes/Core
+      - ${vars.plugin_dir}/includes/Models
+      - ${vars.plugin_dir}/includes/REST
+      - ${vars.plugin_dir}/includes/Services
+      - ${vars.plugin_dir}/includes/Woo
+      - ${vars.plugin_dir}/includes/BosscheRad
+      - ${vars.plugin_dir}/assets/js
+
+    Hoofdpluginbestand (${vars.plugin_slug}.php):
+
+    - Plugin header:
+        Plugin Name: DDB Planning Sessions
+        Description: Planning sessies, Plan je Dag, Bossche Rad voor DagjeDenBosch.nl
+        Version: 0.1.0
+        Author: OWN Creations
+    - Definieer constants:
+        DDB_PLANNING_VERSION
+        DDB_PLANNING_DIR
+        DDB_PLANNING_URL
+    - Require composer autoload als aanwezig: DDB_PLANNING_DIR . 'vendor/autoload.php'
+    - Bootstrap class ${vars.ns}\Core\Plugin:
+        - static init() aangeroepen op plugins_loaded
+        - registreert hooks:
+            init
+            rest_api_init
+            woocommerce_checkout_order_processed
+            woocommerce_cart_item_name / woocommerce_get_item_data
+            woocommerce_account_menu_items / endpoints
+    - Registreer activation hook: roept ${vars.ns}\Core\Migration::activate()
+
+    Maak composer.json met:
+      - PSR-4 autoload: "${vars.ns}\\": "includes/"
+      - minimaal require: "php": ">=7.4"
+
+# 1) Database tabellen: planning sessions + rewards
+- name: "Implement Migration class and DB tables"
+  run: >
+    Maak ${vars.plugin_dir}/includes/Core/Migration.php met namespace ${vars.ns}\Core;
+
+    class Migration {
+        public static function activate() { ... }
+        protected static function create_sessions_table() { ... }
+        protected static function create_rewards_table() { ... }
+    }
+
+    In activate():
+      - gebruik global $wpdb; require_once ABSPATH . 'wp-admin/includes/upgrade.php';
+      - roep create_sessions_table() en create_rewards_table() aan.
+
+    Sessietabel: $wpdb->prefix . "${vars.session_table}"
+      Kolommen:
+        id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY
+        session_key VARCHAR(64) UNIQUE NOT NULL
+        user_id BIGINT UNSIGNED DEFAULT 0
+        cart_hash VARCHAR(64) NULL
+        order_id BIGINT UNSIGNED DEFAULT 0
+        status VARCHAR(20) DEFAULT 'active'     -- active, in_cart, converted, abandoned
+        data LONGTEXT NOT NULL                  -- JSON
+        created_at DATETIME NOT NULL
+        updated_at DATETIME NOT NULL
+        expires_at DATETIME NULL
+        KEY user_id (user_id)
+        KEY order_id (order_id)
+        KEY status (status)
+        KEY created_at (created_at)
+
+    Rewardtabel: $wpdb->prefix . "${vars.reward_table}"
+      Kolommen:
+        id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY
+        user_id BIGINT UNSIGNED DEFAULT 0
+        order_id BIGINT UNSIGNED NOT NULL
+        session_key VARCHAR(64) NOT NULL
+        reward_key VARCHAR(64) NOT NULL
+        reward_type VARCHAR(20) NOT NULL       -- message, credit, coupon
+        reward_value VARCHAR(255) NOT NULL     -- tekst, bedrag of percentage
+        meta LONGTEXT NULL                     -- extra info, bijv. coupon code
+        created_at DATETIME NOT NULL
+        UNIQUE KEY unique_order (order_id)
+        KEY user_id (user_id)
+
+# 2) Core\Plugin bootstrap
+- name: "Create Plugin bootstrap class"
+  run: >
+    Maak ${vars.plugin_dir}/includes/Core/Plugin.php met namespace ${vars.ns}\Core;
+
+    class Plugin {
+        public static function init() { ... }
+
+        public static function on_plugins_loaded() { ... }
+        public static function on_init() { ... }
+        public static function on_rest_api_init() { ... }
+        public static function on_checkout_order_processed( $order_id, $posted ) { ... }
+
+        public static function register_account_endpoints() { ... }
+        public static function add_account_menu_items( $items ) { ... }
+    }
+
+    - on_plugins_loaded():
+        - eventueel load_plugin_textdomain
+        - koppel actions:
+            add_action( 'init', [self::class, 'on_init'] );
+            add_action( 'rest_api_init', [self::class, 'on_rest_api_init'] );
+            add_action( 'woocommerce_checkout_order_processed', [self::class, 'on_checkout_order_processed'], 10, 2 );
+            add_filter( 'woocommerce_account_menu_items', [self::class, 'add_account_menu_items'] );
+            add_action( 'init', [self::class, 'register_account_endpoints'] );
+
+    - on_init():
+        - enqueue scripts conditioneel via aparte Core\Assets class (optioneel)
+        - registreer shortcode of data-attributes hooks voor home widget (we targetten front-end via JS).
+
+    - on_rest_api_init():
+        - new ${vars.ns}\REST\SessionController()->register_routes();
+        - new ${vars.ns}\REST\BosscheRadController()->register_routes();
+
+# 3) Session model
+- name: "Create Session model"
+  run: >
+    Maak ${vars.plugin_dir}/includes/Models/Session.php met namespace ${vars.ns}\Models;
+
+    Functionaliteit:
+      - Properties: session_key, user_id, cart_hash, order_id, status, data(array), timestamps.
+      - static function load_by_key( string $key ): ?Session
+      - static function create( array $initial_data = [] ): Session
+      - function save(): void
+      - function get_key(): string
+      - function get_data(): array
+      - function set_data( array $data ): self
+      - function to_array(): array
+
+    Data structuur (array die als JSON in de DB gaat):
+      [
+        'date' => 'Y-m-d',
+        'pax'  => (int),
+        'duration' => 'few_hours|half_day|full_day',
+        'preferences' => [
+          'company_type' => 'couple|family|friends|colleagues|other',
+          'main_focus'   => string[]  // food_drinks, culture_history, active_fun, kids, surprise_me
+        ],
+        'activities' => [
+          [
+            'activity_id' => string,
+            'product_id'  => int,
+            'title'       => string,
+            'date'        => 'Y-m-d',
+            'start'       => 'HH:MM',
+            'end'         => 'HH:MM',
+            'pax'         => int,
+            'pricing'     => [
+              'unit_price'  => float,
+              'total'       => float,
+              'tax'         => float|null
+            ],
+            'meta'        => array
+          ],
+          ...
+        ],
+        'totals' => [
+          'subtotal'    => float,
+          'tax'         => float,
+          'grand_total' => float
+        ],
+        'source' => [
+          'entry_point' => 'home_widget|activities|product_page|plan_your_day',
+          'entry_cta'   => 'plan_your_day|view_activities|other'
+        ]
+      ]
+
+    Session::create():
+      - genereer unieke session_key, bijv: 'ddb_sess_' . wp_generate_uuid4()
+      - status = 'active'
+      - timestamps, data = $initial_data gemerged met defaults
+      - schrijf in DB en return instance.
+
+# 4) PricingService
+- name: "Create PricingService"
+  run: >
+    Maak ${vars.plugin_dir}/includes/Services/PricingService.php met namespace ${vars.ns}\Services;
+
+    class PricingService {
+        public static function calculate_for_activity( int $product_id, string $date, string $start, int $pax ): array {
+            // TODO: koppel hier aan bestaande BSP / WooCommerce Bookings logica.
+            // Voor nu:
+            // - haal product op via wc_get_product
+            // - gebruik een filter 'ddb_planning_price_for_activity' om echte prijslogica in andere plugins te doen.
+            // Return structuur:
+            // [
+            //   'unit_price'  => (float) $unit,
+            //   'total'       => (float) $unit * $pax,
+            //   'tax'         => null of berekende BTW
+            // ]
+        }
+    }
+
+# 5) DayPlanService: auto-suggesties uit widget-antwoorden
+- name: "Create DayPlanService for suggestions"
+  run: >
+    Maak ${vars.plugin_dir}/includes/Services/DayPlanService.php met namespace ${vars.ns}\Services;
+
+    Gebruik ${vars.ns}\Models\Session en PricingService.
+
+    class DayPlanService {
+        public static function build_from_session( Session $session ): Session {
+            $data      = $session->get_data();
+            $date      = $data['date'] ?? null;
+            $pax       = (int) ($data['pax'] ?? 2);
+            $duration  = $data['duration'] ?? 'half_day';
+            $prefs     = $data['preferences'] ?? [];
+            $focus     = $prefs['main_focus'] ?? [];
+            $company   = $prefs['company_type'] ?? null;
+
+            // 1) Bepaal globale tijdlijn per duration:
+            // few_hours  -> bijv. 1–2 blokken
+            // half_day   -> 3 blokken (koffie, hoofdactiviteit, borrel)
+            // full_day   -> 4–5 blokken (koffie, activiteit, lunch, activiteit, borrel)
+            // Maak een eenvoudige interne array met gewenste 'slots' (start/end tijden + type).
+
+            // 2) Map focus + company naar product filters (categorieën/tags).
+            // Voorbeeld-mapping (filterbaar via 'ddb_planning_focus_map'):
+            //  - food_drinks      -> product_cat 'eten-en-drinken'
+            //  - culture_history  -> product_cat 'cultuur-historie'
+            //  - active_fun       -> product_cat 'actief-fun'
+            //  - kids             -> product_tag 'kindvriendelijk'
+            //  - company=family   -> voeg altijd 'kindvriendelijk' toe
+            //  - company=colleagues -> tag 'groepen'
+            //
+            // 3) Voor elk 'slot' zoek je 1 passend product via WC_Product_Query / WP_Query.
+            //    Check beschikbaarheid op $date via filter/hook 'ddb_planning_is_product_available'.
+            //
+            // 4) Voor elk gekozen product:
+            //    - bereken prijs via PricingService::calculate_for_activity()
+            //    - bouw activity array:
+            //      [
+            //        'activity_id' => 'act_' . uniqid(),
+            //        'product_id'  => $product_id,
+            //        'title'       => $product->get_name(),
+            //        'date'        => $date,
+            //        'start'       => $slot_start,
+            //        'end'         => $slot_end,
+            //        'pax'         => $pax,
+            //        'pricing'     => [ ... ]
+            //      ]
+            //
+            // 5) Sla activities[] in $data op, recalc totals.
+            // 6) Laat filters 'ddb_planning_day_plan_before_save' toe om extern te tweaken.
+
+            // Zorg dat als er al activities[] bestaan, je OF aanvult OF optioneel overslaat,
+            // afhankelijk van filter 'ddb_planning_day_plan_replace_existing'.
+
+            $session->set_data( $data )->save();
+            return $session;
+        }
+    }
+
+# 6) REST: SessionController (sessies, activities, to-cart, suggest)
+- name: "Create SessionController with REST routes"
+  run: >
+    Maak ${vars.plugin_dir}/includes/REST/SessionController.php met namespace ${vars.ns}\REST;
+
+    class SessionController extends \WP_REST_Controller {
+        public function register_routes() { ... }
+
+        // handlers voor:
+        // - create_session (POST /session)
+        // - get_session (GET /session/<key>)
+        // - update_session (PATCH /session/<key>)
+        // - add_or_update_activity (POST /session/<key>/activities)
+        // - delete_activity (DELETE /session/<key>/activities/<activity_id>)
+        // - to_cart (POST /session/<key>/to-cart)
+        // - suggest_plan (POST /session/<key>/day-plan/suggest)
+    }
+
+    Routes:
+
+      1) POST /${vars.rest_ns}/session
+         - Body: { date, pax, duration, preferences{}, source{} }
+         - Valideer invoer grof (datum-formaat, ints).
+         - Maak $initial_data = [
+             'date'       => ...,
+             'pax'        => ...,
+             'duration'   => ...,
+             'preferences'=> [...],
+             'source'     => [...]
+           ]
+         - Session::create( $initial_data )
+         - Response: { session_key, data }
+
+      2) GET /${vars.rest_ns}/session/(?P<key>[a-zA-Z0-9_-]+)
+         - Laad Session::load_by_key
+         - Response: { session_key, data, status }
+
+      3) PATCH /${vars.rest_ns}/session/(?P<key>[a-zA-Z0-9_-]+)
+         - Merge partials:
+             - date, pax, duration, preferences, source
+         - preferences: array_merge met bestaande preferences.
+         - Sla op, response: { session_key, data }
+
+      4) POST /${vars.rest_ns}/session/(?P<key>[a-zA-Z0-9_-]+)/activities
+         - Body JSON:
+             {
+               "activity_id": "... (optioneel)",
+               "product_id": 123,
+               "title": "E-chopper tour",
+               "date": "2025-12-14",
+               "start": "10:00",
+               "end": "12:00",
+               "pax": 4
+             }
+         - Als activity_id leeg → genereer 'act_' . uniqid()
+         - Bereken pricing via PricingService
+         - Voeg activiteit toe of overschrijf bestaande in data['activities'].
+         - Recalc totals (som pricing.total voor alle activities, plus eventuele tax).
+         - Response: { session_key, data }
+
+      5) DELETE /${vars.rest_ns}/session/(?P<key>[a-zA-Z0-9_-]+)/activities/(?P<activity_id>[a-zA-Z0-9_-]+)
+         - Verwijder uit activities, recalc totals.
+         - Response: { session_key, data }
+
+      6) POST /${vars.rest_ns}/session/(?P<key>[a-zA-Z0-9_-]+)/to-cart
+         - Laad sessie.
+         - Loop activities:
+             WC()->cart->add_to_cart( product_id, qty=pax, variation_id=0, variation=[], cart_item_data=[
+               'ddb_session'     => session_key,
+               'ddb_activity_id' => activity_id,
+               'date'            => date,
+               'start'           => start,
+               'end'             => end,
+               'pax'             => pax,
+             ] );
+         - Sla cart_hash op in sessie (bijv. md5 van cart contents of WC()->session->get_customer_id()).
+         - status = 'in_cart'.
+         - Response: { success: true, redirect_url: wc_get_cart_url() }
+
+      7) POST /${vars.rest_ns}/session/(?P<key>[a-zA-Z0-9_-]+)/day-plan/suggest
+         - Laad sessie.
+         - Roep DayPlanService::build_from_session( $session ) aan.
+         - Response: { session_key, data }
+
+# 7) Bossche Rad: Rewards + REST
+- name: "Create BosscheRad rewards logic and controller"
+  run: >
+    Maak ${vars.plugin_dir}/includes/BosscheRad/Rewards.php met namespace ${vars.ns}\BosscheRad;
+
+    class Rewards {
+        public static function get_config(): array {
+            // Default config, filterbaar via 'ddb_bossche_rad_config'
+            // NB: gewichten bepalen kans.
+            $config = [
+              [
+                'key'    => 'koffie',
+                'label'  => 'Gratis koffie/thee',
+                'type'   => 'message',
+                'value'  => 'Koffie/thee bij deelnemende partner',
+                'weight' => 45,
+              ],
+              [
+                'key'    => 'snack',
+                'label'  => 'Snack-upgrade',
+                'type'   => 'message',
+                'value'  => 'Bittergarnituur upgrade (daluren)',
+                'weight' => 30,
+              ],
+              [
+                'key'    => 'tegoed5',
+                'label'  => '€5 DDB-tegoed',
+                'type'   => 'credit',
+                'value'  => '5',
+                'weight' => 18,
+              ],
+              [
+                'key'    => 'coupon10',
+                'label'  => '€10 korting',
+                'type'   => 'coupon',
+                'value'  => '10',
+                'weight' => 6,
+              ],
+              [
+                'key'    => 'jackpot',
+                'label'  => 'Bosch Jackpot',
+                'type'   => 'coupon',
+                'value'  => '25',
+                'weight' => 1,
+              ],
+            ];
+            return apply_filters( 'ddb_bossche_rad_config', $config );
+        }
+
+        public static function spin_for_order( int $order_id, string $session_key ): array {
+            // 1) Check of order al reward heeft in ${vars.reward_table}; zo ja -> error.
+            // 2) Bepaal user_id op basis van order->get_user_id() (kan 0 zijn).
+            // 3) Kies reward o.b.v. gewichten.
+            // 4) Sla in rewardtabel op.
+            // 5) Als type=credit: do_action('ddb_bossche_rad_add_credit', $user_id, $reward_value, $order_id).
+            // 6) Als type=coupon:
+            //    - maak Woo coupon met random code BOSCH-XXXX
+            //    - waarde = reward_value euro, type = fixed_cart
+            //    - beperk tot klant-email van order.
+            //    - sla couponcode in reward meta.
+            //    - do_action('ddb_bossche_rad_created_coupon', $coupon_code, $order_id).
+            // 7) Return array met reward + eventueel couponcode.
+
+            // Gebruik filters 'ddb_bossche_rad_can_spin' voor extra validatie.
+        }
+    }
+
+    Maak ${vars.plugin_dir}/includes/REST/BosscheRadController.php met namespace ${vars.ns}\REST;
+
+    class BosscheRadController extends \WP_REST_Controller {
+        public function register_routes() {
+          // POST /${vars.rest_ns}/spin
+        }
+
+        public function handle_spin( \WP_REST_Request $request ) {
+          // Body: { "order_id": int, "session_key": string }
+          // Validatie: order bestaat, status is 'processing' of 'completed', nog geen reward.
+          // Roep Rewards::spin_for_order aan.
+          // Geef JSON terug: { success: true, reward: {...} }
+        }
+    }
+
+# 8) Woo integratie: sessie → order + Mijn dagen
+- name: "Implement Woo integration (cart, checkout, my account)"
+  run: >
+    Maak ${vars.plugin_dir}/includes/Woo/Integration.php met namespace ${vars.ns}\Woo;
+
+    class Integration {
+        public static function init() {
+          // Hook op:
+          // - woocommerce_checkout_order_processed
+          // - woocommerce_get_item_data
+          // - woocommerce_thankyou
+        }
+
+        public static function checkout_order_processed( $order_id, $posted ) {
+          // Lees ddb_session uit WC()->session of cookie.
+          // Als aanwezig:
+          //  - laad Session
+          //  - set order_id, user_id (indien ingelogd), status='converted'
+          //  - sla op
+          //  - update_post_meta( $order_id, '_ddb_session_key', $key );
+          //  - update_post_meta( $order_id, '_ddb_planning_data', json_encode( $session->get_data() ) );
+        }
+
+        public static function filter_item_data( $item_data, $cart_item ) {
+          // Haal date, start, end, pax uit $cart_item['ddb_*'] indien aanwezig.
+          // Voeg nette labels toe voor in cart/checkout/mail:
+          //   Datum, Tijd, Personen.
+        }
+
+        public static function render_thankyou_extras( $order_id ) {
+          // Wordt aangeroepen via hook op 'woocommerce_thankyou':
+          // - Haal _ddb_planning_data op
+          // - Render simpele timeline:
+          //   sorteer activities op date+time en toon lijst.
+          // - Render div voor Bossche Rad:
+          //   <div id="ddb-bossche-rad" data-order-id="..." data-session-key="..."></div>
+        }
+
+        public static function register_account_endpoints() {
+          // Registreer endpoint 'mijn-dagen' via add_rewrite_endpoint('mijn-dagen', EP_ROOT|EP_PAGES)
+        }
+
+        public static function add_account_menu_items( $items ) {
+          // Voeg "Mijn dagen" toe (bijv. voor "Dashboard").
+        }
+
+        public static function render_account_mijn_dagen() {
+          // Zoek orders met meta _ddb_planning_data.
+          // Toon lijst:
+          //  - datum (eerste activity date)
+          //  - titel (bijv. "Jouw dag in Den Bosch")
+          //  - link "Bekijk dag" (simpele detailweergave)
+          //  - link "Boek deze dag opnieuw" -> maakt nieuwe Session op basis van oude data
+          //    en redirect naar /plan-je-dag/?ddb_session=<new_key>
+        }
+    }
+
+    Zorg dat Core\Plugin Integration::init() aanroept op init/plugins_loaded.
+
+# 9) Frontend: home widget + Jeroen Bosch popup JS
+- name: "Create planning-widget.js and enqueue"
+  run: >
+    Maak ${vars.plugin_dir}/assets/js/planning-widget.js
+
+    Functionaliteit (plain JS of kleine IIFE, geen bundler vereist):
+
+      - Zoek op de pagina naar een container, bijv. '.ui-planner-widget' of data-attribuut
+        (maak dit configureerbaar met een data attribuut: data-ddb-planning-widget="1").
+
+      - Verwacht binnen die widget:
+        - input/select voor datum (bijv. [name="ddb_date"] of data-ddb-date)
+        - input voor aantal personen (bijv. [name="ddb_pax"] of data-ddb-pax)
+        - knop "Plan je dag" met data-ddb-plan-button
+
+      - Bij klik op "Plan je dag":
+        - event.preventDefault()
+        - open een simpele modal (via JS in de DOM opgebouwd) met:
+
+          Kop:
+            "Jeroen Bosch vraagt…"
+            "Ik teken jullie dag uit en regel de rest."
+            "Stap 1/3"
+
+          Vraag 1: "Hoelang zijn jullie in Den Bosch?"
+            - radio buttons:
+              - "Een paar uur"     -> value: few_hours
+              - "Een halve dag"    -> value: half_day
+              - "De hele dag/avond" -> value: full_day
+
+          Vraag 2: "Met wie kom je?"
+            - radio:
+              - "Met z’n tweeën" -> couple
+              - "Gezin"          -> family
+              - "Vrienden"       -> friends
+              - "Collega’s"      -> colleagues
+              - "Anders"         -> other
+
+          Vraag 3: "Waar hebben jullie vooral zin in?"
+            - checkboxes:
+              - "Eten & drinken"      -> food_drinks
+              - "Cultuur & historie"  -> culture_history
+              - "Actief & fun"        -> active_fun
+              - "Iets leuks met kids" -> kids
+              - "Verras ons maar"     -> surprise_me
+
+          Knoppen:
+            - "Verder naar Plan je dag"
+            - "Annuleren"
+
+        - Bij "Verder naar Plan je dag":
+          - Lees date & pax uit widget.
+          - Lees antwoorden uit modal.
+          - Haal ddb_session cookie indien aanwezig.
+            - Als geen cookie:
+              - POST naar /wp-json/${vars.rest_ns}/session met:
+                {
+                  "date": date,
+                  "pax": pax,
+                  "duration": selectedDuration,
+                  "preferences": {
+                    "company_type": selectedCompany,
+                    "main_focus": [ ...selectedFocusKeys ]
+                  },
+                  "source": {
+                    "entry_point": "home_widget",
+                    "entry_cta": "plan_your_day"
+                  }
+                }
+            - Als wel cookie:
+              - PATCH naar /wp-json/${vars.rest_ns}/session/<key> met dezelfde velden.
+          - Response: lees session_key.
+          - Sla cookie 'ddb_session' (bv. 7 dagen).
+          - window.location.href = '/plan-je-dag/?ddb_session=' + encodeURIComponent(session_key);
+
+    Maak ${vars.plugin_dir}/includes/Core/Assets.php om dit script te enqueuen op de homepage of waar de widget shortcode draait:
+      - wp_enqueue_script( 'ddb-planning-widget', DDB_PLANNING_URL . 'assets/js/planning-widget.js', [ 'jquery' ], DDB_PLANNING_VERSION, true );
+
+# 10) Plan je Dag React/Vite integratie (session + suggest)
+- name: "Integrate session into existing Plan je Dag app"
+  run: >
+    Veronderstel dat de Plan je Dag app onder assets/js/day-planner/** staat en build naar build/js/dayPlanner.js.
+
+    Voeg een nieuw bestand toe, bijv.:
+      ${vars.plugin_dir}/assets/js/day-planner/ddbSession.ts (of .js)
+
+    In deze module:
+      - Functies:
+        - getSessionKeyFromUrlOrCookie()
+        - fetchSession(key): GET /${vars.rest_ns}/session/<key>
+        - suggestDayPlan(key): POST /${vars.rest_ns}/session/<key>/day-plan/suggest
+      - Exporteer een init functie:
+        initDdbPlanning(appDispatch) die:
+          - sessionKey = getSessionKeyFromUrlOrCookie()
+          - als geen key: return (doe niets)
+          - haal sessie op
+          - als data.activities leeg of niet aanwezig:
+              - roep suggestDayPlan(key) aan
+              - gebruik response.data als initial state voor de timeline
+            - anders:
+              - gebruik bestaande activities uit sessie als initial state
+          - bovenaan de UI:
+            - render een samenvattingskaart op basis van:
+              date, duration, preferences.company_type, preferences.main_focus
+              (tekst: "Jouw avontuur – getekend door Bosch")
+            - voeg een kleine "Aanpassen" link toe die een inline editor opent
+              waarmee je PATCH /session/<key> doet om duration/preferences te wijzigen.
+
+    Integreer initDdbPlanning in de main entry van de Plan je Dag app (bijv. in main.tsx):
+      - import { initDdbPlanning } from './ddbSession';
+      - na het opzetten van state/store: initDdbPlanning(store.dispatch);
+
+    Onderin de Plan je Dag UI:
+      - een primaire knop "Boek deze dag":
+        - onClick: POST /${vars.rest_ns}/session/<key>/to-cart
+        - bij success: window.location = redirect_url uit response.
+
+# 11) Bossche Rad frontend (order received)
+- name: "Create bossche-rad.js and hook into thank you page"
+  run: >
+    Maak ${vars.plugin_dir}/assets/js/bossche-rad.js
+
+    Functionaliteit:
+      - Zoek <div id="ddb-bossche-rad" data-order-id data-session-key>.
+      - Render een simpele "rad"-UI:
+        - tekst: "Draai aan het Bossche Rad"
+        - knop om te spinnen
+      - Bij klik:
+        - disable knop
+        - POST naar /wp-json/${vars.rest_ns}/spin met order_id + session_key
+        - bij success:
+          - toon reward.label en een uitleg:
+            - type message: toon value tekst
+            - type credit: "Je hebt €X DDB-tegoed gewonnen"
+            - type coupon: "Je hebt een kortingscode gewonnen. Check je e-mail."
+        - bij error: toon foutmelding.
+
+    Enqueue bossche-rad.js:
+      - Alleen op de WooCommerce order-received pagina.
+      - Alleen als:
+        - er _ddb_planning_data meta is
+        - en nog geen reward in ${vars.reward_table} bestaat (controle in PHP).
+
+# 12) Code style & readme
+- name: "Code review, i18n en README"
+  run: >
+    Loop alle aangemaakte bestanden in ${vars.plugin_dir} langs en zorg voor:
+      - PSR-4 conform class namen & namespaces
+      - type hints waar mogelijk
+      - escaping in templates (esc_html, esc_url)
+      - vertaalbare strings via __() / _x() met textdomain ${vars.plugin_slug}
+    Maak ${vars.plugin_dir}/readme.md met:
+      - Korte uitleg over:
+        - ddb_session (cookie + queryparam)
+        - REST endpoints:
+          - POST/GET/PATCH /${vars.rest_ns}/session
+          - POST/DELETE /${vars.rest_ns}/session/<key>/activities
+          - POST /${vars.rest_ns}/session/<key>/to-cart
+          - POST /${vars.rest_ns}/session/<key>/day-plan/suggest
+          - POST /${vars.rest_ns}/spin
+        - Hoe de home widget popup samenwerkt met Plan je Dag.
+        - Hoe Bossche Rad config via filter 'ddb_bossche_rad_config' aan te passen is.
+        - Hoe "Mijn dagen" in Mijn account werkt (herboeken).

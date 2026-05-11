@@ -1,0 +1,60 @@
+Je gaat een werkende WordPress plugin bouwen in 9 stappen: **Booking Pro Suite**.
+
+EIS: Lever per stap volledige filestructuur en code. Gebruik het OUTPUTFORMAAT uit de primer.
+
+STAPPEN
+1) SKELETON
+- Maak mappen: /core, /modules/notifications, /assets, /languages, /tests, /scripts, /dist (leeg)
+- `plugin.php` met geldige header, textdomain `sbdp`, require vendor autoload, require core/bootstrap.php
+
+2) COMPOSER
+- Genereer `composer.json` met:
+  - psr-4:
+    "BSP\\Core\\": "core/src/",
+    "BSP\\Notifications\\": "modules/notifications/"
+  - require-dev: phpunit/phpunit ^9.6, squizlabs/php_codesniffer ^3.9, phpstan/phpstan ^2.1, brain/monkey ^2.6, wp-coding-standards/wpcs ^3.0
+- Toon commando: `composer install && composer dump-autoload`
+
+3) CORE
+- `/core/bootstrap.php` dat:
+  - CoreServiceProvider instantieert
+  - `plugins_loaded` → `boot()`
+  - `do_action('bsp/core/modules/register', $modules)` laat modules registreren
+  - Na registreren: `$modules->boot();` en `do_action('bsp/core/modules/booted')`
+- `/core/src/ModuleInterface.php`
+- `/core/src/Modules.php`
+- `/core/src/CoreServiceProvider.php`
+
+4) MODULE `Notifications`
+- `/modules/notifications/Module.php` met `BSP\Notifications\Module implements BSP\Core\ModuleInterface`
+- `init()` registreert hooks/shortcodes later
+- In `plugin.php` module registreren via `add_action('bsp/core/modules/register', ...)`
+
+5) REST ENDPOINT
+- In Notifications module: REST controller class toevoegen (zelfde folder)
+- Registreer route GET `/bsp/v1/notifications` → JSON `{ "ok": true }`
+- Auth permissiecallback (`current_user_can` of public)
+
+6) SHORTCODE UI
+- Shortcode `[booking_notifications]` → eenvoudige HTML (div + list placeholder)
+- Veilig outputten (esc_html/esc_attr) en `wp_kses_post` waar nodig
+
+7) ADMIN PAGE
+- Admin settings pagina onder Settings > Booking Pro
+- Opties registreren via `register_setting`, `add_settings_section`, `add_settings_field`
+- Basic veld `bsp_notifications_enabled`
+
+8) TESTS
+- PHPUnit bootstrap + voorbeeldtest voor Module init hook
+- Brain Monkey gebruiken voor WP hooks mocking
+- Map: `/tests/notifications/ModuleTest.php` + `/tests/bootstrap.php`
+
+9) VALIDATIE & ZIP
+- Toon `scripts/build-plugin.sh` die:
+  - `composer install --no-dev`
+  - syntax check
+  - zip maakt naar `dist/booking-pro-suite.zip` (INCLUSIEF vendor/)
+- Noem commando’s om te draaien
+
+LEVERING
+- Lever ALLE bestanden met volledige inhoud in correcte paden.

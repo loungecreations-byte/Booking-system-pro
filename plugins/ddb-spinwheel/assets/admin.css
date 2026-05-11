@@ -1,0 +1,4 @@
+.ddb-spinwheel-admin .ddb-admin-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:16px;margin-top:14px}
+.ddb-spinwheel-admin .ddb-card{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:14px}
+.ddb-spinwheel-admin .ddb-json{width:100%;min-height:360px;font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono","Courier New",monospace;font-size:12px}
+@media (max-width:1100px){.ddb-spinwheel-admin .ddb-admin-grid{grid-template-columns:1fr}}

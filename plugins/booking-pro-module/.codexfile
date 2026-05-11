@@ -1,0 +1,15 @@
+tasks:
+  setup-architecture:
+    prompt: |
+      create modular architecture:
+      - one Core plugin (bootstrap, loader, services)
+      - four modules (Commerce, Planner, Sales, Intelligence)
+      - each module is self-contained under modules/
+      - core exposes shared interfaces (Logger, Settings, Vendor)
+      - all modules autoload via PSR-4 and register through Core\Modules
+  build-core:
+    prompt: "build lightweight Core with autoloader, service container and event dispatcher"
+  build-modules:
+    prompt: "scaffold modules (Commerce, Planner, Sales, Intelligence) with init() and route registration stubs"
+  verify-architecture:
+    prompt: "check module boundaries: no cross-dependencies between modules; all shared logic must live in Core"
