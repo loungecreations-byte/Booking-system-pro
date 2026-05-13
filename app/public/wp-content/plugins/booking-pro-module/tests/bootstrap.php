@@ -275,6 +275,7 @@ $GLOBALS['__test_dbdelta_calls'] = array();
 $GLOBALS['__test_rest_routes'] = array();
 $GLOBALS['__test_filters'] = array();
 $GLOBALS['__test_actions'] = array();
+$GLOBALS['__test_shortcodes'] = array();
 $GLOBALS['__test_wp_mail_calls'] = array();
 $GLOBALS['__test_wp_remote_post'] = null;
 
@@ -358,6 +359,34 @@ function add_action(string $tag, callable $callback, int $priority = 10, int $ac
     );
 
     return true;
+}
+
+function add_shortcode(string $tag, callable $callback): bool
+{
+    $GLOBALS['__test_shortcodes'][$tag] = $callback;
+    return true;
+}
+
+function shortcode_exists(string $tag): bool
+{
+    return isset($GLOBALS['__test_shortcodes'][$tag]);
+}
+
+function do_shortcode(string $content): string
+{
+    return preg_replace_callback('/\[([a-zA-Z0-9_]+)(?:\s+[^\]]*)?\]/', static function (array $matches): string {
+        $tag = $matches[1];
+        if (! isset($GLOBALS['__test_shortcodes'][$tag])) {
+            return $matches[0];
+        }
+
+        return (string) ($GLOBALS['__test_shortcodes'][$tag])(array(), null, $tag);
+    }, $content) ?? $content;
+}
+
+function has_shortcode(string $content, string $tag): bool
+{
+    return preg_match('/\[' . preg_quote($tag, '/') . '(?:\s|\])/', $content) === 1;
 }
 
 function apply_filters(string $tag, $value, ...$args)
