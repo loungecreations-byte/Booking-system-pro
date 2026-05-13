@@ -126,7 +126,7 @@ final class QuoteSendReadinessValidatorTest extends TestCase
         $GLOBALS['__test_wc_products'][97] = new \QuoteSendReadinessTestProductStub(false);
 
         $this->expectException(InvalidArgumentException::class);
-        $this->expectExceptionMessage('niet beschikbaar voor direct-checkout');
+        $this->expectExceptionMessage('niet beschikbaar voor directe checkout');
 
         $send->markSentManual((int) $quote['id'], 'manual', '', 11);
     }
@@ -158,6 +158,11 @@ final class QuoteSendReadinessValidatorTest extends TestCase
         $this->assertContains('quote_lines_missing', $codes);
         $this->assertContains('pricing_confidence_missing', $codes);
         $this->assertContains('availability_confidence_missing', $codes);
+
+        $messages = implode("\n", array_column($inspection['blockers'], 'message'));
+        $this->assertStringNotContainsString('ready_to_send', $messages);
+        $this->assertStringNotContainsString('pricing_confidence', $messages);
+        $this->assertStringNotContainsString('availability_confidence', $messages);
     }
 
     public function testInspectBlocksDiscountHigherThanCommercialSubtotal(): void

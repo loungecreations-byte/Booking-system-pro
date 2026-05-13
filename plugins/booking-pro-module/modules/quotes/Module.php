@@ -6,6 +6,7 @@ namespace BSP\Quotes;
 
 use BSP\Core\Interfaces\ModuleInterface;
 use BSP\Quotes\Admin\Controller as AdminController;
+use BSP\Quotes\PublicProposalController;
 use BSP\Quotes\Rest\Controller as RestController;
 use BSP\Quotes\Rest\InboundMailWebhookController;
 use BSP\Quotes\Service\OpenAiQuoteDraftAdapter;
@@ -18,6 +19,7 @@ final class Module implements ModuleInterface
     {
         Installer::maybeInstall();
         WooCartLaunchGateway::registerHooks();
+        PublicProposalController::register();
 
         if (\function_exists('add_action')) {
             \add_action('admin_menu', array(AdminController::class, 'registerMenu'));

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace BSP\Quotes\Service;
 
+use BSP\Quotes\PublicProposalController;
 use BSP\Quotes\Repository\QuoteRepositoryInterface;
 use InvalidArgumentException;
 
@@ -551,7 +552,7 @@ final class QuoteCommunicationService
         }
 
         if ((string) ($quote['send_status'] ?? 'not_ready') !== 'ready_to_send') {
-            throw new InvalidArgumentException($this->t('Deze quote staat niet in ready_to_send voor een voorstelmail.'));
+            throw new InvalidArgumentException($this->t('Deze quote is nog niet verzendklaar voor een voorstelmail.'));
         }
 
         (new QuoteSendReadinessValidator($this->repository))->assertReadyToSend($quoteId);
@@ -745,12 +746,24 @@ final class QuoteCommunicationService
             }
         }
 
+        $proposalUrl = PublicProposalController::publicUrl(
+            (new PublicQuoteProposalTokenService())->create(
+                (int) ($context['quote']['id'] ?? 0),
+                (int) ($version['id'] ?? 0),
+                $quoteReference
+            )
+        );
+        if ($proposalUrl !== '') {
+            $bodyLines[] = '';
+            $bodyLines[] = sprintf($this->t('Bekijk en beantwoord uw voorstel: %s'), $proposalUrl);
+        }
+
         foreach ($this->buildCommercialCaveatLines($version, $lines) as $caveat) {
             $bodyLines[] = $caveat;
         }
 
         $bodyLines[] = '';
-        $bodyLines[] = sprintf($this->t('Quote token voor replies: %s'), $quoteReference);
+        $bodyLines[] = sprintf($this->t('Referentie voor uw reactie: %s'), $quoteReference);
         $bodyLines[] = $this->t('Laat het gerust weten als u akkoord wilt geven of eerst nog iets wilt aanpassen.');
         $bodyLines[] = '';
         $bodyLines[] = $this->t('Met vriendelijke groet,');
@@ -845,7 +858,7 @@ final class QuoteCommunicationService
 
         $caveats = array();
         if ((string) ($version['pricing_confidence'] ?? 'unknown') !== 'execution_verified' || $projectedPricing > 0) {
-            $caveats[] = $this->t('Prijs in deze versie is nog een snapshot of richtinggevend voorstel totdat de execution-laag deze bevestigt.');
+            $caveats[] = $this->t('Prijs in deze versie blijft onder voorbehoud totdat deze definitief is bevestigd.');
         }
         if ((string) ($version['availability_confidence'] ?? 'unknown') !== 'confirmed' || $projectedAvailability > 0) {
             $caveats[] = $this->t('Beschikbaarheid blijft expliciet onder voorbehoud totdat bevestiging is ontvangen.');
