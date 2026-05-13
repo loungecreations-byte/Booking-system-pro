@@ -109,7 +109,7 @@ final class DashboardBlockerService
                 $this->definition($code),
                 array(
                     'code' => $code,
-                    'message' => (string) ($blocker['message'] ?? ''),
+                    'message' => $this->operatorMessage($code, (string) ($blocker['message'] ?? '')),
                 )
             );
         }
@@ -138,7 +138,7 @@ final class DashboardBlockerService
                 $definition,
                 array(
                     'code' => $code,
-                    'message' => (string) ($violation['message'] ?? ''),
+                    'message' => $this->operatorMessage($code, (string) ($violation['message'] ?? '')),
                     'button_tab' => (string) ($violation['fix_url'] ?? ($definition['button_tab'] ?? 'dashboard')),
                 )
             );
@@ -188,7 +188,7 @@ final class DashboardBlockerService
                     __('Sla de intake op.', 'sbdp'),
                 ),
                 'button_label' => __('Naar klantinfo', 'sbdp'),
-                'button_tab' => 'workflow',
+                'button_tab' => 'dashboard',
             ),
             'quote_lines_missing', 'no_program' => array(
                 'label' => __('Programmaregels ontbreken', 'sbdp'),
@@ -216,22 +216,24 @@ final class DashboardBlockerService
                 'label' => __('Prijs moet bevestigd worden', 'sbdp'),
                 'severity' => 'send_guard',
                 'steps' => array(
-                    __('Controleer de prijs in de actieve quote-versie.', 'sbdp'),
-                    __('Zet de prijsconfidence pas goed na echte controle.', 'sbdp'),
-                    __('Vraag daarna opnieuw review of verzending aan.', 'sbdp'),
+                    __('Ga naar Programma.', 'sbdp'),
+                    __('Controleer de prijs per onderdeel.', 'sbdp'),
+                    __('Bevestig de prijs.', 'sbdp'),
+                    __('Controleer daarna beschikbaarheid.', 'sbdp'),
                 ),
-                'button_label' => __('Naar build', 'sbdp'),
+                'button_label' => __('Naar Programma', 'sbdp'),
                 'button_tab' => 'build',
             ),
             'availability_confidence_missing' => array(
                 'label' => __('Beschikbaarheid moet bevestigd worden', 'sbdp'),
                 'severity' => 'send_guard',
                 'steps' => array(
-                    __('Controleer planning en capaciteit.', 'sbdp'),
-                    __('Zet beschikbaarheid pas goed na echte controle.', 'sbdp'),
-                    __('Vraag daarna opnieuw review of verzending aan.', 'sbdp'),
+                    __('Ga naar Programma.', 'sbdp'),
+                    __('Controleer datum, tijd en capaciteit per onderdeel.', 'sbdp'),
+                    __('Bevestig de beschikbaarheid.', 'sbdp'),
+                    __('Controleer daarna de voorsteltekst.', 'sbdp'),
                 ),
-                'button_label' => __('Naar build', 'sbdp'),
+                'button_label' => __('Naar Programma', 'sbdp'),
                 'button_tab' => 'build',
             ),
             'review_not_approved' => array(
@@ -284,8 +286,8 @@ final class DashboardBlockerService
                     __('Vul een geldige toekomstige datum in.', 'sbdp'),
                     __('Sla de intake op.', 'sbdp'),
                 ),
-                'button_label' => __('Naar workflow', 'sbdp'),
-                'button_tab' => 'workflow',
+                'button_label' => __('Naar overzicht', 'sbdp'),
+                'button_tab' => 'dashboard',
             ),
             default => array(
                 'label' => __('Offerte heeft nog een blokkade', 'sbdp'),
@@ -298,6 +300,17 @@ final class DashboardBlockerService
                 'button_label' => __('Naar communicatie', 'sbdp'),
                 'button_tab' => 'communication',
             ),
+        };
+    }
+
+    private function operatorMessage(string $code, string $fallback): string
+    {
+        return match ($code) {
+            'pricing_confidence_missing' => __('Deze offerte kan nog niet worden verstuurd omdat de prijs nog niet definitief is bevestigd.', 'sbdp'),
+            'availability_confidence_missing' => __('Deze offerte kan nog niet worden verstuurd omdat beschikbaarheid nog moet worden bevestigd.', 'sbdp'),
+            'send_status_not_ready' => __('Deze offerte kan nog niet worden verstuurd. Rond eerst de open punten af.', 'sbdp'),
+            'review_not_approved' => __('Deze offerte kan nog niet worden verstuurd omdat de review nog niet is afgerond.', 'sbdp'),
+            default => $fallback,
         };
     }
 

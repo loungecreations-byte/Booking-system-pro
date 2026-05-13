@@ -80,8 +80,8 @@ final class QuoteBusinessRuleValidator
                 'code' => 'no_customer',
                 'severity' => 'error',
                 'message' => 'Klantcontact is onvolledig.',
-                'fix' => 'Ga naar Follow-up / Workflow en werk naam en e-mail van de klant bij in Intake context.',
-                'fix_url' => 'workflow',
+                'fix' => 'Ga naar Overzicht en werk naam en e-mail van de klant bij in de intakecontext.',
+                'fix_url' => 'dashboard',
             );
         }
 
@@ -98,8 +98,8 @@ final class QuoteBusinessRuleValidator
                 'code' => 'date_invalid',
                 'severity' => 'error',
                 'message' => 'Voorkeursdatum ontbreekt, ligt in het verleden of valt buiten het ondersteunde bereik.',
-                'fix' => 'Ga naar Follow-up / Workflow en zet een geldige toekomstige datum.',
-                'fix_url' => 'workflow',
+                'fix' => 'Ga naar Overzicht en zet een geldige toekomstige datum.',
+                'fix_url' => 'dashboard',
             );
         }
 
