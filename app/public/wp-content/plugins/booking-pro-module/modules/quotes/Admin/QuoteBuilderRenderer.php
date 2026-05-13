@@ -79,8 +79,11 @@ final class QuoteBuilderRenderer
             }
 
             $builderRows[] = array(
+                'id' => (int) ($line['id'] ?? 0),
+                'quote_version_id' => (int) ($line['quote_version_id'] ?? 0),
                 'source_line_number' => (int) ($line['line_number'] ?? ($index + 1)),
                 'sort_order' => (int) ($line['sort_order'] ?? ($line['line_number'] ?? ($index + 1))),
+                'line_status' => (string) ($line['line_status'] ?? ''),
                 'title' => (string) ($line['title'] ?? ''),
                 'product_id' => (int) ($line['product_id'] ?? 0),
                 'quantity' => max(1, (int) ($line['quantity'] ?? 1)),
@@ -111,8 +114,11 @@ final class QuoteBuilderRenderer
 
         if ($builderRows === array()) {
             $builderRows[] = array(
+                'id' => 0,
+                'quote_version_id' => $currentVersion !== null ? (int) ($currentVersion['id'] ?? 0) : 0,
                 'source_line_number' => 0,
                 'sort_order' => 1,
+                'line_status' => '',
                 'title' => '',
                 'product_id' => 0,
                 'quantity' => 1,
@@ -160,10 +166,10 @@ final class QuoteBuilderRenderer
             : __('Voorstelbedrag onder voorbehoud', 'sbdp');
         $openBlockers = 0;
         foreach ($builderRows as $builderRow) {
-            if ((string) ($builderRow['pricing_confidence'] ?? 'unknown') !== 'execution_verified') {
+            if (self::quoteLinePricingControlStatus($builderRow) === 'needs_check') {
                 ++$openBlockers;
             }
-            if ((string) ($builderRow['availability_confidence'] ?? 'unknown') !== 'confirmed') {
+            if (in_array(self::quoteLineAvailabilityControlStatus($builderRow), array('needs_check', 'unavailable'), true)) {
                 ++$openBlockers;
             }
         }
@@ -199,12 +205,15 @@ final class QuoteBuilderRenderer
         echo '</div>';
         echo '<div class="bsp-quote-admin__builder-list" data-builder-list>';
         foreach (array_values($builderRows) as $index => $builderRow) {
-            echo self::renderQuoteBuildRow($index, $builderRow, $catalog);
+            echo self::renderQuoteBuildRow($index, $builderRow, $catalog, $quoteId);
         }
         echo '</div>';
         echo '<template id="bsp-quote-builder-row-template">' . self::renderQuoteBuildRow('__INDEX__', array(
+            'id' => 0,
+            'quote_version_id' => $currentVersion !== null ? (int) ($currentVersion['id'] ?? 0) : 0,
             'source_line_number' => 0,
             'sort_order' => 0,
+            'line_status' => '',
             'title' => '',
             'product_id' => 0,
             'quantity' => 1,
@@ -232,7 +241,9 @@ final class QuoteBuilderRenderer
             'position_group' => '',
         ), $catalog) . '</template>';
         echo '<script type="application/json" id="bsp-quote-builder-catalog">' . esc_html((string) \wp_json_encode($catalog)) . '</script>';
-        echo '</form></div></section>';
+        echo '</form>';
+        self::renderLineControlForms($quoteId, $builderRows);
+        echo '</div></section>';
         self::renderQuoteBuildScript();
     }
 
@@ -241,7 +252,7 @@ final class QuoteBuilderRenderer
      * @param array<string, mixed> $line
      * @param array<int, array<string, mixed>> $catalog
      */
-    public static function renderQuoteBuildRow($index, array $line, array $catalog): string
+    public static function renderQuoteBuildRow($index, array $line, array $catalog, int $quoteId = 0): string
     {
         $productId = (int) ($line['product_id'] ?? 0);
         $productOptions = '<option value="">' . esc_html__('Kies product', 'sbdp') . '</option>';
@@ -262,6 +273,8 @@ final class QuoteBuilderRenderer
         $priceSnapshot = self::quoteBuilderPriceLabel($line);
         $pricingConfidence = (string) ($line['pricing_confidence'] ?? 'unknown');
         $availabilityConfidence = (string) ($line['availability_confidence'] ?? 'unknown');
+        $pricingControlStatus = self::quoteLinePricingControlStatus($line);
+        $availabilityControlStatus = self::quoteLineAvailabilityControlStatus($line);
         $pricingLabel = self::quoteBuilderPricingLabel($pricingConfidence);
         $availabilityLabel = self::quoteBuilderAvailabilityLabel($availabilityConfidence);
         $rowTitle = trim((string) ($line['title'] ?? ''));
@@ -342,6 +355,7 @@ final class QuoteBuilderRenderer
         $html .= self::renderInlineBadge($pricingLabel, self::confidenceBadgeClass($pricingConfidence));
         $html .= self::renderInlineBadge($availabilityLabel, self::confidenceBadgeClass($availabilityConfidence));
         $html .= '</div>';
+        $html .= self::renderLineControlButtons($quoteId, $line, $pricingControlStatus, $availabilityControlStatus);
         if ($productId <= 0) {
             $html .= '<p class="bsp-quote-admin__muted">' . esc_html__('Maatwerkregels of handmatig aangepaste tijden blijven onder voorbehoud', 'sbdp') . '</p>';
         }
@@ -384,6 +398,157 @@ final class QuoteBuilderRenderer
         }
 
         return __('Prijs nog niet bevestigd', 'sbdp');
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $lines
+     */
+    private static function renderLineControlForms(int $quoteId, array $lines): void
+    {
+        foreach ($lines as $line) {
+            $lineId = (int) ($line['id'] ?? 0);
+            if ($quoteId <= 0 || $lineId <= 0) {
+                continue;
+            }
+
+            foreach (array('pricing', 'availability') as $dimension) {
+                $statuses = $dimension === 'pricing'
+                    ? array('needs_check', 'confirmed', 'under_reservation')
+                    : array('needs_check', 'confirmed', 'under_reservation', 'unavailable');
+                foreach ($statuses as $status) {
+                    $formId = self::lineControlFormId($lineId, $dimension, $status);
+                    echo '<form id="' . esc_attr($formId) . '" method="post" action="' . esc_url(admin_url('admin-post.php')) . '" class="bsp-quote-admin__hidden-control-form">';
+                    echo wp_nonce_field('sbdp_quote_line_control_status', '_wpnonce', true, false);
+                    echo '<input type="hidden" name="action" value="sbdp_quote_line_control_status">';
+                    echo '<input type="hidden" name="quote_id" value="' . esc_attr((string) $quoteId) . '">';
+                    echo '<input type="hidden" name="line_id" value="' . esc_attr((string) $lineId) . '">';
+                    echo '<input type="hidden" name="dimension" value="' . esc_attr($dimension) . '">';
+                    echo '<input type="hidden" name="status" value="' . esc_attr($status) . '">';
+                    echo '</form>';
+                }
+            }
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $line
+     */
+    private static function renderLineControlButtons(int $quoteId, array $line, string $pricingStatus, string $availabilityStatus): string
+    {
+        $lineId = (int) ($line['id'] ?? 0);
+        if ($quoteId <= 0 || $lineId <= 0) {
+            return '<p class="bsp-quote-admin__muted">' . esc_html__('Sla deze nieuwe regel eerst op voordat je prijs of beschikbaarheid bevestigt.', 'sbdp') . '</p>';
+        }
+
+        $html = '<div id="quote-line-control-' . esc_attr((string) $lineId) . '" class="bsp-quote-admin__line-control-panel">';
+        $html .= self::renderLineControlGroup(
+            __('Prijsstatus', 'sbdp'),
+            self::quoteLineControlLabel($pricingStatus, 'pricing'),
+            $lineId,
+            'pricing',
+            array(
+                'needs_check' => __('Prijs controleren', 'sbdp'),
+                'confirmed' => __('Markeer prijs bevestigd', 'sbdp'),
+                'under_reservation' => __('Onder voorbehoud', 'sbdp'),
+            ),
+            $pricingStatus
+        );
+        $html .= self::renderLineControlGroup(
+            __('Beschikbaarheidsstatus', 'sbdp'),
+            self::quoteLineControlLabel($availabilityStatus, 'availability'),
+            $lineId,
+            'availability',
+            array(
+                'needs_check' => __('Beschikbaarheid controleren', 'sbdp'),
+                'confirmed' => __('Markeer als bevestigd', 'sbdp'),
+                'under_reservation' => __('Onder voorbehoud', 'sbdp'),
+                'unavailable' => __('Niet beschikbaar', 'sbdp'),
+            ),
+            $availabilityStatus
+        );
+        if ($availabilityStatus === 'unavailable') {
+            $html .= '<p class="bsp-quote-admin__line-control-blocker">' . esc_html__('Blocker: deze programmaregel is niet beschikbaar en kan zo niet worden verzonden.', 'sbdp') . '</p>';
+        }
+        $html .= '</div>';
+
+        return $html;
+    }
+
+    /**
+     * @param array<string, string> $actions
+     */
+    private static function renderLineControlGroup(string $title, string $currentLabel, int $lineId, string $dimension, array $actions, string $currentStatus): string
+    {
+        $html = '<div class="bsp-quote-admin__line-control-group">';
+        $html .= '<div><span class="bsp-quote-admin__tiny-label">' . esc_html($title) . '</span><strong>' . esc_html($currentLabel) . '</strong></div>';
+        $html .= '<div class="bsp-quote-admin__line-control-actions">';
+        foreach ($actions as $status => $label) {
+            $disabled = $status === $currentStatus ? ' disabled' : '';
+            $buttonClass = $status === 'confirmed' ? 'button button-secondary' : 'button';
+            $html .= '<button type="submit" class="' . esc_attr($buttonClass) . '" form="' . esc_attr(self::lineControlFormId($lineId, $dimension, (string) $status)) . '"' . $disabled . '>' . esc_html($label) . '</button>';
+        }
+        $html .= '</div></div>';
+
+        return $html;
+    }
+
+    private static function lineControlFormId(int $lineId, string $dimension, string $status): string
+    {
+        return 'quote-line-control-' . $lineId . '-' . $dimension . '-' . $status;
+    }
+
+    /**
+     * @param array<string, mixed> $line
+     */
+    private static function quoteLinePricingControlStatus(array $line): string
+    {
+        $snapshot = is_array($line['pricing_snapshot_json'] ?? null) ? $line['pricing_snapshot_json'] : array();
+        $status = (string) ($snapshot['control_status'] ?? '');
+        if (in_array($status, array('needs_check', 'confirmed', 'under_reservation'), true)) {
+            return $status;
+        }
+
+        return (string) ($line['pricing_confidence'] ?? 'unknown') === 'execution_verified'
+            ? 'confirmed'
+            : (((string) ($line['pricing_confidence'] ?? 'unknown') === 'snapshot') ? 'under_reservation' : 'needs_check');
+    }
+
+    /**
+     * @param array<string, mixed> $line
+     */
+    private static function quoteLineAvailabilityControlStatus(array $line): string
+    {
+        $snapshot = is_array($line['availability_snapshot_json'] ?? null) ? $line['availability_snapshot_json'] : array();
+        $status = (string) ($snapshot['control_status'] ?? '');
+        if (in_array($status, array('needs_check', 'confirmed', 'under_reservation', 'unavailable'), true)) {
+            return $status;
+        }
+
+        if ((string) ($line['line_status'] ?? '') === 'unavailable') {
+            return 'unavailable';
+        }
+
+        return (string) ($line['availability_confidence'] ?? 'unknown') === 'confirmed'
+            ? 'confirmed'
+            : (in_array((string) ($line['availability_confidence'] ?? 'unknown'), array('snapshot', 'projected'), true) ? 'under_reservation' : 'needs_check');
+    }
+
+    private static function quoteLineControlLabel(string $status, string $dimension): string
+    {
+        if ($dimension === 'pricing') {
+            return match ($status) {
+                'confirmed' => __('Prijs bevestigd', 'sbdp'),
+                'under_reservation' => __('Prijs onder voorbehoud', 'sbdp'),
+                default => __('Prijs nog controleren', 'sbdp'),
+            };
+        }
+
+        return match ($status) {
+            'confirmed' => __('Beschikbaarheid bevestigd', 'sbdp'),
+            'under_reservation' => __('Beschikbaarheid onder voorbehoud', 'sbdp'),
+            'unavailable' => __('Niet beschikbaar', 'sbdp'),
+            default => __('Beschikbaarheid nog controleren', 'sbdp'),
+        };
     }
 
     private static function quoteBuilderPricingLabel(string $confidence): string
@@ -1320,12 +1485,57 @@ final class QuoteBuilderRenderer
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
+                flex-wrap: wrap;
+                gap: 8px;
                 margin-top: 8px;
             }
 
             .bsp-quote-admin__status-badges {
                 display: flex;
                 gap: 4px;
+                flex-wrap: wrap;
+            }
+
+            .bsp-quote-admin__line-control-panel {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+                gap: 10px;
+                width: 100%;
+                flex-basis: 100%;
+                margin-top: 10px;
+                padding: 10px;
+                border: 1px solid #dcdcde;
+                border-radius: 6px;
+                background: #fff;
+            }
+
+            .bsp-quote-admin__line-control-group {
+                display: flex;
+                flex-direction: column;
+                gap: 6px;
+                min-width: 0;
+            }
+
+            .bsp-quote-admin__line-control-actions {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 6px;
+            }
+
+            .bsp-quote-admin__line-control-actions .button {
+                min-height: 30px;
+                white-space: normal;
+            }
+
+            .bsp-quote-admin__line-control-blocker {
+                grid-column: 1 / -1;
+                margin: 0;
+                color: #8a2424;
+                font-weight: 600;
+            }
+
+            .bsp-quote-admin__hidden-control-form {
+                display: none;
             }
 
             .bsp-quote-admin__builder-advanced-compact summary {

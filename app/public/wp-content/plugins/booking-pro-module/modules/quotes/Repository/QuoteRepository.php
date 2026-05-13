@@ -140,6 +140,16 @@ final class QuoteRepository implements QuoteRepositoryInterface
         return $this->listByColumn('quote_lines', 'quote_version_id', $quoteVersionId, 'line_number');
     }
 
+    public function findQuoteLine(int $id): ?array
+    {
+        return $this->findRecord('quote_lines', $id);
+    }
+
+    public function updateQuoteLine(int $id, array $changes): array
+    {
+        return $this->updateRecord('quote_lines', $id, $changes, array($this, 'findQuoteLine'));
+    }
+
     public function createQuoteAssumption(array $data): array
     {
         return $this->createRecord('quote_assumptions', $data, null);

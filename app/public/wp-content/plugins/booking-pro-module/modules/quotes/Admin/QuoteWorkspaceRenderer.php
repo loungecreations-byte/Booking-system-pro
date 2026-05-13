@@ -1311,7 +1311,7 @@ final class QuoteWorkspaceRenderer
             $currentTab = 'dashboard';
         }
         $primaryAction = self::resolveQuotePrimaryAction($quote, $workspaceState, $sendAllowed, $handoffAllowed);
-        $workspaceAlerts = self::buildQuoteWorkspaceAlerts($sendReadiness, $businessValidation, $assumptions, $followups, $communicationState, $quoteCommerciallyEditable);
+        $workspaceAlerts = self::buildQuoteWorkspaceAlerts($quoteId, $sendReadiness, $businessValidation, $assumptions, $followups, $communicationState, $quoteCommerciallyEditable);
         $workspaceTabs = array(
             'dashboard' => __('Overzicht', 'sbdp'),
             'build' => __('Programma & prijs', 'sbdp'),
@@ -2016,6 +2016,42 @@ final class QuoteWorkspaceRenderer
     /**
      * @param array<string, mixed> $line
      */
+    private static function quoteLinePricingControlStatus(array $line): string
+    {
+        $snapshot = is_array($line['pricing_snapshot_json'] ?? null) ? $line['pricing_snapshot_json'] : array();
+        $status = (string) ($snapshot['control_status'] ?? '');
+        if (in_array($status, array('needs_check', 'confirmed', 'under_reservation'), true)) {
+            return $status;
+        }
+
+        return (string) ($line['pricing_confidence'] ?? 'unknown') === 'execution_verified'
+            ? 'confirmed'
+            : (((string) ($line['pricing_confidence'] ?? 'unknown') === 'snapshot') ? 'under_reservation' : 'needs_check');
+    }
+
+    /**
+     * @param array<string, mixed> $line
+     */
+    private static function quoteLineAvailabilityControlStatus(array $line): string
+    {
+        $snapshot = is_array($line['availability_snapshot_json'] ?? null) ? $line['availability_snapshot_json'] : array();
+        $status = (string) ($snapshot['control_status'] ?? '');
+        if (in_array($status, array('needs_check', 'confirmed', 'under_reservation', 'unavailable'), true)) {
+            return $status;
+        }
+
+        if ((string) ($line['line_status'] ?? '') === 'unavailable') {
+            return 'unavailable';
+        }
+
+        return (string) ($line['availability_confidence'] ?? 'unknown') === 'confirmed'
+            ? 'confirmed'
+            : (in_array((string) ($line['availability_confidence'] ?? 'unknown'), array('snapshot', 'projected'), true) ? 'under_reservation' : 'needs_check');
+    }
+
+    /**
+     * @param array<string, mixed> $line
+     */
     private static function resolveProposalLineEndTime(array $line): string
     {
         return trim((string) ($line['proposed_end_time'] ?? ($line['end_time'] ?? '')));
@@ -2057,10 +2093,10 @@ final class QuoteWorkspaceRenderer
             if ((int) ($line['product_id'] ?? 0) > 0) {
                 $mappedLines++;
             }
-            if ((string) ($line['pricing_confidence'] ?? 'unknown') !== 'execution_verified') {
+            if (self::quoteLinePricingControlStatus($line) === 'needs_check') {
                 $projectedPricingLines++;
             }
-            if ((string) ($line['availability_confidence'] ?? 'unknown') !== 'confirmed') {
+            if (in_array(self::quoteLineAvailabilityControlStatus($line), array('needs_check', 'unavailable'), true)) {
                 $projectedAvailabilityLines++;
             }
             if (trim((string) ($line['service_date'] ?? '')) === '' || self::resolveProposalLineStartTime($line) === '') {
@@ -2093,10 +2129,10 @@ final class QuoteWorkspaceRenderer
             $waiting[] = __('De quote is commercieel gereed maar nog niet als verzonden geregistreerd.', 'sbdp');
         }
         if ($currentVersion !== null && (string) ($currentVersion['availability_confidence'] ?? 'unknown') !== 'confirmed') {
-            $waiting[] = __('Beschikbaarheid is nog niet definitief bevestigd.', 'sbdp');
+            $waiting[] = __('Beschikbaarheid is nog niet overal bevestigd of staat onder voorbehoud.', 'sbdp');
         }
         if ($currentVersion !== null && (string) ($currentVersion['pricing_confidence'] ?? 'unknown') !== 'execution_verified') {
-            $waiting[] = __('Prijs is nog niet definitief bevestigd.', 'sbdp');
+            $waiting[] = __('Prijs is nog niet overal bevestigd of staat onder voorbehoud.', 'sbdp');
         }
 
         $openFollowups = 0;
@@ -2722,7 +2758,13 @@ final class QuoteWorkspaceRenderer
         }
         echo '<div class="bsp-quote-admin__alert-list ' . esc_attr($className) . '"><strong>' . esc_html($title) . '</strong><ul>';
         foreach (array_slice($items, 0, 4) as $item) {
-            echo '<li><span>' . esc_html((string) ($item['title'] ?? '')) . '</span><small>' . esc_html((string) ($item['message'] ?? '')) . '</small></li>';
+            echo '<li><span>' . esc_html((string) ($item['title'] ?? '')) . '</span><small>' . esc_html((string) ($item['message'] ?? '')) . '</small>';
+            $actionHref = trim((string) ($item['action_href'] ?? ''));
+            if ($actionHref !== '') {
+                $actionLabel = trim((string) ($item['action_label'] ?? __('Open actie', 'sbdp')));
+                echo '<a class="button button-small" href="' . esc_url($actionHref) . '">' . esc_html($actionLabel !== '' ? $actionLabel : __('Open actie', 'sbdp')) . '</a>';
+            }
+            echo '</li>';
         }
         echo '</ul></div>';
     }
@@ -2736,6 +2778,7 @@ final class QuoteWorkspaceRenderer
      * @return array{blockers:array<int,array{title:string,message:string}>,warnings:array<int,array{title:string,message:string}>,infos:array<int,array{title:string,message:string}>}
      */
     private static function buildQuoteWorkspaceAlerts(
+        int $quoteId,
         array $sendReadiness,
         array $businessValidation,
         array $assumptions,
@@ -2754,6 +2797,8 @@ final class QuoteWorkspaceRenderer
             $blockers[] = array(
                 'title' => self::humanBlockerTitle((string) ($blocker['code'] ?? 'send_blocker')),
                 'message' => (string) ($blocker['message'] ?? ''),
+                'action_href' => self::workspaceTabUrl($quoteId, 'build'),
+                'action_label' => __('Controleer in Programma & prijs', 'sbdp'),
             );
         }
 
@@ -3020,10 +3065,10 @@ final class QuoteWorkspaceRenderer
             if ((int) ($line['product_id'] ?? 0) > 0) {
                 $mappedLines++;
             }
-            if ((string) ($line['pricing_confidence'] ?? 'unknown') !== 'execution_verified') {
+            if (self::quoteLinePricingControlStatus($line) === 'needs_check') {
                 $projectedPricingLines++;
             }
-            if ((string) ($line['availability_confidence'] ?? 'unknown') !== 'confirmed') {
+            if (in_array(self::quoteLineAvailabilityControlStatus($line), array('needs_check', 'unavailable'), true)) {
                 $projectedAvailabilityLines++;
             }
             if (trim((string) ($line['service_date'] ?? '')) === '' || self::resolveProposalLineStartTime($line) === '') {
@@ -3082,7 +3127,7 @@ final class QuoteWorkspaceRenderer
             );
         }
 
-        if ($projectedPricingLines > 0 || ($currentVersion !== null && (string) ($currentVersion['pricing_confidence'] ?? 'unknown') !== 'execution_verified')) {
+        if ($projectedPricingLines > 0) {
             $items[] = array(
                 'title'       => sprintf(__('Prijs nog richtinggevend op %d regel(s)', 'sbdp'), $projectedPricingLines),
                 'description' => __('Maak in communicatie duidelijk dat prijs nog een snapshot of richtinggevend voorstel is, niet definitieve Woo-truth.', 'sbdp'),
@@ -3099,7 +3144,7 @@ final class QuoteWorkspaceRenderer
             );
         }
 
-        if ($projectedAvailabilityLines > 0 || ($currentVersion !== null && (string) ($currentVersion['availability_confidence'] ?? 'unknown') !== 'confirmed')) {
+        if ($projectedAvailabilityLines > 0) {
             $items[] = array(
                 'title'       => sprintf(__('Beschikbaarheid nog onbevestigd op %d regel(s)', 'sbdp'), $projectedAvailabilityLines),
                 'description' => __('Beschikbaarheid moet richtinggevend of onder voorbehoud blijven totdat execution-validatie of leverancier dit bevestigt.', 'sbdp'),
@@ -3159,12 +3204,17 @@ final class QuoteWorkspaceRenderer
             }
         }
 
+        $ready = (string) ($quote['review_status'] ?? 'not_started') === 'approved'
+            && $items === array()
+            && count($lines) > 0;
+
         return array(
             'label'       => $label,
             'title'       => $title,
             'description' => $description,
             'badge_class' => $badgeClass,
             'items'       => $items,
+            'ready'       => $ready,
         );
     }
 
@@ -4069,6 +4119,7 @@ final class QuoteWorkspaceRenderer
             'quote_marked_sent'     => __('Quote als handmatig verzonden gemarkeerd.', 'sbdp'),
             'quote_send_reopened'   => __('Quote teruggezet naar ready_to_send.', 'sbdp'),
             'quote_operations_saved' => __('Operations draft opgeslagen in de actieve quote-versie.', 'sbdp'),
+            'quote_line_control_updated' => __('Controlestatus voor programmaregel opgeslagen.', 'sbdp'),
             'quote_message_draft_generated' => __('Berichtdraft opgeslagen in de quote-thread.', 'sbdp'),
             'quote_message_summarized' => __('Inbound klantreply samengevat.', 'sbdp'),
             'quote_message_sent'    => __('Quote-mail verstuurd en vastgelegd in de thread.', 'sbdp'),
