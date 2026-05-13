@@ -3,6 +3,7 @@
   <testsuites>
     <testsuite name="Booking Pro Module">
       <directory>quotes</directory>
+      <directory>day-planner</directory>
     </testsuite>
   </testsuites>
 </phpunit>

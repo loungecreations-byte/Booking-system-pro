@@ -25,6 +25,7 @@ final class Module implements ModuleInterface
         if (\function_exists('add_action')) {
             \add_action('init', [$this, 'registerPostType']);
             \add_action('init', [$this, 'registerSettings']);
+            \add_action('init', [$this, 'registerShortcodes']);
             \add_action('rest_api_init', [$this, 'registerRestRoutes']);
             \add_action('admin_enqueue_scripts', [$this, 'enqueueAssets']);
             \add_action('wp_enqueue_scripts', [$this, 'enqueueAssets']);
@@ -37,6 +38,49 @@ final class Module implements ModuleInterface
             \add_filter('query_vars', [$this, 'registerQueryVars']);
             \add_filter('request', [$this, 'forcePlannerRouteRequest'], 5);
         }
+    }
+
+    public function registerShortcodes(): void
+    {
+        if (! \function_exists('add_shortcode')) {
+            return;
+        }
+
+        \add_shortcode('sbdp_dayplanner', [$this, 'renderShortcode']);
+        \add_shortcode('sbdp_day_planner', [$this, 'renderShortcode']);
+    }
+
+    /**
+     * Render the public planner mount point.
+     *
+     * The React planner owns orchestration after this container mounts. This
+     * method intentionally avoids pricing, availability, cart, checkout, or
+     * participant truth.
+     *
+     * @param array<string, mixed>|string $atts
+     */
+    public function renderShortcode($atts = []): string
+    {
+        unset($atts);
+
+        if (! \function_exists('esc_attr__') || ! \function_exists('esc_html_e')) {
+            return '<section class="sbdp-day-planner-shell"><div class="sbdp-day-planner-shell__mounts"><div id="sbdp-day-planner-root" data-component="sbdp-day-planner" aria-hidden="true"></div></div><noscript><p class="sbdp-day-planner__noscript">Schakel JavaScript in om te plannen.</p></noscript></section>';
+        }
+
+        \ob_start();
+        ?>
+        <section class="sbdp-day-planner-shell" aria-label="<?php echo \esc_attr__('Plan je dag', 'sbdp'); ?>">
+            <div class="sbdp-day-planner-shell__mounts">
+                <div id="sbdp-day-planner-root" data-component="sbdp-day-planner" aria-hidden="true"></div>
+            </div>
+            <noscript>
+                <p class="sbdp-day-planner__noscript">
+                    <?php \esc_html_e('Schakel JavaScript in om te plannen.', 'sbdp'); ?>
+                </p>
+            </noscript>
+        </section>
+        <?php
+        return \trim((string) \ob_get_clean());
     }
 
     public function registerPostType(): void
@@ -418,7 +462,8 @@ CSS;
             return false;
         }
 
-        $containsShortcode = \has_shortcode($post->post_content, 'sbdp_dayplanner');
+        $containsShortcode = \has_shortcode($post->post_content, 'sbdp_dayplanner')
+            || \has_shortcode($post->post_content, 'sbdp_day_planner');
 
         /**
          * Filter whether the day planner assets should be enqueued on the current frontend request.
