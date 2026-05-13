@@ -663,7 +663,7 @@ final class QuoteModuleTest extends TestCase
         $this->assertCount(1, $repository->listQuoteMessages((int) $quote['id']));
     }
 
-    public function testProposalDraftCarriesQuoteTokenAndCommercialCaveatsWhenTruthIsNotConfirmed(): void
+    public function testProposalDraftCarriesReferenceAndHumanCommercialCaveatsWhenTruthIsNotConfirmed(): void
     {
         $repository = new InMemoryQuoteRepository();
         $events = new QuoteEventLogger($repository);
@@ -692,9 +692,12 @@ final class QuoteModuleTest extends TestCase
         $draft = $communication->generateProposalDraft((int) $quote['id'], 61);
         $body = (string) ($draft['body'] ?? '');
 
-        $this->assertStringContainsString((string) ($quote['quote_reference'] ?? ''), $body);
-        $this->assertStringContainsString('Prijs in deze versie is nog een snapshot of richtinggevend voorstel', $body);
+        $this->assertStringContainsString('Referentie voor uw reactie: ' . (string) ($quote['quote_reference'] ?? ''), $body);
+        $this->assertStringContainsString('Prijs in deze versie blijft onder voorbehoud', $body);
         $this->assertStringContainsString('Beschikbaarheid blijft expliciet onder voorbehoud', $body);
+        $this->assertStringNotContainsString('Quote token', $body);
+        $this->assertStringNotContainsString('snapshot', $body);
+        $this->assertStringNotContainsString('execution-laag', $body);
     }
 
     public function testProposalDraftIncludesProposedTimingAndOptionsFromCurrentVersionLines(): void

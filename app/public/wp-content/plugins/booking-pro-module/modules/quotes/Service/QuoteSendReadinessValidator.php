@@ -81,12 +81,12 @@ final class QuoteSendReadinessValidator
 
         $requestId = (int) ($quote['quote_request_id'] ?? 0);
         if ($requestId <= 0) {
-            throw new InvalidArgumentException('Quote kan niet naar ready_to_send zonder gekoppelde klantaanvraag.');
+            throw new InvalidArgumentException('Quote kan niet verzendklaar worden gezet zonder gekoppelde klantaanvraag.');
         }
 
         $versionId = (int) ($quote['current_version_id'] ?? 0);
         if ($versionId <= 0) {
-            throw new InvalidArgumentException('Quote kan niet naar ready_to_send zonder actieve versie.');
+            throw new InvalidArgumentException('Quote kan niet verzendklaar worden gezet zonder actieve versie.');
         }
 
         $request = $this->repository->findQuoteRequest($requestId);
@@ -116,7 +116,7 @@ final class QuoteSendReadinessValidator
         if ($email === '' || ! filter_var($email, FILTER_VALIDATE_EMAIL)) {
             return array(array(
                 'code' => 'customer_email_invalid',
-                'message' => 'Quote kan niet naar ready_to_send zonder geldig klant e-mailadres.',
+                'message' => 'Quote kan niet verzendklaar worden gezet zonder geldig klant e-mailadres.',
             ));
         }
 
@@ -137,7 +137,7 @@ final class QuoteSendReadinessValidator
                     'code' => 'send_assumption_open',
                     'message' => $message !== ''
                         ? $message
-                        : 'Quote kan niet naar ready_to_send zolang blokkerende send-assumptions open staan.',
+                        : 'Quote kan niet verzendklaar worden gezet zolang blokkerende controles open staan.',
                 );
             }
         }
@@ -152,14 +152,14 @@ final class QuoteSendReadinessValidator
     {
         $blockers = array();
         foreach (array(
-            'pricing_confidence' => 'pricing_confidence',
-            'availability_confidence' => 'availability_confidence',
+            'pricing_confidence' => 'bevestigde prijsstatus',
+            'availability_confidence' => 'bevestigde beschikbaarheidsstatus',
         ) as $field => $label) {
             $value = trim((string) ($version[$field] ?? ''));
             if ($value === '' || $value === 'unknown') {
                 $blockers[] = array(
                     'code' => $field . '_missing',
-                    'message' => sprintf('Quote kan niet naar ready_to_send zonder geldige %s.', $label),
+                    'message' => sprintf('Quote kan niet verzendklaar worden gezet zonder %s.', $label),
                 );
             }
         }
@@ -212,7 +212,7 @@ final class QuoteSendReadinessValidator
                 if ($currency !== $lineCurrency) {
                     $blockers[] = array(
                         'code' => 'mixed_currency',
-                        'message' => 'Quote kan niet naar ready_to_send met gemengde valuta in commerciële regels.',
+                        'message' => 'Quote kan niet verzendklaar worden gezet met gemengde valuta in commerciële regels.',
                     );
                 }
             }
@@ -231,12 +231,12 @@ final class QuoteSendReadinessValidator
         if ($discountAmount > 0.0 && $subtotal <= 0.0) {
             $blockers[] = array(
                 'code' => 'quote_discount_without_subtotal',
-                'message' => 'Quote kan niet naar ready_to_send met korting zonder commerciële subtotaalregels.',
+                'message' => 'Quote kan niet verzendklaar worden gezet met korting zonder commerciële subtotaalregels.',
             );
         } elseif ($discountAmount > $subtotal) {
             $blockers[] = array(
                 'code' => 'quote_discount_exceeds_subtotal',
-                'message' => 'Quote kan niet naar ready_to_send omdat de korting hoger is dan het offerte-subtotaal.',
+                'message' => 'Quote kan niet verzendklaar worden gezet omdat de korting hoger is dan het offerte-subtotaal.',
             );
         }
 
@@ -259,7 +259,7 @@ final class QuoteSendReadinessValidator
             if ($productId <= 0) {
                 $blockers[] = array(
                     'code' => 'woo_product_missing',
-                    'message' => sprintf('Quote-regel %d mist een Woo product voor direct-checkout.', $lineNumber),
+                    'message' => sprintf('Quote-regel %d mist een Woo product voor directe checkout.', $lineNumber),
                 );
                 continue;
             }
@@ -288,7 +288,7 @@ final class QuoteSendReadinessValidator
             if (method_exists($product, 'is_purchasable') && ! $product->is_purchasable()) {
                 $blockers[] = array(
                     'code' => 'woo_product_not_purchasable',
-                    'message' => sprintf('Woo product %d is niet beschikbaar voor direct-checkout quote-regel %d.', $productId, $lineNumber),
+                    'message' => sprintf('Woo product %d is niet beschikbaar voor directe checkout in quote-regel %d.', $productId, $lineNumber),
                 );
                 continue;
             }
@@ -330,7 +330,7 @@ final class QuoteSendReadinessValidator
 
         return array(array(
             'code' => 'quote_lines_missing',
-            'message' => 'Quote kan niet naar ready_to_send zonder commerciële regels.',
+            'message' => 'Quote kan niet verzendklaar worden gezet zonder commerciële regels.',
         ));
     }
 
