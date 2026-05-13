@@ -139,6 +139,16 @@ final class InMemoryQuoteRepository implements QuoteRepositoryInterface
         return $lines;
     }
 
+    public function findQuoteLine(int $id): ?array
+    {
+        return $this->find('lines', $id);
+    }
+
+    public function updateQuoteLine(int $id, array $changes): array
+    {
+        return $this->update('lines', $id, $changes);
+    }
+
     /**
      * @param array<string, mixed> $data
      * @return array<string, mixed>

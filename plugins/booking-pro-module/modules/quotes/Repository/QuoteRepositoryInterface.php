@@ -89,6 +89,17 @@ interface QuoteRepositoryInterface
     public function listQuoteLines(int $quoteVersionId): array;
 
     /**
+     * @return array<string, mixed>|null
+     */
+    public function findQuoteLine(int $id): ?array;
+
+    /**
+     * @param array<string, mixed> $changes
+     * @return array<string, mixed>
+     */
+    public function updateQuoteLine(int $id, array $changes): array;
+
+    /**
      * @param array<string, mixed> $data
      * @return array<string, mixed>
      */

@@ -16,6 +16,7 @@ use BSP\Quotes\Service\QuoteWooCartHydrationService;
 use BSP\Quotes\Service\QuoteFollowupService;
 use BSP\Quotes\Service\QuoteHandoffAdapterService;
 use BSP\Quotes\Service\QuoteHandoffPreparationService;
+use BSP\Quotes\Service\QuoteLineControlStatusService;
 use BSP\Quotes\Service\QuoteOperationsDraftService;
 use BSP\Quotes\Service\QuoteRequestService;
 use BSP\Quotes\Service\QuoteReviewService;
@@ -395,6 +396,31 @@ final class Controller
             'quote_id' => $quoteId,
             'workspace_tab' => 'build',
             'quote_operations_saved' => '1',
+        ));
+    }
+    public static function handleUpdateLineControlStatus(): void {
+        self::assertAccess();
+        check_admin_referer('sbdp_quote_line_control_status');
+        $quoteId = isset($_POST['quote_id']) ? (int) $_POST['quote_id'] : 0;
+        $lineId = isset($_POST['line_id']) ? (int) $_POST['line_id'] : 0;
+        $dimension = sanitize_key((string) ($_POST['dimension'] ?? ''));
+        $status = sanitize_key((string) ($_POST['status'] ?? ''));
+        $repository = new QuoteRepository();
+        $events = new QuoteEventLogger($repository);
+        $service = new QuoteLineControlStatusService($repository, $events);
+        try {
+            $service->updateStatus($quoteId, $lineId, $dimension, $status, function_exists('get_current_user_id') ? (int) get_current_user_id() : null);
+        } catch (\Throwable $exception) {
+            self::redirect('sbdp_quotes', array(
+                'quote_id' => $quoteId,
+                'workspace_tab' => 'build',
+                'quote_error' => rawurlencode($exception->getMessage()),
+            ));
+        }
+        self::redirect('sbdp_quotes', array(
+            'quote_id' => $quoteId,
+            'workspace_tab' => 'build',
+            'quote_line_control_updated' => '1',
         ));
     }
     public static function handleGenerateProposalDraft(): void {
