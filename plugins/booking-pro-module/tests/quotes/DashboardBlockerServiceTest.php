@@ -106,5 +106,31 @@ final class DashboardBlockerServiceTest extends TestCase
 
         $this->assertSame('ready', $state['state']);
     }
+
+    public function testPricingBlockerUsesHumanOperatorCopy(): void
+    {
+        $state = (new DashboardBlockerService())->buildState(
+            array(
+                'ready' => false,
+                'blockers' => array(
+                    array(
+                        'code' => 'pricing_confidence_missing',
+                        'message' => 'Quote kan niet verzendklaar worden gezet zonder bevestigde prijsstatus.',
+                    ),
+                ),
+            ),
+            array('violations' => array()),
+            array(),
+            true
+        );
+
+        $this->assertSame('blocked', $state['state']);
+        $this->assertSame('Prijs moet bevestigd worden', $state['primary_blocker']['label']);
+        $this->assertSame('Deze offerte kan nog niet worden verstuurd omdat de prijs nog niet definitief is bevestigd.', $state['primary_blocker']['message']);
+        $this->assertNotContains('Zet de prijsconfidence pas goed na echte controle.', $state['primary_blocker']['steps']);
+        $this->assertContains('Bevestig de prijs.', $state['primary_blocker']['steps']);
+        $this->assertStringNotContainsString('pricing_confidence', $state['primary_blocker']['message']);
+        $this->assertStringNotContainsString('ready_to_send', $state['primary_blocker']['message']);
+    }
 }
 }
