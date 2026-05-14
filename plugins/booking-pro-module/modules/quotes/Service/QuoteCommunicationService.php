@@ -47,6 +47,7 @@ final class QuoteCommunicationService
                 $dateLabel,
                 $groupSize,
                 $lineLabels,
+                $quote,
                 $version,
                 $lines
             ),
@@ -722,6 +723,7 @@ final class QuoteCommunicationService
         string $dateLabel,
         int $groupSize,
         array $lineLabels,
+        array $quote,
         array $version,
         array $lines
     ): string {
@@ -748,7 +750,7 @@ final class QuoteCommunicationService
 
         $proposalUrl = PublicProposalController::publicUrl(
             (new PublicQuoteProposalTokenService())->create(
-                (int) ($context['quote']['id'] ?? 0),
+                (int) ($quote['id'] ?? 0),
                 (int) ($version['id'] ?? 0),
                 $quoteReference
             )
