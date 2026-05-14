@@ -1,6 +1,12 @@
 import { addMinutes, clampMinutes, minutesToTime, timeToMinutes } from "./time";
 import { calculateTotalCost, computeSlotPricing, summarizePlan, toFloat, roundCurrency } from "./price.js";
 import { getDurationMinutes } from "./products.js";
+import {
+  buildAutoTimeFields,
+  buildInheritedParticipants,
+  buildManualParticipants,
+  buildManualTimeFields,
+} from "./planner-state.js";
 
 export function buildDays(baseDate, dayCount) {
   const count = Math.max(1, dayCount || 1);
@@ -167,12 +173,13 @@ export function createPlannedItem(product, options) {
     productType: plannerInput.productType,
     title: product.name,
     date,
-    participants,
+    ...buildInheritedParticipants(participants, 10),
     durationMinutes: duration,
     startMinutes,
     endMinutes,
     startTime: minutesToTime(startMinutes),
     endTime: minutesToTime(endMinutes),
+    ...buildAutoTimeFields(),
     pricing: product.pricing || {},
     totalCost: itemTotalCost,
     price_pp: pricePp,
@@ -217,6 +224,7 @@ export function updatePlannedItem(item, updates, product, participants) {
 
   if (typeof updates.startMinutes === "number") {
     next.startTime = minutesToTime(updates.startMinutes);
+    Object.assign(next, buildManualTimeFields());
   }
 
   if (typeof updates.endMinutes === "number") {
@@ -224,7 +232,7 @@ export function updatePlannedItem(item, updates, product, participants) {
   }
 
   if (typeof participants === "number") {
-    next.participants = participants;
+    Object.assign(next, buildManualParticipants(participants, 10));
   }
 
   if (product?.pricing) {

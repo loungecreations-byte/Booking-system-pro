@@ -12,9 +12,7 @@ import PropTypes from "prop-types";
 
 import {
   buildDays,
-  calculateTotalCost,
   itemConflicts,
-  findNextAvailableTime,
   summarizePlan,
   deriveSlotPricing,
   computeSlotPricing,
@@ -28,6 +26,21 @@ import {
 import { getProductCategoryTokens } from "../app/utils/search.js";
 import { getDurationMinutes } from "../app/utils/products.js";
 import { emitPlannerEvent } from "../app/utils/telemetry.js";
+import {
+  PARTICIPANTS_SOURCE_INHERITED,
+  TIME_SOURCE_AUTO,
+  TIME_SOURCE_MANUAL,
+  applyParticipantsTruthToItem,
+  buildAutoTimeFields,
+  buildInheritedParticipants,
+  buildManualParticipants,
+  buildManualTimeFields,
+  countCriticalPlannerItemOverlaps,
+  hasManualParticipantsOverride,
+  resolveParticipantsForItem,
+  resolveUserOrder,
+  shouldApplyAvailabilitySuggestedStart,
+} from "../app/utils/planner-state.js";
 import { createPlannerApi } from "../api/client.js";
 import {
   isArrangement,
@@ -1276,53 +1289,33 @@ function plannerReducer(state, action) {
       const days = buildDays(date, dayCount);
       const existingItems = Array.isArray(state.plan.items) ? state.plan.items : [];
       let nextItems = existingItems;
-      const productsById =
-        nextParticipants !== null
-          ? new Map(
-              (Array.isArray(state.products) ? state.products : [])
-                .map((product) => {
-                  const id = Number.parseInt(product?.id, 10);
-                  if (!Number.isFinite(id) || id <= 0) {
-                    return null;
-                  }
-
-                  return [id, product];
-                })
-                .filter(Boolean)
-            )
-          : null;
 
       if (existingItems.length > 0 && days.length > 0) {
         const maxDayIndex = days.length - 1;
-        nextItems = existingItems.map((item) => {
+        nextItems = existingItems.map((item, index) => {
           const rawIndex =
             typeof item?.dayIndex === "number"
               ? item.dayIndex
               : Number.parseInt(item?.dayIndex, 10);
           const normalized = Number.isFinite(rawIndex) ? rawIndex : 0;
           const safeIndex = Math.min(Math.max(0, normalized), maxDayIndex);
-          let nextItemParticipants = item?.participants;
+          const itemWithParticipants =
+            nextParticipants !== null
+              ? applyParticipantsTruthToItem(item, nextParticipants, DEFAULT_PARTICIPANTS)
+              : item;
 
-          if (nextParticipants !== null) {
-            const itemProductId = Number.parseInt(item?.productId, 10);
-            const itemProduct =
-              productsById && Number.isFinite(itemProductId) && itemProductId > 0
-                ? productsById.get(itemProductId) || null
-                : null;
-            const clampedParticipants = clampParticipantsForProduct(nextParticipants, itemProduct);
-            if (clampedParticipants !== null) {
-              nextItemParticipants = clampedParticipants;
-            }
-          }
-
-          if (safeIndex === item?.dayIndex && nextItemParticipants === item?.participants) {
+          if (
+            safeIndex === item?.dayIndex &&
+            itemWithParticipants === item &&
+            resolveUserOrder(item, index) === item?.user_order
+          ) {
             return item;
           }
 
           return {
-            ...item,
+            ...itemWithParticipants,
             dayIndex: safeIndex,
-            participants: nextItemParticipants,
+            user_order: resolveUserOrder(item, index),
           };
         });
       }
@@ -1333,7 +1326,7 @@ function plannerReducer(state, action) {
         planRange: requestedRange,
         plan: {
           ...state.plan,
-          participants,
+          participants: nextParticipants ?? participants,
           days,
         },
       };
@@ -1401,7 +1394,24 @@ function plannerReducer(state, action) {
       if (deduped.length === 0) {
         return state;
       }
-      const nextItems = [...state.plan.items, ...deduped];
+      const maxOrder = state.plan.items.reduce(
+        (max, item, index) => Math.max(max, resolveUserOrder(item, index)),
+        0
+      );
+      const canonicalParticipants = selectCanonicalParticipants(state, { allowFormFallback: true });
+      const preparedItems = deduped.map((item, index) => ({
+        ...applyParticipantsTruthToItem(item, canonicalParticipants, DEFAULT_PARTICIPANTS),
+        user_order: resolveUserOrder(item, maxOrder + index),
+        ...(
+          item?.manual_locked === true || item?.time_source === TIME_SOURCE_MANUAL
+            ? buildManualTimeFields()
+            : {
+                manual_locked: item?.manual_locked === true,
+                time_source: item?.time_source || TIME_SOURCE_AUTO,
+              }
+        ),
+      }));
+      const nextItems = [...state.plan.items, ...preparedItems];
       return applyItemsUpdate(state, nextItems);
     }
     case ACTIONS.UPDATE_ITEM: {
@@ -1425,7 +1435,8 @@ function plannerReducer(state, action) {
             startMinutes: newStartMinutes,
             endMinutes: newStartMinutes + (item.durationMinutes || (item.endMinutes - item.startMinutes)),
             startTime: minutesToTime(newStartMinutes),
-            endTime: minutesToTime(newStartMinutes + (item.durationMinutes || (item.endMinutes - item.startMinutes)))
+            endTime: minutesToTime(newStartMinutes + (item.durationMinutes || (item.endMinutes - item.startMinutes))),
+            ...(action.payload.changes?.time_source === TIME_SOURCE_MANUAL ? buildManualTimeFields() : {}),
           };
         }
         if (
@@ -1437,6 +1448,9 @@ function plannerReducer(state, action) {
           return {
             ...item,
             participants: nextParticipants,
+            ...(action.payload.changes?.participants_source === "manual_override"
+              ? buildManualParticipants(nextParticipants, DEFAULT_PARTICIPANTS)
+              : {}),
             totalCost: itemTotalCost.total,
             price_pp: itemTotalCost.perPerson,
             fixedCost: itemTotalCost.fixedCost,
@@ -2069,12 +2083,15 @@ function buildPlannerActionState({
   plannerApiAvailable,
 }) {
   const capability = resolvePlanCheckoutCapabilityProfile(plan, items, products);
-  const criticalPlannerConflictCount = Array.isArray(plan?.days)
+  const declaredCriticalPlannerConflictCount = Array.isArray(plan?.days)
     ? plan.days.reduce((count, day) => {
         const conflicts = Array.isArray(day?.conflicts) ? day.conflicts : [];
         return count + conflicts.filter((conflict) => conflict?.tone === "critical").length;
       }, 0)
     : 0;
+  const computedCriticalPlannerConflictCount = countCriticalPlannerItemOverlaps(items, timeToMinutes);
+  const criticalPlannerConflictCount =
+    declaredCriticalPlannerConflictCount + computedCriticalPlannerConflictCount;
   const hasCriticalPlannerConflicts = criticalPlannerConflictCount > 0;
   const hasDate = typeof form?.date === "string" && form.date.trim() !== "";
   const hasItems = Array.isArray(items) && items.length > 0;
@@ -2122,8 +2139,7 @@ function buildPlannerActionState({
   const secondaryQuoteEnabled =
     requirementsMet &&
     plannerApiAvailable &&
-    capability.route_intent !== ROUTE_INTENT_BLOCKED &&
-    !hasCriticalPlannerConflicts;
+    capability.route_intent !== ROUTE_INTENT_BLOCKED;
 
   return {
     action_mode: actionMode,
@@ -2166,24 +2182,6 @@ function selectCanonicalParticipants(state, { allowFormFallback = true } = {}) {
   }
 
   return DEFAULT_PARTICIPANTS;
-}
-
-function clampParticipantsForProduct(participantCount, product) {
-  const normalized = toPositiveInt(participantCount);
-  if (normalized === null) {
-    return null;
-  }
-
-  if (product?.people?.enabled) {
-    const minFromProduct = toPositiveInt(product.people.min);
-    const maxFromProduct = toPositiveInt(product.people.max);
-    const min = Math.max(1, minFromProduct ?? 1);
-    const max = Math.max(min, maxFromProduct ?? min);
-
-    return Math.min(max, Math.max(min, normalized));
-  }
-
-  return normalized;
 }
 
 function toFloat(value) {
@@ -2396,16 +2394,21 @@ function recalculateItems(items, products, fallbackParticipants) {
   }
 
   return items.map((item) => {
+    const participantTruth = applyParticipantsTruthToItem(
+      item,
+      fallbackParticipants,
+      DEFAULT_PARTICIPANTS
+    );
+    const participants = participantTruth.participants;
+
     if (hasServerQuotedPricing(item) && item?.pricing && typeof item.pricing === "object") {
-      const participants =
-        toPositiveInt(item?.participants) ?? fallbackParticipants ?? DEFAULT_PARTICIPANTS;
       const totalCost = resolveQuotedPricingTotal(item.pricing, item?.totalCost ?? 0);
       const unitPrice = resolveQuotedUnitPrice(item.pricing, totalCost, participants);
       const fixedCost = resolveQuotedAdjustment(item.pricing, item?.fixedCost ?? 0);
 
       return {
         ...item,
-        participants,
+        ...participantTruth,
         pricing: {
           ...(item?.pricing || {}),
           currency: item?.pricing?.currency || "EUR",
@@ -2434,7 +2437,6 @@ function recalculateItems(items, products, fallbackParticipants) {
     const productId = toPositiveInt(item?.productId ?? item?.product_id);
     const product = products?.find((entry) => entry.id === productId) || null;
     const pricingSource = product?.pricing || item?.pricing || {};
-    const participants = toPositiveInt(item?.participants) ?? fallbackParticipants ?? DEFAULT_PARTICIPANTS;
 
     const slotPricing = computeSlotPricing(pricingSource, participants, {
       // Prefer item-specific price_pp over product-level to avoid overwriting API-provided values.
@@ -2444,7 +2446,7 @@ function recalculateItems(items, products, fallbackParticipants) {
 
     return {
       ...item,
-      participants,
+      ...participantTruth,
       pricing: pricingSource,
       totalCost: slotPricing.total,
       price_pp: slotPricing.perPerson,
@@ -2594,7 +2596,7 @@ function buildPlanPayload(plan, form, summary, config) {
       days[dayIndex] = { date: fallbackDate, slots: [] };
     }
 
-    const slotParticipants = toPositiveInt(item?.participants) ?? participantCount;
+    const slotParticipants = resolveParticipantsForItem(item, participantCount, participantCount);
     const bookingResolution =
       item?.bookingResolution && typeof item.bookingResolution === "object"
         ? item.bookingResolution
@@ -2796,7 +2798,7 @@ function normalisePlanResponse(planPayload, existingState = initialState) {
           ? durationCandidate
           : 0;
 
-      const slotParticipants =
+      let slotParticipants =
         toPositiveInt(slot?.people ?? slot?.participants) ?? participants ?? DEFAULT_PARTICIPANTS;
 
       const perPerson = toFloat(
@@ -2833,6 +2835,11 @@ function normalisePlanResponse(planPayload, existingState = initialState) {
               slotParticipants,
             ].join("|");
       const persistedPlannerItem = persistedPlannerMap.get(persistedKey) || null;
+      slotParticipants = resolveParticipantsForItem(
+        persistedPlannerItem || slot,
+        participants,
+        participants ?? DEFAULT_PARTICIPANTS
+      );
 
       const bookingResolution =
         persistedPlannerItem?.bookingResolution && typeof persistedPlannerItem.bookingResolution === "object"
@@ -2851,11 +2858,23 @@ function normalisePlanResponse(planPayload, existingState = initialState) {
         product_id: productId,
         title: titleSource,
         participants: slotParticipants,
+        participants_override: hasManualParticipantsOverride(persistedPlannerItem),
+        participants_source: hasManualParticipantsOverride(persistedPlannerItem)
+          ? persistedPlannerItem?.participants_source || "manual_override"
+          : PARTICIPANTS_SOURCE_INHERITED,
         durationMinutes,
         startMinutes,
         endMinutes,
         startTime: start,
         endTime: end,
+        manual_locked: persistedPlannerItem?.manual_locked === true || persistedPlannerItem?.manualLocked === true,
+        time_source:
+          typeof persistedPlannerItem?.time_source === "string" && persistedPlannerItem.time_source.trim() !== ""
+            ? persistedPlannerItem.time_source.trim()
+            : persistedPlannerItem?.manual_locked === true || persistedPlannerItem?.manualLocked === true
+            ? TIME_SOURCE_MANUAL
+            : TIME_SOURCE_AUTO,
+        user_order: resolveUserOrder(persistedPlannerItem || slot, slotIndex),
         pricing:
           hasServerQuotedPricing(persistedPlannerItem) &&
           persistedPlannerItem?.pricing &&
@@ -2969,7 +2988,11 @@ function normalisePlanResponse(planPayload, existingState = initialState) {
         Number.isFinite(startMinutes) && Number.isFinite(endMinutes) && endMinutes > startMinutes
           ? endMinutes - startMinutes
           : 0;
-      const slotParticipants = toPositiveInt(lineItem?.participants) ?? participants ?? DEFAULT_PARTICIPANTS;
+      const slotParticipants = resolveParticipantsForItem(
+        lineItem,
+        participants,
+        participants ?? DEFAULT_PARTICIPANTS
+      );
       const totalCost = roundCurrency(toFloat(lineItem?.line_subtotal ?? lineItem?.total));
       const currency = lineItem?.currency || safeState.summary?.currency || "EUR";
       const resourceId = toPositiveInt(lineItem?.resource_id ?? lineItem?.resourceId);
@@ -3000,11 +3023,23 @@ function normalisePlanResponse(planPayload, existingState = initialState) {
           `Activiteit ${productId ?? index + 1}`
         ),
         participants: slotParticipants,
+        participants_override: hasManualParticipantsOverride(lineItem),
+        participants_source: hasManualParticipantsOverride(lineItem)
+          ? lineItem?.participants_source || "manual_override"
+          : PARTICIPANTS_SOURCE_INHERITED,
         durationMinutes,
         startMinutes,
         endMinutes,
         startTime: start,
         endTime: end,
+        manual_locked: lineItem?.manual_locked === true || lineItem?.manualLocked === true,
+        time_source:
+          typeof lineItem?.time_source === "string" && lineItem.time_source.trim() !== ""
+            ? lineItem.time_source.trim()
+            : lineItem?.manual_locked === true || lineItem?.manualLocked === true
+            ? TIME_SOURCE_MANUAL
+            : TIME_SOURCE_AUTO,
+        user_order: resolveUserOrder(lineItem, index),
         date,
         pricing: {
           per_person: 0,
@@ -4329,7 +4364,9 @@ export function PlannerProvider({ bootConfig, children }) {
               : state.form.date,
           productId: queuedPlanItem.productId ?? queuedPlanItem.product_id ?? productId,
           product_id: queuedPlanItem.productId ?? queuedPlanItem.product_id ?? productId,
-          participants: queuedPlanItem.participants ?? participants,
+          ...(hasManualParticipantsOverride(queuedPlanItem)
+            ? buildManualParticipants(queuedPlanItem.participants, participants)
+            : buildInheritedParticipants(participants, DEFAULT_PARTICIPANTS)),
           startTime: sanitiseTimeString(queuedPlanItem.startTime ?? startTime),
           endTime: sanitiseTimeString(queuedPlanItem.endTime ?? ""),
           startMinutes: sanitiseTimeString(queuedPlanItem.startTime ?? startTime)
@@ -4361,6 +4398,10 @@ export function PlannerProvider({ bootConfig, children }) {
             queuedPlanItem,
             typeof options.locked === "boolean" ? options.locked : null
           ),
+          ...(queuedPlanItem?.manual_locked === true || queuedPlanItem?.time_source === TIME_SOURCE_MANUAL
+            ? buildManualTimeFields()
+            : buildAutoTimeFields(queuedPlanItem?.time_source || TIME_SOURCE_AUTO)),
+          user_order: resolveUserOrder(queuedPlanItem, state.plan.items.length),
           source: queuedPlanItem.source || options.source || "product-prefill",
           traceId: resolvePlannerTraceId(queuedPlanItem) || resolvePlannerTraceId(options),
           trace_id: resolvePlannerTraceId(queuedPlanItem) || resolvePlannerTraceId(options),
@@ -4466,7 +4507,7 @@ export function PlannerProvider({ bootConfig, children }) {
         product_id: product.id,
         title: product.name,
         date,
-        participants,
+        ...buildInheritedParticipants(participants, DEFAULT_PARTICIPANTS),
         durationMinutes: Number.isFinite(durationMinutes) && durationMinutes > 0 ? durationMinutes : null,
         startMinutes: Number.isFinite(baseStartMinutes) ? baseStartMinutes : undefined,
         endMinutes:
@@ -4483,6 +4524,8 @@ export function PlannerProvider({ bootConfig, children }) {
         price_pp: 0,
         fixedCost: 0,
         locked: typeof options.locked === "boolean" ? options.locked : false,
+        ...buildAutoTimeFields(TIME_SOURCE_AUTO),
+        user_order: state.plan.items.length + 1,
         resourceId:
           options.resourceId != null ? options.resourceId : product.resource_id ?? null,
         resource_id:
@@ -4610,12 +4653,14 @@ export function PlannerProvider({ bootConfig, children }) {
       }
 
       let nextStart = item.startMinutes;
+      const hasStartTimeChange = typeof startTime === "string" && startTime.trim() !== "";
+      const hasParticipantChange = participants != null;
       let nextParticipants =
-        participants != null
+        hasParticipantChange
           ? Math.max(1, parseInt(participants, 10) || DEFAULT_PARTICIPANTS)
           : item.participants ?? DEFAULT_PARTICIPANTS;
 
-      if (startTime) {
+      if (hasStartTimeChange) {
         nextStart = timeToMinutes(startTime);
       }
 
@@ -4735,6 +4780,13 @@ export function PlannerProvider({ bootConfig, children }) {
             startTime: nextStartTime,
             endTime: nextEndTime,
             participants: nextParticipants,
+            ...(hasParticipantChange
+              ? buildManualParticipants(nextParticipants, DEFAULT_PARTICIPANTS)
+              : {
+                  participants_override: hasManualParticipantsOverride(item),
+                  participants_source: item.participants_source || PARTICIPANTS_SOURCE_INHERITED,
+                }),
+            ...(hasStartTimeChange ? buildManualTimeFields() : {}),
             totalCost: slotPricing.total,
             price_pp: slotPricing.perPerson,
             fixedCost: slotPricing.fixedCost,
@@ -4796,8 +4848,9 @@ export function PlannerProvider({ bootConfig, children }) {
     let cancelled = false;
 
     void (async () => {
-      let adjustedCount = 0;
+      let suggestionCount = 0;
       let hadAvailabilityFailure = false;
+      let firstSuggestedStart = null;
 
       for (const item of state.plan.items) {
         const product = state.products.find((entry) => entry.id === item.productId);
@@ -4827,14 +4880,10 @@ export function PlannerProvider({ bootConfig, children }) {
           continue;
         }
 
-        const updated = updateActivity(item.id, {
-          startTime: resolvedStartTime,
-          participants: item.participants,
-          scope: "availability",
-        });
-
-        if (updated) {
-          adjustedCount += 1;
+        if (!shouldApplyAvailabilitySuggestedStart(item)) {
+          suggestionCount += 1;
+          firstSuggestedStart = firstSuggestedStart || resolvedStartTime;
+          continue;
         }
       }
 
@@ -4846,11 +4895,23 @@ export function PlannerProvider({ bootConfig, children }) {
         dispatch({ type: ACTIONS.CLEAR_AVAILABILITY_ISSUE });
       }
 
-      if (adjustedCount > 0) {
+      if (suggestionCount > 0) {
+        const message =
+          suggestionCount === 1
+            ? `Beschikbaarheid controleren: een gekozen tijd lijkt niet beschikbaar. Mogelijke optie: ${firstSuggestedStart}.`
+            : `${suggestionCount} gekozen tijden vragen beschikbaarheidscontrole.`;
+        dispatch({
+          type: ACTIONS.SET_AVAILABILITY_ISSUE,
+          payload: {
+            message,
+            source: "availability",
+            reasonCode: "availability_suggested_start",
+          },
+        });
         showToast(
-          adjustedCount === 1
-            ? "1 activiteit is aangepast aan actuele beschikbaarheid."
-            : `${adjustedCount} activiteiten zijn aangepast aan actuele beschikbaarheid.`
+          suggestionCount === 1
+            ? "Beschikbaarheid controleren: de gekozen tijd is behouden."
+            : "Beschikbaarheid controleren: gekozen tijden zijn behouden."
         );
       }
     })();
@@ -4868,7 +4929,6 @@ export function PlannerProvider({ bootConfig, children }) {
     state.plan.days,
     state.plan.items,
     state.products,
-    updateActivity,
   ]);
 
   const removeActivity = useCallback(
@@ -5008,7 +5068,7 @@ export function PlannerProvider({ bootConfig, children }) {
     setPrefillQueueVersion,
   ]);
 
-  // 🏠 HOME WIDGET AUTO-FILL: Automatically generate activities from URL parameters
+  // Home-widget and URL ingress may hydrate context only. Activity generation requires explicit user intent.
   const homeWidgetAppliedRef = React.useRef(false);
   const homeWidgetStartRef = React.useRef(false);
   const homeWidgetNoProductsRef = React.useRef(false);
@@ -5130,7 +5190,11 @@ export function PlannerProvider({ bootConfig, children }) {
     }
     
     if (aiSuggestions) {
+      console.info("[Planner] AI suggestions detected on load; keeping them read-only until explicit user action.");
     }
+
+    homeWidgetAppliedRef.current = true;
+    return;
     
     // CRITICAL: Check if already applied to prevent infinite loops
     if (homeWidgetAppliedRef.current) {
@@ -6205,6 +6269,10 @@ export function PlannerProvider({ bootConfig, children }) {
     }
 
     if (prefill.productId) {
+      console.info("[Planner] Product prefill detected on load; not committing an activity without explicit user action.");
+      prefillPlanAppliedRef.current = true;
+      return;
+
       const pendingQueuedPrefillItems =
         Array.isArray(sessionPrefillRef.current) && sessionPrefillRef.current.length > 0
           ? sessionPrefillRef.current
