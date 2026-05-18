@@ -38,9 +38,13 @@
   var composeUrl = data.compose || '';
   var nonce = data.nonce || '';
   var fallbackRedirect = data.fallback_redirect || '';
+  var quoteUrl = (config && config.quoteUrl) || data.quote_url || '';
   var localizedPlanner = data.planner_url || '';
   var plannerRoute = data.planner_route || '';
   var messages = data.messages || {};
+  var bookingCapability = (config && config.bookingCapability) || data.bookingCapability || {};
+  var routeIntent = String(bookingCapability.route_intent || bookingCapability.routeIntent || '').toLowerCase();
+  var isDirectBookingRoute = !routeIntent || routeIntent === 'checkout';
   var dataLabels = data.labels || {};
   var configLabels = (config && config.labels) || {};
   var fallbackDuration = 90;
@@ -1033,6 +1037,7 @@
   }
   var feedback = container.querySelector('[data-sbdp-feedback]');
   var bookButton = container.querySelector('[data-sbdp-action="book"]');
+  var quoteButton = container.querySelector('[data-sbdp-action="quote"]');
   var planButton = container.querySelector('[data-sbdp-action="plan"]') || container.querySelector('#sbdp_plan_btn');
   var queueButton = container.querySelector('[data-sbdp-action="queue"]');
   var buttons = container.querySelectorAll('[data-sbdp-action]');
@@ -1113,6 +1118,13 @@
   var timeslotList = container.querySelector('[data-sbdp-timeslot-list]');
   var timeslotEmpty = container.querySelector('[data-sbdp-timeslot-empty]');
   var timeChipGroup = container.querySelector('[data-ddb-chip-group="time"]');
+
+  if (!isDirectBookingRoute && bookButton && !quoteButton) {
+    bookButton.setAttribute('data-sbdp-action', 'quote');
+    bookButton.textContent = 'Vraag offerte aan';
+    quoteButton = bookButton;
+    bookButton = null;
+  }
 
   var getResolvedTimeValue = function() {
     var currentTime = normalizeTime(timeInput && timeInput.value);
@@ -1354,6 +1366,9 @@
   }
   if (bookButton && !bookButton.getAttribute('aria-label')) {
     bookButton.setAttribute('aria-label', 'Direct boeken met de gekozen datum, tijd en deelnemers');
+  }
+  if (quoteButton && !quoteButton.getAttribute('aria-label')) {
+    quoteButton.setAttribute('aria-label', 'Vraag een offerte aan voor deze activiteit');
   }
   if (planButton && !planButton.getAttribute('aria-label')) {
     planButton.setAttribute('aria-label', 'Plan je dag met de huidige selectie');
@@ -4348,6 +4363,37 @@
     return 0;
   };
 
+  var handleQuoteRequest = function(event) {
+    if (event) {
+      event.preventDefault();
+    }
+
+    if (!quoteUrl) {
+      showFeedback(messageLookup('generic_error', 'Er ging iets mis. Probeer het opnieuw.'), 'error');
+      return;
+    }
+
+    var params = [];
+    if (config && config.productId) {
+      params.push('product_id=' + encodeURIComponent(String(config.productId)));
+    }
+    if (dateInput && dateInput.value) {
+      params.push('date=' + encodeURIComponent(dateInput.value));
+    }
+    var resolvedTime = getResolvedTimeValue();
+    if (resolvedTime) {
+      params.push('time=' + encodeURIComponent(resolvedTime));
+    }
+    if (participantsInput && participantsInput.value) {
+      params.push('participants=' + encodeURIComponent(participantsInput.value));
+    }
+
+    var separator = quoteUrl.indexOf('?') === -1 ? '?' : '&';
+    var target = params.length ? quoteUrl + separator + params.join('&') : quoteUrl;
+    showFeedback(messageLookup('request_redirecting', 'We openen de offerte-aanvraag. Prijs en beschikbaarheid worden eerst bevestigd.'), 'info');
+    window.location.href = target;
+  };
+
   var handleBook = function(event) {
     if (event) {
       event.preventDefault();
@@ -4868,6 +4914,10 @@
 
   if (bookButton) {
     bookButton.addEventListener('click', handleBook);
+  }
+
+  if (quoteButton) {
+    quoteButton.addEventListener('click', handleQuoteRequest);
   }
 
   if (planButton) {
