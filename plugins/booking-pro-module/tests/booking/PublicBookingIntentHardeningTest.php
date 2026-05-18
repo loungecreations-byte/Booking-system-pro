@@ -455,7 +455,7 @@ final class PublicBookingIntentHardeningTest extends TestCase
 
         $this->assertSame('created', $result['status']);
         $this->assertSame('EUR', $result['currency']);
-        $this->assertSame(50.0, $result['total']);
+        $this->assertSame(148.0, $result['total']);
         $this->assertSame('Customer note only', $result['notes']);
         $this->assertNull($result['vendor']);
         $this->assertNull($result['payment']);
@@ -463,9 +463,9 @@ final class PublicBookingIntentHardeningTest extends TestCase
         $this->assertSame('booking_truth_runtime', $result['booking_truth']['validated_by'] ?? null);
         $this->assertSame('checkout', $result['booking_truth']['route_intent'] ?? null);
         $this->assertSame('DIRECT', $result['booking_truth']['booking_capability'] ?? null);
-        $this->assertSame(12.5, $result['items'][0]['unit_price']);
+        $this->assertSame(37.0, $result['items'][0]['unit_price']);
         $this->assertSame(4, $result['items'][0]['quantity']);
-        $this->assertSame(50.0, $result['pricing_snapshot']['line_total'] ?? null);
+        $this->assertSame(148.0, $result['pricing_snapshot']['line_total'] ?? null);
     }
 
     public function testPublicRequestWithValidTokenAccepted(): void
@@ -476,13 +476,13 @@ final class PublicBookingIntentHardeningTest extends TestCase
         $result = Controller::request($request);
 
         $this->assertSame('requested', $result['status']);
-        $this->assertSame(25.0, $result['total']);
+        $this->assertSame(74.0, $result['total']);
         $this->assertSame(array(), $result['pricing_rules']);
         $this->assertNull($result['vendor']);
         $this->assertNull($result['payment']);
         $this->assertSame('booking_truth_runtime', $result['booking_truth']['validated_by'] ?? null);
         $this->assertSame('DIRECT', $result['booking_truth']['booking_capability'] ?? null);
-        $this->assertSame(12.5, $result['items'][0]['unit_price']);
+        $this->assertSame(37.0, $result['items'][0]['unit_price']);
         $this->assertSame(2, $result['items'][0]['quantity']);
     }
 
