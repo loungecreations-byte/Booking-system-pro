@@ -141,6 +141,73 @@ function sbdp_legacy_product_planner_format_duration_label($minutes) {
     return $minutes . ' min';
 }
 
+function sbdp_legacy_product_planner_get_quote_url() {
+    $page = get_page_by_path('offerte');
+    if ($page instanceof WP_Post) {
+        $link = get_permalink($page);
+        if (is_string($link) && $link !== '') {
+            return $link;
+        }
+    }
+
+    return home_url('/offerte/');
+}
+
+function sbdp_legacy_product_planner_get_booking_profile($product_id, $date, $time, $duration, $participants) {
+    if (!class_exists('\BSPModule\Core\Services\BookingTruthRuntimeService')) {
+        return array(
+            'status' => 'DIRECT',
+            'route_intent' => 'checkout',
+            'reason_code' => null,
+            'legacy_status' => 'DIRECT',
+        );
+    }
+
+    $time = preg_match('/^\d{2}:\d{2}$/', (string) $time) ? (string) $time : '10:00';
+    $duration = max(1, (int) $duration);
+    $start = $date . 'T' . $time . ':00';
+    $end_timestamp = strtotime($start) + ($duration * MINUTE_IN_SECONDS);
+    $end = $end_timestamp > 0 ? gmdate('Y-m-d\TH:i:s', $end_timestamp) : $start;
+    $resource_id = (int) get_post_meta((int) $product_id, '_sbdp_resource_id', true);
+    if ($resource_id <= 0 && class_exists('\BSPModule\Core\Product\ProductMeta')) {
+        $resources = \BSPModule\Core\Product\ProductMeta::get_resource_ids((int) $product_id);
+        if (is_array($resources) && $resources !== array()) {
+            $resource_id = (int) $resources[0];
+        }
+    }
+
+    $runtime = new \BSPModule\Core\Services\BookingTruthRuntimeService();
+    $item = array(
+            'product_id' => (int) $product_id,
+            'resource_id' => $resource_id,
+            'date' => (string) $date,
+            'start' => $start,
+            'end' => $end,
+            'participants' => max(1, (int) $participants),
+    );
+    $profile = $runtime->resolveBookingCapabilityProfile($item);
+    if (($profile['route_intent'] ?? '') !== 'checkout' && in_array((string) ($profile['reason_code'] ?? ''), array('selected_time_invalid', 'time_unavailable'), true)) {
+        for ($offset = 1; $offset <= 14; $offset++) {
+            $candidate_date = function_exists('wp_date')
+                ? wp_date('Y-m-d', strtotime('+' . $offset . ' days'))
+                : gmdate('Y-m-d', strtotime('+' . $offset . ' days'));
+            $candidate_start = $candidate_date . 'T' . $time . ':00';
+            $candidate_end_timestamp = strtotime($candidate_start) + ($duration * MINUTE_IN_SECONDS);
+            $candidate_end = $candidate_end_timestamp > 0 ? gmdate('Y-m-d\TH:i:s', $candidate_end_timestamp) : $candidate_start;
+            $candidate = $runtime->resolveBookingCapabilityProfile(array_merge($item, array(
+                'date' => $candidate_date,
+                'start' => $candidate_start,
+                'end' => $candidate_end,
+            )));
+            if (($candidate['route_intent'] ?? '') === 'checkout') {
+                return $candidate;
+            }
+        }
+    }
+
+    return $profile;
+}
+
 function sbdp_render_product_planner_form($atts = array()) {
     $product_id = isset($atts['product_id']) ? (int)$atts['product_id'] : 0;
     $product = null;
@@ -242,6 +309,13 @@ function sbdp_render_product_planner_form($atts = array()) {
         ? wp_create_nonce(\BSPModule\Core\Rest\RestService::PUBLIC_NONCE_ACTION)
         : (function_exists('wp_create_nonce') ? wp_create_nonce('wp_rest') : '');
     $cart_url = function_exists('wc_get_cart_url') ? wc_get_cart_url() : home_url('/cart/');
+    $quote_url = sbdp_legacy_product_planner_get_quote_url();
+    $booking_profile = sbdp_legacy_product_planner_get_booking_profile($product_id, $today, '10:00', $main_duration, 10);
+    $route_intent = isset($booking_profile['route_intent']) ? (string) $booking_profile['route_intent'] : 'checkout';
+    $is_direct_checkout = $route_intent === 'checkout';
+    $primary_action = $is_direct_checkout ? 'book' : 'quote';
+    $primary_label = $is_direct_checkout ? 'Boek dit programma' : 'Vraag offerte aan';
+    $primary_type = $is_direct_checkout ? 'submit' : 'button';
 
     ob_start(); ?>
     <div class="sbdp-booking-form-wrapper" data-product-id="<?php echo esc_attr((string) $product_id); ?>" data-pricing-source="woocommerce" data-sbdp-legacy-form="true">
@@ -371,7 +445,7 @@ function sbdp_render_product_planner_form($atts = array()) {
                     </div>
 
                     <div class="sbdp-actions-row">
-                        <button type="submit" class="ui-btn ui-btn--primary" data-sbdp-action="book">Boek dit programma</button>
+                        <button type="<?php echo esc_attr($primary_type); ?>" class="ui-btn ui-btn--primary" data-sbdp-action="<?php echo esc_attr($primary_action); ?>"><?php echo esc_html($primary_label); ?></button>
                         <button type="button" class="ui-btn ui-btn--secondary" id="sbdp_plan_btn" data-sbdp-action="plan">Plan in dag</button>
                     </div>
                 </aside>
@@ -410,9 +484,11 @@ function sbdp_render_product_planner_form($atts = array()) {
             const planButton = document.getElementById('sbdp_plan_btn');
             const bookingForm = document.getElementById('sbdp-booking-form');
             const bookButton = bookingForm ? bookingForm.querySelector('[data-sbdp-action="book"]') : null;
+            const quoteButton = bookingForm ? bookingForm.querySelector('[data-sbdp-action="quote"]') : null;
             const composeUrl = <?php echo wp_json_encode($compose_url); ?>;
             const composeNonce = <?php echo wp_json_encode($compose_nonce); ?>;
             const cartUrl = <?php echo wp_json_encode($cart_url); ?>;
+            const quoteUrl = <?php echo wp_json_encode($quote_url); ?>;
 
             const mainTitle = <?php echo json_encode($title); ?>;
             const productBasePrice = <?php echo number_format((float)$price_display, 4, '.', ''); ?>;
@@ -694,6 +770,28 @@ function sbdp_render_product_planner_form($atts = array()) {
                 }
             }
 
+            function submitQuoteRequest(event) {
+                if (event) {
+                    event.preventDefault();
+                }
+
+                const plannerEntry = buildPlannerEntry();
+                const target = new URL(quoteUrl || '/offerte/', window.location.origin);
+                if (plannerEntry.productId) {
+                    target.searchParams.set('product_id', String(plannerEntry.productId));
+                }
+                if (plannerEntry.date) {
+                    target.searchParams.set('date', plannerEntry.date);
+                }
+                if (plannerEntry.time) {
+                    target.searchParams.set('time', plannerEntry.time);
+                }
+                if (plannerEntry.participants) {
+                    target.searchParams.set('participants', String(plannerEntry.participants));
+                }
+                window.location.href = target.toString();
+            }
+
             function updateUI() {
                 const pax = parseInt(countInput.value, 10) || 1;
                 const baseTime = timeInput.value;
@@ -840,6 +938,9 @@ function sbdp_render_product_planner_form($atts = array()) {
             }
             if (bookingForm) {
                 bookingForm.addEventListener('submit', submitDirectBooking);
+            }
+            if (quoteButton) {
+                quoteButton.addEventListener('click', submitQuoteRequest);
             }
 
             updateUI();
