@@ -172,9 +172,19 @@ final class PlannerQuoteSummaryService
             1,
             $this->toInt($rawItem['participants'] ?? ($rawItem['people'] ?? $defaultParticipants))
         );
-        $serviceDate = trim((string) ($rawItem['date'] ?? $fallbackDate));
-        $startTime   = $this->extractTime((string) ($rawItem['start_time'] ?? ($rawItem['startTime'] ?? ($rawItem['start'] ?? ($rawItem['starttime'] ?? '')))));
-        $endTime     = $this->extractTime((string) ($rawItem['end_time'] ?? ($rawItem['endTime'] ?? ($rawItem['end'] ?? ($rawItem['endtime'] ?? '')))));
+        $serviceDate = $this->firstNonEmptyString(array($rawItem['date'] ?? null, $fallbackDate));
+        $startTime   = $this->extractTime($this->firstNonEmptyString(array(
+            $rawItem['start_time'] ?? null,
+            $rawItem['startTime'] ?? null,
+            $rawItem['starttime'] ?? null,
+            $rawItem['start'] ?? null,
+        )));
+        $endTime     = $this->extractTime($this->firstNonEmptyString(array(
+            $rawItem['end_time'] ?? null,
+            $rawItem['endTime'] ?? null,
+            $rawItem['endtime'] ?? null,
+            $rawItem['end'] ?? null,
+        )));
         $resourceId  = $this->toNullableInt($rawItem['resource_id'] ?? ($rawItem['resourceId'] ?? null));
 
         $line = array(
@@ -551,6 +561,13 @@ final class PlannerQuoteSummaryService
             return 'Prijs op aanvraag';
         }
 
+        $productId = $this->toInt(
+            $rawItem['product_id'] ?? ($rawItem['productId'] ?? ($rawItem['productid'] ?? ($rawItem['id'] ?? 0)))
+        );
+        if ($productId > 0) {
+            return 'Prijs op aanvraag';
+        }
+
         return 'Inbegrepen';
     }
 
@@ -808,11 +825,34 @@ final class PlannerQuoteSummaryService
             return '';
         }
 
+        if (preg_match('/T(\d{2}:\d{2})(?::\d{2})?/', $value, $matches) === 1) {
+            return $matches[1];
+        }
+
         if (preg_match('/\b(\d{2}:\d{2})/', $value, $matches) === 1) {
             return $matches[1];
         }
 
         return substr($value, 0, 5);
+    }
+
+    /**
+     * @param array<int, mixed> $values
+     */
+    private function firstNonEmptyString(array $values): string
+    {
+        foreach ($values as $value) {
+            if (! is_scalar($value) && $value !== null) {
+                continue;
+            }
+
+            $string = trim((string) $value);
+            if ($string !== '') {
+                return $string;
+            }
+        }
+
+        return '';
     }
 
     private function normalizeTitle(string $title): string

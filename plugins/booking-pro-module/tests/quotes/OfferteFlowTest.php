@@ -26,6 +26,53 @@ namespace {
         }
     }
 
+    if (! class_exists('WC_Product')) {
+        class WC_Product
+        {
+            public function __construct(private float $price)
+            {
+            }
+
+            public function get_price(): float
+            {
+                return $this->price;
+            }
+        }
+    }
+
+    $GLOBALS['__test_wc_products'] = $GLOBALS['__test_wc_products'] ?? array();
+    $GLOBALS['__test_post_meta'] = $GLOBALS['__test_post_meta'] ?? array();
+
+    if (! function_exists('wc_get_product')) {
+        function wc_get_product(int $productId)
+        {
+            return $GLOBALS['__test_wc_products'][$productId] ?? null;
+        }
+    }
+
+    if (! function_exists('wc_get_price_including_tax')) {
+        function wc_get_price_including_tax($product, array $args = array()): float
+        {
+            unset($args);
+            return is_object($product) && method_exists($product, 'get_price') ? (float) $product->get_price() : 0.0;
+        }
+    }
+
+    if (! function_exists('get_post_meta')) {
+        function get_post_meta(int $postId, string $key, bool $single = true)
+        {
+            unset($single);
+            return $GLOBALS['__test_post_meta'][$postId][$key] ?? '';
+        }
+    }
+
+    if (! function_exists('get_woocommerce_currency')) {
+        function get_woocommerce_currency(): string
+        {
+            return 'EUR';
+        }
+    }
+
     require_once dirname(__DIR__, 2) . '/modules/bookings/Shortcodes/OfferteForm.php';
 }
 
@@ -38,6 +85,13 @@ use ReflectionMethod;
 
 final class OfferteFlowTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $GLOBALS['__test_wc_products'] = array();
+        $GLOBALS['__test_post_meta'] = array();
+    }
+
     public function testSummaryCalculatesPerPersonLineTotalsAndGrandTotal(): void
     {
         $lookup = new class extends QuoteExecutionLookupService {
@@ -247,6 +301,256 @@ final class OfferteFlowTest extends TestCase
         $this->assertSame('Workshop worstenbroodjes', $summary['items'][0]['title']);
         $this->assertSame('Prijs op aanvraag', $summary['items'][0]['display_price_label']);
         $this->assertSame(0.0, $summary['items'][0]['line_total']);
+    }
+
+    public function testSummaryUsesLowercaseTimesWhenEmptyCamelCaseTimesArePresent(): void
+    {
+        $lookup = new class extends QuoteExecutionLookupService {
+            /** @var array<string, mixed> */
+            public array $lastLine = array();
+
+            public function lookupPricing(array $line): array
+            {
+                $this->lastLine = $line;
+
+                return array(
+                    'confidence' => 'execution_verified',
+                    'payload' => array(
+                        'line_item' => array(
+                            'pricing' => array(
+                                'supports_persons' => true,
+                            ),
+                        ),
+                    ),
+                    'unit_amount_snapshot' => 35.0,
+                    'line_total_snapshot' => 420.0,
+                    'currency' => 'EUR',
+                );
+            }
+        };
+
+        $service = new PlannerQuoteSummaryService($lookup);
+        $summary = $service->buildViewModel(array(
+            'days' => array(
+                array('date' => '2026-05-29'),
+            ),
+            'meta' => array(
+                'participant_count' => 12,
+                'planner_items' => array(
+                    array(
+                        'product_id' => 121,
+                        'productId' => 121,
+                        'productid' => 121,
+                        'title' => 'Boottocht',
+                        'participants' => 12,
+                        'date' => '2026-05-29',
+                        'startTime' => '',
+                        'endTime' => '',
+                        'starttime' => '14:00',
+                        'endtime' => '16:00',
+                    ),
+                ),
+            ),
+        ));
+
+        $this->assertSame('14:00', $lookup->lastLine['start_time']);
+        $this->assertSame('16:00', $lookup->lastLine['end_time']);
+        $this->assertSame(35.0, $summary['items'][0]['unit_price']);
+        $this->assertSame(420.0, $summary['items'][0]['line_total']);
+        $this->assertNull($summary['items'][0]['display_price_label']);
+        $this->assertSame(420.0, $summary['total']);
+    }
+
+    public function testSummaryDoesNotMarkUnpricedProductAsIncludedByDefault(): void
+    {
+        $service = new PlannerQuoteSummaryService(new class extends QuoteExecutionLookupService {
+            public function lookupPricing(array $line): array
+            {
+                unset($line);
+
+                return array(
+                    'confidence' => 'unknown',
+                    'payload' => array('reason' => 'pricing_lookup_unavailable'),
+                    'unit_amount_snapshot' => null,
+                    'line_total_snapshot' => null,
+                    'currency' => 'EUR',
+                );
+            }
+        });
+
+        $summary = $service->buildViewModel(array(
+            'days' => array(
+                array('date' => '2026-05-29'),
+            ),
+            'meta' => array(
+                'participant_count' => 12,
+                'planner_items' => array(
+                    array(
+                        'product_id' => 121,
+                        'title' => 'Boottocht',
+                        'participants' => 12,
+                        'date' => '2026-05-29',
+                        'starttime' => '14:00',
+                        'endtime' => '16:00',
+                    ),
+                ),
+            ),
+        ));
+
+        $this->assertSame(0.0, $summary['items'][0]['unit_price']);
+        $this->assertSame(0.0, $summary['items'][0]['line_total']);
+        $this->assertSame('Prijs op aanvraag', $summary['items'][0]['display_price_label']);
+    }
+
+    public function testSummaryExtractsIsoTimesForPricingLookup(): void
+    {
+        $lookup = new class extends QuoteExecutionLookupService {
+            /** @var array<string, mixed> */
+            public array $lastLine = array();
+
+            public function lookupPricing(array $line): array
+            {
+                $this->lastLine = $line;
+
+                return array(
+                    'confidence' => 'execution_verified',
+                    'payload' => array(
+                        'line_item' => array(
+                            'pricing' => array(
+                                'supports_persons' => true,
+                            ),
+                        ),
+                    ),
+                    'unit_amount_snapshot' => 9.5,
+                    'line_total_snapshot' => 114.0,
+                    'currency' => 'EUR',
+                );
+            }
+        };
+
+        $service = new PlannerQuoteSummaryService($lookup);
+        $summary = $service->buildViewModel(array(
+            'days' => array(
+                array('date' => '2026-05-29'),
+            ),
+            'meta' => array(
+                'participant_count' => 12,
+                'planner_items' => array(
+                    array(
+                        'product_id' => 350,
+                        'title' => 'Bossche Bol met koffie',
+                        'participants' => 12,
+                        'date' => '2026-05-29',
+                        'start' => '2026-05-29T10:00:00',
+                        'end' => '2026-05-29T10:30:00',
+                    ),
+                ),
+            ),
+        ));
+
+        $this->assertSame('10:00', $lookup->lastLine['start_time']);
+        $this->assertSame('10:30', $lookup->lastLine['end_time']);
+        $this->assertSame('10:00', $summary['items'][0]['start_time']);
+        $this->assertSame(114.0, $summary['items'][0]['line_total']);
+    }
+
+    public function testSummaryFallsBackToWooTaxedPriceWhenResnapshotIsUnavailable(): void
+    {
+        $GLOBALS['__test_wc_products'][501] = new \WC_Product(12.5);
+        $GLOBALS['__test_post_meta'][501]['_sbdp_enable_people'] = 'yes';
+
+        $service = new PlannerQuoteSummaryService();
+        $summary = $service->buildViewModel(array(
+            'days' => array(
+                array('date' => '2026-06-04'),
+            ),
+            'meta' => array(
+                'participant_count' => 10,
+                'planner_items' => array(
+                    array(
+                        'product_id' => 501,
+                        'title' => 'Woo-priced activiteit',
+                        'participants' => 10,
+                        'date' => '2026-06-04',
+                        'starttime' => '10:00',
+                        'endtime' => '11:00',
+                    ),
+                ),
+            ),
+        ));
+
+        $this->assertSame('woocommerce_taxed_fallback', $summary['items'][0]['pricing_confidence']);
+        $this->assertSame('p.p.', $summary['items'][0]['pricing_basis_label']);
+        $this->assertSame(10, $summary['items'][0]['quantity']);
+        $this->assertSame(12.5, $summary['items'][0]['unit_price']);
+        $this->assertSame(125.0, $summary['items'][0]['line_total']);
+        $this->assertNull($summary['items'][0]['display_price_label']);
+        $this->assertSame(125.0, $summary['total']);
+    }
+
+    public function testSummaryFallsBackToWooTaxedGroupPriceWithoutParticipantScaling(): void
+    {
+        $GLOBALS['__test_wc_products'][502] = new \WC_Product(250.0);
+        $GLOBALS['__test_post_meta'][502]['_sbdp_enable_people'] = 'no';
+
+        $service = new PlannerQuoteSummaryService();
+        $summary = $service->buildViewModel(array(
+            'days' => array(
+                array('date' => '2026-06-04'),
+            ),
+            'meta' => array(
+                'participant_count' => 10,
+                'planner_items' => array(
+                    array(
+                        'product_id' => 502,
+                        'title' => 'Woo group activiteit',
+                        'participants' => 10,
+                        'date' => '2026-06-04',
+                        'starttime' => '12:00',
+                        'endtime' => '13:00',
+                    ),
+                ),
+            ),
+        ));
+
+        $this->assertSame('groepsprijs', $summary['items'][0]['pricing_basis_label']);
+        $this->assertSame(1, $summary['items'][0]['quantity']);
+        $this->assertSame(250.0, $summary['items'][0]['unit_price']);
+        $this->assertSame(250.0, $summary['items'][0]['line_total']);
+        $this->assertNull($summary['items'][0]['display_price_label']);
+        $this->assertSame(250.0, $summary['total']);
+    }
+
+    public function testSummaryFallsBackToWooTaxedPriceWhenOnlyMaxPersonsMetaExists(): void
+    {
+        $GLOBALS['__test_wc_products'][503] = new \WC_Product(18.0);
+        $GLOBALS['__test_post_meta'][503]['_wc_booking_max_persons'] = '12';
+
+        $service = new PlannerQuoteSummaryService();
+        $summary = $service->buildViewModel(array(
+            'days' => array(
+                array('date' => '2026-06-04'),
+            ),
+            'meta' => array(
+                'participant_count' => 8,
+                'planner_items' => array(
+                    array(
+                        'product_id' => 503,
+                        'title' => 'Woo max persons activiteit',
+                        'participants' => 8,
+                        'date' => '2026-06-04',
+                        'starttime' => '14:00',
+                        'endtime' => '15:00',
+                    ),
+                ),
+            ),
+        ));
+
+        $this->assertSame('p.p.', $summary['items'][0]['pricing_basis_label']);
+        $this->assertSame(8, $summary['items'][0]['quantity']);
+        $this->assertSame(18.0, $summary['items'][0]['unit_price']);
+        $this->assertSame(144.0, $summary['items'][0]['line_total']);
+        $this->assertSame(144.0, $summary['total']);
     }
 
     public function testSummaryBackfillsScheduleFromDaySlotsAndSortsChronologically(): void

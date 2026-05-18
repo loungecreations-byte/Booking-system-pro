@@ -7,6 +7,7 @@ namespace BSP\Quotes\Service;
 use BSP\Sales\Pricing\PricingService;
 use BSPModule\Core\Rest\RestService;
 use SBDP\Pricing\SelectionPricing;
+use WC_Product;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -38,43 +39,69 @@ class QuoteExecutionLookupService
         }
 
         if (class_exists(SelectionPricing::class)) {
-            $pricing = SelectionPricing::quote(
-                $productId,
-                $participants,
-                $startIso,
-                $resourceId,
-                array(),
-                array(
-                    'channel' => 'quote_os_resnapshot',
-                    'source'  => 'quote_handoff_preparation',
-                    'date'    => (string) ($line['service_date'] ?? ''),
-                )
-            );
+            try {
+                $pricing = SelectionPricing::quote(
+                    $productId,
+                    $participants,
+                    $startIso,
+                    $resourceId,
+                    array(),
+                    array(
+                        'channel' => 'quote_os_resnapshot',
+                        'source'  => 'quote_handoff_preparation',
+                        'date'    => (string) ($line['service_date'] ?? ''),
+                    )
+                );
+            } catch (\Throwable $exception) {
+                unset($exception);
+                $pricing = array();
+            }
 
-            return array(
-                'confidence' => 'execution_verified',
-                'payload'    => is_array($pricing) ? $pricing : array(),
-                'unit_amount_snapshot' => $this->resolveUnitAmount(is_array($pricing) ? $pricing : array()),
-                'line_total_snapshot' => $this->resolveLineTotal(is_array($pricing) ? $pricing : array()),
-                'currency' => (string) (($pricing['currency'] ?? 'EUR')),
-            );
+            $pricingPayload = is_array($pricing) ? $pricing : array();
+            $unitAmount = $this->resolveUnitAmount($pricingPayload);
+            $lineTotal = $this->resolveLineTotal($pricingPayload);
+            if ((float) ($unitAmount ?? 0.0) > 0.0 || (float) ($lineTotal ?? 0.0) > 0.0) {
+                return array(
+                    'confidence' => 'execution_verified',
+                    'payload'    => $pricingPayload,
+                    'unit_amount_snapshot' => $unitAmount,
+                    'line_total_snapshot' => $lineTotal,
+                    'currency' => (string) (($pricingPayload['currency'] ?? 'EUR')),
+                );
+            }
         }
 
         if (class_exists(PricingService::class)) {
-            $pricing = PricingService::quote($productId, $participants, array(
-                'channel' => 'quote_os_resnapshot',
-                'source'  => 'quote_handoff_preparation',
-            ));
+            try {
+                $pricing = PricingService::quote($productId, $participants, array(
+                    'channel' => 'quote_os_resnapshot',
+                    'source'  => 'quote_handoff_preparation',
+                ));
+            } catch (\Throwable $exception) {
+                unset($exception);
+                $pricing = array();
+            }
 
             if (($pricing['success'] ?? false) === true) {
-                return array(
+                $unitAmount = isset($pricing['adjusted_price']) ? (float) $pricing['adjusted_price'] : null;
+                $lineTotal = isset($pricing['total_adjusted']) ? (float) $pricing['total_adjusted'] : null;
+                if ((float) ($unitAmount ?? 0.0) <= 0.0 && (float) ($lineTotal ?? 0.0) <= 0.0) {
+                    $pricing = array();
+                } else {
+                    return array(
                     'confidence' => 'snapshot',
                     'payload'    => $pricing,
-                    'unit_amount_snapshot' => isset($pricing['adjusted_price']) ? (float) $pricing['adjusted_price'] : null,
-                    'line_total_snapshot' => isset($pricing['total_adjusted']) ? (float) $pricing['total_adjusted'] : null,
+                    'unit_amount_snapshot' => $unitAmount,
+                    'line_total_snapshot' => $lineTotal,
                     'currency' => (string) ($pricing['currency'] ?? 'EUR'),
-                );
+                    );
+                }
             }
+        }
+
+        $wooFallback = $this->lookupWooPricing($productId, $participants);
+        if ($wooFallback !== array()) {
+            return $wooFallback;
         }
 
         return array(
@@ -281,6 +308,87 @@ class QuoteExecutionLookupService
         }
 
         return null;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function lookupWooPricing(int $productId, int $participants): array
+    {
+        if (! function_exists('wc_get_product')) {
+            return array();
+        }
+
+        $product = wc_get_product($productId);
+        $isWooProduct = class_exists(WC_Product::class) && $product instanceof WC_Product;
+        if (! $isWooProduct && (! is_object($product) || ! method_exists($product, 'get_price'))) {
+            return array();
+        }
+
+        $unitPrice = 0.0;
+        if (function_exists('wc_get_price_including_tax')) {
+            $unitPrice = (float) wc_get_price_including_tax($product, array('qty' => 1));
+        } elseif (method_exists($product, 'get_price')) {
+            $unitPrice = (float) $product->get_price();
+        }
+
+        if ($unitPrice <= 0.0) {
+            return array();
+        }
+
+        $supportsPersons = $this->productSupportsPersons($productId);
+        $quantity = $supportsPersons ? max(1, $participants) : 1;
+        $lineTotal = round($unitPrice * $quantity, 2);
+        $currency = function_exists('get_woocommerce_currency') ? (string) get_woocommerce_currency() : 'EUR';
+
+        return array(
+            'confidence' => 'woocommerce_taxed_fallback',
+            'payload'    => array(
+                'source' => 'woocommerce_taxed_fallback',
+                'line_item' => array(
+                    'pricing' => array(
+                        'supports_persons' => $supportsPersons,
+                    ),
+                ),
+                'display_unit_price' => round($unitPrice, 2),
+                'display_total' => $lineTotal,
+            ),
+            'unit_amount_snapshot' => round($unitPrice, 2),
+            'line_total_snapshot' => $lineTotal,
+            'currency' => $currency !== '' ? $currency : 'EUR',
+        );
+    }
+
+    private function productSupportsPersons(int $productId): bool
+    {
+        if (! function_exists('get_post_meta')) {
+            return true;
+        }
+
+        foreach (array('_sbdp_enable_people', '_wc_booking_has_persons') as $key) {
+            $value = get_post_meta($productId, $key, true);
+            if (is_bool($value)) {
+                return $value;
+            }
+
+            $normalized = strtolower(trim((string) $value));
+            if (in_array($normalized, array('1', 'yes', 'true', 'on'), true)) {
+                return true;
+            }
+            if (in_array($normalized, array('0', 'no', 'false', 'off'), true)) {
+                return false;
+            }
+        }
+
+        $maxPeople = (int) get_post_meta($productId, '_sbdp_max_people', true);
+        if ($maxPeople <= 0) {
+            $maxPeople = (int) get_post_meta($productId, '_sbdp_people_max', true);
+        }
+        if ($maxPeople <= 0) {
+            $maxPeople = (int) get_post_meta($productId, '_wc_booking_max_persons', true);
+        }
+
+        return $maxPeople > 1;
     }
 
     private function composeStartIso(string $date, string $time): string
