@@ -297,7 +297,7 @@ final class BookingTruthRuntimeService
 
         if (empty($slotAvailability['selected_time_valid'])) {
             return $this->buildCapabilityProfile(
-                self::CAPABILITY_STATUS_UNAVAILABLE,
+                self::CAPABILITY_STATUS_REQUEST,
                 (string) ($slotAvailability['reason_code'] ?? 'selected_time_invalid')
             );
         }
