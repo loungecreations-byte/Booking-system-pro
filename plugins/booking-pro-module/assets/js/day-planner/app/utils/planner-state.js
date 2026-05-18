@@ -104,6 +104,97 @@ export function shouldApplyAvailabilitySuggestedStart(item, options = {}) {
   return item?.allow_auto_reschedule === true;
 }
 
+export function isNonDefinitiveAvailabilityIssue(issue, reasonCode = null) {
+  const rawReason =
+    typeof reasonCode === "string" && reasonCode.trim() !== ""
+      ? reasonCode
+      : typeof issue?.reasonCode === "string"
+      ? issue.reasonCode
+      : "";
+  const reason = rawReason.trim().toLowerCase();
+  const message = typeof issue?.message === "string" ? issue.message.trim().toLowerCase() : "";
+
+  if (
+    [
+      "availability_suggested_start",
+      "availability_check_needed",
+      "availability_manual_check",
+      "manual_availability_check",
+      "selected_time_unavailable_with_alternative",
+      "suggested_alternative_available",
+      "suggested_start_available",
+      "requires_availability_check",
+    ].includes(reason)
+  ) {
+    return true;
+  }
+
+  return (
+    message.includes("beschikbaarheid controleren") ||
+    message.includes("mogelijke optie") ||
+    message.includes("misschien tijdslot mogelijk") ||
+    message.includes("availability check") ||
+    message.includes("check needed") ||
+    message.includes("suggested start")
+  );
+}
+
+export function isHardAvailabilityBlocker(reasonCode = null) {
+  const reason = typeof reasonCode === "string" ? reasonCode.trim().toLowerCase() : "";
+
+  return [
+    "item_unavailable",
+    "capacity_exceeded",
+    "availability_unavailable",
+    "definitively_unavailable",
+    "no_availability",
+    "booking_blocked",
+    "server_blocked",
+  ].includes(reason);
+}
+
+function plannerTimeToMinutes(value) {
+  if (typeof value !== "string" || !/^\d{1,2}:\d{2}$/.test(value.trim())) {
+    return NaN;
+  }
+
+  const [hours, minutes] = value.trim().split(":").map((part) => Number.parseInt(part, 10));
+  if (!Number.isFinite(hours) || !Number.isFinite(minutes)) {
+    return NaN;
+  }
+
+  return hours * 60 + minutes;
+}
+
+export function filterStartOptionsWithinPlannerHours(startOptions, durationMinutes, openHours) {
+  if (!Array.isArray(startOptions) || startOptions.length === 0) {
+    return [];
+  }
+
+  if (!openHours?.start || !openHours?.end) {
+    return startOptions;
+  }
+
+  const openStart = plannerTimeToMinutes(openHours.start);
+  const openEnd = plannerTimeToMinutes(openHours.end);
+  if (!Number.isFinite(openStart) || !Number.isFinite(openEnd)) {
+    return startOptions;
+  }
+
+  const duration = Number.parseInt(durationMinutes, 10);
+  if (!Number.isFinite(duration) || duration <= 0) {
+    return startOptions.filter((startMinutes) => Number.isFinite(startMinutes) && startMinutes >= openStart);
+  }
+
+  return startOptions.filter((startMinutes) => {
+    if (!Number.isFinite(startMinutes)) {
+      return false;
+    }
+
+    return startMinutes >= openStart && startMinutes + duration <= openEnd;
+  });
+}
+
 export function resolveUserOrder(item, fallbackIndex = 0) {
   const explicit = toPlannerPositiveInt(item?.user_order ?? item?.userOrder ?? item?.sequence);
   return explicit ?? fallbackIndex + 1;

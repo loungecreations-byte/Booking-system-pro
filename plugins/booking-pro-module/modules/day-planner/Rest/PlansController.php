@@ -184,6 +184,7 @@ final class PlansController
     {
         return $this->respond(function () use ($request): array {
             $payload = $this->sanitizeJson($request);
+            $this->assertCreatePayloadHasPlannerContent($payload);
 
             $userId = \function_exists('get_current_user_id') ? (int) \get_current_user_id() : 0;
 
@@ -217,8 +218,13 @@ final class PlansController
         unset($request);
 
         return $this->respond(function (): array {
+            $config = $this->service->getSettings();
+            if (isset($config['security'])) {
+                unset($config['security']);
+            }
+
             return [
-                'config' => $this->service->getSettings(),
+                'config' => $config,
             ];
         });
     }
@@ -325,10 +331,6 @@ final class PlansController
 
     public function is_ready(WP_REST_Request $request)
     {
-        if (! $this->hasValidNonce($request)) {
-            return false;
-        }
-
         return $this->checkRateLimit($request, self::RATE_LIMIT_READ_MAX);
     }
 
@@ -374,10 +376,6 @@ final class PlansController
             return \current_user_can('edit_others_posts');
         }
 
-        if (! $nonceIsValid) {
-            return false;
-        }
-
         if ($planId === null) {
             return true;
         }
@@ -393,6 +391,10 @@ final class PlansController
 
         if ($planToken !== null && $requestToken !== null && hash_equals($planToken, $requestToken)) {
             return true;
+        }
+
+        if (! $nonceIsValid) {
+            return false;
         }
 
         return false;
@@ -492,6 +494,29 @@ final class PlansController
         }
 
         return $planId;
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private function assertCreatePayloadHasPlannerContent(array $payload): void
+    {
+        $days = $payload['days'] ?? null;
+        if (is_array($days) && $days !== array()) {
+            return;
+        }
+
+        $metaItems = $payload['meta']['planner_items'] ?? null;
+        if (is_array($metaItems) && $metaItems !== array()) {
+            return;
+        }
+
+        $items = $payload['items'] ?? null;
+        if (is_array($items) && $items !== array()) {
+            return;
+        }
+
+        throw new RuntimeException(__('Planner payload is empty.', 'sbdp'));
     }
 
     /**

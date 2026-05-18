@@ -31,6 +31,8 @@ final class Module implements ModuleInterface
             \add_action('wp_enqueue_scripts', [$this, 'enqueueAssets']);
             \add_action('admin_notices', [$this, 'maybeRenderEmptyNotice']);
             \add_action('init', [$this, 'registerRouterRewrite'], 11);
+            \add_action('send_headers', [$this, 'sendPlannerReferrerPolicy']);
+            \add_action('wp_head', [$this, 'renderPlannerPrefillUrlCleaner'], 0);
         }
 
         if (\function_exists('add_filter')) {
@@ -81,6 +83,62 @@ final class Module implements ModuleInterface
         </section>
         <?php
         return \trim((string) \ob_get_clean());
+    }
+
+    public function sendPlannerReferrerPolicy(): void
+    {
+        if (\headers_sent()) {
+            return;
+        }
+
+        $requestUri = isset($_SERVER['REQUEST_URI']) ? (string) $_SERVER['REQUEST_URI'] : '';
+        $isPlannerRequest = strpos($requestUri, '/plan-je-dag') !== false || isset($_GET['sbdp_prefill']); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        if (! $isPlannerRequest) {
+            return;
+        }
+
+        \header('Referrer-Policy: origin');
+    }
+
+    public function renderPlannerPrefillUrlCleaner(): void
+    {
+        if (! $this->hasPlannerPrefillQuery()) {
+            return;
+        }
+
+        ?>
+        <script>
+        (function(){
+          try {
+            var url = new URL(window.location.href);
+            var changed = false;
+            ["sbdp_prefill", "sbdp_product", "sbdp_date", "sbdp_time", "sbdp_participants", "sbdp_resource"].forEach(function(key){
+              if (url.searchParams.has(key)) {
+                url.searchParams.delete(key);
+                changed = true;
+              }
+            });
+            if (changed && window.history && window.history.replaceState) {
+              window.history.replaceState(null, document.title, url.pathname + url.search + url.hash);
+            }
+            ["sbjs_migrations","sbjs_current_add","sbjs_first_add","sbjs_current","sbjs_first","sbjs_udata","sbjs_session"].forEach(function(name){
+              document.cookie = name + "=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/";
+            });
+          } catch (error) {}
+        })();
+        </script>
+        <?php
+    }
+
+    private function hasPlannerPrefillQuery(): bool
+    {
+        foreach (array('sbdp_prefill', 'sbdp_product', 'sbdp_date', 'sbdp_time', 'sbdp_participants', 'sbdp_resource') as $key) {
+            if (isset($_GET[$key])) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public function registerPostType(): void
@@ -190,6 +248,13 @@ final class Module implements ModuleInterface
             SBDP_VER
         );
 
+        \wp_enqueue_style(
+            'ddb-shared-listing-card',
+            SBDP_URL . 'assets/css/ddb-shared-listing-card.css',
+            array('sbdp-day-planner-refresh'),
+            SBDP_VER
+        );
+
         $planner_service = class_exists('\SBDP\Modules\Planner\Services\PlannerService')
             ? new \SBDP\Modules\Planner\Services\PlannerService()
             : null;
@@ -210,6 +275,7 @@ final class Module implements ModuleInterface
         $desktopConfig = array(
             'restBase'     => trailingslashit(\rest_url('planner/v1')),
             'nonce'        => $restNonce,
+            'bookingIntent'=> \BSP\Bookings\Rest\Controller::createBookingIntent(array('source' => 'day-planner')),
             'config'       => $planner_service ? $planner_service->getPlannerConfig() : array(),
             'experiments'  => $this->getFrontendExperiments(),
             'router'       => $this->getRouterConfig(),

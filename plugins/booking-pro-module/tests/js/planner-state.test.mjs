@@ -8,9 +8,13 @@ import {
   buildManualParticipants,
   buildManualTimeFields,
   countCriticalPlannerItemOverlaps,
+  filterStartOptionsWithinPlannerHours,
   resolveParticipantsForItem,
   shouldApplyAvailabilitySuggestedStart,
 } from "../../assets/js/day-planner/app/utils/planner-state.js";
+import {
+  buildResolvedBookingPayload,
+} from "../../assets/js/day-planner/app/utils/arrangement-model.js";
 
 test("global participants propagate to items without manual override", () => {
   const items = [
@@ -103,6 +107,23 @@ test("auto item can only be rescheduled by explicit auto optimize intent", () =>
   );
 });
 
+test("availability suggested starts are filtered to planner opening hours", () => {
+  const starts = [
+    6 * 60,
+    6 * 60 + 30,
+    7 * 60,
+    8 * 60,
+    8 * 60 + 30,
+    20 * 60,
+    21 * 60,
+  ];
+
+  assert.deepEqual(
+    filterStartOptionsWithinPlannerHours(starts, 120, { start: "08:00", end: "22:00" }),
+    [8 * 60, 8 * 60 + 30, 20 * 60]
+  );
+});
+
 test("manual participants mark only the edited item as override", () => {
   const inherited = buildInheritedParticipants(11);
   const overridden = buildManualParticipants(6, 11);
@@ -139,4 +160,70 @@ test("items in the same arrangement group do not count as overlap blockers", () 
   ];
 
   assert.equal(countCriticalPlannerItemOverlaps(items, timeToMinutes), 0);
+});
+
+test("loose activity with restored form date does not produce booking_date_missing", () => {
+  const item = {
+    id: "direct-loose",
+    productId: 352,
+    product_id: 352,
+    title: "Bierproeverij",
+    date: "2026-05-15",
+    participants: 10,
+    startTime: "13:00",
+    endTime: "14:00",
+    startMinutes: 780,
+    endMinutes: 840,
+    durationMinutes: 60,
+    plannerInput: {
+      date: "2026-05-15",
+    },
+  };
+
+  const resolution = buildResolvedBookingPayload(item, []);
+
+  assert.equal(resolution.booking_date, "2026-05-15");
+  assert.equal(resolution.status, "valid");
+  assert.equal(resolution.requires_confirmation, false);
+  assert.equal(resolution.errors.includes("booking_date_missing"), false);
+});
+
+test("prefill item with empty date is valid after date backfill before resolution", () => {
+  const prefillItem = {
+    id: "prefill-direct",
+    productId: 121,
+    product_id: 121,
+    title: "Boottocht",
+    date: "",
+    participants: 10,
+    startTime: "14:00",
+    endTime: "16:00",
+    startMinutes: 840,
+    endMinutes: 960,
+    durationMinutes: 120,
+    plannerInput: {
+      date: "",
+    },
+    bookingResolution: {
+      status: "invalid",
+      errors: ["booking_date_missing"],
+    },
+    errors: ["booking_date_missing"],
+  };
+  const restored = {
+    ...prefillItem,
+    date: "2026-05-15",
+    errors: [],
+    plannerInput: {
+      ...prefillItem.plannerInput,
+      date: "2026-05-15",
+    },
+  };
+
+  const resolution = buildResolvedBookingPayload(restored, []);
+
+  assert.equal(restored.date, "2026-05-15");
+  assert.equal(restored.plannerInput.date, "2026-05-15");
+  assert.equal(resolution.status, "valid");
+  assert.deepEqual(resolution.errors, []);
 });
