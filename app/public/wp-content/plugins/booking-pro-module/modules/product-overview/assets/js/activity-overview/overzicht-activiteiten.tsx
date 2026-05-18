@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { createRoot, Root } from "react-dom/client";
 import ActivityFilterBar from "./components/ActivityFilterBar";
 import ActivityGrid from "./components/ActivityGrid";
-import ActivityWorkspaceRail from "./components/ActivityWorkspaceRail";
 import {
   FILTER_PRESETS,
   fetchProducts,
@@ -58,7 +57,6 @@ function ActivityOverviewApp({ config }: ActivityOverviewAppProps) {
     typeof document !== "undefined" && document.body.classList.contains("post-type-archive-activiteiten");
   const isSpotsPage =
     typeof document !== "undefined" && document.body.classList.contains("post-type-archive-gd_place");
-  const isBrowsePage = isArchivePage || isSpotsPage;
   const ctaLabel = isSpotsPage ? "Bekijk plek" : "Bekijk activiteit";
 
   const initialFilterState = readInitialFilterState();
@@ -75,7 +73,6 @@ function ActivityOverviewApp({ config }: ActivityOverviewAppProps) {
   const [selectedNeighborhood, setSelectedNeighborhood] = useState(initialFilterState.selectedNeighborhood);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedActivityId, setSelectedActivityId] = useState<number | null>(null);
   const [savedIds, setSavedIds] = useState<Set<number>>(() => readSavedCards());
 
 
@@ -134,28 +131,6 @@ function ActivityOverviewApp({ config }: ActivityOverviewAppProps) {
     [activities, search, selectedType, selectedNeighborhood, selectedTags, bookableOnly]
   );
 
-  useEffect(() => {
-    if (filteredActivities.length === 0) {
-      if (selectedActivityId !== null) {
-        setSelectedActivityId(null);
-      }
-      return;
-    }
-
-    const current = selectedActivityId
-      ? filteredActivities.find((activity) => activity.id === selectedActivityId)
-      : null;
-
-    if (!current) {
-      setSelectedActivityId(filteredActivities[0].id);
-    }
-  }, [filteredActivities, selectedActivityId]);
-
-  const selectedActivity = useMemo(
-    () => filteredActivities.find((activity) => activity.id === selectedActivityId) ?? filteredActivities[0] ?? null,
-    [filteredActivities, selectedActivityId]
-  );
-
   const toggleTag = (key: FilterKey) => {
     setSelectedTags((current) => {
       const next = new Set(current);
@@ -167,10 +142,6 @@ function ActivityOverviewApp({ config }: ActivityOverviewAppProps) {
       return next;
     });
   };
-
-  const handleSelectActivity = useCallback((activity: Activity) => {
-    setSelectedActivityId(activity.id);
-  }, []);
 
   const handleToggleSave = (activity: Activity) => {
     setSavedIds((current) => {
@@ -252,21 +223,12 @@ function ActivityOverviewApp({ config }: ActivityOverviewAppProps) {
             loading={loading}
             error={error}
             emptyMessage="Geen activiteiten gevonden voor deze selectie."
-            onSelect={handleSelectActivity}
             savedIds={savedIds}
-            selectedId={selectedActivity?.id ?? null}
             onToggleSave={handleToggleSave}
             variant={isArchivePage ? "archive" : "default"}
             ctaLabel={ctaLabel}
           />
         </main>
-
-        <ActivityWorkspaceRail
-          activities={filteredActivities}
-          selectedActivity={selectedActivity}
-          onSelectActivity={handleSelectActivity}
-          variant={isArchivePage ? "archive" : "default"}
-        />
       </div>
 
       <section className="ao-endcap" aria-label="Verder ontdekken">
