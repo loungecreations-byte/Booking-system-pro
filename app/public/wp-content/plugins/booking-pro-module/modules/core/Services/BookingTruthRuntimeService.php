@@ -203,7 +203,9 @@ final class BookingTruthRuntimeService
         }
 
         if ($execution instanceof WP_Error) {
-            $executionCode = $execution->get_error_code();
+            $executionCode = method_exists($execution, 'get_error_code')
+                ? $execution->get_error_code()
+                : ($execution->code ?? '');
             $result['execution_ok'] = false;
             $result['execution_error_code'] = is_string($executionCode) && $executionCode !== '' ? $executionCode : null;
             $result['reason_code'] = match ($executionCode) {
