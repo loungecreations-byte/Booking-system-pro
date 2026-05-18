@@ -36,7 +36,10 @@ import {
   buildManualParticipants,
   buildManualTimeFields,
   countCriticalPlannerItemOverlaps,
+  filterStartOptionsWithinPlannerHours,
   hasManualParticipantsOverride,
+  isHardAvailabilityBlocker,
+  isNonDefinitiveAvailabilityIssue,
   resolveParticipantsForItem,
   resolveUserOrder,
   shouldApplyAvailabilitySuggestedStart,
@@ -1090,6 +1093,87 @@ function buildProductQuery(prefill, queue) {
   return params.join("&");
 }
 
+function resolvePlannerItemDate(state, dayIndex = 0) {
+  const dayDate =
+    typeof state.plan?.days?.[dayIndex]?.date === "string"
+      ? state.plan.days[dayIndex].date.trim()
+      : "";
+  const formDate = typeof state.form?.date === "string" ? state.form.date.trim() : "";
+  return dayDate || formDate;
+}
+
+function hasBookingDateMissing(item) {
+  const errors = [
+    ...(Array.isArray(item?.errors) ? item.errors : []),
+    ...(Array.isArray(item?.bookingResolution?.errors) ? item.bookingResolution.errors : []),
+  ];
+  return errors.includes("booking_date_missing");
+}
+
+function applyPlannerItemDateTruth(state, item) {
+  if (!item || typeof item !== "object") {
+    return item;
+  }
+
+  const rawDayIndex =
+    typeof item.dayIndex === "number" ? item.dayIndex : Number.parseInt(item.dayIndex, 10);
+  const dayIndex = Number.isFinite(rawDayIndex) ? rawDayIndex : 0;
+  const resolvedDate = resolvePlannerItemDate(state, dayIndex);
+  if (!resolvedDate) {
+    return item;
+  }
+
+  const plannerInput =
+    item.plannerInput && typeof item.plannerInput === "object" ? item.plannerInput : {};
+  let nextItem =
+    item.date === resolvedDate && plannerInput.date === resolvedDate
+      ? item
+      : {
+          ...item,
+          date: resolvedDate,
+          plannerInput: {
+            ...plannerInput,
+            date: resolvedDate,
+          },
+        };
+
+  if (!hasBookingDateMissing(nextItem)) {
+    return nextItem;
+  }
+
+  nextItem = {
+    ...nextItem,
+    errors: Array.isArray(nextItem.errors)
+      ? nextItem.errors.filter((error) => error !== "booking_date_missing")
+      : [],
+  };
+
+  const combiItems = normalisePrefillCombiItems(
+    nextItem.options?.combiItems ?? nextItem.combiItems ?? []
+  );
+  const resolution = buildResolvedBookingPayload(nextItem, combiItems);
+  const anchorSegment = Array.isArray(resolution.segments)
+    ? resolution.segments.find((segment) => segment?.role === "anchor") || resolution.segments[0]
+    : null;
+  const nextErrors = Array.from(
+    new Set([...(resolution.errors || []), ...(anchorSegment?.errors || [])])
+  );
+  const nextWarnings = Array.from(
+    new Set([...(resolution.warnings || []), ...(anchorSegment?.warnings || [])])
+  );
+
+  return {
+    ...nextItem,
+    bookingResolution: resolution,
+    errors: nextErrors,
+    warnings: nextWarnings,
+    status:
+      nextItem.status === "error" && resolution.status === "valid"
+        ? "confirmed"
+        : nextItem.status,
+  };
+}
+
 const initialState = {
   step: "info",
   config: null,
@@ -1335,7 +1419,10 @@ function plannerReducer(state, action) {
         return applyItemsUpdate(baseState, []);
       }
 
-      return applyItemsUpdate(baseState, nextItems);
+      return applyItemsUpdate(
+        baseState,
+        nextItems.map((item) => applyPlannerItemDateTruth(baseState, item))
+      );
     }
     case ACTIONS.SET_STEP:
       return {
@@ -1361,27 +1448,28 @@ function plannerReducer(state, action) {
       const anchorDate = state.plan?.days?.[0]?.date || state.form?.date || getTodayIso();
       const days = buildDays(anchorDate, dayCount);
       const maxDayIndex = Math.max(0, days.length - 1);
+      const dateState = {
+        ...state,
+        plan: {
+          ...state.plan,
+          days,
+        },
+      };
       const nextItems = (state.plan.items || []).map((item) => {
         const parsedIndex =
           typeof item?.dayIndex === "number" ? item.dayIndex : Number.parseInt(item?.dayIndex, 10);
         const normalizedIndex = Number.isFinite(parsedIndex) ? parsedIndex : 0;
         const clampedIndex = Math.min(Math.max(0, normalizedIndex), maxDayIndex);
-        if (clampedIndex === item?.dayIndex) {
-          return item;
-        }
-        return {
+        const nextItem = clampedIndex === item?.dayIndex ? item : {
           ...item,
           dayIndex: clampedIndex,
         };
+        return applyPlannerItemDateTruth(dateState, nextItem);
       });
       return applyItemsUpdate(
         {
-          ...state,
+          ...dateState,
           planRange: nextRange,
-          plan: {
-            ...state.plan,
-            days,
-          },
         },
         nextItems
       );
@@ -1399,18 +1487,20 @@ function plannerReducer(state, action) {
         0
       );
       const canonicalParticipants = selectCanonicalParticipants(state, { allowFormFallback: true });
-      const preparedItems = deduped.map((item, index) => ({
-        ...applyParticipantsTruthToItem(item, canonicalParticipants, DEFAULT_PARTICIPANTS),
-        user_order: resolveUserOrder(item, maxOrder + index),
-        ...(
-          item?.manual_locked === true || item?.time_source === TIME_SOURCE_MANUAL
-            ? buildManualTimeFields()
-            : {
-                manual_locked: item?.manual_locked === true,
-                time_source: item?.time_source || TIME_SOURCE_AUTO,
-              }
-        ),
-      }));
+      const preparedItems = deduped.map((item, index) =>
+        applyPlannerItemDateTruth(state, {
+          ...applyParticipantsTruthToItem(item, canonicalParticipants, DEFAULT_PARTICIPANTS),
+          user_order: resolveUserOrder(item, maxOrder + index),
+          ...(
+            item?.manual_locked === true || item?.time_source === TIME_SOURCE_MANUAL
+              ? buildManualTimeFields()
+              : {
+                  manual_locked: item?.manual_locked === true,
+                  time_source: item?.time_source || TIME_SOURCE_AUTO,
+                }
+          ),
+        })
+      );
       const nextItems = [...state.plan.items, ...preparedItems];
       return applyItemsUpdate(state, nextItems);
     }
@@ -1657,6 +1747,7 @@ function applyItemsUpdate(state, nextItems) {
       plan: {
         ...state.plan,
         items: pricedItems,
+        planCheckoutCapability: null,
       },
       summary: createEmptySummary(currency),
     };
@@ -1672,6 +1763,7 @@ function applyItemsUpdate(state, nextItems) {
     plan: {
       ...state.plan,
       items: pricedItems,
+      planCheckoutCapability: null,
     },
     summary,
   };
@@ -1684,7 +1776,10 @@ function sanitiseBase(restBase) {
   return restBase.replace(/\/+$/, "");
 }
 
-async function fetchJson(url, { method = "GET", body, nonce } = {}) {
+async function fetchJson(
+  url,
+  { method = "GET", body, nonce, referrerPolicy = "origin", credentials = "same-origin" } = {}
+) {
   const response = await fetch(url, {
     method,
     headers: {
@@ -1692,7 +1787,8 @@ async function fetchJson(url, { method = "GET", body, nonce } = {}) {
       ...(nonce ? { "X-WP-Nonce": nonce, "x-sbdp-nonce": nonce } : {}),
     },
     body: body ? JSON.stringify(body) : undefined,
-    credentials: "same-origin",
+    credentials,
+    ...(referrerPolicy ? { referrerPolicy } : {}),
   });
 
   const payload = await response.json().catch(() => ({}));
@@ -1702,6 +1798,35 @@ async function fetchJson(url, { method = "GET", body, nonce } = {}) {
   }
 
   return payload;
+}
+
+function navigateFromPlanner(url) {
+  if (!url || typeof window === "undefined" || !window.location) {
+    return;
+  }
+
+  if (typeof document !== "undefined") {
+    const host = window.location.hostname || "";
+    const cookieNames = document.cookie
+      .split(";")
+      .map((entry) => entry.split("=")[0]?.trim())
+      .filter((name) => /^sbjs_/i.test(name));
+    const domains = [host, host ? `.${host}` : ""].filter(Boolean);
+
+    cookieNames.forEach((name) => {
+      document.cookie = `${name}=; Max-Age=0; path=/; SameSite=Lax`;
+      domains.forEach((domain) => {
+        document.cookie = `${name}=; Max-Age=0; path=/; domain=${domain}; SameSite=Lax`;
+      });
+    });
+  }
+
+  if (window.history && typeof window.history.replaceState === "function") {
+    const cleanPath = `${window.location.pathname}${window.location.hash || ""}`;
+    window.history.replaceState(window.history.state, "", cleanPath);
+  }
+
+  window.location.assign(url);
 }
 
 function toPositiveInt(value) {
@@ -2104,12 +2229,24 @@ function buildPlannerActionState({
   const availabilityIssueVisible =
     Boolean(availabilityIssue?.message) ||
     availabilityReasonCode === "availability_lookup_failed";
+  const hasNonDefinitiveAvailabilityIssue = isNonDefinitiveAvailabilityIssue(
+    availabilityIssue,
+    availabilityReasonCode
+  );
+  const hasHardAvailabilityBlocker = isHardAvailabilityBlocker(availabilityReasonCode);
 
   let actionMode = "blocked";
-  if (requirementsMet && !availabilityIssueVisible && !hasCriticalPlannerConflicts) {
-    if (capability.route_intent === ROUTE_INTENT_CHECKOUT) {
+  if (!hasItems) {
+    actionMode = "empty";
+  } else if (requirementsMet && !hasCriticalPlannerConflicts && !hasHardAvailabilityBlocker) {
+    if (hasNonDefinitiveAvailabilityIssue) {
+      actionMode = "request";
+    } else if (capability.route_intent === ROUTE_INTENT_CHECKOUT && !availabilityIssueVisible) {
       actionMode = "direct";
-    } else if (capability.route_intent === ROUTE_INTENT_QUOTE) {
+    } else if (
+      capability.route_intent === ROUTE_INTENT_QUOTE ||
+      (availabilityIssueVisible && capability.route_intent !== ROUTE_INTENT_BLOCKED)
+    ) {
       actionMode = "request";
     }
   }
@@ -2139,7 +2276,9 @@ function buildPlannerActionState({
   const secondaryQuoteEnabled =
     requirementsMet &&
     plannerApiAvailable &&
-    capability.route_intent !== ROUTE_INTENT_BLOCKED;
+    !hasCriticalPlannerConflicts &&
+    !hasHardAvailabilityBlocker &&
+    (actionMode === "request" || capability.route_intent !== ROUTE_INTENT_BLOCKED);
 
   return {
     action_mode: actionMode,
@@ -2158,9 +2297,11 @@ function buildPlannerActionState({
     status_label:
       actionMode === "direct"
         ? "Klaar om af te ronden"
+        : actionMode === "empty"
+        ? "Nog geen activiteiten"
         : actionMode === "request"
-        ? "Offerte vereist"
-        : "Niet boekbaar",
+        ? "Offerte nodig"
+        : "Niet direct boekbaar",
     status_message:
       actionMode === "direct"
         ? "Je planning klopt en is klaar om te boeken of als offerte te versturen."
@@ -3350,6 +3491,7 @@ export function PlannerProvider({ bootConfig, children }) {
       date,
       participants,
       resourceId,
+      openHours,
       clearIssueOnSuccess = true,
     }) => {
       const setAvailabilityIssue = (message) => {
@@ -3400,7 +3542,10 @@ export function PlannerProvider({ bootConfig, children }) {
         }
 
         try {
-          payload = await fetchJson(url.toString(), { nonce });
+          payload = await fetchJson(url.toString(), {
+            referrerPolicy: "origin",
+            credentials: "omit",
+          });
           availabilityCacheRef.current.set(cacheKey, payload);
         } catch (error) {
           const message = error?.message || "Beschikbaarheid kon niet worden opgehaald.";
@@ -3411,7 +3556,12 @@ export function PlannerProvider({ bootConfig, children }) {
       }
 
       const slots = Array.isArray(payload?.slots) ? payload.slots : [];
-      const startOptions = buildBookableStartOptions(slots, durationMinutes);
+      const rawStartOptions = buildBookableStartOptions(slots, durationMinutes);
+      const startOptions = filterStartOptionsWithinPlannerHours(
+        rawStartOptions,
+        durationMinutes,
+        openHours
+      );
       if (startOptions.length === 0) {
         setAvailabilityIssue("Geen beschikbare tijdsloten gevonden voor de gekozen activiteit.");
         return null;
@@ -3890,7 +4040,10 @@ export function PlannerProvider({ bootConfig, children }) {
       dispatch({ type: ACTIONS.CONFIG_REQUEST });
       try {
         console.log('📡 Fetching config...');
-        const response = await fetchJson(`${restBase}/config`, { nonce });
+        const response = await fetchJson(`${restBase}/config`, {
+          referrerPolicy: "origin",
+          credentials: "omit",
+        });
         console.log('✅ Config loaded:', response);
         const restConfig = isValidPlannerConfig(response?.config) ? response.config : null;
         const fallbackConfig = isValidPlannerConfig(bootConfig?.config) ? bootConfig.config : null;
@@ -3977,7 +4130,10 @@ export function PlannerProvider({ bootConfig, children }) {
           endpoint += `?${query}`;
         }
 
-        const response = await fetchJson(endpoint, { nonce });
+        const response = await fetchJson(endpoint, {
+          referrerPolicy: "origin",
+          credentials: "omit",
+        });
         if (!productsFetchCancelledRef.current) {
           dispatch({
             type: ACTIONS.PRODUCTS_SUCCESS,
@@ -4355,13 +4511,15 @@ export function PlannerProvider({ bootConfig, children }) {
         const queuedCombiItems = normalisePrefillCombiItems(
           queuedPlanItem.options?.combiItems ?? queuedPlanItem.combiItems ?? []
         );
+        const resolvedDate = resolvePlannerItemDate(state, dayIndex);
+        const queuedPlannerInput =
+          queuedPlanItem.plannerInput && typeof queuedPlanItem.plannerInput === "object"
+            ? queuedPlanItem.plannerInput
+            : {};
         const normalizedItem = {
           ...queuedPlanItem,
           dayIndex,
-          date:
-            Array.isArray(state.plan.days) && state.plan.days[dayIndex]
-              ? state.plan.days[dayIndex].date
-              : state.form.date,
+          date: resolvedDate,
           productId: queuedPlanItem.productId ?? queuedPlanItem.product_id ?? productId,
           product_id: queuedPlanItem.productId ?? queuedPlanItem.product_id ?? productId,
           ...(hasManualParticipantsOverride(queuedPlanItem)
@@ -4405,6 +4563,10 @@ export function PlannerProvider({ bootConfig, children }) {
           source: queuedPlanItem.source || options.source || "product-prefill",
           traceId: resolvePlannerTraceId(queuedPlanItem) || resolvePlannerTraceId(options),
           trace_id: resolvePlannerTraceId(queuedPlanItem) || resolvePlannerTraceId(options),
+          plannerInput: {
+            ...queuedPlannerInput,
+            date: resolvedDate,
+          },
           options: {
             ...(queuedPlanItem.options && typeof queuedPlanItem.options === "object"
               ? queuedPlanItem.options
@@ -4493,10 +4655,7 @@ export function PlannerProvider({ bootConfig, children }) {
       const startTimeValue = sanitiseTimeString(startTime);
       const durationMinutes = options.durationOverride ?? getDurationMinutes(product) ?? product.duration?.minutes ?? product.duration_minutes ?? 60;
       const baseStartMinutes = startTimeValue ? timeToMinutes(startTimeValue) : null;
-      const date =
-        Array.isArray(state.plan.days) && state.plan.days[dayIndex]
-          ? state.plan.days[dayIndex].date
-          : state.form.date;
+      const date = resolvePlannerItemDate(state, dayIndex);
       const baseItem = {
         id: `plan-${product.id}-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
         plannerKey: "",
@@ -4540,6 +4699,7 @@ export function PlannerProvider({ bootConfig, children }) {
         combiItems: Array.isArray(options.combiItems) ? options.combiItems : [],
         plannerInput: {
           source: options.source || "day-planner",
+          date,
           traceId: resolvePlannerTraceId(options) || undefined,
           trace_id: resolvePlannerTraceId(options) || undefined,
           options: {
@@ -4864,6 +5024,7 @@ export function PlannerProvider({ bootConfig, children }) {
           date: item.date || state.plan.days[item.dayIndex]?.date || state.form.date,
           participants: toPositiveInt(item.participants) ?? canonicalParticipants,
           resourceId: item.resourceId ?? item.resource_id ?? product.resource_id ?? null,
+          openHours: state.config?.open_hours,
           clearIssueOnSuccess: false,
         });
 
@@ -4925,6 +5086,7 @@ export function PlannerProvider({ bootConfig, children }) {
     showToast,
     state.form.date,
     state.availabilityIssue?.source,
+    state.config?.open_hours,
     state.loading.products,
     state.plan.days,
     state.plan.items,
@@ -5196,7 +5358,8 @@ export function PlannerProvider({ bootConfig, children }) {
     (async () => {
       try {
         const response = await fetchJson(`${restBase}/activities?include[]=${prefill.productId}`, {
-          nonce,
+          referrerPolicy: "origin",
+          credentials: "omit",
         });
         const extras = Array.isArray(response?.items)
           ? response.items
@@ -5472,7 +5635,7 @@ export function PlannerProvider({ bootConfig, children }) {
         });
 
         if (quoteUrl && typeof window !== "undefined" && window.location) {
-          window.location.assign(quoteUrl);
+          navigateFromPlanner(quoteUrl);
           return { planId, redirect: quoteUrl };
         }
       } catch (error) {
@@ -5638,17 +5801,17 @@ export function PlannerProvider({ bootConfig, children }) {
 
       dispatch({ type: ACTIONS.CLEAR_AVAILABILITY_ISSUE });
       if (redirectUrl && typeof window !== "undefined" && window.location) {
-        window.location.assign(redirectUrl);
+        navigateFromPlanner(redirectUrl);
         return { planId, redirect: redirectUrl, message: queueMessage };
       }
 
       if (cartUrl && typeof window !== "undefined" && window.location) {
-        window.location.assign(cartUrl);
+        navigateFromPlanner(cartUrl);
         return { planId, redirect: cartUrl, message: queueMessage };
       }
 
       if (checkoutUrl && typeof window !== "undefined" && window.location) {
-        window.location.assign(checkoutUrl);
+        navigateFromPlanner(checkoutUrl);
         return { planId, redirect: checkoutUrl, message: queueMessage };
       }
 
@@ -5775,6 +5938,7 @@ export function PlannerProvider({ bootConfig, children }) {
             date: plannerDate,
             participants: plannerParticipants,
             resourceId: product.resource_id ?? null,
+            openHours: state.config?.open_hours,
           });
           if (!resolvedStartTime) {
             continue;

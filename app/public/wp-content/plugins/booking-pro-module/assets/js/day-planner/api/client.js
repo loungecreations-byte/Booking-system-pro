@@ -35,7 +35,8 @@ export function createPlannerApi({ restBase, nonce }) {
       method,
       headers,
       body: body ? JSON.stringify(body) : undefined,
-      credentials: "same-origin",
+      credentials: "omit",
+      referrerPolicy: "origin",
     });
 
     const payload = await parseJson(response);
