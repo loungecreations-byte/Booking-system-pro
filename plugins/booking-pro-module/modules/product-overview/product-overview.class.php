@@ -280,6 +280,12 @@ final class ProductOverviewComponent
                 foreach ($this->activityStyleHandles as $handle) {
                     wp_enqueue_style($handle);
                 }
+                wp_enqueue_style(
+                    'ddb-shared-listing-card',
+                    SBDP_URL . 'assets/css/ddb-shared-listing-card.css',
+                    $this->activityStyleHandles,
+                    SBDP_VER
+                );
             }
             if ($mapEnabled && $view === 'map') {
                 wp_enqueue_style('sbdp-product-map');

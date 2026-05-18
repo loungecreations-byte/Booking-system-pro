@@ -1,0 +1,513 @@
+/* Canonical visual source for activity listing cards and compact planning controls. */
+:where(.sbdp-day-planner, .sbdp-activity-overview) .ui-listing-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 220px;
+  height: 220px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #000;
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.28);
+  transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+}
+
+.sbdp-activity-overview .ao-layout {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+:where(.sbdp-day-planner, .sbdp-activity-overview) .ui-listing-card:hover,
+:where(.sbdp-day-planner, .sbdp-activity-overview) .ui-listing-card:focus-within {
+  transform: translateY(-2px);
+  border-color: rgba(228, 185, 127, 0.34);
+  box-shadow: 0 24px 54px rgba(0, 0, 0, 0.42);
+}
+
+:where(.sbdp-day-planner, .sbdp-activity-overview) .ui-listing-card__media {
+  position: relative;
+  min-height: 218px;
+  width: 100%;
+  overflow: hidden;
+  background: #111318;
+}
+
+:where(.sbdp-day-planner, .sbdp-activity-overview) .ui-listing-card__media::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.44), rgba(0, 0, 0, 0.06) 32%, rgba(0, 0, 0, 0.74) 100%),
+    radial-gradient(circle at 50% 0%, rgba(228, 185, 127, 0.14), transparent 45%);
+  pointer-events: none;
+}
+
+:where(.sbdp-day-planner, .sbdp-activity-overview) .ui-listing-card__media img,
+:where(.sbdp-day-planner, .sbdp-activity-overview) .ui-listing-card__image,
+:where(.sbdp-day-planner, .sbdp-activity-overview) .ui-listing-card__placeholder {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 218px;
+  object-fit: cover;
+}
+
+:where(.sbdp-day-planner, .sbdp-activity-overview) .ui-listing-card__image {
+  transform: scale(1.01);
+  transition: transform 0.22s ease;
+}
+
+:where(.sbdp-day-planner, .sbdp-activity-overview) .ui-listing-card:hover .ui-listing-card__image,
+:where(.sbdp-day-planner, .sbdp-activity-overview) .ui-listing-card:focus-within .ui-listing-card__image {
+  transform: scale(1.045);
+}
+
+:where(.sbdp-day-planner, .sbdp-activity-overview) .ui-listing-card__placeholder {
+  background: linear-gradient(145deg, #17191f 0%, #252016 55%, #0f1116 100%);
+}
+
+:where(.sbdp-day-planner, .sbdp-activity-overview) .ui-listing-card__overlay {
+  position: absolute;
+  inset: 0 0 auto 0;
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  pointer-events: none;
+}
+
+:where(.sbdp-day-planner, .sbdp-activity-overview) .ui-listing-card__top-left,
+:where(.sbdp-day-planner, .sbdp-activity-overview) .ui-listing-card__top-right {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 0;
+}
+
+:where(.sbdp-day-planner, .sbdp-activity-overview) .ui-listing-card__top-right {
+  margin-left: auto;
+  justify-content: flex-end;
+}
+
+:where(.sbdp-day-planner, .sbdp-activity-overview) .ui-listing-card__status-chip,
+:where(.sbdp-day-planner, .sbdp-activity-overview) .ui-listing-card__duration-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  max-width: 145px;
+  padding: 4px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  background: rgba(7, 8, 10, 0.72);
+  color: #f8f2e6;
+  font-size: 0.72rem;
+  font-weight: 750;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  backdrop-filter: blur(14px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28);
+}
+
+:where(.sbdp-day-planner, .sbdp-activity-overview) .ui-listing-card__status-chip {
+  border-color: rgba(228, 185, 127, 0.45);
+  background: rgba(0, 0, 0, 0.6);
+}
+
+:where(.sbdp-day-planner, .sbdp-activity-overview) .ui-listing-card__save-chip {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  max-width: 145px;
+  padding: 4px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  background: rgba(7, 8, 10, 0.56);
+  color: #f8f2e6;
+  font-size: 0.72rem;
+  font-weight: 750;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  backdrop-filter: blur(14px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28);
+  transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease, transform 0.16s ease;
+}
+
+:where(.sbdp-day-planner, .sbdp-activity-overview) .ui-listing-card__save-chip:hover,
+:where(.sbdp-day-planner, .sbdp-activity-overview) .ui-listing-card__save-chip:focus-visible,
+:where(.sbdp-day-planner, .sbdp-activity-overview) .ui-listing-card__save-chip.is-active {
+  transform: translateY(-1px);
+  border-color: rgba(228, 185, 127, 0.44);
+  background: rgba(20, 22, 26, 0.88);
+  color: #f8f2e6;
+}
+
+:where(.sbdp-day-planner, .sbdp-activity-overview) .ui-listing-card__content {
+  position: absolute;
+  z-index: 2;
+  bottom: 42px;
+  left: 0;
+  right: 0;
+  display: flex;
+  min-height: auto;
+  padding: 8px 10px 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+:where(.sbdp-day-planner, .sbdp-activity-overview) .ui-listing-card__title {
+  display: -webkit-box;
+  min-height: 2.55em;
+  margin: 0;
+  overflow: hidden;
+  color: #f7f2e8;
+  font-family: var(--ui-font-display, var(--ddb-font-display, Georgia, serif));
+  font-size: clamp(1rem, 1.4vw, 1.12rem);
+  font-weight: 760;
+  line-height: 1.24;
+  letter-spacing: 0;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+:where(.sbdp-day-planner, .sbdp-activity-overview) .ui-listing-card__action-row {
+  position: absolute;
+  z-index: 2;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  min-height: auto;
+  padding: 0 10px 10px;
+  border-top: none;
+  background: transparent;
+}
+
+:where(.sbdp-day-planner, .sbdp-activity-overview) .ui-listing-card__price {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0;
+  min-width: 0;
+  margin-right: 8px;
+  color: #f7f2e8;
+  font-size: 0.85rem;
+  font-weight: 780;
+  line-height: 1.1;
+  text-align: right;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+:where(.sbdp-day-planner, .sbdp-activity-overview) .ui-listing-card__price-prefix {
+  color: rgba(247, 242, 232, 0.66);
+  font-size: 0.68rem;
+  font-weight: 650;
+  text-transform: uppercase;
+}
+
+:where(.sbdp-day-planner, .sbdp-activity-overview) .ui-listing-card__cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 80px;
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid rgba(228, 185, 127, 0.4);
+  border-radius: 999px;
+  background: #e4b97f;
+  color: #11100d;
+  font-size: 0.75rem;
+  font-weight: 800;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 10px 22px rgba(228, 185, 127, 0.2);
+  transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease, transform 0.16s ease;
+}
+
+:where(.sbdp-day-planner, .sbdp-activity-overview) .ui-listing-card__cta:hover:not(:disabled),
+:where(.sbdp-day-planner, .sbdp-activity-overview) .ui-listing-card__cta:focus-visible {
+  transform: translateY(-1px);
+  border-color: rgba(247, 242, 232, 0.48);
+  background: #f0c98e;
+}
+
+:where(.sbdp-day-planner, .sbdp-activity-overview) .ui-listing-card__cta--secondary {
+  min-width: auto;
+  background: rgba(7, 8, 10, 0.48);
+  color: #f8f2e6;
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: none;
+}
+
+:where(.sbdp-day-planner, .sbdp-activity-overview) .ui-listing-card__cta--secondary:hover,
+:where(.sbdp-day-planner, .sbdp-activity-overview) .ui-listing-card__cta--secondary:focus-visible,
+:where(.sbdp-day-planner, .sbdp-activity-overview) .ui-listing-card__cta--secondary.is-active {
+  background: rgba(20, 22, 26, 0.88);
+  color: #f8f2e6;
+}
+
+:where(.sbdp-day-planner, .sbdp-activity-overview) .ui-listing-card__cta.is-added {
+  border-color: rgba(126, 211, 158, 0.35);
+  background: rgba(126, 211, 158, 0.14);
+  color: #baf0cd;
+  box-shadow: none;
+}
+
+:where(.sbdp-day-planner, .sbdp-activity-overview) .ui-listing-card__cta:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
+
+:where(.sbdp-day-planner, .sbdp-activity-overview) .sbdp-hero-compact {
+  width: 100%;
+}
+
+:where(.sbdp-day-planner, .sbdp-activity-overview) .sbdp-pb {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 6px;
+  gap: 4px;
+  min-height: 84px;
+  border-radius: 999px;
+  background: rgba(8, 9, 12, 0.86);
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  box-shadow: 0 18px 44px rgba(0, 0, 0, 0.26);
+  overflow: hidden;
+}
+
+:where(.sbdp-day-planner, .sbdp-activity-overview) .sbdp-pb-field {
+  flex: 1 1 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
+  padding: 0 24px;
+  border-radius: 40px;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  color: #fff;
+  transition: background 0.18s ease;
+}
+
+:where(.sbdp-day-planner, .sbdp-activity-overview) .sbdp-pb-field:hover,
+:where(.sbdp-day-planner, .sbdp-activity-overview) .sbdp-pb-field:focus-within {
+  background: rgba(255, 255, 255, 0.09);
+}
+
+:where(.sbdp-day-planner, .sbdp-activity-overview) .sbdp-pb-badge {
+  flex: 0 0 26px;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.75);
+  font-size: 11px;
+  font-weight: 700;
+  pointer-events: none;
+}
+
+:where(.sbdp-day-planner, .sbdp-activity-overview) .sbdp-pb-field:hover .sbdp-pb-badge,
+:where(.sbdp-day-planner, .sbdp-activity-overview) .sbdp-pb-field:focus-within .sbdp-pb-badge {
+  background: var(--ddb-gold, #e4b97f);
+  color: #000;
+}
+
+:where(.sbdp-day-planner, .sbdp-activity-overview) .sbdp-pb-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+:where(.sbdp-day-planner, .sbdp-activity-overview) .sbdp-pb-label {
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.45);
+  line-height: 1;
+  white-space: nowrap;
+}
+
+:where(.sbdp-day-planner, .sbdp-activity-overview) .sbdp-pb-value {
+  font-size: 17px;
+  font-weight: 600;
+  color: #fff;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+:where(.sbdp-day-planner, .sbdp-activity-overview) .sbdp-pb-chevron {
+  color: rgba(228, 185, 127, 0.9);
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+:where(.sbdp-day-planner, .sbdp-activity-overview) .sbdp-pb-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 5;
+  border: none;
+  background: transparent;
+  appearance: none;
+  font-size: 16px;
+}
+
+:where(.sbdp-day-planner, .sbdp-activity-overview) .sbdp-pb-overlay::-webkit-calendar-picker-indicator {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+:where(.sbdp-day-planner, .sbdp-activity-overview) .sbdp-pb-stepper {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  position: relative;
+  z-index: 10;
+}
+
+:where(.sbdp-day-planner, .sbdp-activity-overview) .sbdp-pb-stepper-btn {
+  width: 30px;
+  height: 30px;
+  min-height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: 300;
+  line-height: 1;
+  cursor: pointer;
+}
+
+:where(.sbdp-day-planner, .sbdp-activity-overview) .sbdp-pb-stepper-btn:not(:disabled):hover {
+  background: rgba(255, 255, 255, 0.25);
+}
+
+:where(.sbdp-day-planner, .sbdp-activity-overview) .sbdp-pb-stepper-btn:disabled {
+  opacity: 0.44;
+  cursor: not-allowed;
+}
+
+:where(.sbdp-day-planner, .sbdp-activity-overview) .sbdp-pb-stepper-val {
+  width: 32px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  text-align: center;
+  font-size: 17px;
+  font-weight: 600;
+  appearance: textfield;
+}
+
+:where(.sbdp-day-planner, .sbdp-activity-overview) .sbdp-pb-stepper-val::-webkit-inner-spin-button,
+:where(.sbdp-day-planner, .sbdp-activity-overview) .sbdp-pb-stepper-val::-webkit-outer-spin-button {
+  appearance: none;
+}
+
+:where(.sbdp-day-planner, .sbdp-activity-overview) .sbdp-pb-divider {
+  width: 1px;
+  margin: 14px 0;
+  background: rgba(255, 255, 255, 0.12);
+}
+
+:where(.sbdp-day-planner, .sbdp-activity-overview) .sbdp-pb-cta,
+:where(.sbdp-day-planner, .sbdp-activity-overview) .ui-btn--planner {
+  height: 64px;
+  min-height: 64px;
+  padding: 0 40px;
+  border: none;
+  border-radius: 999px;
+  background: var(--ddb-gold, #e4b97f);
+  color: #000;
+  font-size: 17px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+:where(.sbdp-day-planner, .sbdp-activity-overview) .sbdp-pb-cta:hover,
+:where(.sbdp-day-planner, .sbdp-activity-overview) .ui-btn--planner:hover {
+  background: #f0c98e;
+}
+
+@media (max-width: 900px) {
+  :where(.sbdp-day-planner, .sbdp-activity-overview) .sbdp-pb {
+    flex-direction: column;
+    border-radius: 24px;
+    overflow: visible;
+  }
+
+  :where(.sbdp-day-planner, .sbdp-activity-overview) .sbdp-pb-field {
+    min-height: 64px;
+    padding: 0 18px;
+  }
+
+  :where(.sbdp-day-planner, .sbdp-activity-overview) .sbdp-pb-divider {
+    width: auto;
+    height: 1px;
+    margin: 0 14px;
+  }
+
+  :where(.sbdp-day-planner, .sbdp-activity-overview) .sbdp-pb-cta,
+  :where(.sbdp-day-planner, .sbdp-activity-overview) .ui-btn--planner {
+    width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  :where(.sbdp-day-planner, .sbdp-activity-overview) .ui-listing-card {
+    min-height: 196px;
+    height: 196px;
+  }
+
+  :where(.sbdp-day-planner, .sbdp-activity-overview) .ui-listing-card__media,
+  :where(.sbdp-day-planner, .sbdp-activity-overview) .ui-listing-card__media img,
+  :where(.sbdp-day-planner, .sbdp-activity-overview) .ui-listing-card__image,
+  :where(.sbdp-day-planner, .sbdp-activity-overview) .ui-listing-card__placeholder {
+    min-height: 194px;
+  }
+
+  :where(.sbdp-day-planner, .sbdp-activity-overview) .ui-listing-card__price {
+    display: none;
+  }
+
+  :where(.sbdp-day-planner, .sbdp-activity-overview) .ui-listing-card__cta {
+    min-width: 96px;
+  }
+}
