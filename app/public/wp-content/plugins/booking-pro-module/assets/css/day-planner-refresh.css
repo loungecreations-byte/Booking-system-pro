@@ -601,8 +601,33 @@ html[data-theme="light"] .sbdp-widget-preference-bar {
   gap: 8px;
 }
 
+.sbdp-day-planner .sbdp-filter-select {
+  display: flex;
+  flex-direction: column;
+}
+
+.sbdp-day-planner .sbdp-filter-select .sbdp-visually-hidden {
+  position: static !important;
+  width: auto !important;
+  height: auto !important;
+  margin: 0 0 6px 4px !important;
+  clip: auto !important;
+  overflow: visible !important;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: rgba(255, 255, 255, 0.5);
+}
+
 .sbdp-day-planner .sbdp-filter-select select {
   width: 100%;
+  border-radius: 999px;
+  background: #111;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  padding: 8px 16px;
+  font-size: 0.85rem;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
 }
 
 .sbdp-day-planner .sbdp-activity-ribbon__chips {
@@ -653,15 +678,14 @@ html[data-theme="light"] .sbdp-widget-preference-bar {
   --sbdp-card-shadow: 0 18px 34px rgba(0, 0, 0, 0.42);
   --sbdp-card-shadow-hover: 0 24px 42px rgba(0, 0, 0, 0.5);
   position: relative;
-  display: grid;
-  grid-template-rows: 172px minmax(0, 1fr);
-  min-height: 0;
-  border-radius: 18px;
+  display: flex;
+  flex-direction: column;
+  min-height: 110px;
+  height: 110px;
+  border-radius: 12px;
   overflow: hidden;
-  border: 1px solid var(--sbdp-card-border);
-  background:
-    linear-gradient(180deg, rgba(22, 22, 24, 0.96), rgba(7, 7, 10, 0.98)),
-    var(--sbdp-bg);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #000;
   box-shadow: var(--sbdp-card-shadow);
   color: var(--sbdp-text);
   isolation: isolate;
@@ -714,20 +738,17 @@ html[data-theme="light"] .sbdp-widget-preference-bar {
 }
 
 .sbdp-day-planner .ui-listing-card__media {
-  position: relative;
-  min-height: 172px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 30%),
-    #090b0f;
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  background: #090b0f;
 }
 
 .sbdp-day-planner .ui-listing-card__media::after {
   content: "";
   position: absolute;
   inset: 0;
-  background:
-    linear-gradient(180deg, rgba(0, 0, 0, 0.04), rgba(0, 0, 0, 0.58)),
-    linear-gradient(180deg, rgba(0, 0, 0, 0) 42%, rgba(0, 0, 0, 0.86) 100%);
+  background: linear-gradient(180deg, transparent 30%, rgba(0, 0, 0, 0.85) 100%);
   pointer-events: none;
 }
 
@@ -760,14 +781,13 @@ html[data-theme="light"] .sbdp-widget-preference-bar {
 
 .sbdp-day-planner .ui-listing-card__overlay {
   position: relative;
-  z-index: 1;
-  display: grid;
-  align-content: start;
-  gap: 10px;
-  padding: 12px;
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 8px;
   min-height: 0;
-  background:
-    linear-gradient(180deg, rgba(10, 10, 12, 0.08) 0%, rgba(7, 7, 9, 0.94) 20%, rgba(5, 5, 7, 0.98) 100%);
+  background: transparent;
 }
 
 .sbdp-day-planner .ui-listing-card__header,
@@ -821,12 +841,15 @@ html[data-theme="light"] .sbdp-widget-preference-bar {
 
 .sbdp-day-planner .ui-listing-card__title {
   margin: 0;
-  font-size: 1rem;
-  line-height: 1.28;
+  font-size: 0.95rem;
+  line-height: 1.15;
   font-weight: 700;
-  letter-spacing: -0.02em;
-  color: #fbfcfe;
+  letter-spacing: -0.01em;
+  color: #fff;
   text-wrap: balance;
+  text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+  max-width: 65%;
+  pointer-events: auto;
 }
 
 .sbdp-day-planner .ui-listing-card__meta {
@@ -837,14 +860,17 @@ html[data-theme="light"] .sbdp-widget-preference-bar {
   padding: 0;
 }
 
-.sbdp-day-planner .ui-listing-card__meta-item,
-.sbdp-day-planner .ui-listing-card__price {
+.sbdp-day-planner .ui-listing-card__meta-item {
   display: inline-flex;
   align-items: center;
   min-height: 26px;
   border-radius: 999px;
   font-size: 0.72rem;
   font-weight: 700;
+}
+
+.sbdp-day-planner .ui-listing-card__price {
+  /* Inherits from standard CSS block below */
 }
 
 .sbdp-day-planner .ui-listing-card__meta-item {
@@ -854,20 +880,13 @@ html[data-theme="light"] .sbdp-widget-preference-bar {
   color: var(--sbdp-card-chip-text);
 }
 
-.sbdp-day-planner .ui-listing-card__price {
-  gap: 5px;
-  width: fit-content;
-  padding: 0 11px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.07);
-  color: var(--sbdp-text);
-}
+/* Deleted */
 
 .sbdp-day-planner .ui-listing-card__price-prefix {
-  font-size: 0.64rem;
-  letter-spacing: 0.08em;
+  font-size: 0.55rem;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: rgba(235, 240, 248, 0.62);
+  color: rgba(255, 255, 255, 0.7);
 }
 
 .sbdp-day-planner .ui-listing-card__icon-btn {
@@ -1228,8 +1247,7 @@ html[data-theme="light"] .sbdp-widget-preference-bar {
   }
 
   .sbdp-day-planner .ui-listing-card {
-    grid-template-rows: minmax(164px, 180px) minmax(0, 1fr);
-    min-height: 308px;
+    /* override reset */
   }
 
   .sbdp-day-planner .sbdp-activity-carousel__grid {
@@ -2516,7 +2534,7 @@ html[data-theme="light"] .sbdp-widget-preference-bar {
 /* Final layout lock: keep browse and planner on equal desktop columns. */
 .sbdp-day-planner .sbdp-day-planner__columns.sbdp-day-planner__columns--premium {
   display: grid;
-  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 20px;
   align-items: start;
 }
@@ -3587,11 +3605,16 @@ html[data-theme="light"] .sbdp-widget-preference-bar {
 .sbdp-day-planner .sbdp-hero-compact--controls-only .sbdp-hero-compact__fields {
   display: grid;
   grid-template-columns: 1.3fr 1.6fr 1fr 1fr 1.1fr;
-  gap: 16px;
+  gap: 0;
   width: 100%;
   max-width: none;
   min-width: 0;
-  align-items: stretch;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 100px;
+  padding: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
 }
 
 .sbdp-day-planner .sbdp-hero-compact--controls-only select.sbdp-select {
@@ -3606,14 +3629,31 @@ html[data-theme="light"] .sbdp-widget-preference-bar {
 
 .sbdp-day-planner .sbdp-hero-compact--controls-only .sbdp-field,
 .sbdp-day-planner .sbdp-hero-compact--controls-only .sbdp-field--action {
-  min-height: 72px;
-  padding: 11px 16px 12px;
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.075);
-  background: rgba(255, 255, 255, 0.028);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.025);
+  min-height: auto;
+  padding: 4px 10px;
+  gap: 10px;
+  border-radius: 100px;
+  border: none;
+  background: transparent;
+  box-shadow: none;
   min-width: 0;
   max-width: none;
+  text-align: center;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  transition: background 0.2s ease;
+}
+
+.sbdp-day-planner .sbdp-hero-compact--controls-only .sbdp-field:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.sbdp-day-planner .sbdp-hero-compact--controls-only .sbdp-field--action {
+  border-right: none;
+  padding-right: 0;
+}
+
+.sbdp-day-planner .sbdp-hero-compact--controls-only .sbdp-field:nth-last-child(2) {
+  border-right: none;
 }
 
 .sbdp-day-planner .sbdp-hero-compact--controls-only .sbdp-field-participants.sbdp-participants-wide {
@@ -3628,27 +3668,50 @@ html[data-theme="light"] .sbdp-widget-preference-bar {
 }
 
 .sbdp-day-planner .sbdp-hero-compact--controls-only .sbdp-field__label {
-  font-size: 0.625rem;
+  font-size: 10px;
   letter-spacing: 0.09em;
   color: rgba(245, 245, 242, 0.42);
   text-transform: uppercase;
   font-weight: 700;
-  margin-bottom: 4px;
+  margin-bottom: 0px;
+  text-align: center;
 }
 
 .sbdp-day-planner .sbdp-hero-compact--controls-only input,
 .sbdp-day-planner .sbdp-hero-compact--controls-only select {
-  min-height: 34px;
-  border-color: transparent;
-  background: transparent;
+  min-height: 28px;
+  border: none !important;
+  background: transparent !important;
   padding: 0;
   font-size: 0.9375rem;
   font-weight: 500;
+  text-align: center;
+  text-align-last: center;
+  box-shadow: none !important;
 }
 
 .sbdp-day-planner .sbdp-hero-compact--controls-only .sbdp-participants-stepper {
-  grid-template-columns: 38px minmax(0, 1fr) 38px;
-  gap: 6px;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 28px;
+  width: 100%;
+}
+
+.sbdp-day-planner .sbdp-hero-compact--controls-only .sbdp-participants-stepper input,
+.sbdp-day-planner .sbdp-hero-compact--controls-only .sbdp-participants-stepper__value {
+  flex: 0 1 auto;
+  min-width: 20px;
+  min-height: 28px !important;
+  height: 28px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  text-align: center !important;
+  border: none !important;
+  background: transparent !important;
+  color: #fff;
+  box-shadow: none !important;
 }
 
 /* Start button: gold primary */
@@ -3660,6 +3723,13 @@ html[data-theme="light"] .sbdp-widget-preference-bar {
   background: linear-gradient(180deg, var(--ddb-gold-light), var(--ddb-gold));
   color: var(--ddb-gold-contrast);
   box-shadow: none;
+  min-height: 28px !important;
+  height: 28px !important;
+  font-size: 0.8125rem;
+  border-radius: 100px;
+  padding: 0 16px;
+  display: flex !important;
+  align-items: center !important;
 }
 
 .sbdp-day-planner .sbdp-hero-compact__start-btn:hover:not(:disabled),
@@ -3762,8 +3832,11 @@ html[data-theme="light"] .sbdp-widget-preference-bar {
 
 .sbdp-day-planner .sbdp-hero-compact--controls-only .sbdp-participants-stepper input,
 .sbdp-day-planner .sbdp-hero-compact--controls-only .sbdp-participants-stepper__value {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   width: 100%;
+  border: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
 }
 
 .sbdp-day-planner .sbdp-participants-stepper input::-webkit-outer-spin-button,
@@ -4077,7 +4150,7 @@ html[data-theme="light"] .sbdp-day-planner .sbdp-filter-chip[aria-pressed="true"
 
 /* Card grid */
 .sbdp-day-planner .sbdp-activity-carousel__grid {
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 /* Hide recommendations section */
@@ -4088,9 +4161,7 @@ html[data-theme="light"] .sbdp-day-planner .sbdp-filter-chip[aria-pressed="true"
 /* ── ACTIVITY CARDS ──────────────────────────────────────────────────────── */
 
 .sbdp-day-planner .ui-listing-card {
-  grid-template-rows: 172px minmax(0, 1fr);
-  min-height: 0;
-  border-radius: 14px;
+  /* override reset */
 }
 
 .sbdp-day-planner .ui-listing-card::before {
@@ -4164,12 +4235,7 @@ html[data-theme="light"] .sbdp-day-planner .sbdp-filter-chip[aria-pressed="true"
   display: none;
 }
 
-.sbdp-day-planner .ui-listing-card__price {
-  min-height: 24px;
-  padding: 0 9px;
-  font-size: 0.7rem;
-  border-color: rgba(255, 255, 255, 0.1);
-}
+/* Price block reset */
 
 .sbdp-day-planner .ui-listing-card__icon-btn {
   width: 28px;
@@ -5120,7 +5186,7 @@ html[data-theme="light"] .sbdp-day-planner .sbdp-filter-chip[aria-pressed="true"
   }
 
   .sbdp-day-planner .ui-listing-card {
-    grid-template-rows: minmax(146px, 162px) minmax(0, 1fr);
+    /* override reset */
   }
 
   .sbdp-day-planner .sbdp-filter-chip {
@@ -5223,4 +5289,860 @@ html[data-theme="light"] .sbdp-day-planner .sbdp-filter-chip[aria-pressed="true"
 
 body.page-id-17 .elementor-element.elementor-element-d862670 {
   display: none;
+}
+
+/* Premium activity cards: image, content and action row stay in separate scan zones. */
+.sbdp-day-planner .ui-listing-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 220px;
+  height: 220px;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: #000;
+}
+
+.sbdp-day-planner .ui-listing-card:hover,
+.sbdp-day-planner .ui-listing-card:focus-within {
+  transform: translateY(-2px);
+  border-color: rgba(228, 185, 127, 0.34);
+  box-shadow: 0 24px 54px rgba(0, 0, 0, 0.42);
+}
+
+.sbdp-day-planner .ui-listing-card__media {
+  position: relative;
+  min-height: 218px;
+  width: 100%;
+  overflow: hidden;
+  background: #111318;
+}
+
+.sbdp-day-planner .ui-listing-card__media::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.44), rgba(0, 0, 0, 0.06) 32%, rgba(0, 0, 0, 0.14)),
+    radial-gradient(circle at 50% 0%, rgba(228, 185, 127, 0.14), transparent 45%);
+  pointer-events: none;
+}
+
+.sbdp-day-planner .ui-listing-card__media img,
+.sbdp-day-planner .ui-listing-card__image,
+.sbdp-day-planner .ui-listing-card__placeholder {
+  width: 100%;
+  height: 100%;
+  min-height: 218px;
+  object-fit: cover;
+}
+
+.sbdp-day-planner .ui-listing-card__image {
+  display: block;
+  transform: scale(1.01);
+  transition: transform 0.22s ease;
+}
+
+.sbdp-day-planner .ui-listing-card:hover .ui-listing-card__image,
+.sbdp-day-planner .ui-listing-card:focus-within .ui-listing-card__image {
+  transform: scale(1.045);
+}
+
+.sbdp-day-planner .ui-listing-card__overlay {
+  position: absolute;
+  inset: 0 0 auto 0;
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px;
+  pointer-events: none;
+}
+
+.sbdp-day-planner .ui-listing-card__top-left,
+.sbdp-day-planner .ui-listing-card__top-right {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.sbdp-day-planner .ui-listing-card__top-right {
+  margin-left: auto;
+  justify-content: flex-end;
+}
+
+.sbdp-day-planner .ui-listing-card__status-chip,
+.sbdp-day-planner .ui-listing-card__duration-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  max-width: 130px;
+  padding: 4px 8px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 999px;
+  background: rgba(7, 8, 10, 0.72);
+  color: #f8f2e6;
+  font-size: 0.7rem;
+  font-size: 0.72rem;
+  font-weight: 750;
+  line-height: 1;
+  white-space: nowrap;
+  backdrop-filter: blur(14px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28);
+}
+
+.sbdp-day-planner .ui-listing-card__status-chip {
+  border-color: rgba(228, 185, 127, 0.45);
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+}
+
+.sbdp-day-planner .ui-listing-card__icon-btn {
+  pointer-events: auto;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-radius: 999px;
+  background: rgba(7, 8, 10, 0.72);
+  color: #f8f2e6;
+  cursor: pointer;
+  backdrop-filter: blur(14px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28);
+  transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease, transform 0.16s ease;
+}
+
+.sbdp-day-planner .ui-listing-card__icon-btn:hover,
+.sbdp-day-planner .ui-listing-card__icon-btn:focus-visible {
+  transform: translateY(-1px);
+  border-color: rgba(228, 185, 127, 0.48);
+  background: rgba(20, 22, 26, 0.88);
+}
+
+.sbdp-day-planner .ui-listing-card__icon-btn.is-active {
+  color: #ff8cae;
+}
+
+.sbdp-day-planner .ui-listing-card__icon-btn svg {
+  width: 15px;
+  height: 15px;
+  fill: currentColor;
+}
+
+.sbdp-day-planner .ui-listing-card__content {
+  position: absolute;
+  z-index: 2;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-content: start;
+  min-height: auto;
+  padding: 8px 10px 10px;
+  pointer-events: none;
+}
+
+.sbdp-day-planner .ui-listing-card__title {
+  display: -webkit-box;
+  min-height: 2.55em;
+  margin: 0;
+  overflow: hidden;
+  color: #f7f2e8;
+  font-size: clamp(1rem, 1.4vw, 1.12rem);
+  font-weight: 760;
+  line-height: 1.24;
+  letter-spacing: 0;
+  text-shadow: none;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.sbdp-day-planner .ui-listing-card__category {
+  display: block;
+  overflow: hidden;
+  color: rgba(247, 242, 232, 0.62);
+  font-size: 0.82rem;
+  font-weight: 650;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-shadow: none;
+}
+
+.sbdp-day-planner .ui-listing-card__action-row {
+  position: absolute;
+  z-index: 2;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
+  min-height: auto;
+  padding: 0 10px 10px;
+  border-top: none;
+  background: transparent;
+  pointer-events: none;
+}
+.sbdp-day-planner .ui-listing-card__action-row > * {
+  pointer-events: auto;
+}
+
+.sbdp-day-planner .ui-listing-card__price {
+  display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0px;
+    min-width: 0;
+    color: #f7f2e8;
+    font-size: 0.85rem;
+    font-weight: 780;
+    line-height: 1.1;
+    text-align: right;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+    background: transparent;
+    border: none;
+    padding: 0;
+    margin-right: 8px;
+}
+.sbdp-day-planner .ui-listing-card__cta {
+  min-width: 80px;
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid rgba(228, 185, 127, 0.4);
+  border-radius: 999px;
+  background: #e4b97f;
+  color: #11100d;
+  font-size: 0.75rem;
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 10px 22px rgba(228, 185, 127, 0.2);
+  transition: background 0.16s ease, border-color 0.16s ease, color 0.16s ease, transform 0.16s ease;
+}
+
+.sbdp-day-planner .ui-listing-card__cta:hover:not(:disabled),
+.sbdp-day-planner .ui-listing-card__cta:focus-visible {
+  transform: translateY(-1px);
+  border-color: rgba(247, 242, 232, 0.48);
+  background: #f0c98e;
+}
+
+.sbdp-day-planner .ui-listing-card__cta.is-added {
+  border-color: rgba(126, 211, 158, 0.35);
+  background: rgba(126, 211, 158, 0.14);
+  color: #baf0cd;
+  box-shadow: none;
+}
+
+.sbdp-day-planner .ui-listing-card__cta:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
+
+@media (max-width: 640px) {
+  .sbdp-day-planner .ui-listing-card {
+      /* override reset */
+  }
+  .sbdp-day-planner .ui-listing-card__media,
+  .sbdp-day-planner .ui-listing-card__media img,
+  .sbdp-day-planner .ui-listing-card__image,
+  .sbdp-day-planner .ui-listing-card__placeholder {
+    min-height: 190px;
+  }
+
+/* Removed action row grid padding mobile override */
+
+/* Removed action row grid padding mobile override */
+
+  .sbdp-day-planner .ui-listing-card__cta {
+    min-width: 96px;
+  }
+}
+
+
+/* EXACT MATCH MOCKUP - SINGLE LINE HORIZONTAL CAPPING */
+.sbdp-day-planner .sbdp-hero-compact--one-line .sbdp-hero-compact__fields {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  justify-content: space-between;
+  border-radius: 999px;
+  border: 1px solid rgba(228, 185, 127, 0.28); /* Gold-ish border matching mockup */
+  padding: 6px 12px;
+  gap: 16px;
+  min-height: 60px;
+  background: rgba(10, 10, 11, 0.6);
+  flex-wrap: nowrap;
+  overflow-x: auto; /* Just in case */
+}
+
+/* Remove grid artifacts */
+.sbdp-day-planner .sbdp-hero-compact--one-line .sbdp-field {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  gap: 8px;
+  min-height: auto !important;
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+}
+
+/* Bubble badges */
+.sbdp-day-planner .sbdp-hero-compact--one-line .sbdp-field__badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--ddb-gold, #e4b97f);
+  color: #0d0d0d;
+  font-weight: 700;
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+/* Label text horizontally */
+.sbdp-day-planner .sbdp-hero-compact--one-line .sbdp-field__label {
+  font-size: 13px !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  text-transform: none !important;
+  font-weight: 500 !important;
+  letter-spacing: normal !important;
+  white-space: nowrap;
+  margin: 0 !important;
+}
+
+/* Input Wrappers */
+.sbdp-day-planner .sbdp-hero-compact--one-line .sbdp-field__input-wrap {
+  display: flex;
+  align-items: center;
+}
+
+/* Inputs seamlessly blending in */
+.sbdp-day-planner .sbdp-hero-compact--one-line input,
+.sbdp-day-planner .sbdp-hero-compact--one-line select {
+  background: transparent !important;
+  border: none !important;
+  color: #fff !important;
+  padding: 0 4px !important;
+  min-height: auto !important;
+  height: auto !important;
+  font-size: 13px !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Stepper adjustments */
+.sbdp-day-planner .sbdp-hero-compact--one-line .sbdp-participants-stepper {
+  background: transparent !important;
+  border: none !important;
+  gap: 2px !important;
+}
+.sbdp-day-planner .sbdp-hero-compact--one-line .sbdp-participants-stepper__btn {
+  width: 24px !important;
+  height: 24px !important;
+  min-height: 24px !important;
+  padding: 0 !important;
+  background: rgba(255,255,255,0.1) !important;
+  border: none !important;
+}
+.sbdp-day-planner .sbdp-hero-compact--one-line .sbdp-participants-stepper__value {
+  width: 30px !important;
+  text-align: center;
+  padding: 0 !important;
+}
+
+/* Action section */
+.sbdp-day-planner .sbdp-hero-compact--one-line .sbdp-field--action {
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.sbdp-day-planner .sbdp-hero-compact--one-line .ui-btn--planner {
+  border-radius: 999px !important;
+  min-height: 38px !important;
+  height: 38px !important;
+  padding: 0 20px !important;
+  font-size: 14px !important;
+  white-space: nowrap;
+}
+
+
+/* NEW PREMIUM INTERACTIVE BLOCKS IN PLANNER BAR */
+.sbdp-day-planner .sbdp-hero-compact--one-line .sbdp-hero-compact__fields {
+  padding: 6px;
+  background: rgba(10, 10, 11, 0.7);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08); /* clean premium border instead of thick gold */
+  gap: 4px;
+}
+
+/* Base interactive block */
+.sbdp-day-planner .sbdp-hero-compact--one-line .sbdp-field {
+  padding: 8px 16px !important;
+  border-radius: 999px !important;
+  transition: background 0.2s, transform 0.1s;
+  cursor: pointer;
+}
+.sbdp-day-planner .sbdp-hero-compact--one-line .sbdp-field:hover,
+.sbdp-day-planner .sbdp-hero-compact--one-line .sbdp-field:focus-within {
+  background: rgba(255,255,255,0.08) !important;
+}
+
+/* Badge tuning */
+.sbdp-day-planner .sbdp-hero-compact--one-line .sbdp-field__badge {
+  background: rgba(255,255,255,0.1);
+  color: rgba(255,255,255,0.8);
+  width: 22px; height: 22px;
+  font-size: 10px;
+}
+.sbdp-day-planner .sbdp-hero-compact--one-line .sbdp-field:hover .sbdp-field__badge,
+.sbdp-day-planner .sbdp-hero-compact--one-line .sbdp-field:focus-within .sbdp-field__badge {
+  background: var(--ddb-gold, #e4b97f);
+  color: #000;
+}
+.sbdp-day-planner .sbdp-hero-compact--one-line .sbdp-field__badge--cta {
+  background: transparent !important;
+  color: rgba(255,255,255,0.4);
+}
+
+/* Content layout (Label top, Value bottom) */
+.sbdp-day-planner .sbdp-hero-compact--one-line .sbdp-field__content {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.sbdp-day-planner .sbdp-hero-compact--one-line .sbdp-field__label {
+  font-size: 10px !important;
+  color: rgba(255,255,255,0.5) !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.05em !important;
+  margin: 0 !important;
+  line-height: 1 !important;
+}
+
+/* Inputs styling (Making them look like bold values) */
+.sbdp-day-planner .sbdp-hero-compact--one-line input,
+.sbdp-day-planner .sbdp-hero-compact--one-line select {
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: #fff !important;
+  padding: 0 !important;
+  line-height: 1.2 !important;
+  background: transparent !important;
+  cursor: pointer;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.sbdp-day-planner .sbdp-hero-compact--one-line input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  opacity: 0.5;
+  cursor: pointer;
+}
+
+/* Select wrapper and chevron */
+.sbdp-day-planner .sbdp-field__input-wrap--select {
+  position: relative;
+  display: flex !important;
+  align-items: center;
+  gap: 6px;
+}
+.sbdp-select-chevron {
+  color: rgba(255,255,255,0.5);
+  display: flex;
+  pointer-events: none;
+}
+.sbdp-day-planner .sbdp-hero-compact--one-line select {
+  padding-right: 0 !important;
+  background-image: none !important;
+}
+
+/* Stepper cleanup */
+.sbdp-day-planner .sbdp-hero-compact--one-line .sbdp-participants-stepper {
+  gap: 8px !important;
+}
+.sbdp-day-planner .sbdp-hero-compact--one-line .sbdp-participants-stepper__btn {
+  background: rgba(255,255,255,0.05) !important;
+  color: #fff !important;
+  font-size: 16px !important;
+  font-weight: 300 !important;
+  width: 20px !important;
+  height: 20px !important;
+  min-height: 20px !important;
+  display: flex;
+  align-items: center; justify-content: center;
+  border-radius: 5px !important;
+}
+.sbdp-day-planner .sbdp-hero-compact--one-line .sbdp-participants-stepper__btn:not(:disabled):hover {
+  background: rgba(255,255,255,0.2) !important;
+}
+.sbdp-day-planner .sbdp-hero-compact--one-line .sbdp-participants-stepper__value {
+  width: 24px !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+}
+
+/* Action button integration */
+.sbdp-day-planner .sbdp-hero-compact--one-line .sbdp-field--action {
+  padding: 4px !important;
+  background: transparent !important;
+}
+.sbdp-day-planner .sbdp-hero-compact--one-line .sbdp-field--action:hover {
+  background: transparent !important;
+}
+.sbdp-day-planner .sbdp-hero-compact--one-line .ui-btn--planner {
+  min-height: 48px !important;
+  height: 48px !important;
+  background: var(--ddb-gold, #e4b97f) !important;
+  color: #000 !important;
+  font-weight: 700 !important;
+  border-radius: 999px !important;
+  padding: 0 28px !important;
+  font-size: 15px !important;
+}
+
+/* MORE BREATHING ROOM */
+.sbdp-day-planner .sbdp-hero-compact--one-line .sbdp-hero-compact__fields {
+  padding: 10px 14px;
+  gap: 12px;
+  min-height: 72px; /* Bigger layout overall */
+}
+
+/* Base interactive block layout fixes */
+.sbdp-day-planner .sbdp-hero-compact--one-line .sbdp-field {
+  padding: 10px 18px !important; /* more breathing room */
+  gap: 12px; /* badge + content separation */
+  position: relative; /* for absolute click overlay */
+}
+
+/* Badge size bump */
+.sbdp-day-planner .sbdp-hero-compact--one-line .sbdp-field__badge {
+  width: 24px; height: 24px;
+  font-size: 11px;
+}
+
+/* Larger fonts for content */
+.sbdp-day-planner .sbdp-hero-compact--one-line .sbdp-field__label {
+  font-size: 11px !important;
+}
+.sbdp-day-planner .sbdp-hero-compact--one-line .sbdp-fake-value {
+  font-size: 15px !important;
+  font-weight: 600 !important;
+  color: #fff !important;
+  white-space: nowrap;
+}
+
+/* THE MAGIC OVERLAY CLICK TRICK (100% click area to trigger inputs) */
+.sbdp-day-planner .sbdp-overlay-input {
+  position: absolute !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  z-index: 10 !important;
+  opacity: 0 !important; /* Full transparency */
+  cursor: pointer !important;
+}
+
+.sbdp-day-planner .sbdp-hero-compact--one-line input[type="date"].sbdp-overlay-input::-webkit-calendar-picker-indicator {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  width: 100%; height: 100%;
+  background: transparent;
+  color: transparent;
+  cursor: pointer;
+  opacity: 0;
+}
+
+/* Select wrapper and chevron space */
+.sbdp-day-planner .sbdp-field__input-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px; /* space between fake text and chevron */
+}
+.sbdp-select-chevron {
+  color: #e4b97f; /* Gold chevron instead of gray */
+}
+
+/* Stepper cleanup for new padding */
+.sbdp-day-planner .sbdp-hero-compact--one-line .sbdp-participants-stepper {
+  gap: 12px !important;
+  z-index: 20; /* Keep steppers above absolute layers just in case */
+  position: relative;
+}
+.sbdp-day-planner .sbdp-hero-compact--one-line .sbdp-participants-stepper__btn {
+  width: 24px !important;
+  height: 24px !important;
+  min-height: 24px !important;
+  font-size: 18px !important;
+}
+
+/* Button size bump */
+.sbdp-day-planner .sbdp-hero-compact--one-line .ui-btn--planner {
+  min-height: 52px !important;
+  height: 52px !important;
+  padding: 0 32px !important;
+  font-size: 16px !important;
+}
+
+
+/* -- CRITICAL UI DESIGNER OVERRIDES: EXTREME BREATHING ROOM & WIDTH -- */
+.sbdp-day-planner .sbdp-hero-compact--one-line .sbdp-hero-compact__fields {
+  padding: 16px 24px !important;
+  gap: 20px !important;
+  min-height: 88px !important;
+  border-radius: 100px !important; /* Make the pill itself broader and rounder */
+}
+
+/* Base interactive block layout fixes - MUCH WIDER */
+.sbdp-day-planner .sbdp-hero-compact--one-line .sbdp-field {
+  padding: 16px 32px !important; /* Massive click targets */
+  gap: 16px !important;
+  min-width: 180px; /* Force minimum width to stretch it out */
+}
+
+/* Stepper buttons - way larger for direct clicking */
+.sbdp-day-planner .sbdp-hero-compact--one-line .sbdp-participants-stepper {
+  gap: 16px !important;
+}
+.sbdp-day-planner .sbdp-hero-compact--one-line .sbdp-participants-stepper__btn {
+  width: 32px !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  font-size: 20px !important;
+  border-radius: 50% !important; /* keep them round */
+}
+
+/* Button size dump - massive CTA */
+.sbdp-day-planner .sbdp-hero-compact--one-line .ui-btn--planner {
+  min-height: 56px !important;
+  height: 56px !important;
+  padding: 0 48px !important;
+  font-size: 18px !important;
+  min-width: 220px !important;
+  border-radius: 100px !important;
+}
+
+/* Content spacing */
+.sbdp-day-planner .sbdp-hero-compact--one-line .sbdp-field__input-wrap {
+  gap: 16px !important;
+}
+.sbdp-day-planner .sbdp-hero-compact--one-line .sbdp-fake-value {
+  font-size: 16px !important;
+}
+
+/* ================================================================
+   DEFINITIEF PLANNER BAR — v3 FINAL CLEAN
+   Hoge specificiteit: wint alles wat daarboven staat.
+   Equal-width fields, volledige klikzone, goede typografie.
+   ================================================================ */
+
+/* Outer pill — full width */
+.sbdp-day-planner .sbdp-hero--compact-active .sbdp-hero-compact--one-line {
+  width: 100% !important;
+  display: block !important;
+}
+.sbdp-day-planner .sbdp-hero--compact-active .sbdp-hero-compact--one-line .sbdp-hero-compact__fields {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: stretch !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  padding: 6px !important;
+  gap: 4px !important;
+  min-height: 84px !important;
+}
+
+/* Fields 1-4: gelijke breedte via flex: 1 */
+.sbdp-day-planner .sbdp-hero--compact-active .sbdp-hero-compact--one-line .sbdp-field--interactive {
+  flex: 1 !important;
+  min-width: 0 !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 14px !important;
+  padding: 0 24px !important;
+  border-radius: 40px !important;
+  position: relative !important;
+  overflow: hidden !important;
+  cursor: pointer !important;
+  transition: background 0.18s !important;
+}
+.sbdp-day-planner .sbdp-hero--compact-active .sbdp-hero-compact--one-line .sbdp-field--interactive:hover {
+  background: rgba(255,255,255,0.09) !important;
+}
+.sbdp-day-planner .sbdp-hero--compact-active .sbdp-hero-compact--one-line .sbdp-field--interactive:hover .sbdp-field__badge {
+  background: var(--ddb-gold, #e4b97f) !important;
+  color: #000 !important;
+}
+
+/* Stap 5 knop: auto breedte */
+.sbdp-day-planner .sbdp-hero--compact-active .sbdp-hero-compact--one-line .sbdp-field--action {
+  flex: 0 0 auto !important;
+  padding: 6px !important;
+  background: transparent !important;
+  border-radius: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+/* Badge (nummer cirkel) */
+.sbdp-day-planner .sbdp-hero--compact-active .sbdp-hero-compact--one-line .sbdp-field__badge {
+  flex-shrink: 0 !important;
+  width: 26px !important;
+  height: 26px !important;
+  min-width: 26px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  background: rgba(255,255,255,0.12) !important;
+  color: rgba(255,255,255,0.75) !important;
+  pointer-events: none !important;
+  z-index: 6 !important;
+  position: relative !important;
+}
+
+/* Fieldcontent (label + waarde stacked) */
+.sbdp-day-planner .sbdp-hero--compact-active .sbdp-hero-compact--one-line .sbdp-field__content {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 4px !important;
+  min-width: 0 !important;
+  flex: 1 !important;
+  pointer-events: none !important;
+}
+.sbdp-day-planner .sbdp-hero--compact-active .sbdp-hero-compact--one-line .sbdp-field__label {
+  font-size: 10px !important;
+  font-weight: 500 !important;
+  text-transform: uppercase !important;
+  letter-spacing: 0.08em !important;
+  color: rgba(255,255,255,0.45) !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  margin: 0 !important;
+}
+
+/* De zichtbare waarde */
+.sbdp-day-planner .sbdp-hero--compact-active .sbdp-hero-compact--one-line .sbdp-fake-value {
+  font-size: 17px !important;
+  font-weight: 600 !important;
+  color: #fff !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+}
+
+/* Input-wrap (positiecontext voor overlay) */
+.sbdp-day-planner .sbdp-hero--compact-active .sbdp-hero-compact--one-line .sbdp-field__input-wrap {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+/* Chevron */
+.sbdp-day-planner .sbdp-hero--compact-active .sbdp-hero-compact--one-line .sbdp-select-chevron {
+  color: rgba(228,185,127,0.9) !important;
+  pointer-events: none !important;
+  flex-shrink: 0 !important;
+  position: relative !important;
+  z-index: 6 !important;
+}
+
+/* OVERLAY INPUT — volledig transparant, bedekt het hele veld */
+.sbdp-day-planner .sbdp-hero--compact-active .sbdp-hero-compact--one-line .sbdp-overlay-input {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  opacity: 0 !important;
+  cursor: pointer !important;
+  z-index: 5 !important;
+  border: none !important;
+  background: transparent !important;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  font-size: 16px !important;
+}
+.sbdp-day-planner .sbdp-hero--compact-active .sbdp-hero-compact--one-line input[type="date"].sbdp-overlay-input::-webkit-calendar-picker-indicator {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  opacity: 0 !important;
+  cursor: pointer !important;
+}
+
+/* Participants stepper — boven de overlay via z-index */
+.sbdp-day-planner .sbdp-hero--compact-active .sbdp-hero-compact--one-line .sbdp-participants-stepper {
+  display: flex !important;
+  align-items: center !important;
+  gap: 14px !important;
+  position: relative !important;
+  z-index: 10 !important;
+}
+.sbdp-day-planner .sbdp-hero--compact-active .sbdp-hero-compact--one-line .sbdp-participants-stepper__btn {
+  width: 30px !important;
+  height: 30px !important;
+  min-height: 30px !important;
+  font-size: 20px !important;
+  font-weight: 300 !important;
+  line-height: 1 !important;
+  border-radius: 50% !important;
+  background: rgba(255,255,255,0.1) !important;
+  color: #fff !important;
+  border: none !important;
+  padding: 0 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  cursor: pointer !important;
+}
+.sbdp-day-planner .sbdp-hero--compact-active .sbdp-hero-compact--one-line .sbdp-participants-stepper__btn:not(:disabled):hover {
+  background: rgba(255,255,255,0.25) !important;
+}
+.sbdp-day-planner .sbdp-hero--compact-active .sbdp-hero-compact--one-line .sbdp-participants-stepper__value {
+  width: 32px !important;
+  text-align: center !important;
+  font-size: 17px !important;
+  font-weight: 600 !important;
+  color: #fff !important;
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+}
+
+/* CTA Knop — Stap 5 */
+.sbdp-day-planner .sbdp-hero--compact-active .sbdp-hero-compact--one-line .ui-btn--planner {
+  height: 64px !important;
+  min-height: 64px !important;
+  padding: 0 40px !important;
+  font-size: 17px !important;
+  font-weight: 700 !important;
+  border-radius: 999px !important;
+  background: var(--ddb-gold, #e4b97f) !important;
+  color: #000 !important;
+  white-space: nowrap !important;
+  cursor: pointer !important;
+  min-width: 200px !important;
+  border: none !important;
 }

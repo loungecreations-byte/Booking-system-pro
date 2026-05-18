@@ -10,6 +10,7 @@ import {
   prepareSearchQuery,
 } from "../utils/search.js";
 import { buildPlannerInsights } from "../utils/planner-engine.js";
+import { buildPlannerCtaModel } from "../utils/planner-cta.js";
 import { getDurationMinutes, getEnvironmentTag } from "../utils/products.js";
 import { formatPrice, getSlotPricePerPerson } from "../../shared/booking.js";
 import { emitPlannerEvent } from "../utils/telemetry.js";
@@ -446,7 +447,7 @@ export default function LayoutStep() {
     if (plannerActionState.action_mode === "blocked") {
       return {
         tone: "error",
-        label: plannerActionState.status_label || "Niet boekbaar",
+        label: plannerActionState.status_label || "Niet direct boekbaar",
         message:
           plannerActionState.blocking_reason_message ||
           "Deze planning kan momenteel niet worden afgerond.",
@@ -500,6 +501,13 @@ export default function LayoutStep() {
   );
   const showPlannerPendingState = prefillHydrationPending && activityCount === 0;
   const showPlannerEmptyState = !showPlannerPendingState && activityCount === 0;
+  const plannerCtaModel = buildPlannerCtaModel({
+    plannerActionState,
+    formattedTotal,
+    queuePending,
+    planPending,
+    surfaceUpdating,
+  });
 
   if (!state.plan.days.length) {
     if (showPlannerPendingState) {
@@ -567,6 +575,38 @@ export default function LayoutStep() {
     } finally {
       setPlanPending(false);
     }
+  };
+
+  const handleReviewPlan = () => {
+    setMobilePlannerOpen(true);
+    document
+      .querySelector(".sbdp-day-planner__primary-status, .sbdp-planner-checkout__message--warning, .sbdp-planner-checkout__message--error")
+      ?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+
+  const handlePrimaryPlannerAction = () => {
+    if (plannerCtaModel.primary.key === "checkout") {
+      return handleAddToCart();
+    }
+    if (plannerCtaModel.primary.key === "quote") {
+      return handleSubmitPlan();
+    }
+    if (plannerCtaModel.primary.key === "add") {
+      document
+        .querySelector(".sbdp-day-planner__results")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return undefined;
+    }
+    handleReviewPlan();
+    return undefined;
+  };
+
+  const handleSecondaryPlannerAction = () => {
+    if (plannerCtaModel.secondary?.key === "quote") {
+      return handleSubmitPlan();
+    }
+    handleReviewPlan();
+    return undefined;
   };
 
   const mobileFlowContent = (
@@ -769,7 +809,7 @@ export default function LayoutStep() {
                   {plannerFooterMessage}
                 </p>
                 <p className="sbdp-planner-checkout__message">
-                  Indicatieve prijs. Winkelwagen en checkout blijven de definitieve commerciële waarheid.
+                  {plannerCtaModel.priceLabel}
                 </p>
                 {surfaceUpdating ? (
                   <p className="sbdp-planner-checkout__message">
@@ -790,30 +830,28 @@ export default function LayoutStep() {
                 <div className="sbdp-planner-checkout__actions">
                   <button
                     type="button"
-                    className="ui-btn ui-btn--primary ui-btn--planner"
-                    onClick={handleAddToCart}
-                    disabled={!plannerActionState.primary_cta_enabled || queuePending || surfaceUpdating}
-                    aria-busy={queuePending || surfaceUpdating ? "true" : "false"}
+                    className={`ui-btn ui-btn--${plannerCtaModel.primary.variant} ui-btn--planner`}
+                    onClick={handlePrimaryPlannerAction}
+                    disabled={!plannerCtaModel.primary.enabled}
+                    aria-busy={plannerCtaModel.primary.busy ? "true" : "false"}
+                    aria-label={plannerCtaModel.primary.ariaLabel}
+                    data-planner-action={plannerCtaModel.primary.key}
                   >
-                    {queuePending
-                      ? "Bezig met boeken..."
-                      : surfaceUpdating
-                      ? "Planner wordt bijgewerkt..."
-                      : `Boek mijn dag · ${formattedTotal}`}
+                    {plannerCtaModel.primary.label}
                   </button>
-                  <button
-                    type="button"
-                    className="ui-btn ui-btn--secondary"
-                    onClick={handleSubmitPlan}
-                    disabled={!plannerActionState.secondary_quote_enabled || planPending || surfaceUpdating}
-                    aria-busy={planPending || surfaceUpdating ? "true" : "false"}
-                  >
-                    {planPending
-                      ? "Even geduld..."
-                      : surfaceUpdating
-                      ? "Planner wordt bijgewerkt..."
-                      : "Vraag offerte aan"}
-                  </button>
+                  {plannerCtaModel.secondary ? (
+                    <button
+                      type="button"
+                      className={`ui-btn ui-btn--${plannerCtaModel.secondary.variant}`}
+                      onClick={handleSecondaryPlannerAction}
+                      disabled={!plannerCtaModel.secondary.enabled}
+                      aria-busy={plannerCtaModel.secondary.busy ? "true" : "false"}
+                      aria-label={plannerCtaModel.secondary.ariaLabel}
+                      data-planner-action={plannerCtaModel.secondary.key}
+                    >
+                      {plannerCtaModel.secondary.label}
+                    </button>
+                  ) : null}
                 </div>
               </section>
             </div>
@@ -827,17 +865,21 @@ export default function LayoutStep() {
         </div>
         <button
           type="button"
-          className="ui-btn ui-btn--primary ui-btn--planner"
+          className={`ui-btn ui-btn--${plannerCtaModel.primary.variant} ui-btn--planner`}
           onClick={() => {
             emitPlannerEvent("sbdp:planner/action", {
-              action: mobilePlannerOpen ? "close-planner-panel" : "open-planner-panel",
+              action: plannerCtaModel.primary.key,
               status: "button_click",
               source: "mobile_sticky_bar",
             });
-            setMobilePlannerOpen((current) => !current);
+            handlePrimaryPlannerAction();
           }}
+          disabled={!plannerCtaModel.primary.enabled}
+          aria-busy={plannerCtaModel.primary.busy ? "true" : "false"}
+          aria-label={plannerCtaModel.primary.ariaLabel}
+          data-planner-action={plannerCtaModel.primary.key}
         >
-          {mobilePlannerOpen ? "Sluit planner" : "Bekijk daglijn"}
+          {plannerCtaModel.primary.label}
         </button>
       </div>
     </>

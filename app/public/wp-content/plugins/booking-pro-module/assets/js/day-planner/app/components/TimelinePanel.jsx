@@ -4,6 +4,7 @@ import PropTypes from "prop-types";
 import { minutesToTime, timeToMinutes } from "../utils/time.js";
 import { buildPlannerInsights } from "../utils/planner-engine.js";
 import { buildProgramTimeline, formatDurationLabel, formatTimeRange } from "../utils/program.js";
+import { buildTimelineDayLayout } from "../utils/timeline-layout.js";
 import ActivitySwitcher from "./ActivitySwitcher.jsx";
 
 const PIXELS_PER_MINUTE = 1.5;
@@ -45,7 +46,10 @@ export default function TimelinePanel({
     () =>
       plan.days.map((day, dayIndex) => {
         const itemsForDay = plan.items.filter((item) => item.dayIndex === dayIndex);
-        const layout = buildDayLayout(itemsForDay, window);
+        const layout = buildTimelineDayLayout(itemsForDay, window, {
+          pixelsPerMinute: PIXELS_PER_MINUTE,
+          source: "TimelinePanel.buildDayLayout",
+        });
         return { day, dayIndex, layout, items: itemsForDay };
       }),
     [plan.days, plan.items, window]
@@ -790,67 +794,6 @@ function buildHourMarkers(startMinutes, endMinutes) {
 
   return markers;
 }
-
-function buildDayLayout(items, window) {
-  const events = items
-    .filter(
-      (item) =>
-        Number.isFinite(item?.startMinutes) &&
-        Number.isFinite(item?.endMinutes) &&
-        item.endMinutes > item.startMinutes
-    )
-    .map((item) => ({
-      item,
-      startMinutes: item.startMinutes,
-      endMinutes: item.endMinutes,
-      durationMinutes: Math.max(15, item.endMinutes - item.startMinutes),
-    }))
-    .sort((a, b) => a.startMinutes - b.startMinutes || a.durationMinutes - b.durationMinutes);
-
-  const active = [];
-
-  events.forEach((event) => {
-    for (let index = active.length - 1; index >= 0; index -= 1) {
-      if (active[index].endMinutes <= event.startMinutes) {
-        active.splice(index, 1);
-      }
-    }
-
-    const usedColumns = new Set(active.map((entry) => entry.column));
-    let column = 0;
-    while (usedColumns.has(column)) {
-      column += 1;
-    }
-    event.column = column;
-    active.push(event);
-  });
-
-  events.forEach((event) => {
-    const overlapping = events.filter(
-      (other) =>
-        other !== event &&
-        other.startMinutes < event.endMinutes &&
-        event.startMinutes < other.endMinutes
-    );
-    const maxColumn = Math.max(event.column, ...overlapping.map((entry) => entry.column));
-    event.columnCount = maxColumn + 1;
-  });
-
-  return events.map((event) => {
-    const durationMinutes = event.endMinutes - event.startMinutes;
-    const top = Math.max(0, (event.startMinutes - window.startMinutes) * PIXELS_PER_MINUTE);
-    const height = Math.max(20, durationMinutes * PIXELS_PER_MINUTE);
-    const width = 100 / event.columnCount;
-    const left = width * event.column;
-      return {
-        item: event.item,
-        top,
-        height,
-        left,
-        width,
-      };
-    });
-  }
 
 function buildGapMarkers(dayLayouts, window) {
   const map = new Map();

@@ -4,6 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { usePlanner } from "../../store/PlannerProvider.jsx";
 import { formatDateLabel } from "../utils/time.js";
 import { buildPlannerInsights } from "../utils/planner-engine.js";
+import { buildPlannerCtaModel } from "../utils/planner-cta.js";
 import { emitPlannerEvent } from "../utils/telemetry.js";
 import { formatPrice } from "../../shared/booking.js";
 import { formatTimeRange } from "../utils/program.js";
@@ -418,6 +419,38 @@ export default function SummaryPanel() {
   const summaryBodyId = "sbdp-summary-bar-body";
   const toggleAssistiveLabel = isExpanded ? "Verberg jouw planning" : "Toon jouw planning";
   const formattedTotal = formatPrice(grandTotal, currency);
+  const plannerCtaModel = buildPlannerCtaModel({
+    plannerActionState,
+    formattedTotal,
+    queuePending,
+    planPending,
+  });
+
+  const handleReviewPlan = () => {
+    setIsExpanded(true);
+    document
+      .querySelector(".sbdp-day-planner__primary-status, .sbdp-summary-bar__program-confidence")
+      ?.scrollIntoView({ behavior: "smooth", block: "center" });
+  };
+
+  const handlePrimaryAction = () => {
+    if (plannerCtaModel.primary.key === "checkout") {
+      return handleAddToCart();
+    }
+    if (plannerCtaModel.primary.key === "quote") {
+      return handleSubmitPlan();
+    }
+    handleReviewPlan();
+    return undefined;
+  };
+
+  const handleSecondaryAction = () => {
+    if (plannerCtaModel.secondary?.key === "quote") {
+      return handleSubmitPlan();
+    }
+    handleReviewPlan();
+    return undefined;
+  };
 
   return (
     <aside
@@ -442,7 +475,11 @@ export default function SummaryPanel() {
       >
           <div className="sbdp-summary-bar__toggle-main">
           <div className="sbdp-summary-bar__toggle-meta">
-            <span className="sbdp-summary-bar__toggle-title">Programma & prijsindicatie</span>
+            <span className="sbdp-summary-bar__toggle-title">
+              {plannerActionState.action_mode === "request"
+                ? "Programma & voorlopige richtprijs"
+                : "Programma & prijsindicatie"}
+            </span>
             <span className="sbdp-summary-bar__toggle-total">
               {formattedTotal}
             </span>
@@ -464,22 +501,28 @@ export default function SummaryPanel() {
       <div className="sbdp-summary-bar__actions sbdp-summary-bar__actions--quick">
         <button
           type="button"
-          className="ui-btn ui-btn--primary ui-btn--planner"
-          onClick={handleAddToCart}
-          disabled={!plannerActionState.primary_cta_enabled || queuePending}
-          aria-busy={queuePending ? "true" : "false"}
+          className={`ui-btn ui-btn--${plannerCtaModel.primary.variant} ui-btn--planner`}
+          onClick={handlePrimaryAction}
+          disabled={!plannerCtaModel.primary.enabled}
+          aria-busy={plannerCtaModel.primary.busy ? "true" : "false"}
+          aria-label={plannerCtaModel.primary.ariaLabel}
+          data-planner-action={plannerCtaModel.primary.key}
         >
-          {queuePending ? "Bezig met boeken..." : `Boek mijn dag · ${formattedTotal}`}
+          {plannerCtaModel.primary.label}
         </button>
-        <button
-          type="button"
-          className="ui-btn ui-btn--secondary"
-          onClick={handleSubmitPlan}
-          disabled={!plannerActionState.secondary_quote_enabled || planPending}
-          aria-busy={planPending ? "true" : "false"}
-        >
-          {planPending ? "Even geduld..." : `Vraag offerte · ${formattedTotal}`}
-        </button>
+        {plannerCtaModel.secondary ? (
+          <button
+            type="button"
+            className={`ui-btn ui-btn--${plannerCtaModel.secondary.variant}`}
+            onClick={handleSecondaryAction}
+            disabled={!plannerCtaModel.secondary.enabled}
+            aria-busy={plannerCtaModel.secondary.busy ? "true" : "false"}
+            aria-label={plannerCtaModel.secondary.ariaLabel}
+            data-planner-action={plannerCtaModel.secondary.key}
+          >
+            {plannerCtaModel.secondary.label}
+          </button>
+        ) : null}
       </div>
       {plannerActionState.blocking_reason_message ? (
         <p className="sbdp-summary-bar__hint">{plannerActionState.blocking_reason_message}</p>
@@ -500,7 +543,7 @@ export default function SummaryPanel() {
         </header>
 
         <p className="sbdp-summary-bar__hint">
-          Indicatieve prijs. Winkelwagen en checkout blijven de definitieve commerciële waarheid.
+          {plannerCtaModel.priceLabel}
         </p>
         {message ? (
           <div className={`sbdp-summary-bar__alert sbdp-summary-bar__alert--${messageTone}`}>

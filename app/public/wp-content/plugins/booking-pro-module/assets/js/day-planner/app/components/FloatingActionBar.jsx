@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { usePlanner } from "../../store/PlannerProvider.jsx";
+import { buildPlannerCtaModel } from "../utils/planner-cta.js";
 
 // Ultra-compact icons (16px)
 const Icons = {
@@ -119,6 +120,12 @@ export default function FloatingActionBar() {
     FALLBACK_PARTICIPANTS;
   const perPerson = participants > 0 && totalPrice > 0 ? totalPrice / participants : 0;
   const availabilityMessage = availabilityIssue?.message || "";
+  const plannerCtaModel = buildPlannerCtaModel({
+    plannerActionState,
+    formattedTotal: formatPrice(totalPrice, currency),
+    queuePending: bookingPending,
+    planPending: quotePending,
+  });
 
   useEffect(() => {
     if (availabilityMessage) {
@@ -163,6 +170,28 @@ export default function FloatingActionBar() {
     }
   };
 
+  const handlePrimaryAction = () => {
+    if (plannerCtaModel.primary.key === "checkout") {
+      return handleBookNow();
+    }
+    if (plannerCtaModel.primary.key === "quote") {
+      return handleRequestQuote();
+    }
+    setIsExpanded(true);
+    return undefined;
+  };
+
+  const handleSecondaryAction = () => {
+    if (plannerCtaModel.secondary?.key === "quote") {
+      return handleRequestQuote();
+    }
+    setIsExpanded(true);
+    return undefined;
+  };
+
+  const primaryIcon = plannerCtaModel.primary.key === "quote" ? Icons.mail : Icons.cart;
+  const secondaryIcon = plannerCtaModel.secondary?.key === "quote" ? Icons.mail : Icons.warning;
+
   const handleReplan = () => {
     regeneratePlan({
       visitDate: form?.date,
@@ -200,22 +229,30 @@ export default function FloatingActionBar() {
           <div className="sbdp-fab__collapsed-actions">
             <button
               type="button"
-              className={`ui-btn ui-btn--primary ui-btn--planner ui-btn--full sbdp-fab__action sbdp-fab__action--compact ${!plannerActionState.primary_cta_enabled ? "is-disabled" : ""}`.trim()}
-              onClick={handleBookNow}
-              disabled={!plannerActionState.primary_cta_enabled || bookingPending}
+              className={`ui-btn ui-btn--${plannerCtaModel.primary.variant} ui-btn--planner ui-btn--full sbdp-fab__action sbdp-fab__action--compact ${!plannerCtaModel.primary.enabled ? "is-disabled" : ""}`.trim()}
+              onClick={handlePrimaryAction}
+              disabled={!plannerCtaModel.primary.enabled}
+              aria-busy={plannerCtaModel.primary.busy ? "true" : "false"}
+              aria-label={plannerCtaModel.primary.ariaLabel}
+              data-planner-action={plannerCtaModel.primary.key}
             >
-              {Icons.cart}
-              <span>{bookingPending ? "Boeken..." : "Boek direct"}</span>
+              {primaryIcon}
+              <span>{plannerCtaModel.primary.label}</span>
             </button>
-            <button
-              type="button"
-              className={`ui-btn ui-btn--secondary ui-btn--full sbdp-fab__action sbdp-fab__action--compact ${!plannerActionState.secondary_quote_enabled ? "is-disabled" : ""}`.trim()}
-              onClick={handleRequestQuote}
-              disabled={!plannerActionState.secondary_quote_enabled || quotePending}
-            >
-              {Icons.mail}
-              <span>{quotePending ? "Verzenden..." : "Vraag offerte"}</span>
-            </button>
+            {plannerCtaModel.secondary ? (
+              <button
+                type="button"
+                className={`ui-btn ui-btn--${plannerCtaModel.secondary.variant} ui-btn--full sbdp-fab__action sbdp-fab__action--compact ${!plannerCtaModel.secondary.enabled ? "is-disabled" : ""}`.trim()}
+                onClick={handleSecondaryAction}
+                disabled={!plannerCtaModel.secondary.enabled}
+                aria-busy={plannerCtaModel.secondary.busy ? "true" : "false"}
+                aria-label={plannerCtaModel.secondary.ariaLabel}
+                data-planner-action={plannerCtaModel.secondary.key}
+              >
+                {secondaryIcon}
+                <span>{plannerCtaModel.secondary.label}</span>
+              </button>
+            ) : null}
           </div>
         </div>
       ) : (
@@ -308,22 +345,30 @@ export default function FloatingActionBar() {
             </div>
             <button
               type="button"
-              className={`ui-btn ui-btn--primary ui-btn--planner ui-btn--full sbdp-fab__action ${!plannerActionState.primary_cta_enabled ? "is-disabled" : ""}`.trim()}
-              onClick={handleBookNow}
-              disabled={!plannerActionState.primary_cta_enabled || bookingPending}
+              className={`ui-btn ui-btn--${plannerCtaModel.primary.variant} ui-btn--planner ui-btn--full sbdp-fab__action ${!plannerCtaModel.primary.enabled ? "is-disabled" : ""}`.trim()}
+              onClick={handlePrimaryAction}
+              disabled={!plannerCtaModel.primary.enabled}
+              aria-busy={plannerCtaModel.primary.busy ? "true" : "false"}
+              aria-label={plannerCtaModel.primary.ariaLabel}
+              data-planner-action={plannerCtaModel.primary.key}
             >
-              {Icons.cart}
-              <span>{bookingPending ? "Boeken..." : "Boek direct"}</span>
+              {primaryIcon}
+              <span>{plannerCtaModel.primary.label}</span>
             </button>
-            <button
-              type="button"
-              className={`ui-btn ui-btn--secondary ui-btn--full sbdp-fab__action ${!plannerActionState.secondary_quote_enabled ? "is-disabled" : ""}`.trim()}
-              onClick={handleRequestQuote}
-              disabled={!plannerActionState.secondary_quote_enabled || quotePending}
-            >
-              {Icons.mail}
-              <span>{quotePending ? "Verzenden..." : "Vraag offerte"}</span>
-            </button>
+            {plannerCtaModel.secondary ? (
+              <button
+                type="button"
+                className={`ui-btn ui-btn--${plannerCtaModel.secondary.variant} ui-btn--full sbdp-fab__action ${!plannerCtaModel.secondary.enabled ? "is-disabled" : ""}`.trim()}
+                onClick={handleSecondaryAction}
+                disabled={!plannerCtaModel.secondary.enabled}
+                aria-busy={plannerCtaModel.secondary.busy ? "true" : "false"}
+                aria-label={plannerCtaModel.secondary.ariaLabel}
+                data-planner-action={plannerCtaModel.secondary.key}
+              >
+                {secondaryIcon}
+                <span>{plannerCtaModel.secondary.label}</span>
+              </button>
+            ) : null}
           </div>
         </div>
       )}
