@@ -2100,7 +2100,7 @@ html[data-theme="dark"] .sbdp-activities-card__meta {
 
 .sbdp-day-planner .sbdp-button--primary {
   border-color: rgba(212, 175, 55, 0.3) !important;
-  background: linear-gradient(180deg, #edd48b, #d4af37) !important;
+  background: linear-gradient(180deg, #edd48b, #E4B97F) !important;
   color: #17120a !important;
   box-shadow: 0 8px 20px rgba(212, 175, 55, 0.2);
 }

@@ -1120,77 +1120,41 @@ export default function ActivityCarousel({
                         <span className="ui-listing-card__placeholder" aria-hidden="true" />
                       )}
                     </div>
-                    <div className="ui-listing-card__overlay">
-                      <div className="ui-listing-card__header">
-                        <div className="ui-listing-card__header-main">
-                          <p className="ui-listing-card__eyebrow">{kindLabel}</p>
+                      <div className="ui-listing-card__overlay">
+                        <div className="ui-listing-card__top-left">
                           {addedCount > 0 ? (
-                            <span className="ui-listing-card__state">
-                              {addedCount > 1 ? `${addedCount}x in planning` : "Al in planning"}
+                            <span className="ui-listing-card__status-chip">
+                              {addedCount > 1 ? `${addedCount}x in planning` : "In planning"}
                             </span>
                           ) : null}
                         </div>
-                        <button
-                          type="button"
-                          className={`ui-listing-card__icon-btn ui-listing-card__icon-btn--favorite ${favorite ? "is-active" : ""}`.trim()}
-                          onClick={() => {
-                            onToggleFavorite(product);
-                            emitPlannerEvent("sbdp:planner/action", {
-                              action: favorite ? "favorite_remove" : "favorite_add",
-                              status: "button_click",
-                              product_id: product.id,
-                            });
-                          }}
-                          aria-label={favorite ? "Verwijder favoriet" : "Opslaan als favoriet"}
-                          aria-pressed={favorite ? "true" : "false"}
-                          data-ui-card-save
-                        >
-                          <HeartIcon />
-                        </button>
+                        <div className="ui-listing-card__top-right">
+                          {durationLabel ? <span className="ui-listing-card__duration-chip">{durationLabel}</span> : null}
+                          {/* Heart icon removed as per redesign */}
+                        </div>
                       </div>
+                    <div className="ui-listing-card__content">
                       <h4 className="ui-listing-card__title">{product.name}</h4>
+                    </div>
+                    <div className="ui-listing-card__action-row">
                       <div className="ui-listing-card__price">
                         <span className="ui-listing-card__price-prefix">Vanaf</span>
                         <span>{pricePerPerson} p.p.</span>
                       </div>
-                      <div className="ui-listing-card__meta">
-                        <span className="ui-listing-card__meta-item">{primaryCategory}</span>
-                        <span className="ui-listing-card__meta-item">{durationLabel}</span>
-                        {Number.isFinite(product.segment_count) && product.segment_count > 0 ? (
-                          <span className="ui-listing-card__meta-item">{product.segment_count} segmenten</span>
-                        ) : null}
-                        {product.arrangement_type ? (
-                          <span className="ui-listing-card__meta-item">
-                            {product.arrangement_type === "fixed" ? "Vast" : product.arrangement_type === "dynamic" ? "Flexibel" : "Maatwerk"}
-                          </span>
-                        ) : null}
-                      </div>
-                      <footer className="ui-listing-card__actions">
-                        <a
-                          className="ui-listing-card__cta ui-listing-card__cta--secondary"
-                          href={productUrl || "#"}
-                          onClick={(event) => {
-                            if (!productUrl) {
-                              event.preventDefault();
-                            }
-                          }}
-                        >
-                          Bekijk
-                        </a>
-                        <button
-                          type="button"
-                          className={`ui-listing-card__cta ui-listing-card__cta--primary ${addedCount > 0 ? "is-added" : ""}`.trim()}
-                          disabled={product.can_add_to_cart === false}
-                          onClick={() => {
-                            if (product.can_add_to_cart === false) {
-                              return;
-                            }
-                            addProductToPlanner(product);
-                          }}
-                        >
-                          {product.can_add_to_cart === false ? "Preview" : addedCount > 0 ? "Nogmaals toevoegen" : "Voeg toe"}
-                        </button>
-                      </footer>
+                      <button
+                        type="button"
+                        className={`ui-listing-card__cta ui-listing-card__cta--primary ${addedCount > 0 ? "is-added" : ""}`.trim()}
+                        disabled={product.can_add_to_cart === false}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (product.can_add_to_cart === false) {
+                            return;
+                          }
+                          addProductToPlanner(product);
+                        }}
+                      >
+                        {product.can_add_to_cart === false ? "Preview" : addedCount > 0 ? "Toegevoegd" : "+ Voeg toe"}
+                      </button>
                     </div>
                   </article>
                 );
@@ -1316,7 +1280,6 @@ function CloseIcon() {
     </svg>
   );
 }
-
 
 
 
