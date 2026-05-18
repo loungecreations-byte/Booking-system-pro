@@ -387,6 +387,49 @@ final class BookingTruthRuntimeTest extends TestCase
         $this->assertSame('capacity_exceeded', $profile['reason_code']);
     }
 
+    public function testSelectedTimeInvalidRoutesToQuoteNotBlocked(): void
+    {
+        add_filter('sbdp_planservice_availability_slots_payload', static function ($value) {
+            unset($value);
+
+            return array(
+                'resource_valid' => true,
+                'slots' => array(
+                    array('start' => '08:00', 'end' => '08:30'),
+                    array('start' => '08:30', 'end' => '09:00'),
+                    array('start' => '09:00', 'end' => '09:30'),
+                    array('start' => '09:30', 'end' => '10:00'),
+                ),
+                'capacity' => 20,
+            );
+        });
+        add_filter('sbdp_planservice_execution_check', static function ($value) {
+            unset($value);
+
+            return true;
+        });
+
+        $service = $this->newPlanServiceWithoutConstructor();
+        $method = new ReflectionMethod(PlanService::class, 'resolveItemBookingCapabilityProfile');
+        $method->setAccessible(true);
+
+        $profile = $method->invoke(
+            $service,
+            array(
+                'product_id' => 10,
+                'resource_id' => 9,
+                'participants' => 12,
+                'date' => '2026-05-10',
+                'start' => '2026-05-10T16:00:00',
+                'end' => '2026-05-10T17:00:00',
+            )
+        );
+
+        $this->assertSame('REQUEST', $profile['status']);
+        $this->assertSame('quote', $profile['route_intent']);
+        $this->assertSame('selected_time_invalid', $profile['reason_code']);
+    }
+
     public function testMissingParticipantsTruthBlocksCapabilityResolution(): void
     {
         $service = $this->newPlanServiceWithoutConstructor();

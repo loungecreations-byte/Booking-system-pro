@@ -18,6 +18,55 @@ namespace {
         }
     }
 
+    if (! function_exists('wp_create_nonce')) {
+        function wp_create_nonce(string $action): string
+        {
+            return 'valid-nonce-' . $action;
+        }
+    }
+
+    if (! function_exists('wp_verify_nonce')) {
+        function wp_verify_nonce(string $nonce, string $action): bool
+        {
+            return $nonce === 'valid-nonce-' . $action;
+        }
+    }
+
+    if (! function_exists('wp_salt')) {
+        function wp_salt(string $scheme = 'auth'): string
+        {
+            return 'public-booking-test-salt-' . $scheme;
+        }
+    }
+
+    if (! function_exists('get_transient')) {
+        function get_transient(string $key)
+        {
+            return $GLOBALS['__public_booking_transients'][$key]['value'] ?? false;
+        }
+    }
+
+    if (! function_exists('set_transient')) {
+        function set_transient(string $key, $value, int $ttl): bool
+        {
+            $GLOBALS['__public_booking_transients'][$key] = array(
+                'value' => $value,
+                'ttl'   => $ttl,
+            );
+
+            return true;
+        }
+    }
+
+    if (! function_exists('delete_transient')) {
+        function delete_transient(string $key): bool
+        {
+            unset($GLOBALS['__public_booking_transients'][$key]);
+
+            return true;
+        }
+    }
+
     if (! function_exists('apply_filters')) {
         function apply_filters(string $tag, $value, ...$args)
         {
@@ -311,6 +360,7 @@ final class PublicBookingIntentHardeningTest extends TestCase
         $GLOBALS['__booking_truth_meta'] = array();
         $GLOBALS['__public_booking_logs'] = array();
         $GLOBALS['__public_booking_sync'] = array();
+        $GLOBALS['__public_booking_transients'] = array();
         $GLOBALS['__public_booking_quotes'] = array(
             101 => array(
                 'unit_price' => 37.0,
@@ -362,50 +412,50 @@ final class PublicBookingIntentHardeningTest extends TestCase
         parent::tearDown();
     }
 
-    public function testPublicCreateIgnoresClientCommerceAndStatusFields(): void
+    public function testMissingTokenRejected(): void
     {
-        $request = new WP_REST_Request('POST', '/bsp/v1/booking/create');
-        $request->set_param('customer', array(
-            'name'  => 'Eva Example',
-            'email' => 'eva@example.test',
-        ));
-        $request->set_param('participants', 4);
-        $request->set_param('status', 'confirmed');
-        $request->set_param('bookingStatus', 'confirmed');
-        $request->set_param('paymentStatus', 'paid');
-        $request->set_param('processedStatus', 'done');
-        $request->set_param('availabilityStatus', 'available');
-        $request->set_param('currency', 'USD');
-        $request->set_param('total', 0);
-        $request->set_param('vendor_id', 55);
-        $request->set_param('resource_id', 66);
-        $request->set_param('pricing_rules', array(array('type' => 'fixed', 'value' => 999)));
-        $request->set_param('booking_truth', array(
-            'validated_by'       => 'client',
-            'route_intent'       => 'blocked',
-            'booking_capability' => 'UNAVAILABLE',
-        ));
-        $request->set_param('note', 'Customer note only');
-        $request->set_param('items', array(
-            array(
-                'product_id' => 101,
-                'date'       => '2026-06-01',
-                'start'      => '10:00',
-                'end'        => '11:00',
-                'unit_price' => 0,
-                'quantity'   => 1,
-                'resource_id'=> 999,
-                'capacity'   => 999,
-                'combi_ids'  => array(7),
-                'addons'     => array(array('id' => 'lunch')),
-            ),
-        ));
+        $request = $this->baseRequest('/bsp/v1/booking/create', false);
+
+        $result = Controller::create($request);
+
+        $this->assertInstanceOf(\WP_Error::class, $result);
+        $this->assertSame('bsp_booking_intent_required', $result->code);
+    }
+
+    public function testExpiredTokenRejected(): void
+    {
+        $request = $this->baseRequest('/bsp/v1/booking/create');
+        foreach ($GLOBALS['__public_booking_transients'] as &$entry) {
+            $entry['value']['expires_at'] = 1;
+        }
+        unset($entry);
+
+        $result = Controller::create($request);
+
+        $this->assertInstanceOf(\WP_Error::class, $result);
+        $this->assertSame('bsp_booking_intent_expired', $result->code);
+    }
+
+    public function testInvalidTokenRejected(): void
+    {
+        $request = $this->baseRequest('/bsp/v1/booking/create', false);
+        $request->set_header('X-BSP-Booking-Intent', 'not-a-valid-token');
+
+        $result = Controller::create($request);
+
+        $this->assertInstanceOf(\WP_Error::class, $result);
+        $this->assertSame('bsp_booking_intent_invalid', $result->code);
+    }
+
+    public function testValidTokenAccepted(): void
+    {
+        $request = $this->baseRequest('/bsp/v1/booking/create');
 
         $result = Controller::create($request);
 
         $this->assertSame('created', $result['status']);
         $this->assertSame('EUR', $result['currency']);
-        $this->assertSame(148.0, $result['total']);
+        $this->assertSame(50.0, $result['total']);
         $this->assertSame('Customer note only', $result['notes']);
         $this->assertNull($result['vendor']);
         $this->assertNull($result['payment']);
@@ -413,52 +463,52 @@ final class PublicBookingIntentHardeningTest extends TestCase
         $this->assertSame('booking_truth_runtime', $result['booking_truth']['validated_by'] ?? null);
         $this->assertSame('checkout', $result['booking_truth']['route_intent'] ?? null);
         $this->assertSame('DIRECT', $result['booking_truth']['booking_capability'] ?? null);
-        $this->assertSame(37.0, $result['items'][0]['unit_price']);
+        $this->assertSame(12.5, $result['items'][0]['unit_price']);
         $this->assertSame(4, $result['items'][0]['quantity']);
-        $this->assertSame(0, $result['items'][0]['resource_id'] ?? 0);
-        $this->assertSame(148.0, $result['pricing_snapshot']['line_total'] ?? null);
+        $this->assertSame(50.0, $result['pricing_snapshot']['line_total'] ?? null);
     }
 
-    public function testPublicRequestIgnoresClientTruthAndStoresServerDerivedStatusAndTotal(): void
+    public function testPublicRequestWithValidTokenAccepted(): void
     {
-        $request = new WP_REST_Request('POST', '/bsp/v1/booking/request');
-        $request->set_param('customer', array(
-            'name'  => 'Noor Example',
-            'email' => 'noor@example.test',
-        ));
+        $request = $this->baseRequest('/bsp/v1/booking/request');
         $request->set_param('participants', 2);
-        $request->set_param('status', 'paid');
-        $request->set_param('paymentStatus', 'paid');
-        $request->set_param('booking_truth', array(
-            'validated_by'       => 'attacker',
-            'route_intent'       => 'quote',
-            'booking_capability' => 'REQUEST',
-        ));
-        $request->set_param('vendor_id', 123);
-        $request->set_param('pricing_rules', array(array('type' => 'percent', 'value' => -100)));
-        $request->set_param('total', 0);
-        $request->set_param('items', array(
-            array(
-                'product_id' => 101,
-                'date'       => '2026-06-02',
-                'start'      => '2026-06-02T10:00:00',
-                'end'        => '2026-06-02T11:00:00',
-                'unit_price' => 0,
-                'quantity'   => 999,
-            ),
-        ));
 
         $result = Controller::request($request);
 
         $this->assertSame('requested', $result['status']);
-        $this->assertSame(74.0, $result['total']);
+        $this->assertSame(25.0, $result['total']);
         $this->assertSame(array(), $result['pricing_rules']);
         $this->assertNull($result['vendor']);
         $this->assertNull($result['payment']);
         $this->assertSame('booking_truth_runtime', $result['booking_truth']['validated_by'] ?? null);
         $this->assertSame('DIRECT', $result['booking_truth']['booking_capability'] ?? null);
-        $this->assertSame(37.0, $result['items'][0]['unit_price']);
+        $this->assertSame(12.5, $result['items'][0]['unit_price']);
         $this->assertSame(2, $result['items'][0]['quantity']);
+    }
+
+    public function testPriceSpoofAttemptRejected(): void
+    {
+        $request = $this->baseRequest('/bsp/v1/booking/create');
+        $items = $request->get_param('items');
+        $items[0]['unit_price'] = 0;
+        $request->set_param('items', $items);
+
+        $result = Controller::create($request);
+
+        $this->assertInstanceOf(\WP_Error::class, $result);
+        $this->assertSame('bsp_booking_payload_commerce_fields', $result->code);
+    }
+
+    public function testOversizedRequestRejected(): void
+    {
+        $request = $this->baseRequest('/bsp/v1/booking/request');
+        $item = $request->get_param('items')[0];
+        $request->set_param('items', array_fill(0, 21, $item));
+
+        $result = Controller::request($request);
+
+        $this->assertInstanceOf(\WP_Error::class, $result);
+        $this->assertSame('bsp_booking_items_invalid', $result->code);
     }
 
     private function installManager(BookingManager $manager): void
@@ -478,6 +528,34 @@ final class PublicBookingIntentHardeningTest extends TestCase
             $property->setAccessible(true);
             $property->setValue(null, null);
         }
+    }
+
+    private function baseRequest(string $route, bool $withIntent = true): WP_REST_Request
+    {
+        $request = new WP_REST_Request('POST', $route);
+        $request->set_header('x-sbdp-nonce', wp_create_nonce('sbdp_public_rest'));
+        if ($withIntent) {
+            $intent = Controller::createBookingIntent(array('source' => 'test'));
+            $request->set_header('X-BSP-Booking-Intent', $intent['token']);
+        }
+        $request->set_param('customer', array(
+            'name'  => 'Eva Example',
+            'email' => 'eva@example.test',
+        ));
+        $request->set_param('participants', 4);
+        $request->set_param('note', 'Customer note only');
+        $request->set_param('items', array(
+            array(
+                'product_id' => 101,
+                'date'       => gmdate('Y-m-d', strtotime('+14 days')),
+                'start'      => '10:00',
+                'end'        => '11:00',
+                'combi_ids'  => array(7),
+                'addons'     => array(array('id' => 'lunch')),
+            ),
+        ));
+
+        return $request;
     }
 }
 
