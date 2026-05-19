@@ -310,15 +310,28 @@ function sbdp_render_product_planner_form($atts = array()) {
         : (function_exists('wp_create_nonce') ? wp_create_nonce('wp_rest') : '');
     $cart_url = function_exists('wc_get_cart_url') ? wc_get_cart_url() : home_url('/cart/');
     $quote_url = sbdp_legacy_product_planner_get_quote_url();
+    $supplier_provider = strtolower(trim((string) get_post_meta($product_id, '_ddb_supplier_provider', true)));
+    $is_eliio_request_only = $supplier_provider === 'eliio' || (int) $product_id === 115;
+    $eliio_availability_url = function_exists('rest_url') ? rest_url('ddb/v1/supplier/eliio/availability') : '';
     $booking_profile = sbdp_legacy_product_planner_get_booking_profile($product_id, $today, '10:00', $main_duration, 10);
     $route_intent = isset($booking_profile['route_intent']) ? (string) $booking_profile['route_intent'] : 'checkout';
+    if ($is_eliio_request_only) {
+        $route_intent = 'request';
+    }
     $is_direct_checkout = $route_intent === 'checkout';
     $primary_action = $is_direct_checkout ? 'book' : 'quote';
     $primary_label = $is_direct_checkout ? 'Boek dit programma' : 'Vraag offerte aan';
     $primary_type = $is_direct_checkout ? 'submit' : 'button';
 
     ob_start(); ?>
-    <div class="sbdp-booking-form-wrapper" data-product-id="<?php echo esc_attr((string) $product_id); ?>" data-pricing-source="woocommerce" data-sbdp-legacy-form="true">
+    <div
+        class="sbdp-booking-form-wrapper"
+        data-product-id="<?php echo esc_attr((string) $product_id); ?>"
+        data-pricing-source="woocommerce"
+        data-sbdp-legacy-form="true"
+        data-sbdp-supplier-provider="<?php echo esc_attr($supplier_provider); ?>"
+        data-sbdp-request-only="<?php echo $is_eliio_request_only ? '1' : '0'; ?>"
+    >
         <form id="sbdp-booking-form" method="post" action="<?php echo esc_url(wc_get_cart_url()); ?>" data-sbdp-legacy-form="true">
             <?php wp_nonce_field('sbdp_booking', 'sbdp_booking_nonce'); ?>
             <div class="sbdp-form-header ddb-card">
@@ -444,6 +457,8 @@ function sbdp_render_product_planner_form($atts = array()) {
                         <strong id="sbdp_summary_total">...</strong>
                     </div>
 
+                    <p class="sbdp-product-booking__feedback" id="sbdp_eliio_availability_status" role="status" aria-live="polite"></p>
+
                     <div class="sbdp-actions-row">
                         <button type="<?php echo esc_attr($primary_type); ?>" class="ui-btn ui-btn--primary" data-sbdp-action="<?php echo esc_attr($primary_action); ?>"><?php echo esc_html($primary_label); ?></button>
                         <button type="button" class="ui-btn ui-btn--secondary" id="sbdp_plan_btn" data-sbdp-action="plan">Plan in dag</button>
@@ -489,10 +504,129 @@ function sbdp_render_product_planner_form($atts = array()) {
             const composeNonce = <?php echo wp_json_encode($compose_nonce); ?>;
             const cartUrl = <?php echo wp_json_encode($cart_url); ?>;
             const quoteUrl = <?php echo wp_json_encode($quote_url); ?>;
+            const isEliioRequestOnly = <?php echo $is_eliio_request_only ? 'true' : 'false'; ?>;
+            const eliioAvailabilityUrl = <?php echo wp_json_encode($eliio_availability_url); ?>;
+            const eliioStatus = document.getElementById('sbdp_eliio_availability_status');
+            let eliioAvailabilityController = null;
+            let eliioAvailabilityRequestId = 0;
 
             const mainTitle = <?php echo json_encode($title); ?>;
             const productBasePrice = <?php echo number_format((float)$price_display, 4, '.', ''); ?>;
             const mainDuration = <?php echo (int)$main_duration; ?>; 
+
+            const eliioMessages = {
+                available: 'Beschikbaarheidscheck geslaagd. Definitieve bevestiging volgt via de aanbieder.',
+                unavailable: 'Niet beschikbaar voor dit aantal personen. Kies een ander tijdstip of vraag een alternatief aan.',
+                unknown: 'Beschikbaarheid kan nog niet live gecontroleerd worden.',
+                error: 'Beschikbaarheid kan nu niet live gecontroleerd worden. Wij controleren dit handmatig.',
+                participants: 'Vul eerst het aantal deelnemers in voor de beschikbaarheidscheck.'
+            };
+
+            function setEliioStatus(message, tone) {
+                if (!eliioStatus) return;
+                eliioStatus.textContent = message || '';
+                eliioStatus.className = 'sbdp-product-booking__feedback';
+                if (tone) {
+                    eliioStatus.classList.add('sbdp-product-booking__feedback--' + tone);
+                }
+            }
+
+            function forceEliioRequestOnly() {
+                if (!isEliioRequestOnly) return;
+                if (bookButton) {
+                    bookButton.disabled = true;
+                    bookButton.setAttribute('aria-disabled', 'true');
+                }
+                if (quoteButton) {
+                    quoteButton.disabled = false;
+                    quoteButton.removeAttribute('aria-disabled');
+                }
+            }
+
+            function clearEliioAvailabilityForMissingParticipants() {
+                if (!isEliioRequestOnly) return;
+                eliioAvailabilityRequestId += 1;
+                if (eliioAvailabilityController) {
+                    eliioAvailabilityController.abort();
+                    eliioAvailabilityController = null;
+                }
+                forceEliioRequestOnly();
+                setEliioStatus(eliioMessages.participants, 'warning');
+            }
+
+            function getEliioParticipants() {
+                if (!countInput || String(countInput.value || '').trim() === '') {
+                    return null;
+                }
+                const participants = parseInt(countInput.value, 10);
+                return Number.isFinite(participants) && participants > 0 ? participants : null;
+            }
+
+            function checkEliioAvailability() {
+                if (!isEliioRequestOnly || !eliioAvailabilityUrl) return;
+                forceEliioRequestOnly();
+
+                const participants = getEliioParticipants();
+                if (!participants) {
+                    clearEliioAvailabilityForMissingParticipants();
+                    return;
+                }
+
+                if (!dateInput || !dateInput.value) {
+                    setEliioStatus('', '');
+                    return;
+                }
+
+                if (eliioAvailabilityController) {
+                    eliioAvailabilityController.abort();
+                }
+                eliioAvailabilityController = typeof AbortController === 'function' ? new AbortController() : null;
+                const requestId = eliioAvailabilityRequestId + 1;
+                eliioAvailabilityRequestId = requestId;
+
+                const url = new URL(eliioAvailabilityUrl, window.location.origin);
+                url.searchParams.set('product_id', String(productId));
+                url.searchParams.set('date', dateInput.value);
+                url.searchParams.set('participants', String(participants));
+                if (timeInput && timeInput.value) {
+                    url.searchParams.set('start_time', timeInput.value);
+                }
+
+                const options = { method: 'GET', headers: { Accept: 'application/json' } };
+                if (eliioAvailabilityController) {
+                    options.signal = eliioAvailabilityController.signal;
+                }
+
+                fetch(url.toString(), options)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('eliio_availability_failed');
+                        }
+                        return response.json();
+                    })
+                    .then(payload => {
+                        if (requestId !== eliioAvailabilityRequestId || getEliioParticipants() !== participants) {
+                            return;
+                        }
+                        const status = payload && typeof payload.status === 'string' ? payload.status : 'unknown';
+                        if (status === 'available') {
+                            setEliioStatus(eliioMessages.available, 'success');
+                        } else if (status === 'unavailable') {
+                            setEliioStatus(eliioMessages.unavailable, 'warning');
+                        } else if (status === 'error') {
+                            setEliioStatus(eliioMessages.error, 'error');
+                        } else {
+                            setEliioStatus(eliioMessages.unknown, 'warning');
+                        }
+                        forceEliioRequestOnly();
+                    })
+                    .catch(error => {
+                        if (error && error.name === 'AbortError') return;
+                        if (requestId !== eliioAvailabilityRequestId) return;
+                        setEliioStatus(eliioMessages.error, 'error');
+                        forceEliioRequestOnly();
+                    });
+            }
 
             function formatEuro(val) {
                 return parseFloat(val).toFixed(2).replace('.', ',');
@@ -793,9 +927,15 @@ function sbdp_render_product_planner_form($atts = array()) {
             }
 
             function updateUI() {
+                if (isEliioRequestOnly && !getEliioParticipants()) {
+                    clearEliioAvailabilityForMissingParticipants();
+                    return;
+                }
+
                 const pax = parseInt(countInput.value, 10) || 1;
                 const baseTime = timeInput.value;
                 let total = pax * productBasePrice;
+                forceEliioRequestOnly();
                 
                 summaryPax.textContent = pax;
                 summaryBasePrice.textContent = formatEuro(pax * productBasePrice);
@@ -896,6 +1036,8 @@ function sbdp_render_product_planner_form($atts = array()) {
                 } else {
                     programTimeline.innerHTML = '<li class="sbdp-itinerary__empty">Kies een tijdslot om je programma te zien.</li>';
                 }
+
+                checkEliioAvailability();
             }
 
             chips.forEach(chip => {
@@ -916,6 +1058,10 @@ function sbdp_render_product_planner_form($atts = array()) {
 
             countInput.addEventListener('input', () => {
                 const parsed = parseInt(countInput.value, 10);
+                if (isEliioRequestOnly && String(countInput.value || '').trim() === '') {
+                    updateUI();
+                    return;
+                }
                 countInput.value = String(Number.isFinite(parsed) && parsed > 0 ? parsed : 1);
                 updateUI();
             });
@@ -943,6 +1089,7 @@ function sbdp_render_product_planner_form($atts = array()) {
                 quoteButton.addEventListener('click', submitQuoteRequest);
             }
 
+            forceEliioRequestOnly();
             updateUI();
         });
         </script>

@@ -23,6 +23,8 @@
     }
 
     var controllerMap = new WeakMap();
+    var eliioControllerMap = new WeakMap();
+    var eliioRequestMap = new WeakMap();
 
     cards.forEach(function (card) {
         initialiseCard(card);
@@ -56,12 +58,15 @@
         var stickyPrice = sticky ? sticky.querySelector('[data-sbdp-sticky-price]') : null;
         var feedback = ensureCardFeedback(card);
         var debugPanel = ensureCardDebug(card, config);
+        var eliioProduct = isEliioProduct(config);
 
         if (!dateInput || !timeInput || !participantsInput || !totalNode || !bookButton) {
             return;
         }
 
-        hydrateTimeOptions(config, timeInput);
+        if (!eliioProduct) {
+            hydrateTimeOptions(config, timeInput);
+        }
         applyDefaults(config, dateInput, timeInput, participantsInput);
         ensureSelectedTime(config, timeInput);
         if (resourceSelect && resourceInput) {
@@ -70,6 +75,12 @@
 
         var form = card;
         form.addEventListener('submit', function (event) {
+            if (eliioProduct) {
+                event.preventDefault();
+                forceRequestOnly(bookButton, stickyBook);
+                showCardFeedback(feedback, getEliioMessage('unknown'), 'warning');
+                return;
+            }
             if (!readyToQuote(dateInput, timeInput, participantsInput)) {
                 event.preventDefault();
         showCardFeedback(feedback, settings.strings ? settings.strings.selectDate : 'Completeer de velden.', 'warning');
@@ -112,9 +123,32 @@
         onFormChange();
 
         function onFormChange() {
+            if (eliioProduct && !hasValidParticipants(participantsInput)) {
+                clearEliioAvailabilityForMissingParticipants(feedback);
+                forceRequestOnly(bookButton, stickyBook);
+                hideSticky(sticky, stickyTime, stickyPeople, stickyPrice);
+                showCardFeedback(feedback, settings.strings ? settings.strings.eliioSelectParticipants : 'Vul eerst het aantal deelnemers in.', 'warning');
+                return;
+            }
+
             sanitiseParticipants(participantsInput);
             if (resourceSelect && resourceInput) {
                 resourceInput.value = resourceSelect.value || '';
+            }
+
+            if (eliioProduct) {
+                forceRequestOnly(bookButton, stickyBook);
+                refreshEliioAvailability(config, dateInput, timeInput, participantsInput, feedback);
+
+                if (!readyToQuote(dateInput, timeInput, participantsInput)) {
+                    totalNode.textContent = '-';
+                    hideSticky(sticky, stickyTime, stickyPeople, stickyPrice);
+                    return;
+                }
+
+                refreshPricing(config, dateInput, timeInput, participantsInput, totalNode, baseNode, perPersonNode, breakdown, sticky, stickyTime, stickyPeople, stickyPrice, resourceInput, combiInput, plannerInputHidden, planItemHidden);
+                forceRequestOnly(bookButton, stickyBook);
+                return;
             }
 
             if (!readyToQuote(dateInput, timeInput, participantsInput)) {
@@ -127,7 +161,7 @@
 
             bookButton.disabled = false;
             showCardFeedback(feedback, '', '');
-            refreshPricing(config, dateInput, timeInput, participantsInput, totalNode, sticky, stickyTime, stickyPeople, stickyPrice, resourceInput, combiInput, plannerInputHidden, planItemHidden);
+            refreshPricing(config, dateInput, timeInput, participantsInput, totalNode, baseNode, perPersonNode, breakdown, sticky, stickyTime, stickyPeople, stickyPrice, resourceInput, combiInput, plannerInputHidden, planItemHidden);
         }
 
         function onCombiChange() {
@@ -138,10 +172,14 @@
             if (resourceSelect && resourceInput) {
                 resourceInput.value = resourceSelect.value || '';
             }
-            refreshTimeSlots(config, dateInput, timeInput, resourceSelect);
+            if (!eliioProduct) {
+                refreshTimeSlots(config, dateInput, timeInput, resourceSelect);
+            }
         }
 
-        refreshTimeSlots(config, dateInput, timeInput, resourceSelect);
+        if (!eliioProduct) {
+            refreshTimeSlots(config, dateInput, timeInput, resourceSelect);
+        }
     }
 
     function ensureCardFeedback(card) {
@@ -429,6 +467,9 @@
     }
 
     function refreshTimeSlots(config, dateInput, timeInput, resourceSelect) {
+        if (isEliioProduct(config)) {
+            return;
+        }
         if (!resourceSelect || !settings.availabilityUrl) {
             return;
         }
@@ -472,6 +513,14 @@
         return Boolean(date && time && participants > 0);
     }
 
+    function hasValidParticipants(participantsInput) {
+        if (!participantsInput || String(participantsInput.value || '').trim() === '') {
+            return false;
+        }
+        var participants = parseInt(participantsInput.value, 10);
+        return Number.isFinite(participants) && participants > 0;
+    }
+
     function sanitiseParticipants(input) {
         var min = parseInt(input.min, 10);
         var max = parseInt(input.max, 10);
@@ -508,6 +557,117 @@
         }
     }
 
+    function forceRequestOnly(bookButton, stickyBook) {
+        if (bookButton) {
+            bookButton.disabled = true;
+            bookButton.setAttribute('aria-disabled', 'true');
+        }
+        if (stickyBook) {
+            stickyBook.disabled = true;
+            stickyBook.setAttribute('aria-disabled', 'true');
+        }
+    }
+
+    function isEliioProduct(config) {
+        var supplier = config && config.supplier && typeof config.supplier === 'object' ? config.supplier : {};
+        var provider = typeof supplier.provider === 'string' ? supplier.provider.toLowerCase() : '';
+        var productId = parseInt(config && config.productId, 10);
+        return provider === 'eliio' || productId === 115;
+    }
+
+    function getEliioMessage(status) {
+        var strings = settings.strings || {};
+        if (status === 'available') {
+            return strings.eliioAvailable || 'Beschikbaarheidscheck geslaagd. Definitieve bevestiging volgt via de aanbieder.';
+        }
+        if (status === 'unavailable') {
+            return strings.eliioUnavailable || 'Niet beschikbaar voor dit aantal personen. Kies een ander tijdstip of vraag een alternatief aan.';
+        }
+        if (status === 'error') {
+            return strings.eliioError || 'Beschikbaarheid kan nu niet live gecontroleerd worden. Wij controleren dit handmatig.';
+        }
+        return strings.eliioUnknown || 'Beschikbaarheid kan nog niet live gecontroleerd worden.';
+    }
+
+    function refreshEliioAvailability(config, dateInput, timeInput, participantsInput, feedback) {
+        if (!settings.eliioAvailabilityUrl || !config || !config.productId || !dateInput || !dateInput.value || !hasValidParticipants(participantsInput)) {
+            clearEliioAvailabilityForMissingParticipants(feedback);
+            return;
+        }
+
+        var url;
+        try {
+            url = new URL(settings.eliioAvailabilityUrl, window.location.origin);
+        } catch (error) {
+            showCardFeedback(feedback, getEliioMessage('error'), 'error');
+            return;
+        }
+
+        var participants = parseInt(participantsInput.value, 10);
+        abortExistingEliio(feedback);
+        var requestId = (eliioRequestMap.get(feedback) || 0) + 1;
+        eliioRequestMap.set(feedback, requestId);
+        var controller = typeof AbortController === 'function' ? new AbortController() : null;
+        url.searchParams.set('product_id', String(config.productId));
+        url.searchParams.set('date', dateInput.value);
+        url.searchParams.set('participants', String(participants));
+        if (timeInput && timeInput.value) {
+            url.searchParams.set('start_time', timeInput.value);
+        }
+
+        var options = {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json'
+            }
+        };
+        if (controller) {
+            eliioControllerMap.set(feedback, controller);
+            options.signal = controller.signal;
+        }
+
+        window.fetch(url.toString(), options)
+            .then(function (response) {
+                if (!response.ok) {
+                    throw new Error('eliio_availability_failed');
+                }
+                return response.json();
+            })
+            .then(function (payload) {
+                if ((eliioRequestMap.get(feedback) || 0) !== requestId || !hasValidParticipants(participantsInput) || parseInt(participantsInput.value, 10) !== participants) {
+                    return;
+                }
+                var status = payload && typeof payload.status === 'string' ? payload.status : 'unknown';
+                var tone = status === 'available' ? 'success' : (status === 'unavailable' ? 'warning' : 'error');
+                showCardFeedback(feedback, getEliioMessage(status), tone);
+            })
+            .catch(function (error) {
+                if (error && error.name === 'AbortError') {
+                    return;
+                }
+                if ((eliioRequestMap.get(feedback) || 0) !== requestId) {
+                    return;
+                }
+                showCardFeedback(feedback, getEliioMessage('error'), 'error');
+            });
+    }
+
+    function abortExistingEliio(key) {
+        var controller = eliioControllerMap.get(key);
+        if (controller && typeof controller.abort === 'function') {
+            controller.abort();
+        }
+    }
+
+    function clearEliioAvailabilityForMissingParticipants(feedback) {
+        if (!feedback) {
+            return;
+        }
+        eliioRequestMap.set(feedback, (eliioRequestMap.get(feedback) || 0) + 1);
+        abortExistingEliio(feedback);
+        showCardFeedback(feedback, settings.strings ? settings.strings.eliioSelectParticipants : 'Vul eerst het aantal deelnemers in voor de beschikbaarheidscheck.', 'warning');
+    }
+
     function ensureSelectedTime(config, timeInput) {
         if (!(timeInput instanceof HTMLSelectElement)) {
             return;
@@ -529,7 +689,7 @@
         }
     }
 
-    function refreshPricing(config, dateInput, timeInput, participantsInput, totalNode, sticky, stickyTime, stickyPeople, stickyPrice, resourceInput, combiInput, plannerInputHidden, planItemHidden) {
+    function refreshPricing(config, dateInput, timeInput, participantsInput, totalNode, baseNode, perPersonNode, breakdown, sticky, stickyTime, stickyPeople, stickyPrice, resourceInput, combiInput, plannerInputHidden, planItemHidden) {
         var productId = config.productId;
         var date = dateInput.value;
         var time = timeInput.value;
