@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace BSP\Integrations;
 
 use BSP\Core\Interfaces\ModuleInterface;
+use BSP\Integrations\Admin\EliioProductMetaBox;
 use BSP\Integrations\Rest\EliioAvailabilityController;
 
 final class Module implements ModuleInterface
@@ -18,5 +19,9 @@ final class Module implements ModuleInterface
         add_action('rest_api_init', static function (): void {
             (new EliioAvailabilityController())->registerRoutes();
         });
+
+        if (is_admin()) {
+            (new EliioProductMetaBox())->register();
+        }
     }
 }
