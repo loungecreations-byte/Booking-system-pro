@@ -283,6 +283,7 @@ final class Module implements ModuleInterface
         $settings = [
             'restUrl'    => esc_url_raw(rest_url('sbdp/v1/product/price')),
             'availabilityUrl' => esc_url_raw(rest_url('sbdp/v1/availability/slots')),
+            'eliioAvailabilityUrl' => esc_url_raw(rest_url('ddb/v1/supplier/eliio/availability')),
             'nonce'      => wp_create_nonce(RestService::PUBLIC_NONCE_ACTION),
             'plannerUrl' => $this->getPlannerUrl(),
             'strings'    => [
@@ -294,6 +295,11 @@ final class Module implements ModuleInterface
                 'planError'   => __('Plannerpagina niet gevonden.', 'sbdp'),
                 'participantsPlural'   => __('personen', 'sbdp'),
                 'participantsSingular' => __('persoon', 'sbdp'),
+                'eliioAvailable' => __('Beschikbaarheidscheck geslaagd. Definitieve bevestiging volgt via de aanbieder.', 'sbdp'),
+                'eliioUnavailable' => __('Niet beschikbaar voor dit aantal personen. Kies een ander tijdstip of vraag een alternatief aan.', 'sbdp'),
+                'eliioUnknown' => __('Beschikbaarheid kan nog niet live gecontroleerd worden.', 'sbdp'),
+                'eliioError' => __('Beschikbaarheid kan nu niet live gecontroleerd worden. Wij controleren dit handmatig.', 'sbdp'),
+                'eliioSelectParticipants' => __('Vul eerst het aantal deelnemers in voor de beschikbaarheidscheck.', 'sbdp'),
             ],
         ];
 
