@@ -191,6 +191,35 @@ When a PR touches any booking, pricing, planner, cart, checkout, order, or REST 
 - line item rebuild logic that can drop date, time, participants, segment, resource, or aggregate metadata
 - `permission_callback` that is too broad for mutation routes or private booking/vendor data
 - direct DB access that bypasses validation, capability checks, or tenant boundaries
+- provider schedule endpoints treated as availability truth
+- external `available:true` treated as hold, booking confirmation, supplier confirmation, or direct checkout permission
+- provider prices treated as WooCommerce price truth
+- provider-specific API calls embedded directly in frontend/planner components
+- Eliio `POST /booking-widget` used for direct checkout
+- `directBookable:true` for DDB product `115` without an approved governance task
+
+## Provider Integration Guardrails
+
+Before any provider integration, supplier availability, request/direct routing, cancellation, or webhook/status work, report:
+
+1. Which truths are touched: participants truth, availability truth, provider integration truth, price/Woo truth, request/direct routing, cancellation truth.
+2. Endpoint type: schedule, availability, hold, booking, cancellation, webhook/status.
+3. Whether canonical participants are used.
+4. Whether WooCommerce price/order/payment/tax is touched.
+5. Whether `directBookable` can ever become `true`.
+6. API-error fallback.
+7. Idempotency or duplicate-request protection.
+8. Cancellation/change path.
+9. Commercial permission.
+
+Provider integrations must go through server-side adapters/services. Frontend and planner may consume only normalized runtime decisions.
+
+For Eliio/Eropuitje product `115` (`E-Chopper tour`):
+- `GET /availability/widget` may be used only for participant-sensitive server-side availability pre-checks.
+- `available:true` means only that the slot appears available for exact `participants=N` at that moment.
+- `available:true` does not mean hold, booking, price confirmation, supplier confirmation, or direct checkout.
+- `POST /booking-widget` is forbidden for direct checkout.
+- `directBookable=false`, `supplierConfirmationRequired=true`, route `REQUEST` / offerte until a separate approved governance task changes this.
 
 ## Review Heuristics For This Repo
 - Customer-visible prices must always match WooCommerce taxed totals.
