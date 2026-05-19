@@ -52,3 +52,56 @@ Current canonical strategy:
 - Do not move provider branching into front-end components
 - Do not bypass runtime route-intent guardrails for convenience links
 - Do not weaken cart/checkout guards for request-only items
+
+---
+
+## 11. External Provider Endpoint Taxonomy
+
+Provider endpoints must be classified before implementation:
+
+- `schedule`: lists possible dates, opening windows, durations, or start times. Schedule is never availability truth.
+- `availability`: answers whether a date/time/resource appears available for canonical participants at check time.
+- `hold`: locks capacity or creates a reservation window with expiry, idempotency, and server-side ownership.
+- `booking`: creates a supplier booking after commercial truth and availability/hold truth are already proven.
+- `cancellation`: cancels or changes a supplier booking through a documented path.
+- `webhook/status`: confirms supplier-side booking, payment, cancellation, or change status asynchronously.
+
+Do not collapse these endpoint types. A product can have a public schedule endpoint and still be request-only. A product can have an availability endpoint and still be request-only when no hold, booking confirmation, cancellation path, or commercial approval exists.
+
+## 12. Eliio / Eropuitje Rule For Product 115
+
+DDB WooCommerce product `115` (`E-Chopper tour`) is mapped to Eliio/Eropuitje only for participant-sensitive availability pre-checks.
+
+Allowed:
+
+- Server-side calls to Eliio `GET /availability/widget`.
+- Querying with exact canonical `participants=N`.
+- Normalizing `available:true|false` into DDB availability status for customer guidance.
+
+Not allowed:
+
+- Frontend or planner calls directly to Eliio.
+- `POST /booking-widget` for direct checkout.
+- Supplier price data becoming Woo price truth.
+- Marking product `115` as direct bookable.
+
+For product `115`, until an explicitly approved governance task changes this:
+
+- `directBookable=false`
+- `supplierConfirmationRequired=true`
+- route intent is `REQUEST` / quote, not `DIRECT` / checkout
+
+## 13. Direct Booking Preconditions
+
+No provider integration may set `directBookable:true` unless all of the following are proven and documented:
+
+- Response schema for booking creation.
+- Idempotency or duplicate-request protection.
+- Server-side price validation that preserves WooCommerce price truth.
+- Capacity lock, hold, or reservation semantics.
+- Booking confirmation semantics.
+- Cancellation/change path.
+- Webhooks/status callbacks or a documented manual status confirmation process.
+- Commercial permission to use the supplier endpoint for direct booking.
+
+If any item is missing, the provider route must be `REQUEST` or `UNAVAILABLE`, never `DIRECT`.

@@ -272,3 +272,39 @@ If the answer to 3, 4, 5, or 6 is yes:
 OMDB defines what things mean.  
 Woo defines what is finally true for commerce.  
 The UI may guide, summarize, and present — but it may never casually become the place where domain truth or commercial truth is redefined.
+
+---
+
+## 12. External Provider Boundary
+
+External providers may supply operational signals, but they do not replace OMDB or WooCommerce truth.
+
+Provider schedule, availability, hold, booking, cancellation, and webhook/status endpoints must remain behind server-side adapters/services. Frontend and planner code may consume only normalized DDB runtime decisions.
+
+Provider data boundaries:
+
+- Provider schedule is not availability truth.
+- Provider availability is not hold truth.
+- Provider availability without hold is not direct checkout truth.
+- Provider booking response is not Woo order/payment/tax truth.
+- Provider prices are not Woo price truth.
+- Provider cancellation/status data must be reconciled through booking runtime before it affects customer-facing state.
+
+WooCommerce remains authoritative for:
+
+- customer-visible price
+- VAT/tax
+- cart
+- checkout
+- order
+- payment
+
+## 13. Eliio / Eropuitje Boundary For Product 115
+
+For DDB WooCommerce product `115` (`E-Chopper tour`):
+
+- Eliio `GET /availability/widget` may be used only as a participant-sensitive availability pre-check.
+- Eliio `available:true` is not price confirmation, supplier confirmation, hold, booking, or direct checkout permission.
+- Eliio `POST /booking-widget` is forbidden for direct checkout until response schema, idempotency, server-side price validation, capacity hold, booking confirmation, cancellation/change path, and commercial permission are explicitly proven.
+- WooCommerce remains price/order/payment/tax truth.
+- Product `115` remains request-only with supplier confirmation required.

@@ -17,8 +17,37 @@ Always search for and flag:
 - request items entering direct checkout
 - provider-specific API logic embedded directly in UI components
 - combideals marked direct when required components are only request-capable
+- schedule endpoints treated as availability truth
+- external `available:true` treated as hold, booking confirmation, or direct checkout permission
+- provider prices treated as WooCommerce price truth
+- Eliio `POST /booking-widget` used for direct checkout
+- `directBookable:true` for DDB product `115` without an approved governance task
 
 ---
+
+## 8.1 Provider integration guardrails
+
+Before any provider integration, supplier availability, direct/request routing, or cancellation/status work, report:
+
+1. Which truths are touched: participants, availability, provider integration, price/Woo, request/direct routing, cancellation.
+2. Endpoint type: schedule, availability, hold, booking, cancellation, webhook/status.
+3. Whether canonical participants are used.
+4. Whether Woo price/order/payment/tax is touched.
+5. Whether `directBookable` can ever become `true`.
+6. API-error fallback.
+7. Idempotency or duplicate-request protection.
+8. Cancellation/change path.
+9. Commercial permission.
+
+Provider integrations must go through server-side adapters/services. Frontend/planner must not call providers directly as booking truth.
+
+For Eliio/Eropuitje product `115` (`E-Chopper tour`):
+- `GET /availability/widget` may be used only for participant-sensitive server-side availability pre-checks.
+- `available:true` means only that the slot appears available for exact `participants=N` at that moment.
+- `POST /booking-widget` is forbidden for direct checkout.
+- `directBookable=false`, `supplierConfirmationRequired=true`, route `REQUEST` / offerte.
+
+Detailed guardrails live in `docs/governance/AGENT_PROVIDER_INTEGRATION_GUARDRAILS.md`.
 
 ## 9. Required skills
 

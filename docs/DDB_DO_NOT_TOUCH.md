@@ -73,3 +73,28 @@ If a change touches one of these areas, the truth must be updated intentionally 
 If a surface is ugly, fix the adapter or presentation layer.
 If a surface is confusing, align the CTA and shell.
 If a source is wrong, update the authority layer first.
+
+---
+
+## 7. Provider Integration Do-Not-Touch Rules
+
+Do not silently change provider capability or booking mode.
+
+Forbidden without explicit governance approval:
+
+- Frontend or planner calls directly to external provider APIs for booking truth.
+- Using provider schedule as availability truth.
+- Using external `available:true` as direct checkout permission when no hold exists.
+- Using provider prices as WooCommerce price truth.
+- Sending request-only items into direct checkout.
+- Setting `directBookable:true` for a provider product without proven hold, booking confirmation, cancellation/change path, idempotency, and commercial permission.
+- Calling Eliio `POST /booking-widget` for direct WooCommerce checkout.
+- Changing DDB product `115` from request-only to direct bookable.
+
+Protected state for product `115` (`E-Chopper tour`):
+
+- `directBookable=false`
+- `supplierConfirmationRequired=true`
+- route intent `REQUEST` / quote
+
+Any task that changes this state is `NEEDS_DECISION` and must update provider integration, availability, CTA, OMDB/Woo, participants, and supplier capability documentation first.

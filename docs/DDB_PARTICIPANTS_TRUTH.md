@@ -50,3 +50,26 @@ Current canonical strategy:
 - Do not remove legacy mirrors until all consumers are migrated
 - Do not reintroduce client-side participant heuristics in React components
 - Do not move canonical resolution to template/UI layer
+
+---
+
+## 11. Provider Availability Participants Rule
+
+Provider availability must use canonical participants, not inferred participants.
+
+Required:
+
+- Resolve participants through the runtime canonical source before provider calls.
+- Send exact `participants=N` to provider availability endpoints when participants are required.
+- Treat `participants=1` and `participants=10` as separate availability checks.
+- Include participants in transient/cache keys.
+- Return validation errors for missing, zero, negative, or non-numeric participants in public availability endpoints.
+
+Forbidden:
+
+- Fallback chains such as `item.participants || form.participants || 1` for provider availability.
+- Using Woo quantity as provider participants unless runtime explicitly resolved it as canonical participants.
+- Calling provider availability without participants when the provider requires participants.
+- Treating schedule output as valid for every participant count.
+
+For Eliio/Eropuitje product `115`, `GET /availability/widget` must always receive the exact customer participant count.

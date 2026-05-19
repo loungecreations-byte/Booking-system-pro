@@ -109,3 +109,20 @@ Tertiary CTA must stay quiet.
 - Execution pages complete the flow
 - Management pages organize and upgrade
 - Experience pages guide and continue
+
+---
+
+## 7. Provider Availability CTA Rules
+
+Provider availability can influence customer guidance, but it must not override runtime route intent.
+
+- If provider status is request-only, the primary CTA must route to request/quote, not direct checkout.
+- If external availability is `available:true` without a proven hold and booking path, CTA copy may say the slot appears available, but the action remains request/quote.
+- If external availability is `unavailable`, CTA copy should guide the customer to another time or an alternative request.
+- If external availability is `unknown` or `error`, CTA copy should explain that manual confirmation is required and keep the request/quote path available.
+
+For DDB product `115` (`E-Chopper tour`) with Eliio/Eropuitje:
+
+- Do not show a primary direct checkout CTA based on Eliio availability.
+- Use request/offerte CTA hierarchy until a separate approved task changes product capability.
+- `directBookable:true` is forbidden for this product under the current governance state.
