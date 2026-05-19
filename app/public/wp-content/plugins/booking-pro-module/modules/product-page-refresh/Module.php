@@ -282,6 +282,7 @@ final class Module implements ModuleInterface
         $settings = [
             'restUrl'    => esc_url_raw(rest_url('sbdp/v1/product/price')),
             'availabilityUrl' => esc_url_raw(rest_url('sbdp/v1/availability/slots')),
+            'eliioAvailabilityUrl' => esc_url_raw(rest_url('ddb/v1/supplier/eliio/availability')),
             'nonce'      => wp_create_nonce(RestService::PUBLIC_NONCE_ACTION),
             'plannerUrl' => $this->getPlannerUrl(),
             'strings'    => [
@@ -293,6 +294,11 @@ final class Module implements ModuleInterface
                 'planError'   => __('Plannerpagina niet gevonden.', 'sbdp'),
                 'participantsPlural'   => __('personen', 'sbdp'),
                 'participantsSingular' => __('persoon', 'sbdp'),
+                'eliioAvailable' => __('Beschikbaarheidscheck geslaagd. Definitieve bevestiging volgt via de aanbieder.', 'sbdp'),
+                'eliioUnavailable' => __('Niet beschikbaar voor dit aantal personen. Kies een ander tijdstip of vraag een alternatief aan.', 'sbdp'),
+                'eliioUnknown' => __('Beschikbaarheid kan nog niet live gecontroleerd worden.', 'sbdp'),
+                'eliioError' => __('Beschikbaarheid kan nu niet live gecontroleerd worden. Wij controleren dit handmatig.', 'sbdp'),
+                'eliioSelectParticipants' => __('Vul eerst het aantal deelnemers in voor de beschikbaarheidscheck.', 'sbdp'),
             ],
         ];
 
@@ -2945,6 +2951,11 @@ final class Module implements ModuleInterface
         $meta = implode(' • ', array_filter($metaParts));
 
         $combi_options = $this->buildCombiOptions($product);
+        $supplierProvider = strtolower(trim((string) get_post_meta($product->get_id(), '_ddb_supplier_provider', true)));
+        $availabilityMode = strtolower(trim((string) get_post_meta($product->get_id(), '_ddb_supplier_availability_mode', true)));
+        $directBooking = strtolower(trim((string) get_post_meta($product->get_id(), '_ddb_supplier_direct_booking', true)));
+        $confirmationRequired = strtolower(trim((string) get_post_meta($product->get_id(), '_ddb_supplier_confirmation_required', true)));
+        $isEliio = $supplierProvider === 'eliio' || (int) $product->get_id() === 115;
 
         return [
             'productId'  => $product->get_id(),
@@ -2964,6 +2975,13 @@ final class Module implements ModuleInterface
             'plannerUrl' => $this->getPlannerUrl(),
             'meta'       => $meta,
             'combiOptions' => $combi_options,
+            'supplier' => [
+                'provider' => $supplierProvider,
+                'availabilityMode' => $availabilityMode,
+                'directBookable' => false,
+                'supplierConfirmationRequired' => $isEliio ? true : $confirmationRequired === 'yes',
+                'requestOnly' => $isEliio || $directBooking === 'no',
+            ],
         ];
     }
 
