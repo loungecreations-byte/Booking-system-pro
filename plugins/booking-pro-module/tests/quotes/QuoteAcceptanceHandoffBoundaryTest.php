@@ -406,6 +406,145 @@ final class QuoteAcceptanceHandoffBoundaryTest extends TestCase
         $service->hydrateLaunchToCart((int) $quote['id'], 'any_token');
     }
 
+    /**
+     * @return array{quote: array<string,mixed>, version: array<string,mixed>, token: string, gateway: object}
+     */
+    private function makeQuoteReadyForWooCartHydration(string $expiresAt = '+2 hours'): array
+    {
+        ['quote' => $quote, 'version' => $version] = $this->makeQuoteWithVersion('accepted');
+        $token = 'launch-token-' . (string) $quote['id'];
+        $expiryTimestamp = strtotime($expiresAt);
+
+        $launchPayload = array(
+            'launch_type' => 'woo_cart_session_prep',
+            'quote_id' => (int) $quote['id'],
+            'quote_reference' => 'Q-TEST',
+            'quote_version_id' => (int) $version['id'],
+            'generated_at' => gmdate('Y-m-d H:i:s'),
+            'expires_at' => gmdate('Y-m-d H:i:s', $expiryTimestamp !== false ? $expiryTimestamp : time()),
+            'launch_token' => $token,
+            'items' => array(
+                array(
+                    'product_id' => 352,
+                    'quantity' => 2,
+                    'participants' => 2,
+                    'sbdp_meta' => array(
+                        'quote_id' => (int) $quote['id'],
+                        'quote_version_id' => (int) $version['id'],
+                        'sbdp_pricing_source' => 'quote_execution_resnapshot',
+                    ),
+                    'sbdp_summary' => array('participants' => 2),
+                    'sbdp_pricing' => array('display_total' => 45.0),
+                ),
+            ),
+            'totals' => array(),
+        );
+
+        $this->repo->updateQuoteVersion((int) $version['id'], array(
+            'handoff_payload_json' => array('execution_launch' => $launchPayload),
+        ));
+        $this->repo->updateQuote((int) $quote['id'], array(
+            'status' => 'accepted',
+            'handoff_status' => 'execution_launch_ready',
+            'approved_version_id' => (int) $version['id'],
+        ));
+
+        $gateway = new class implements \BSP\Quotes\Service\WooCartLaunchGatewayInterface {
+            public int $calls = 0;
+            /** @var array<string, mixed> */
+            public array $lastPayload = array();
+
+            public function hydrate(array $launchPayload): array
+            {
+                ++$this->calls;
+                $this->lastPayload = $launchPayload;
+
+                return array(
+                    'cart_item_count' => count((array) ($launchPayload['items'] ?? array())),
+                    'cart_url' => 'https://example.test/cart',
+                    'checkout_url' => 'https://example.test/checkout',
+                );
+            }
+        };
+
+        return array(
+            'quote' => $this->repo->findQuote((int) $quote['id']),
+            'version' => $this->repo->findQuoteVersion((int) $version['id']),
+            'token' => $token,
+            'gateway' => $gateway,
+        );
+    }
+
+    public function testWooLaunchTokenHydratesOnceAndMarksTokenConsumed(): void
+    {
+        $fixture = $this->makeQuoteReadyForWooCartHydration();
+        $service = new QuoteWooCartHydrationService($fixture['gateway'], $this->repo, $this->events);
+
+        $result = $service->hydrateLaunchToCart((int) $fixture['quote']['id'], $fixture['token'], 42);
+
+        $storedVersion = $this->repo->findQuoteVersion((int) $fixture['version']['id']);
+        $launchPayload = $storedVersion['handoff_payload_json']['execution_launch'] ?? array();
+
+        $this->assertSame(1, $fixture['gateway']->calls);
+        $this->assertSame(1, (int) $result['cart_item_count']);
+        $this->assertNotEmpty($launchPayload['consumed_at'] ?? '');
+        $this->assertSame(42, (int) ($launchPayload['consumed_by'] ?? 0));
+        $this->assertNotEmpty($launchPayload['consumed_token_id'] ?? '');
+        $this->assertSame((int) $fixture['quote']['id'], (int) $fixture['gateway']->lastPayload['items'][0]['sbdp_meta']['quote_id']);
+        $this->assertSame((int) $fixture['version']['id'], (int) $fixture['gateway']->lastPayload['items'][0]['sbdp_meta']['quote_version_id']);
+    }
+
+    public function testWooLaunchTokenCannotBeReusedEvenIfHandoffStatusIsReset(): void
+    {
+        $fixture = $this->makeQuoteReadyForWooCartHydration();
+        $service = new QuoteWooCartHydrationService($fixture['gateway'], $this->repo, $this->events);
+
+        $service->hydrateLaunchToCart((int) $fixture['quote']['id'], $fixture['token'], 42);
+        $this->repo->updateQuote((int) $fixture['quote']['id'], array('handoff_status' => 'execution_launch_ready'));
+
+        try {
+            $service->hydrateLaunchToCart((int) $fixture['quote']['id'], $fixture['token'], 42);
+            $this->fail('Expected reused launch token to be rejected.');
+        } catch (InvalidArgumentException $exception) {
+            $this->assertStringContainsString('al gebruikt', $exception->getMessage());
+        }
+
+        $this->assertSame(1, $fixture['gateway']->calls);
+        $events = $this->repo->listQuoteEvents((int) $fixture['quote']['id']);
+        $eventTypes = array_column($events, 'event_type');
+        $this->assertContains('quote_execution_launch_token_reused', $eventTypes);
+    }
+
+    public function testWooLaunchHydrationRejectsExpiredTokenBeforeGatewayCall(): void
+    {
+        $fixture = $this->makeQuoteReadyForWooCartHydration('-1 hour');
+        $service = new QuoteWooCartHydrationService($fixture['gateway'], $this->repo, $this->events);
+
+        try {
+            $service->hydrateLaunchToCart((int) $fixture['quote']['id'], $fixture['token'], 42);
+            $this->fail('Expected expired launch token to be rejected.');
+        } catch (InvalidArgumentException $exception) {
+            $this->assertStringContainsString('verlopen', $exception->getMessage());
+        }
+
+        $this->assertSame(0, $fixture['gateway']->calls);
+    }
+
+    public function testWooLaunchHydrationRejectsInvalidTokenBeforeGatewayCall(): void
+    {
+        $fixture = $this->makeQuoteReadyForWooCartHydration();
+        $service = new QuoteWooCartHydrationService($fixture['gateway'], $this->repo, $this->events);
+
+        try {
+            $service->hydrateLaunchToCart((int) $fixture['quote']['id'], 'wrong-token', 42);
+            $this->fail('Expected invalid launch token to be rejected.');
+        } catch (InvalidArgumentException $exception) {
+            $this->assertStringContainsString('ongeldig', $exception->getMessage());
+        }
+
+        $this->assertSame(0, $fixture['gateway']->calls);
+    }
+
     /** TC-HB-04: QuoteExecutionRunnerService fails closed when no approved_version_id. */
     public function testExecutionRunnerFailsClosedWithoutApprovedVersion(): void
     {
