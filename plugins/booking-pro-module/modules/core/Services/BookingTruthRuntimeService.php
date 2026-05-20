@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace BSPModule\Core\Services;
 
 use BSPModule\Core\Rest\RestService;
+use BSPModule\Core\Services\BookingModeService;
 use WP_Error;
 use WP_REST_Request;
 use WP_REST_Response;
@@ -323,15 +324,24 @@ final class BookingTruthRuntimeService
         }
 
         if ($explicit !== null) {
-            return $this->buildCapabilityProfile($explicit, 'explicit_capability');
+            return $this->applyBookingModeProfile(
+                (int) ($item['product_id'] ?? 0),
+                $this->buildCapabilityProfile($explicit, 'explicit_capability')
+            );
         }
 
         $productId = (int) ($item['product_id'] ?? 0);
         if ($productId > 0 && $this->productRequiresConfirmation($productId)) {
-            return $this->buildCapabilityProfile(self::CAPABILITY_STATUS_REQUEST, 'requires_confirmation');
+            return $this->applyBookingModeProfile(
+                $productId,
+                $this->buildCapabilityProfile(self::CAPABILITY_STATUS_REQUEST, 'requires_confirmation')
+            );
         }
 
-        return $this->buildCapabilityProfile(self::CAPABILITY_STATUS_DIRECT);
+        return $this->applyBookingModeProfile(
+            $productId,
+            $this->buildCapabilityProfile(self::CAPABILITY_STATUS_DIRECT)
+        );
     }
 
     /**
@@ -563,6 +573,13 @@ final class BookingTruthRuntimeService
 
     private function productRequiresConfirmation(int $productId): bool
     {
+        if ($this->hasBookingModeConfig($productId)) {
+            $bookingMode = (new BookingModeService())->resolve($productId);
+            if (! empty($bookingMode['supplierConfirmationRequired'])) {
+                return true;
+            }
+        }
+
         $wcFlag = get_post_meta($productId, '_wc_booking_requires_confirmation', true);
         if ($wcFlag === 'yes' || $wcFlag === '1' || $wcFlag === 1 || $wcFlag === true) {
             return true;
@@ -637,5 +654,102 @@ final class BookingTruthRuntimeService
         }
 
         return false;
+    }
+
+    /**
+     * BookingModeService is a downgrade layer: it never turns unavailable/request into direct.
+     *
+     * @param array{status:string,route_intent:string,reason_code:?string,legacy_status:string} $profile
+     * @return array<string, mixed>
+     */
+    private function applyBookingModeProfile(int $productId, array $profile): array
+    {
+        if ($productId <= 0 || ! $this->hasBookingModeConfig($productId)) {
+            return $profile;
+        }
+
+        $bookingMode = (new BookingModeService())->resolve($productId);
+        $mode = (string) ($bookingMode['bookingMode'] ?? BookingModeService::MODE_DIRECT);
+        $status = (string) ($profile['status'] ?? self::CAPABILITY_STATUS_UNAVAILABLE);
+        $reason = isset($profile['reason_code']) && $profile['reason_code'] !== null
+            ? (string) $profile['reason_code']
+            : null;
+
+        if ($mode === BookingModeService::MODE_BLOCKED) {
+            return array_merge(
+                $this->buildCapabilityProfile(self::CAPABILITY_STATUS_UNAVAILABLE, 'booking_mode_blocked'),
+                $this->bookingModeProfileMeta($bookingMode)
+            );
+        }
+
+        if ($status === self::CAPABILITY_STATUS_UNAVAILABLE) {
+            return array_merge($profile, $this->bookingModeProfileMeta($bookingMode));
+        }
+
+        if ($status !== self::CAPABILITY_STATUS_DIRECT && $status !== self::CAPABILITY_STATUS_DIRECT_LIMITED) {
+            return array_merge($profile, $this->bookingModeProfileMeta($bookingMode));
+        }
+
+        if ($mode === BookingModeService::MODE_QUOTE || $mode === BookingModeService::MODE_SUPPLIER_CONFIRMATION) {
+            return array_merge(
+                $this->buildCapabilityProfile(
+                    self::CAPABILITY_STATUS_REQUEST,
+                    $mode === BookingModeService::MODE_SUPPLIER_CONFIRMATION ? 'supplier_confirmation_required' : 'booking_mode_quote'
+                ),
+                $this->bookingModeProfileMeta($bookingMode)
+            );
+        }
+
+        if ($mode === BookingModeService::MODE_DIRECT && empty($bookingMode['directBookable'])) {
+            $routeIntent = (string) ($bookingMode['routeIntent'] ?? BookingModeService::ROUTE_BLOCKED);
+            $downgradeStatus = $routeIntent === BookingModeService::ROUTE_QUOTE
+                ? self::CAPABILITY_STATUS_REQUEST
+                : self::CAPABILITY_STATUS_UNAVAILABLE;
+
+            return array_merge(
+                $this->buildCapabilityProfile($downgradeStatus, $reason ?? 'direct_booking_disabled'),
+                $this->bookingModeProfileMeta($bookingMode)
+            );
+        }
+
+        return array_merge($profile, $this->bookingModeProfileMeta($bookingMode));
+    }
+
+    private function hasBookingModeConfig(int $productId): bool
+    {
+        if ($productId === 115) {
+            return true;
+        }
+
+        foreach (
+            array(
+                '_ddb_booking_mode',
+                '_ddb_direct_booking_enabled',
+                '_ddb_quote_os_enabled',
+                '_ddb_supplier_confirmation_required',
+                '_ddb_supplier_provider',
+            ) as $key
+        ) {
+            $value = get_post_meta($productId, $key, true);
+            if (is_scalar($value) && trim((string) $value) !== '') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param array<string, mixed> $bookingMode
+     * @return array<string, mixed>
+     */
+    private function bookingModeProfileMeta(array $bookingMode): array
+    {
+        return array(
+            'bookingMode' => (string) ($bookingMode['bookingMode'] ?? ''),
+            'directBookable' => ! empty($bookingMode['directBookable']),
+            'quoteOsEnabled' => ! empty($bookingMode['quoteOsEnabled']),
+            'supplierConfirmationRequired' => ! empty($bookingMode['supplierConfirmationRequired']),
+        );
     }
 }
