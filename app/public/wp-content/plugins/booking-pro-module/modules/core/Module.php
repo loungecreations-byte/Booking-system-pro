@@ -10,6 +10,7 @@ if (class_exists(__NAMESPACE__ . '\Module', false)) {
 
 use BSPModule\Core\Admin\AdminMenu;
 use BSPModule\Core\Admin\AdminScheduler;
+use BSPModule\Core\Admin\BookingModeProductMetaBox;
 use BSPModule\Core\Admin\SetupWizard;
 use BSPModule\Core\Audit\AuditLogger;
 use BSPModule\Core\Notifications\NotificationCenter;
@@ -46,6 +47,7 @@ final class Module implements ModuleInterface
         BookablePostTypes::init();
         BookableServiceProductType::init();
         AdminMenu::init();
+        BookingModeProductMetaBox::init();
         SetupWizard::init();
         AdminScheduler::init();
         AuditLogger::init();
