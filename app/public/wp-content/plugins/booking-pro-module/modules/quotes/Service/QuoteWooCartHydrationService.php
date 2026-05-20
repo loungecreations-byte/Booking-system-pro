@@ -61,19 +61,40 @@ final class QuoteWooCartHydrationService
             throw new InvalidArgumentException('Execution launch token is verlopen.');
         }
 
+        if (trim((string) ($launchPayload['consumed_at'] ?? '')) !== '') {
+            $this->events->log(
+                'quote_execution_launch_token_reused',
+                isset($quote['quote_request_id']) ? (int) $quote['quote_request_id'] : null,
+                $quoteId,
+                $versionId,
+                $actorId,
+                'Geblokkeerde poging om een eerder gebruikte Woo launch token opnieuw te gebruiken.',
+                array(
+                    'token_id' => $this->tokenId($expectedToken),
+                    'consumed_at' => (string) ($launchPayload['consumed_at'] ?? ''),
+                )
+            );
+
+            throw new InvalidArgumentException('Deze Woo-startlink is al gebruikt. Bouw een nieuwe execution launch voordat u opnieuw naar Woo gaat.');
+        }
+
         $result = $this->gateway->hydrate($launchPayload);
+        $consumedAt = $this->now();
+        $handoffPayload['execution_launch']['consumed_at'] = $consumedAt;
+        $handoffPayload['execution_launch']['consumed_by'] = $actorId;
+        $handoffPayload['execution_launch']['consumed_token_id'] = $this->tokenId($expectedToken);
         $handoffPayload['hydration_result'] = array(
-            'hydrated_at' => $this->now(),
+            'hydrated_at' => $consumedAt,
             'result' => $result,
         );
 
         $this->repository->updateQuoteVersion($versionId, array(
             'handoff_payload_json' => $handoffPayload,
-            'updated_at' => $this->now(),
+            'updated_at' => $consumedAt,
         ));
         $this->repository->updateQuote($quoteId, array(
             'handoff_status' => 'woo_cart_hydrated',
-            'updated_at' => $this->now(),
+            'updated_at' => $consumedAt,
         ));
 
         $this->events->log(
@@ -85,10 +106,17 @@ final class QuoteWooCartHydrationService
             'Execution launch payload naar Woo cart gehydrateerd.',
             array(
                 'cart_item_count' => $result['cart_item_count'] ?? 0,
+                'token_id' => $this->tokenId($expectedToken),
+                'consumed_at' => $consumedAt,
             )
         );
 
         return $result;
+    }
+
+    private function tokenId(string $token): string
+    {
+        return substr(hash('sha256', trim($token)), 0, 16);
     }
 
     private function now(): string
