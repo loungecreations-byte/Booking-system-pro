@@ -1,0 +1,97 @@
+/*
+ * DDB Admin — TinyMCE content_css dark mode
+ * ==========================================
+ * Injected into the TinyMCE editor iframe via the mce_css filter.
+ * CSS custom properties do NOT cross iframe boundaries, so all values
+ * here are hardcoded to match the --adm-* dark token values.
+ *
+ * Dark mode activates when <body class="ddb-dark"> is set by
+ * admin-dark-mode-toggle.js calling syncTinyMCE().
+ */
+
+/* ── Defaults: light mode (no class needed, editor renders light already) ── */
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.875rem;
+  line-height: 1.65;
+  color: #1a1614;
+  background: #ffffff;
+}
+
+/* ── Dark mode ── */
+body.ddb-dark {
+  background: #0a0a0a;
+  color: #f0ece8;
+}
+
+body.ddb-dark p,
+body.ddb-dark li,
+body.ddb-dark dd,
+body.ddb-dark dt,
+body.ddb-dark figcaption {
+  color: #d4cdc6;
+}
+
+body.ddb-dark h1,
+body.ddb-dark h2,
+body.ddb-dark h3,
+body.ddb-dark h4,
+body.ddb-dark h5,
+body.ddb-dark h6 {
+  color: #f0ece8;
+}
+
+body.ddb-dark a {
+  color: #d4a574;
+}
+
+body.ddb-dark a:hover {
+  color: #e8c090;
+}
+
+body.ddb-dark strong,
+body.ddb-dark b {
+  color: #f0ece8;
+}
+
+body.ddb-dark em,
+body.ddb-dark i {
+  color: #c8c0b8;
+}
+
+body.ddb-dark blockquote {
+  border-left: 3px solid #333;
+  color: #9a8f88;
+  padding-left: 1rem;
+}
+
+body.ddb-dark code,
+body.ddb-dark pre {
+  background: #111111;
+  color: #d4a574;
+  border-radius: 4px;
+  padding: 2px 5px;
+}
+
+body.ddb-dark pre {
+  padding: 1rem;
+}
+
+body.ddb-dark hr {
+  border-color: #222222;
+}
+
+body.ddb-dark table {
+  border-color: #222222;
+}
+
+body.ddb-dark th,
+body.ddb-dark td {
+  border-color: #222222;
+  color: #d4cdc6;
+}
+
+body.ddb-dark th {
+  background: #111111;
+  color: #9a8f88;
+}
