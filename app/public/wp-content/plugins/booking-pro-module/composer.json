@@ -30,6 +30,7 @@
       "BSP\\VendorPortal\\": "modules/vendor-portal/",
       "BSP\\GeoDashboard\\": "modules/geo-dashboard/",
       "BSP\\Support\\": "modules/support/",
+      "BSP\\Spots\\": "modules/spots/",
       "BSPModule\\Core\\": "modules/core/",
       "BSPModule\\Commerce\\": "modules/commerce/",
       "BSPModule\\Planner\\": "modules/planner/",
