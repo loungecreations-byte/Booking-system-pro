@@ -517,7 +517,8 @@ final class AdminMenu
      */
     private static function get_governance_runtime_signals(array $snapshot): array
     {
-        $base = rtrim((string) ABSPATH, "/\\") . DIRECTORY_SEPARATOR . 'wp-content' . DIRECTORY_SEPARATOR . 'themes' . DIRECTORY_SEPARATOR . 'dagjedenbosch' . DIRECTORY_SEPARATOR . 'woocommerce' . DIRECTORY_SEPARATOR;
+        $theme_dir = function_exists('get_stylesheet_directory') ? rtrim((string) get_stylesheet_directory(), "/\\") : rtrim((string) ABSPATH, "/\\") . DIRECTORY_SEPARATOR . 'wp-content' . DIRECTORY_SEPARATOR . 'themes' . DIRECTORY_SEPARATOR . 'hello-biz';
+        $base = $theme_dir . DIRECTORY_SEPARATOR . 'woocommerce' . DIRECTORY_SEPARATOR;
         $files = array(
             'cart'     => $base . 'cart' . DIRECTORY_SEPARATOR . 'cart.php',
             'checkout' => $base . 'checkout' . DIRECTORY_SEPARATOR . 'form-checkout.php',
@@ -545,14 +546,14 @@ final class AdminMenu
 
         $shell_drift = array();
         foreach (array(
-            'cart'     => 'ddb-commerce-shell',
+            'cart'     => 'ddb-cart-shell',
             'checkout' => 'ddb-commerce-shell',
-            'thankyou' => 'ddb-commerce-shell',
+            'thankyou' => 'ddb-order-received-layout',
             'account'  => 'ddb-account-shell',
             'dashboard'=> 'ddb_account_hub',
             'order'    => 'ui-card',
         ) as $key => $needle) {
-            if ($contents[$key] === '' || strpos($contents[$key], $needle) === false) {
+            if ($contents[$key] !== '' && strpos($contents[$key], $needle) === false) {
                 $shell_drift[] = $key;
             }
         }
