@@ -38,6 +38,9 @@ final class EnqueueService
         add_action('elementor/editor/before_enqueue_scripts', [__CLASS__, 'enqueue_for_elementor']);
         add_action('elementor/preview/enqueue_styles', [__CLASS__, 'enqueue_for_elementor']);
         add_action('admin_enqueue_scripts', [__CLASS__, 'enqueue_admin_assets']);
+        add_action('admin_head', [__CLASS__, 'inline_admin_theme_script'], 1);
+        add_action('admin_bar_menu', [__CLASS__, 'register_admin_bar_dark_mode_toggle'], 999);
+        add_filter('mce_css', [__CLASS__, 'add_tinymce_theme_css']);
     }
 
     public static function register_front_assets(): void
@@ -525,8 +528,83 @@ final class EnqueueService
         self::add_defer(self::THEME_TOGGLE_HANDLE);
     }
 
+    /**
+     * Wave 2 — Anti-flash: set data-adm-theme on <html> before first paint.
+     * Must run in admin_head (priority 1) to beat any CSS.
+     */
+    public static function inline_admin_theme_script(): void
+    {
+        echo '<script id="ddb-admin-theme-init">' .
+            '(function(){' .
+            'var t="";' .
+            'try{t=localStorage.getItem("ddb-admin-theme")||""}catch(e){}' .
+            'if(t!=="dark"&&t!=="light"){' .
+            'try{t=window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}catch(e){t="light"}' .
+            '}' .
+            'document.documentElement.setAttribute("data-adm-theme",t);' .
+            '}());' .
+            '</script>' . "\n";
+    }
+
+    /**
+     * Wave 2 — Admin bar: add dark/light toggle button to the WP top bar.
+     */
+    public static function register_admin_bar_dark_mode_toggle(\WP_Admin_Bar $bar): void
+    {
+        if (! function_exists('is_admin_bar_showing') || ! is_admin_bar_showing()) {
+            return;
+        }
+        $bar->add_node([
+            'id'     => 'ddb-dark-mode',
+            'title'  => '<span class="ddb-theme-toggle-icon ddb-theme-icon-moon" aria-hidden="true">&#9790;</span>' .
+                        '<span class="ddb-theme-toggle-icon ddb-theme-icon-sun" aria-hidden="true">&#9728;</span>',
+            'href'   => '#',
+            'parent' => 'top-secondary',
+            'meta'   => [
+                'class' => 'ddb-theme-toggle',
+                'title' => 'Schakel donker/lichtmodus (Ctrl+Shift+D)',
+            ],
+        ]);
+    }
+
+    /**
+     * Wave 2 — Inject admin-tinymce.css into the TinyMCE editor iframe.
+     * CSS custom properties don't cross iframe boundaries, so dark mode
+     * uses the .ddb-dark body class toggled by admin-dark-mode-toggle.js.
+     */
+    public static function add_tinymce_theme_css(string $mce_css): string
+    {
+        if (! defined('SBDP_URL') || ! defined('SBDP_DIR')) {
+            return $mce_css;
+        }
+        $version = (string) @filemtime(SBDP_DIR . 'assets/admin-tinymce.css');
+        $url     = SBDP_URL . 'assets/admin-tinymce.css?' . $version;
+        return $mce_css !== '' ? $mce_css . ',' . $url : $url;
+    }
+
     public static function enqueue_admin_assets(string $hook): void
     {
+        // Wave 1 + 2: global design tokens + dark mode toggle on every admin page.
+        $tokenVersion  = defined('SBDP_DIR') && function_exists('filemtime')
+            ? (string) @filemtime(SBDP_DIR . 'assets/admin-design-tokens.css')
+            : (defined('SBDP_VER') ? SBDP_VER : null);
+        $toggleVersion = defined('SBDP_DIR') && function_exists('filemtime')
+            ? (string) @filemtime(SBDP_DIR . 'assets/js/admin/admin-dark-mode-toggle.js')
+            : (defined('SBDP_VER') ? SBDP_VER : null);
+        wp_enqueue_style(
+            'ddb-admin-design-tokens',
+            SBDP_URL . 'assets/admin-design-tokens.css',
+            [],
+            $tokenVersion
+        );
+        wp_enqueue_script(
+            'ddb-admin-dark-mode-toggle',
+            SBDP_URL . 'assets/js/admin/admin-dark-mode-toggle.js',
+            [],
+            $toggleVersion,
+            false  // load in <head> so theme applies before body renders
+        );
+
         if ('sbdp_bookings_page_sbdp_governance' === $hook || 'sbdp_bookings_page_sbdp_design_backend' === $hook) {
             wp_enqueue_style('sbdp-admin-governance', SBDP_URL . 'assets/admin-governance.css', array(), SBDP_VER);
             return;
