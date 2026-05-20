@@ -21,6 +21,7 @@ use BSP\Quotes\Service\QuoteOperationsDraftService;
 use BSP\Quotes\Service\QuoteRequestService;
 use BSP\Quotes\Service\QuoteReviewService;
 use BSP\Quotes\Service\QuoteSendService;
+use BSP\Quotes\Service\QuoteSupplierConfirmationService;
 use BSP\Quotes\Service\WooCartLaunchGateway;
 use function add_query_arg;
 use function add_menu_page;
@@ -421,6 +422,37 @@ final class Controller
             'quote_id' => $quoteId,
             'workspace_tab' => 'build',
             'quote_line_control_updated' => '1',
+        ));
+    }
+    public static function handleUpdateLineSupplierStatus(): void {
+        self::assertAccess();
+        check_admin_referer('sbdp_quote_line_supplier_status');
+        $quoteId = isset($_POST['quote_id']) ? (int) $_POST['quote_id'] : 0;
+        $lineId = isset($_POST['line_id']) ? (int) $_POST['line_id'] : 0;
+        $status = sanitize_key((string) ($_POST['supplier_status'] ?? ''));
+        $optionExpiresAt = trim(sanitize_text_field((string) ($_POST['option_expires_at'] ?? '')));
+        $supplierBookingReference = trim(sanitize_text_field((string) ($_POST['supplier_booking_reference'] ?? '')));
+        $internalNote = sanitize_textarea_field((string) ($_POST['internal_note'] ?? ''));
+        $repository = new QuoteRepository();
+        $events = new QuoteEventLogger($repository);
+        $service = new QuoteSupplierConfirmationService($repository, $events);
+        try {
+            $service->updateStatus($quoteId, $lineId, $status, array(
+                'option_expires_at' => $optionExpiresAt,
+                'supplier_booking_reference' => $supplierBookingReference,
+                'internal_note' => $internalNote,
+            ), function_exists('get_current_user_id') ? (int) get_current_user_id() : null);
+        } catch (\Throwable $exception) {
+            self::redirect('sbdp_quotes', array(
+                'quote_id' => $quoteId,
+                'workspace_tab' => 'build',
+                'quote_error' => rawurlencode($exception->getMessage()),
+            ));
+        }
+        self::redirect('sbdp_quotes', array(
+            'quote_id' => $quoteId,
+            'workspace_tab' => 'build',
+            'quote_supplier_status_updated' => '1',
         ));
     }
     public static function handleGenerateProposalDraft(): void {

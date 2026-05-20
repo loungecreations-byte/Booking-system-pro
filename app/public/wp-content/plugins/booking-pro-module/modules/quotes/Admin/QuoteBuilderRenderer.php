@@ -26,6 +26,7 @@ use BSP\Quotes\Service\QuoteRequestService;
 use BSP\Quotes\Service\QuoteReviewService;
 use BSP\Quotes\Service\QuoteSendService;
 use BSP\Quotes\Service\QuoteSendReadinessValidator;
+use BSPModule\Core\Services\BookingModeService;
 use BSP\Quotes\Service\WooCartLaunchGateway;
 
 use function add_query_arg;
@@ -356,6 +357,10 @@ final class QuoteBuilderRenderer
         $html .= self::renderInlineBadge($availabilityLabel, self::confidenceBadgeClass($availabilityConfidence));
         $html .= '</div>';
         $html .= self::renderLineControlButtons($quoteId, $line, $pricingControlStatus, $availabilityControlStatus);
+        $supplierMode = self::quoteLineBookingMode($line);
+        if ($supplierMode === BookingModeService::MODE_SUPPLIER_CONFIRMATION) {
+            $html .= self::renderSupplierConfirmationPanel($quoteId, $line);
+        }
         if ($productId <= 0) {
             $html .= '<p class="bsp-quote-admin__muted">' . esc_html__('Maatwerkregels of handmatig aangepaste tijden blijven onder voorbehoud', 'sbdp') . '</p>';
         }
@@ -369,6 +374,104 @@ final class QuoteBuilderRenderer
         $html .= '</div>';
         $html .= '</div></details>';
         $html .= '</article>';
+
+        return $html;
+    }
+
+    /**
+     * @param array<string, mixed> $line
+     */
+    private static function quoteLineBookingMode(array $line): string
+    {
+        $productId = (int) ($line['product_id'] ?? 0);
+        if ($productId <= 0) {
+            return '';
+        }
+
+        $service = new BookingModeService();
+        $resolved = $service->resolve($productId);
+
+        return (string) ($resolved['bookingMode'] ?? '');
+    }
+
+    /**
+     * @param array<string, mixed> $line
+     */
+    private static function quoteLineSupplierStatus(array $line): string
+    {
+        $snapshot = is_array($line['availability_snapshot_json'] ?? null) ? $line['availability_snapshot_json'] : array();
+        $status = trim((string) ($snapshot['supplierStatus'] ?? ''));
+        if ($status !== '') {
+            return $status;
+        }
+
+        return 'supplier_confirmation_required';
+    }
+
+    private static function quoteLineSupplierStatusLabel(string $status): string
+    {
+        return match ($status) {
+            'supplier_option_requested' => __('Optie aangevraagd', 'sbdp'),
+            'supplier_option_held' => __('Optie bevestigd', 'sbdp'),
+            'supplier_declined' => __('Partner geweigerd', 'sbdp'),
+            'supplier_booking_confirmed' => __('Definitief bevestigd', 'sbdp'),
+            'supplier_unavailable' => __('Niet beschikbaar', 'sbdp'),
+            default => __('Partnerbevestiging nodig', 'sbdp'),
+        };
+    }
+
+    private static function supplierConfirmationOptions(): array
+    {
+        return array(
+            'supplier_confirmation_required' => __('Partnerbevestiging nodig', 'sbdp'),
+            'supplier_option_requested' => __('Optie aangevraagd', 'sbdp'),
+            'supplier_option_held' => __('Optie bevestigd', 'sbdp'),
+            'supplier_declined' => __('Partner geweigerd', 'sbdp'),
+            'supplier_booking_confirmed' => __('Definitief bevestigd', 'sbdp'),
+            'supplier_unavailable' => __('Niet beschikbaar', 'sbdp'),
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $line
+     */
+    private static function renderSupplierConfirmationPanel(int $quoteId, array $line): string
+    {
+        $lineId = (int) ($line['id'] ?? 0);
+        if ($quoteId <= 0 || $lineId <= 0) {
+            return '';
+        }
+
+        $snapshot = is_array($line['availability_snapshot_json'] ?? null) ? $line['availability_snapshot_json'] : array();
+        $status = self::quoteLineSupplierStatus($line);
+        $optionExpiresAt = trim((string) ($snapshot['optionExpiresAt'] ?? ''));
+        $supplierBookingReference = trim((string) ($snapshot['supplierBookingReference'] ?? ''));
+        $internalNote = trim((string) ($snapshot['supplierInternalNote'] ?? ''));
+        $supplierName = trim((string) ($snapshot['supplierName'] ?? 'Eropuitje'));
+        $bookingMode = trim((string) ($snapshot['bookingMode'] ?? BookingModeService::MODE_SUPPLIER_CONFIRMATION));
+
+        $html = '<details class="bsp-quote-admin__supplier-panel">';
+        $html .= '<summary>' . esc_html__('Partnerstatus', 'sbdp') . '</summary>';
+        $html .= '<div class="bsp-quote-admin__supplier-panel-body">';
+        $html .= '<p class="bsp-quote-admin__muted">' . esc_html(sprintf(__('Supplier confirmation pre-check voor %s. Direct booking: no. Supplier confirmation required: yes.', 'sbdp'), $supplierName !== '' ? $supplierName : __('aanbieder', 'sbdp'))) . '</p>';
+        $html .= '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" class="bsp-quote-admin__supplier-panel-form">';
+        $html .= wp_nonce_field('sbdp_quote_line_supplier_status', '_wpnonce', true, false);
+        $html .= '<input type="hidden" name="action" value="sbdp_quote_line_supplier_status">';
+        $html .= '<input type="hidden" name="quote_id" value="' . esc_attr((string) $quoteId) . '">';
+        $html .= '<input type="hidden" name="line_id" value="' . esc_attr((string) $lineId) . '">';
+        $html .= '<input type="hidden" name="booking_mode" value="' . esc_attr($bookingMode) . '">';
+        $html .= '<label><span class="bsp-quote-admin__tiny-label">' . esc_html__('Status', 'sbdp') . '</span><select name="supplier_status" class="bsp-quote-admin__compact-select">';
+        foreach (self::supplierConfirmationOptions() as $value => $label) {
+            $html .= '<option value="' . esc_attr($value) . '"' . selected($status, $value, false) . '>' . esc_html($label) . '</option>';
+        }
+        $html .= '</select></label>';
+        $html .= '<label><span class="bsp-quote-admin__tiny-label">' . esc_html__('Option expires at', 'sbdp') . '</span><input type="text" name="option_expires_at" value="' . esc_attr($optionExpiresAt) . '" placeholder="2026-05-23T10:00:00+00:00" class="bsp-quote-admin__compact-input"></label>';
+        $html .= '<label><span class="bsp-quote-admin__tiny-label">' . esc_html__('Partner reference', 'sbdp') . '</span><input type="text" name="supplier_booking_reference" value="' . esc_attr($supplierBookingReference) . '" class="bsp-quote-admin__compact-input"></label>';
+        $html .= '<label><span class="bsp-quote-admin__tiny-label">' . esc_html__('Interne notitie', 'sbdp') . '</span><textarea name="internal_note" rows="3" class="bsp-quote-admin__compact-textarea">' . esc_textarea($internalNote) . '</textarea></label>';
+        $html .= '<button type="submit" class="button button-secondary">' . esc_html__('Supplier status opslaan', 'sbdp') . '</button>';
+        $html .= '</form>';
+        $html .= '<p class="bsp-quote-admin__muted"><strong>' . esc_html__('Huidig', 'sbdp') . ':</strong> ' . esc_html(self::quoteLineSupplierStatusLabel($status)) . '</p>';
+        $html .= '</div></details>';
 
         return $html;
     }

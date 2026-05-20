@@ -73,6 +73,7 @@ final class QuoteOperationsDraftService
         }
 
         $savedLines = $this->repository->replaceQuoteLines((int) $targetVersion['id'], $normalizedLines);
+        (new QuoteSupplierConfirmationService($this->repository, $this->events))->syncQuote((int) $quote['id'], $actorId);
 
         $this->events->log(
             'quote_operations_draft_saved',

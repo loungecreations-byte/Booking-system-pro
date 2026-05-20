@@ -147,6 +147,9 @@ final class QuoteRequestService
             'unit_amount_snapshot'     => isset($item['unit_amount_snapshot']) ? (float) $item['unit_amount_snapshot'] : null,
             'pricing_confidence'       => trim((string) ($item['pricing_confidence'] ?? 'unknown')),
             'availability_confidence'  => trim((string) ($item['availability_confidence'] ?? 'unknown')),
+            'availability_snapshot_json' => isset($item['availability_snapshot_json']) && is_array($item['availability_snapshot_json'])
+                ? $item['availability_snapshot_json']
+                : array(),
         );
     }
 
