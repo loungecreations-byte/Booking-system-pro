@@ -195,6 +195,7 @@ namespace BSPModule\Core\Services {
 
 namespace BSP\Tests\BookingTruth {
 
+use BSP\DayPlanner\Service\ActivityService;
 use BSP\DayPlanner\Service\PlanService;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
@@ -202,6 +203,7 @@ use ReflectionMethod;
 use SBDP\ProductPageRefresh\Module;
 
 require_once dirname(__DIR__, 2) . '/modules/day-planner/Service/PlanService.php';
+require_once dirname(__DIR__, 2) . '/modules/day-planner/Service/ActivityService.php';
 require_once dirname(__DIR__, 2) . '/modules/core/Services/BookingTruthRuntimeService.php';
 require_once dirname(__DIR__, 2) . '/modules/core/Services/AvailabilityProjectionService.php';
 require_once dirname(__DIR__, 2) . '/modules/product-page-refresh/Module.php';
@@ -586,6 +588,73 @@ final class BookingTruthRuntimeTest extends TestCase
         $this->assertSame('DIRECT', $item->meta['sbdp_booking_capability']);
     }
 
+    public function testRequestOnlyDiscoveryItemCanBeAddedToPlannerButNotCart(): void
+    {
+        $item = $this->applyDiscoveryEnvelope(array(
+            'id' => 115,
+            'product_id' => 115,
+            'name' => 'E-Chopper tour',
+            'duration' => array('minutes' => 120),
+            'duration_minutes' => 120,
+            'booking_capability' => 'request',
+        ));
+
+        $this->assertSame('quote', $item['route_intent']);
+        $this->assertTrue($item['requestOnly']);
+        $this->assertFalse($item['is_bookable']);
+        $this->assertFalse($item['can_add_to_cart']);
+        $this->assertTrue($item['can_add_to_planner']);
+    }
+
+    public function testCheckoutDiscoveryItemCanBeAddedToPlannerAndCart(): void
+    {
+        $item = $this->applyDiscoveryEnvelope(array(
+            'id' => 352,
+            'product_id' => 352,
+            'name' => 'Direct bookable product',
+            'duration' => array('minutes' => 60),
+            'duration_minutes' => 60,
+            'booking_capability' => 'direct',
+        ));
+
+        $this->assertSame('checkout', $item['route_intent']);
+        $this->assertFalse($item['requestOnly']);
+        $this->assertTrue($item['is_bookable']);
+        $this->assertTrue($item['can_add_to_cart']);
+        $this->assertTrue($item['can_add_to_planner']);
+    }
+
+    public function testBlockedDiscoveryItemCanNotBeAddedToPlannerOrCart(): void
+    {
+        $item = $this->applyDiscoveryEnvelope(array(
+            'id' => 999,
+            'product_id' => 999,
+            'name' => 'Blocked product',
+            'duration' => array('minutes' => 60),
+            'duration_minutes' => 60,
+            'booking_capability' => 'blocked',
+        ));
+
+        $this->assertSame('blocked', $item['route_intent']);
+        $this->assertFalse($item['requestOnly']);
+        $this->assertFalse($item['is_bookable']);
+        $this->assertFalse($item['can_add_to_cart']);
+        $this->assertFalse($item['can_add_to_planner']);
+    }
+
+    /**
+     * @param array<string, mixed> $item
+     *
+     * @return array<string, mixed>
+     */
+    private function applyDiscoveryEnvelope(array $item): array
+    {
+        $service = new ActivityService();
+        $method = new ReflectionMethod(ActivityService::class, 'applyDiscoveryEnvelope');
+        $method->setAccessible(true);
+
+        return $method->invoke($service, $item, array(), 'EUR');
+    }
     private function newPlanServiceWithoutConstructor(): PlanService
     {
         $reflection = new ReflectionClass(PlanService::class);
