@@ -47,6 +47,14 @@ namespace {
         }
     }
 
+    if (! function_exists('get_page_by_path')) {
+        function get_page_by_path(string $pagePath)
+        {
+            unset($pagePath);
+            return null;
+        }
+    }
+
     if (! function_exists('wp_timezone')) {
         function wp_timezone(): \DateTimeZone
         {
@@ -114,10 +122,16 @@ namespace BSPModule\Core\Product {
         final class ProductMeta
         {
             public static array $resourceIds = array();
+            public static array $resourcesPayload = array();
 
             public static function get_resource_ids(int $productId): array
             {
                 return self::$resourceIds[$productId] ?? array();
+            }
+
+            public static function get_resources_payload(int $productId): array
+            {
+                return self::$resourcesPayload[$productId] ?? array();
             }
         }
     }
@@ -128,6 +142,12 @@ namespace SBDP\Core {
         final class ProductSettings
         {
             public static array $slots = array();
+            public static array $settings = array();
+
+            public static function get(int $productId): array
+            {
+                return self::$settings[$productId] ?? array();
+            }
 
             public static function slotsForDate(int $productId, string $date): array
             {
@@ -197,16 +217,20 @@ namespace BSP\Tests\BookingTruth {
 
 use BSP\DayPlanner\Service\ActivityService;
 use BSP\DayPlanner\Service\PlanService;
+use BSPModule\Core\Services\BookingTruthRuntimeService;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
 use ReflectionMethod;
+use SBDP\Modules\Planner\Rest\PlannerRoutes;
 use SBDP\ProductPageRefresh\Module;
 
 require_once dirname(__DIR__, 2) . '/modules/day-planner/Service/PlanService.php';
 require_once dirname(__DIR__, 2) . '/modules/day-planner/Service/ActivityService.php';
+require_once dirname(__DIR__, 2) . '/modules/core/Services/BookingModeService.php';
 require_once dirname(__DIR__, 2) . '/modules/core/Services/BookingTruthRuntimeService.php';
 require_once dirname(__DIR__, 2) . '/modules/core/Services/AvailabilityProjectionService.php';
 require_once dirname(__DIR__, 2) . '/modules/product-page-refresh/Module.php';
+require_once dirname(__DIR__, 2) . '/modules/planner/Rest/PlannerRoutes.php';
 
 final class BookingTruthRuntimeTest extends TestCase
 {
@@ -215,6 +239,12 @@ final class BookingTruthRuntimeTest extends TestCase
         parent::setUp();
         $GLOBALS['__booking_truth_meta'] = array();
         $GLOBALS['__booking_truth_titles'] = array();
+        if (property_exists(\BSPModule\Core\Product\ProductMeta::class, 'resourcesPayload')) {
+            \BSPModule\Core\Product\ProductMeta::$resourcesPayload = array();
+        }
+        if (property_exists(\SBDP\Core\ProductSettings::class, 'settings')) {
+            \SBDP\Core\ProductSettings::$settings = array();
+        }
         remove_all_filters('sbdp_schedule_resource_post_types');
         add_filter('sbdp_schedule_resource_post_types', static function ($value) {
             unset($value);
@@ -655,6 +685,177 @@ final class BookingTruthRuntimeTest extends TestCase
 
         return $method->invoke($service, $item, array(), 'EUR');
     }
+
+    public function testProduct115BookingModeDowngradesRuntimeToRequest(): void
+    {
+        $this->configureValidAvailability();
+
+        $profile = (new BookingTruthRuntimeService())->resolveBookingCapabilityProfile(array(
+            'product_id' => 115,
+            'resource_id' => 9,
+            'participants' => 10,
+            'date' => '2026-05-10',
+            'start' => '2026-05-10T10:00:00',
+            'end' => '2026-05-10T11:00:00',
+        ));
+
+        $this->assertSame('REQUEST', $profile['status']);
+        $this->assertSame('quote', $profile['route_intent']);
+        $this->assertSame('supplier_confirmation', $profile['bookingMode']);
+        $this->assertFalse($profile['directBookable']);
+        $this->assertTrue($profile['supplierConfirmationRequired']);
+    }
+
+    public function testQuoteBookingModeDowngradesDirectRuntimeToRequest(): void
+    {
+        $this->configureValidAvailability();
+        $GLOBALS['__booking_truth_meta'][301] = array(
+            '_ddb_booking_mode' => 'quote',
+            '_ddb_direct_booking_enabled' => 'yes',
+        );
+
+        $profile = (new BookingTruthRuntimeService())->resolveBookingCapabilityProfile(array(
+            'product_id' => 301,
+            'resource_id' => 9,
+            'participants' => 4,
+            'date' => '2026-05-10',
+            'start' => '2026-05-10T10:00:00',
+            'end' => '2026-05-10T11:00:00',
+        ));
+
+        $this->assertSame('REQUEST', $profile['status']);
+        $this->assertSame('quote', $profile['route_intent']);
+        $this->assertFalse($profile['directBookable']);
+    }
+
+    public function testSupplierConfirmationBookingModeDowngradesDirectRuntimeToRequest(): void
+    {
+        $this->configureValidAvailability();
+        $GLOBALS['__booking_truth_meta'][302] = array(
+            '_ddb_booking_mode' => 'supplier_confirmation',
+            '_ddb_direct_booking_enabled' => 'yes',
+        );
+
+        $profile = (new BookingTruthRuntimeService())->resolveBookingCapabilityProfile(array(
+            'product_id' => 302,
+            'resource_id' => 9,
+            'participants' => 4,
+            'date' => '2026-05-10',
+            'start' => '2026-05-10T10:00:00',
+            'end' => '2026-05-10T11:00:00',
+        ));
+
+        $this->assertSame('REQUEST', $profile['status']);
+        $this->assertSame('quote', $profile['route_intent']);
+        $this->assertTrue($profile['supplierConfirmationRequired']);
+    }
+
+    public function testBlockedBookingModeDowngradesRuntimeToUnavailable(): void
+    {
+        $this->configureValidAvailability();
+        $GLOBALS['__booking_truth_meta'][303] = array(
+            '_ddb_booking_mode' => 'blocked',
+            '_ddb_direct_booking_enabled' => 'yes',
+            '_ddb_quote_os_enabled' => 'yes',
+        );
+
+        $profile = (new BookingTruthRuntimeService())->resolveBookingCapabilityProfile(array(
+            'product_id' => 303,
+            'resource_id' => 9,
+            'participants' => 4,
+            'date' => '2026-05-10',
+            'start' => '2026-05-10T10:00:00',
+            'end' => '2026-05-10T11:00:00',
+        ));
+
+        $this->assertSame('UNAVAILABLE', $profile['status']);
+        $this->assertSame('blocked', $profile['route_intent']);
+        $this->assertFalse($profile['directBookable']);
+    }
+
+    public function testDirectBookingModeKeepsDirectOnlyWhenEnabled(): void
+    {
+        $this->configureValidAvailability();
+        $GLOBALS['__booking_truth_meta'][304] = array(
+            '_ddb_booking_mode' => 'direct',
+            '_ddb_direct_booking_enabled' => 'yes',
+        );
+
+        $profile = (new BookingTruthRuntimeService())->resolveBookingCapabilityProfile(array(
+            'product_id' => 304,
+            'resource_id' => 9,
+            'participants' => 4,
+            'date' => '2026-05-10',
+            'start' => '2026-05-10T10:00:00',
+            'end' => '2026-05-10T11:00:00',
+        ));
+
+        $this->assertSame('DIRECT', $profile['status']);
+        $this->assertSame('checkout', $profile['route_intent']);
+        $this->assertTrue($profile['directBookable']);
+    }
+
+    public function testProductPageSummaryPublishesProduct115SupplierConfirmationMetadata(): void
+    {
+        $GLOBALS['__booking_truth_meta'][115] = array(
+            '_ddb_supplier_provider' => 'eliio',
+            '_ddb_supplier_availability_mode' => 'widget',
+            '_sbdp_booking_min_duration' => 120,
+            '_sbdp_booking_duration_type' => 'minutes',
+            '_sbdp_capacity' => 20,
+            '_sbdp_time_slots' => array(array('start' => '10:00', 'end' => '12:00')),
+        );
+
+        $module = new Module();
+        $method = new ReflectionMethod(Module::class, 'buildCardConfig');
+        $method->setAccessible(true);
+
+        $config = $method->invoke($module, new \WC_Product(115));
+
+        $this->assertSame('supplier_confirmation', $config['supplier']['bookingMode']);
+        $this->assertSame('quote', $config['supplier']['routeIntent']);
+        $this->assertFalse($config['supplier']['directBookable']);
+        $this->assertTrue($config['supplier']['requestOnly']);
+        $this->assertTrue($config['supplier']['supplierConfirmationRequired']);
+    }
+
+    public function testPlannerRoutesPublishesProduct115AsRequestNotDirectLimited(): void
+    {
+        $GLOBALS['__booking_truth_meta'][115] = array(
+            '_ddb_supplier_provider' => 'eliio',
+        );
+
+        $reflection = new ReflectionClass(PlannerRoutes::class);
+        $routes = $reflection->newInstanceWithoutConstructor();
+        $method = new ReflectionMethod(PlannerRoutes::class, 'resolveBookingCapability');
+        $method->setAccessible(true);
+
+        $capability = $method->invoke($routes, 115, array());
+
+        $this->assertSame('REQUEST', $capability);
+        $this->assertNotSame('DIRECT_LIMITED', $capability);
+    }
+
+    private function configureValidAvailability(): void
+    {
+        add_filter('sbdp_planservice_availability_slots_payload', static function ($value) {
+            unset($value);
+
+            return array(
+                'resource_valid' => true,
+                'slots' => array(
+                    array('start' => '10:00', 'end' => '11:00'),
+                ),
+                'capacity' => 20,
+            );
+        });
+        add_filter('sbdp_planservice_execution_check', static function ($value) {
+            unset($value);
+
+            return true;
+        });
+    }
+
     private function newPlanServiceWithoutConstructor(): PlanService
     {
         $reflection = new ReflectionClass(PlanService::class);

@@ -10,6 +10,7 @@ use BSPModule\Core\WooCommerce\Display\ProductForm;
 use BSPModule\Core\WooCommerce\ProductPageContext;
 use BSPModule\Core\Product\ProductMeta;
 use BSPModule\Core\WooCommerce\ProductType\BookableServiceProductType;
+use BSPModule\Core\Services\BookingModeService;
 use BSPModule\Core\Services\BookingTruthRuntimeService;
 use BPM\Core\ProductSettings;
 use BSP\DayPlanner\Module as DayPlannerModule;
@@ -2945,6 +2946,18 @@ final class Module implements ModuleInterface
         $meta = implode(' • ', array_filter($metaParts));
 
         $combi_options = $this->buildCombiOptions($product);
+        $supplierProvider = strtolower(trim((string) get_post_meta($product->get_id(), '_ddb_supplier_provider', true)));
+        $availabilityMode = strtolower(trim((string) get_post_meta($product->get_id(), '_ddb_supplier_availability_mode', true)));
+        $bookingMode = class_exists(BookingModeService::class)
+            ? (new BookingModeService())->resolve((int) $product->get_id())
+            : array(
+                'bookingMode' => 'direct',
+                'routeIntent' => 'checkout',
+                'directBookable' => true,
+                'supplierConfirmationRequired' => false,
+            );
+        $isEliio = $supplierProvider === 'eliio' || (int) $product->get_id() === 115;
+        $routeIntent = (string) ($bookingMode['routeIntent'] ?? 'checkout');
 
         return [
             'productId'  => $product->get_id(),
@@ -2964,6 +2977,15 @@ final class Module implements ModuleInterface
             'plannerUrl' => $this->getPlannerUrl(),
             'meta'       => $meta,
             'combiOptions' => $combi_options,
+            'supplier' => [
+                'provider' => $supplierProvider,
+                'availabilityMode' => $availabilityMode,
+                'bookingMode' => (string) ($bookingMode['bookingMode'] ?? ''),
+                'routeIntent' => $routeIntent,
+                'directBookable' => ! empty($bookingMode['directBookable']),
+                'supplierConfirmationRequired' => ! empty($bookingMode['supplierConfirmationRequired']),
+                'requestOnly' => $routeIntent === 'quote' || $isEliio,
+            ],
         ];
     }
 

@@ -242,9 +242,37 @@ function sbdp_render_product_planner_form($atts = array()) {
         ? wp_create_nonce(\BSPModule\Core\Rest\RestService::PUBLIC_NONCE_ACTION)
         : (function_exists('wp_create_nonce') ? wp_create_nonce('wp_rest') : '');
     $cart_url = function_exists('wc_get_cart_url') ? wc_get_cart_url() : home_url('/cart/');
+    $quote_url = sbdp_legacy_product_planner_get_quote_url();
+    $supplier_provider = strtolower(trim((string) get_post_meta($product_id, '_ddb_supplier_provider', true)));
+    $booking_mode_profile = class_exists('\BSPModule\Core\Services\BookingModeService')
+        ? (new \BSPModule\Core\Services\BookingModeService())->resolve((int) $product_id)
+        : array('bookingMode' => 'direct', 'routeIntent' => 'checkout', 'directBookable' => true);
+    $booking_mode = isset($booking_mode_profile['bookingMode']) ? (string) $booking_mode_profile['bookingMode'] : 'direct';
+    $booking_mode_route = isset($booking_mode_profile['routeIntent']) ? (string) $booking_mode_profile['routeIntent'] : 'checkout';
+    $is_booking_mode_request_only = in_array($booking_mode, array('quote', 'supplier_confirmation'), true) || $booking_mode_route === 'quote';
+    $is_booking_mode_blocked = $booking_mode === 'blocked' || $booking_mode_route === 'blocked';
+    $is_eliio_request_only = $supplier_provider === 'eliio' || (int) $product_id === 115;
+    $is_request_only = $is_booking_mode_request_only || $is_eliio_request_only || $is_booking_mode_blocked;
+    $eliio_availability_url = function_exists('rest_url') ? rest_url('ddb/v1/supplier/eliio/availability') : '';
+    $booking_profile = sbdp_legacy_product_planner_get_booking_profile($product_id, $today, '10:00', $main_duration, 10);
+    $route_intent = isset($booking_profile['route_intent']) ? (string) $booking_profile['route_intent'] : 'checkout';
+    if ($is_request_only) {
+        $route_intent = $is_booking_mode_blocked ? 'blocked' : 'quote';
+    }
+    $is_direct_checkout = $route_intent === 'checkout' && ! empty($booking_mode_profile['directBookable']);
+    $primary_action = $is_direct_checkout ? 'book' : 'quote';
+    $primary_label = $is_direct_checkout ? 'Boek dit programma' : 'Vraag offerte aan';
+    $primary_type = $is_direct_checkout ? 'submit' : 'button';
 
     ob_start(); ?>
-    <div class="sbdp-booking-form-wrapper" data-product-id="<?php echo esc_attr((string) $product_id); ?>" data-pricing-source="woocommerce" data-sbdp-legacy-form="true">
+    <div
+        class="sbdp-booking-form-wrapper"
+        data-product-id="<?php echo esc_attr((string) $product_id); ?>"
+        data-pricing-source="woocommerce"
+        data-sbdp-legacy-form="true"
+        data-sbdp-supplier-provider="<?php echo esc_attr($supplier_provider); ?>"
+        data-sbdp-request-only="<?php echo $is_request_only ? '1' : '0'; ?>"
+    >
         <form id="sbdp-booking-form" method="post" action="<?php echo esc_url(wc_get_cart_url()); ?>" data-sbdp-legacy-form="true">
             <?php wp_nonce_field('sbdp_booking', 'sbdp_booking_nonce'); ?>
             <div class="sbdp-form-header ddb-card">
@@ -371,7 +399,7 @@ function sbdp_render_product_planner_form($atts = array()) {
                     </div>
 
                     <div class="sbdp-actions-row">
-                        <button type="submit" class="ui-btn ui-btn--primary" data-sbdp-action="book">Boek dit programma</button>
+                        <button type="<?php echo esc_attr($primary_type); ?>" class="ui-btn ui-btn--primary" data-sbdp-action="<?php echo esc_attr($primary_action); ?>"><?php echo esc_html($primary_label); ?></button>
                         <button type="button" class="ui-btn ui-btn--secondary" id="sbdp_plan_btn" data-sbdp-action="plan">Plan in dag</button>
                     </div>
                 </aside>
@@ -410,9 +438,11 @@ function sbdp_render_product_planner_form($atts = array()) {
             const planButton = document.getElementById('sbdp_plan_btn');
             const bookingForm = document.getElementById('sbdp-booking-form');
             const bookButton = bookingForm ? bookingForm.querySelector('[data-sbdp-action="book"]') : null;
+            const quoteButton = bookingForm ? bookingForm.querySelector('[data-sbdp-action="quote"]') : null;
             const composeUrl = <?php echo wp_json_encode($compose_url); ?>;
             const composeNonce = <?php echo wp_json_encode($compose_nonce); ?>;
             const cartUrl = <?php echo wp_json_encode($cart_url); ?>;
+            const quoteUrl = <?php echo wp_json_encode($quote_url); ?>;
 
             const mainTitle = <?php echo json_encode($title); ?>;
             const productBasePrice = <?php echo number_format((float)$price_display, 4, '.', ''); ?>;
@@ -694,6 +724,28 @@ function sbdp_render_product_planner_form($atts = array()) {
                 }
             }
 
+            function submitQuoteRequest(event) {
+                if (event) {
+                    event.preventDefault();
+                }
+
+                const plannerEntry = buildPlannerEntry();
+                const target = new URL(quoteUrl || '/offerte/', window.location.origin);
+                if (plannerEntry.productId) {
+                    target.searchParams.set('product_id', String(plannerEntry.productId));
+                }
+                if (plannerEntry.date) {
+                    target.searchParams.set('date', plannerEntry.date);
+                }
+                if (plannerEntry.time) {
+                    target.searchParams.set('time', plannerEntry.time);
+                }
+                if (plannerEntry.participants) {
+                    target.searchParams.set('participants', String(plannerEntry.participants));
+                }
+                window.location.href = target.toString();
+            }
+
             function updateUI() {
                 const pax = parseInt(countInput.value, 10) || 1;
                 const baseTime = timeInput.value;
@@ -840,6 +892,9 @@ function sbdp_render_product_planner_form($atts = array()) {
             }
             if (bookingForm) {
                 bookingForm.addEventListener('submit', submitDirectBooking);
+            }
+            if (quoteButton) {
+                quoteButton.addEventListener('click', submitQuoteRequest);
             }
 
             updateUI();
