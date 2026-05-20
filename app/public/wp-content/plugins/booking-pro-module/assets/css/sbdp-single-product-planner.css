@@ -2,20 +2,20 @@
 .sbdp-booking-form-wrapper {
     background: var(--ui-color-bg, #000);
     color: var(--ui-color-text, #fff);
-    padding: var(--ui-space-lg);
-    border-radius: 12px; /* missing CSOT token for 12px radius */
+    padding: var(--ui-space-md, 0.875rem);
+    border-radius: var(--ui-radius-card, 12px);
     border: none;
     max-width: 100%;
-    margin: 20px auto; /* missing CSOT token for 20px spacing */
+    margin: 0;
     font-family: var(--ui-font-sans, "Quattrocento Sans", sans-serif);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    box-shadow: none;
 }
 
 .sbdp-context-strip {
     font-size: 11px; /* missing CSOT token for 11px text */
     text-transform: uppercase;
     letter-spacing: 1px;
-    margin-bottom: var(--ui-space-lg);
+    margin-bottom: var(--ui-space-xs);
     color: var(--ui-color-text-muted, rgba(255,255,255,0.5));
     display: flex;
     gap: var(--ui-space-xs);
@@ -25,15 +25,15 @@
 .sbdp-form-header p {
     font-size: var(--ui-text-sm);
     color: var(--ui-color-text-muted, rgba(255,255,255,0.7));
-    margin: 0 0 var(--ui-space-xl) 0;
+    margin: 0 0 var(--ui-space-sm) 0;
     line-height: var(--ui-leading-body, 1.5);
 }
 
 .sbdp-field-grid {
     display: flex;
     flex-direction: column;
-    gap: var(--ui-space-lg);
-    margin-bottom: var(--ui-space-xl);
+    gap: var(--ui-space-sm);
+    margin-bottom: var(--ui-space-md);
 }
 
 .sbdp-field {
@@ -205,9 +205,9 @@
 /* Summary Card */
 .sbdp-summary-card {
     background: var(--ui-color-surface-2, rgba(255,255,255,0.02));
-    border-radius: 12px; /* missing CSOT token */
-    padding: var(--ui-space-lg);
-    margin-top: var(--ui-space-xl);
+    border-radius: var(--ui-radius-card, 12px);
+    padding: var(--ui-space-md);
+    margin-top: var(--ui-space-md);
     border: 1px solid var(--ui-color-border-subtle, rgba(255,255,255,0.05));
 }
 
