@@ -450,10 +450,61 @@ final class QuoteBuilderRenderer
         $supplierName = trim((string) ($snapshot['supplierName'] ?? 'Eropuitje'));
         $bookingMode = trim((string) ($snapshot['bookingMode'] ?? BookingModeService::MODE_SUPPLIER_CONFIRMATION));
 
-        $html = '<details class="bsp-quote-admin__supplier-panel">';
-        $html .= '<summary>' . esc_html__('Partnerstatus', 'sbdp') . '</summary>';
-        $html .= '<div class="bsp-quote-admin__supplier-panel-body">';
-        $html .= '<p class="bsp-quote-admin__muted">' . esc_html(sprintf(__('Supplier confirmation pre-check voor %s. Direct booking: no. Supplier confirmation required: yes.', 'sbdp'), $supplierName !== '' ? $supplierName : __('aanbieder', 'sbdp'))) . '</p>';
+        $statusLabel = self::quoteLineSupplierStatusLabel($status);
+        $availabilityStatus = trim((string) ($snapshot['availabilityStatus'] ?? ''));
+        $availabilityCheckedAt = trim((string) ($snapshot['availabilityCheckedAt'] ?? ''));
+
+        $badgeClass = in_array($status, array('supplier_booking_confirmed'), true)
+            ? 'bsp-badge--success'
+            : (in_array($status, array('supplier_declined', 'supplier_unavailable'), true)
+                ? 'bsp-badge--error'
+                : (in_array($status, array('supplier_option_requested', 'supplier_option_held'), true)
+                    ? 'bsp-badge--info'
+                    : 'bsp-badge--warning'));
+
+        $html = '<div class="bsp-quote-admin__supplier-panel">';
+
+        // Header: status badge + supplier name
+        $html .= '<div class="bsp-quote-admin__supplier-panel-header">';
+        $html .= '<strong>' . esc_html__('Partnerstatus', 'sbdp') . '</strong> — ';
+        $html .= '<span class="bsp-badge ' . esc_attr($badgeClass) . '">' . esc_html($statusLabel) . '</span>';
+        if ($supplierName !== '') {
+            $html .= ' <span class="bsp-quote-admin__muted">(' . esc_html($supplierName) . ')</span>';
+        }
+        $html .= '</div>';
+
+        // Info row: availability status, checked-at, option expires, partner reference
+        $infoItems = array();
+        if ($availabilityStatus !== '') {
+            $infoItems[] = esc_html__('Beschikbaarheid', 'sbdp') . ': <strong>' . esc_html($availabilityStatus) . '</strong>';
+        }
+        if ($availabilityCheckedAt !== '') {
+            $infoItems[] = esc_html__('Gecheckt op', 'sbdp') . ': <strong>' . esc_html($availabilityCheckedAt) . '</strong>';
+        }
+        if ($optionExpiresAt !== '') {
+            $infoItems[] = esc_html__('Optie geldig tot', 'sbdp') . ': <strong>' . esc_html($optionExpiresAt) . '</strong>';
+        }
+        if ($supplierBookingReference !== '') {
+            $infoItems[] = esc_html__('Partnerreferentie', 'sbdp') . ': <strong>' . esc_html($supplierBookingReference) . '</strong>';
+        }
+        if ($infoItems !== array()) {
+            $html .= '<p class="bsp-quote-admin__muted bsp-quote-admin__supplier-info-row">' . implode(' &middot; ', $infoItems) . '</p>';
+        }
+
+        // Primary action: Maak partnerverzoek (requires Commit D handler)
+        if (in_array($status, array('supplier_confirmation_required', 'supplier_option_requested'), true)) {
+            $html .= '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" class="bsp-quote-admin__supplier-panel-form">';
+            $html .= wp_nonce_field('sbdp_quote_line_supplier_request_draft', '_wpnonce', true, false);
+            $html .= '<input type="hidden" name="action" value="sbdp_quote_line_supplier_request_draft">';
+            $html .= '<input type="hidden" name="quote_id" value="' . esc_attr((string) $quoteId) . '">';
+            $html .= '<input type="hidden" name="line_id" value="' . esc_attr((string) $lineId) . '">';
+            $html .= '<button type="submit" class="button button-primary">' . esc_html__('Maak partnerverzoek', 'sbdp') . '</button>';
+            $html .= '</form>';
+        }
+
+        // Advanced: status handmatig aanpassen
+        $html .= '<details class="bsp-quote-admin__supplier-advanced">';
+        $html .= '<summary class="bsp-quote-admin__muted">' . esc_html__('Status handmatig aanpassen', 'sbdp') . '</summary>';
         $html .= '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" class="bsp-quote-admin__supplier-panel-form">';
         $html .= wp_nonce_field('sbdp_quote_line_supplier_status', '_wpnonce', true, false);
         $html .= '<input type="hidden" name="action" value="sbdp_quote_line_supplier_status">';
@@ -465,13 +516,14 @@ final class QuoteBuilderRenderer
             $html .= '<option value="' . esc_attr($value) . '"' . selected($status, $value, false) . '>' . esc_html($label) . '</option>';
         }
         $html .= '</select></label>';
-        $html .= '<label><span class="bsp-quote-admin__tiny-label">' . esc_html__('Option expires at', 'sbdp') . '</span><input type="text" name="option_expires_at" value="' . esc_attr($optionExpiresAt) . '" placeholder="2026-05-23T10:00:00+00:00" class="bsp-quote-admin__compact-input"></label>';
-        $html .= '<label><span class="bsp-quote-admin__tiny-label">' . esc_html__('Partner reference', 'sbdp') . '</span><input type="text" name="supplier_booking_reference" value="' . esc_attr($supplierBookingReference) . '" class="bsp-quote-admin__compact-input"></label>';
+        $html .= '<label><span class="bsp-quote-admin__tiny-label">' . esc_html__('Optie geldig tot', 'sbdp') . '</span><input type="text" name="option_expires_at" value="' . esc_attr($optionExpiresAt) . '" placeholder="2026-05-23T10:00:00+00:00" class="bsp-quote-admin__compact-input"></label>';
+        $html .= '<label><span class="bsp-quote-admin__tiny-label">' . esc_html__('Partnerreferentie', 'sbdp') . '</span><input type="text" name="supplier_booking_reference" value="' . esc_attr($supplierBookingReference) . '" class="bsp-quote-admin__compact-input"></label>';
         $html .= '<label><span class="bsp-quote-admin__tiny-label">' . esc_html__('Interne notitie', 'sbdp') . '</span><textarea name="internal_note" rows="3" class="bsp-quote-admin__compact-textarea">' . esc_textarea($internalNote) . '</textarea></label>';
-        $html .= '<button type="submit" class="button button-secondary">' . esc_html__('Supplier status opslaan', 'sbdp') . '</button>';
+        $html .= '<button type="submit" class="button button-secondary">' . esc_html__('Partnerstatus opslaan', 'sbdp') . '</button>';
         $html .= '</form>';
-        $html .= '<p class="bsp-quote-admin__muted"><strong>' . esc_html__('Huidig', 'sbdp') . ':</strong> ' . esc_html(self::quoteLineSupplierStatusLabel($status)) . '</p>';
-        $html .= '</div></details>';
+        $html .= '</details>';
+
+        $html .= '</div>';
 
         return $html;
     }

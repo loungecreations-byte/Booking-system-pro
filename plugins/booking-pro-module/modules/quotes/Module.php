@@ -36,6 +36,7 @@ final class Module implements ModuleInterface
             \add_action('admin_post_sbdp_quote_save_operations_draft', array(AdminController::class, 'handleSaveOperationsDraft'));
             \add_action('admin_post_sbdp_quote_line_control_status', array(AdminController::class, 'handleUpdateLineControlStatus'));
             \add_action('admin_post_sbdp_quote_line_supplier_status', array(AdminController::class, 'handleUpdateLineSupplierStatus'));
+            \add_action('admin_post_sbdp_quote_line_supplier_request_draft', array(AdminController::class, 'handleGenerateSupplierRequestDraft'));
             \add_action('admin_post_sbdp_quote_generate_proposal_draft', array(AdminController::class, 'handleGenerateProposalDraft'));
             \add_action('admin_post_sbdp_quote_generate_response_draft', array(AdminController::class, 'handleGenerateResponseDraft'));
             \add_action('admin_post_sbdp_quote_summarize_message', array(AdminController::class, 'handleSummarizeMessage'));

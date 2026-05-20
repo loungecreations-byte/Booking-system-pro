@@ -725,6 +725,166 @@ final class QuoteSupplierConfirmationService
     }
 
     /**
+     * Generate (or update) a supplier request draft message for a specific quote line.
+     *
+     * @return array{message:array<string,mixed>,status_changed:bool,supplier_email_missing:bool}
+     */
+    public function generateSupplierRequestDraft(int $quoteId, int $lineId, ?int $actorId = null): array
+    {
+        $quote = $this->repository->findQuote($quoteId);
+        if ($quote === null) {
+            throw new \InvalidArgumentException('Quote not found.');
+        }
+
+        $versionId = (int) ($quote['current_version_id'] ?? 0);
+        if ($versionId <= 0) {
+            throw new \InvalidArgumentException('Quote heeft geen actieve versie.');
+        }
+
+        $version = $this->repository->findQuoteVersion($versionId);
+        if ($version === null || (int) ($version['quote_id'] ?? 0) !== $quoteId) {
+            throw new \InvalidArgumentException('Actieve quote-versie niet gevonden.');
+        }
+
+        $line = $this->repository->findQuoteLine($lineId);
+        if ($line === null || (int) ($line['quote_version_id'] ?? 0) !== $versionId) {
+            throw new \InvalidArgumentException('Programmaregel niet gevonden in de actieve quote-versie.');
+        }
+
+        $productId = (int) ($line['product_id'] ?? 0);
+        $bookingMode = $this->resolveBookingMode($productId);
+        if (($bookingMode['bookingMode'] ?? '') !== BookingModeService::MODE_SUPPLIER_CONFIRMATION) {
+            throw new \InvalidArgumentException('Deze regel vereist geen partnerbevestiging.');
+        }
+
+        $supplierEmail = trim((string) ($bookingMode['supplierEmail'] ?? ''));
+        $supplierEmailMissing = $supplierEmail === '';
+        $supplierName = trim((string) ($bookingMode['supplierName'] ?? ''));
+        $supplierName = $supplierName !== '' ? $supplierName : 'Eropuitje';
+
+        $snapshot = $this->normalizeSnapshot($line['availability_snapshot_json'] ?? array());
+        $currentStatus = $this->normalizeStatus((string) ($snapshot['supplierStatus'] ?? ''));
+
+        $quoteReference = trim((string) ($quote['quote_reference'] ?? ''));
+        $threadToken = $quoteReference !== ''
+            ? $quoteReference . '-supplier-line-' . $lineId
+            : 'quote-' . $quoteId . '-supplier-line-' . $lineId;
+
+        $title = trim((string) ($line['title'] ?? ''));
+        $date = trim((string) ($line['service_date'] ?? ($snapshot['date'] ?? '')));
+        $startTime = trim((string) ($line['start_time'] ?? ($line['proposed_start_time'] ?? ($snapshot['startTime'] ?? ''))));
+        $participants = max(0, (int) ($line['participants'] ?? ($snapshot['participants'] ?? 0)));
+        $availabilityStatus = trim((string) ($snapshot['availabilityStatus'] ?? ''));
+        $availabilityCheckedAt = trim((string) ($snapshot['availabilityCheckedAt'] ?? ''));
+
+        $subject = sprintf(
+            'Optie-/bevestigingsverzoek DagjeDenBosch \u2013 %s \u2013 %s \u2013 %d personen',
+            $title !== '' ? $title : $supplierName,
+            $date !== '' ? $date : 'datum n.b.',
+            $participants
+        );
+
+        $bodyLines = array(
+            sprintf('Beste %s,', $supplierName),
+            '',
+            'Wij ontvingen een offerteverzoek voor de onderstaande activiteit.',
+            'Zou u vriendelijk een optie of bevestiging kunnen doorgeven?',
+            '',
+            'Activiteit : ' . ($title !== '' ? $title : $supplierName),
+            'Datum      : ' . ($date !== '' ? $date : 'n.b.'),
+            'Starttijd  : ' . ($startTime !== '' ? $startTime : 'n.b.'),
+            'Personen   : ' . ($participants > 0 ? $participants : 'n.b.'),
+            'Status     : ' . ($availabilityStatus !== '' ? $availabilityStatus : 'n.b.'),
+        );
+        if ($availabilityCheckedAt !== '') {
+            $bodyLines[] = 'Gecheckt op: ' . $availabilityCheckedAt;
+        }
+        $bodyLines[] = 'Referentie : ' . ($quoteReference !== '' ? $quoteReference : 'n.b.');
+        $bodyLines[] = '';
+        $bodyLines[] = 'Met vriendelijke groet,';
+        $bodyLines[] = 'DagjeDenBosch';
+        $body = implode("\n", $bodyLines);
+
+        $existingDraft = $this->findLatestSupplierDraft($quoteId, $threadToken);
+        $messagePayload = array(
+            'quote_version_id' => $versionId,
+            'direction'        => 'outbound',
+            'message_type'     => 'supplier_confirmation_request',
+            'channel'          => 'email',
+            'status'           => 'draft',
+            'subject'          => $subject,
+            'body'             => $body,
+            'to_name'          => $supplierName,
+            'to_email'         => $supplierEmail,
+            'thread_token'     => $threadToken,
+            'created_by'       => $actorId,
+        );
+
+        if ($existingDraft !== null) {
+            $message = $this->repository->updateQuoteMessage(
+                (int) $existingDraft['id'],
+                $messagePayload
+            );
+        } else {
+            $message = $this->repository->createQuoteMessage(
+                array_merge(array('quote_id' => $quoteId), $messagePayload)
+            );
+        }
+
+        // Status transition: only supplier_confirmation_required → supplier_option_requested.
+        // Higher statuses (supplier_option_held, supplier_booking_confirmed, etc.) are never downgraded.
+        $statusChanged = false;
+        if ($currentStatus === 'supplier_confirmation_required') {
+            $this->updateStatus($quoteId, $lineId, 'supplier_option_requested', array(), $actorId);
+            $statusChanged = true;
+        }
+
+        $this->events->log(
+            'quote_supplier_request_draft_generated',
+            isset($quote['quote_request_id']) ? (int) $quote['quote_request_id'] : null,
+            $quoteId,
+            $versionId,
+            $actorId,
+            'Partnerverzoek draft aangemaakt.',
+            array(
+                'line_id'               => $lineId,
+                'message_id'            => (int) ($message['id'] ?? 0),
+                'thread_token'          => $threadToken,
+                'supplier_email_missing' => $supplierEmailMissing,
+                'status_changed'        => $statusChanged,
+            )
+        );
+
+        return array(
+            'message'               => $message,
+            'status_changed'        => $statusChanged,
+            'supplier_email_missing' => $supplierEmailMissing,
+        );
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function findLatestSupplierDraft(int $quoteId, string $threadToken): ?array
+    {
+        $messages = $this->repository->listQuoteMessages($quoteId);
+        for ($i = count($messages) - 1; $i >= 0; $i--) {
+            $msg = $messages[$i];
+            if ((string) ($msg['message_type'] ?? '') !== 'supplier_confirmation_request') {
+                continue;
+            }
+            if ((string) ($msg['status'] ?? '') !== 'draft') {
+                continue;
+            }
+            if ((string) ($msg['thread_token'] ?? '') !== $threadToken) {
+                continue;
+            }
+            return $msg;
+        }
+        return null;
+    }
+
+    /**
      * @return array<string, mixed>
      */
     private function resolveBookingMode(int $productId): array

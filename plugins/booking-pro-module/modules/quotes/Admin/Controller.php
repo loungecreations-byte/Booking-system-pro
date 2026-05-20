@@ -455,6 +455,33 @@ final class Controller
             'quote_supplier_status_updated' => '1',
         ));
     }
+    public static function handleGenerateSupplierRequestDraft(): void {
+        self::assertAccess();
+        check_admin_referer('sbdp_quote_line_supplier_request_draft');
+        $quoteId = isset($_POST['quote_id']) ? (int) $_POST['quote_id'] : 0;
+        $lineId  = isset($_POST['line_id'])  ? (int) $_POST['line_id']  : 0;
+        $repository = new QuoteRepository();
+        $events     = new QuoteEventLogger($repository);
+        $service    = new QuoteSupplierConfirmationService($repository, $events);
+        try {
+            $service->generateSupplierRequestDraft(
+                $quoteId,
+                $lineId,
+                function_exists('get_current_user_id') ? (int) get_current_user_id() : null
+            );
+        } catch (\Throwable $exception) {
+            self::redirect('sbdp_quotes', array(
+                'quote_id'      => $quoteId,
+                'workspace_tab' => 'build',
+                'quote_error'   => rawurlencode($exception->getMessage()),
+            ));
+        }
+        self::redirect('sbdp_quotes', array(
+            'quote_id'               => $quoteId,
+            'workspace_tab'          => 'build',
+            'supplier_draft_created' => '1',
+        ));
+    }
     public static function handleGenerateProposalDraft(): void {
         self::assertAccess();
         check_admin_referer('sbdp_quote_generate_proposal_draft');
