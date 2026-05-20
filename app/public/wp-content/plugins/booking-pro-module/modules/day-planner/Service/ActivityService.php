@@ -1047,6 +1047,14 @@ final class ActivityService
         $item['requiresConfirmation'] = $item['requestOnly'];
         $item['is_bookable'] = $item['route_intent'] === BookingTruthRuntimeService::ROUTE_INTENT_CHECKOUT;
         $item['can_add_to_cart'] = $item['is_bookable'];
+        $item['can_add_to_planner'] = in_array(
+            $item['route_intent'],
+            array(
+                BookingTruthRuntimeService::ROUTE_INTENT_CHECKOUT,
+                BookingTruthRuntimeService::ROUTE_INTENT_QUOTE,
+            ),
+            true
+        );
         $item['discovery'] = array(
             'status'          => $item['booking_capability'],
             'route_intent'    => $item['route_intent'],
