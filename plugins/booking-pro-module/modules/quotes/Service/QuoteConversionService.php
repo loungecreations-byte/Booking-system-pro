@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace BSP\Quotes\Service;
 
 use BSP\Quotes\Repository\QuoteRepositoryInterface;
+use BSP\Quotes\Service\QuoteSupplierConfirmationService;
 use InvalidArgumentException;
 
 final class QuoteConversionService
@@ -64,6 +65,7 @@ final class QuoteConversionService
         ));
 
         $this->assumptions->createAutomaticAssumptions($request, $quote, $version, $savedLines);
+        (new QuoteSupplierConfirmationService($this->repository, $this->events))->syncQuote((int) $quote['id'], $actorId);
         $this->repository->updateQuoteRequest($quoteRequestId, array('status' => 'converted_to_quote'));
 
         $this->events->log(
@@ -171,6 +173,9 @@ final class QuoteConversionService
                 'currency'                 => 'EUR',
                 'selected_option_labels_json' => $this->normalizeOptionLabels($item['selected_option_labels_json'] ?? ($item['selected_option_labels'] ?? array())),
                 'validated_slot_label'     => $this->normalizeSlotLabel($item['validated_slot_label'] ?? null),
+                'availability_snapshot_json' => isset($item['availability_snapshot_json']) && is_array($item['availability_snapshot_json'])
+                    ? $item['availability_snapshot_json']
+                    : array(),
             );
             $lineNumber++;
         }
