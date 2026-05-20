@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SBDP\Modules\Planner\Rest;
 
+use BSPModule\Core\Services\BookingModeService;
 use SBDP\Modules\Planner\Services\PlannerService;
 use WP_Error;
 use WP_REST_Request;
@@ -474,13 +475,34 @@ final class PlannerRoutes
      */
     private function resolveBookingCapability(int $productId, array $product): string
     {
+        $bookingMode = class_exists(BookingModeService::class) && $this->hasBookingModeConfig($productId)
+            ? (new BookingModeService())->resolve($productId)
+            : null;
+        if (is_array($bookingMode)) {
+            $mode = (string) ($bookingMode['bookingMode'] ?? '');
+            if ($mode === BookingModeService::MODE_BLOCKED) {
+                return 'UNAVAILABLE';
+            }
+            if ($mode === BookingModeService::MODE_QUOTE || $mode === BookingModeService::MODE_SUPPLIER_CONFIRMATION) {
+                return 'REQUEST';
+            }
+        }
+
         $candidate = $this->normalizeCapability($product['booking_capability'] ?? null);
         if ($candidate !== null) {
+            if (is_array($bookingMode) && in_array($candidate, array('DIRECT', 'DIRECT_LIMITED'), true) && empty($bookingMode['directBookable'])) {
+                return 'UNAVAILABLE';
+            }
+
             return $candidate;
         }
 
         if ($this->productRequiresConfirmation($productId)) {
             return 'REQUEST';
+        }
+
+        if (is_array($bookingMode) && empty($bookingMode['directBookable'])) {
+            return 'UNAVAILABLE';
         }
 
         return 'DIRECT_LIMITED';
@@ -558,6 +580,30 @@ final class PlannerRoutes
         if (is_array($bookable)) {
             $flag = $bookable['booking_requires_confirmation'] ?? null;
             return $flag === 'yes' || $flag === '1' || $flag === 1 || $flag === true;
+        }
+
+        return false;
+    }
+
+    private function hasBookingModeConfig(int $productId): bool
+    {
+        if ($productId === 115) {
+            return true;
+        }
+
+        foreach (
+            array(
+                '_ddb_booking_mode',
+                '_ddb_direct_booking_enabled',
+                '_ddb_quote_os_enabled',
+                '_ddb_supplier_confirmation_required',
+                '_ddb_supplier_provider',
+            ) as $key
+        ) {
+            $value = get_post_meta($productId, $key, true);
+            if (is_scalar($value) && trim((string) $value) !== '') {
+                return true;
+            }
         }
 
         return false;
