@@ -39,6 +39,10 @@ const PRICE_RULES = {
   premium: { min: 100, max: Number.POSITIVE_INFINITY },
 };
 
+function canAddProductToPlanner(product) {
+  return product?.can_add_to_planner !== false;
+}
+
 const SORT_OPTIONS = [
   { value: "recommended", label: "Aanbevolen" },
   { value: "price-asc", label: "Prijs laag-hoog" },
@@ -1144,16 +1148,16 @@ export default function ActivityCarousel({
                       <button
                         type="button"
                         className={`ui-listing-card__cta ui-listing-card__cta--primary ${addedCount > 0 ? "is-added" : ""}`.trim()}
-                        disabled={product.can_add_to_cart === false}
+                        disabled={!canAddProductToPlanner(product)}
                         onClick={(e) => {
                           e.stopPropagation();
-                          if (product.can_add_to_cart === false) {
+                          if (!canAddProductToPlanner(product)) {
                             return;
                           }
                           addProductToPlanner(product);
                         }}
                       >
-                        {product.can_add_to_cart === false ? "Preview" : addedCount > 0 ? "Toegevoegd" : "+ Voeg toe"}
+                        {canAddProductToPlanner(product) ? (addedCount > 0 ? "Toegevoegd" : "+ Voeg toe") : "Preview"}
                       </button>
                     </div>
                   </article>
@@ -1280,7 +1284,6 @@ function CloseIcon() {
     </svg>
   );
 }
-
 
 
 

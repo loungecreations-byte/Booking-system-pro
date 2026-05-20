@@ -4,6 +4,10 @@ import PropTypes from "prop-types";
 import { minutesToTime, timeToMinutes } from "../utils/time.js";
 import { computeSlotPricing, formatPrice } from "../../shared/booking.js";
 
+function canAddProductToPlanner(product) {
+  return product?.can_add_to_planner !== false;
+}
+
 export default function ActivityLibrary({
   products,
   allProducts,
@@ -31,7 +35,7 @@ export default function ActivityLibrary({
     if (!event.dataTransfer) {
       return;
     }
-    if (product?.can_add_to_cart === false) {
+    if (!canAddProductToPlanner(product)) {
       event.preventDefault();
       return;
     }
@@ -71,7 +75,7 @@ export default function ActivityLibrary({
           <li
             key={product.id}
             className="sbdp-activity"
-            draggable={product.can_add_to_cart !== false}
+            draggable={canAddProductToPlanner(product)}
             onDragStart={(event) => handleDragStart(event, product)}
           >
             <div className="sbdp-activity__media">
@@ -125,9 +129,9 @@ export default function ActivityLibrary({
                 <button
                   type="button"
                   className="ui-btn ui-btn--secondary"
-                  disabled={product.can_add_to_cart === false}
+                  disabled={!canAddProductToPlanner(product)}
                   onClick={() => {
-                    if (product.can_add_to_cart === false) {
+                    if (!canAddProductToPlanner(product)) {
                       return;
                     }
                     setSelectedDay(0);
@@ -135,7 +139,7 @@ export default function ActivityLibrary({
                     onAddRequest(product);
                   }}
                 >
-                  {product.can_add_to_cart === false ? "Preview" : "Toevoegen"}
+                  {canAddProductToPlanner(product) ? "Toevoegen" : "Preview"}
                 </button>
               </div>
             </div>
