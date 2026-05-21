@@ -1311,7 +1311,18 @@ final class QuoteWorkspaceRenderer
             $currentTab = 'dashboard';
         }
         $primaryAction = self::resolveQuotePrimaryAction($quote, $workspaceState, $sendAllowed, $handoffAllowed);
-        $workspaceAlerts = self::buildQuoteWorkspaceAlerts($quoteId, $sendReadiness, $businessValidation, $assumptions, $followups, $communicationState, $quoteCommerciallyEditable);
+        // Filter out stale auto-assumptions whose underlying condition is already resolved on the current version.
+        $filteredAssumptions = array_values(array_filter($assumptions, static function (array $a) use ($availabilityConfirmed, $pricingConfirmed): bool {
+            $type = (string) ($a['assumption_type'] ?? '');
+            if ($availabilityConfirmed && $type === 'uncertain_availability') {
+                return false;
+            }
+            if ($pricingConfirmed && $type === 'uncertain_pricing') {
+                return false;
+            }
+            return true;
+        }));
+        $workspaceAlerts = self::buildQuoteWorkspaceAlerts($quoteId, $sendReadiness, $businessValidation, $filteredAssumptions, $followups, $communicationState, $quoteCommerciallyEditable);
         $workspaceTabs = array(
             'dashboard' => __('Overzicht', 'sbdp'),
             'build' => __('Programma & prijs', 'sbdp'),
@@ -1327,17 +1338,26 @@ final class QuoteWorkspaceRenderer
         self::renderQuoteDecisionStrip($quoteId, $quote, $request, $requester, $currentVersion, $pricingConfidence, $availabilityConfidence, $primaryAction);
         self::renderQuoteWorkspaceSummaryCards($quoteId, $quote, $request, $requester, $formattedAddress, $contactSummary, $proposalProgram, $lineSummary, $amountLabel, $pricingConfidence, $availabilityConfidence, $workspaceAlerts);
 
-        echo '<nav class="nav-tab-wrapper bsp-quote-admin__workspace-tabs" aria-label="' . esc_attr__('Quote Workspace modes', 'sbdp') . '">';
+        echo '<div class="bsp-quote-admin__workspace-accordion-nav" aria-label="' . esc_attr__('Secundaire Quote OS onderdelen', 'sbdp') . '">';
         foreach ($workspaceTabs as $tabKey => $tabLabel) {
+            if ($tabKey === 'dashboard' || $tabKey === 'build') {
+                continue;
+            }
             $tabUrl = add_query_arg(array(
                 'page' => 'sbdp_quotes',
                 'quote_id' => $quoteId,
                 'workspace_tab' => $tabKey,
             ), admin_url('admin.php'));
-            $tabClass = 'nav-tab' . ($currentTab === $tabKey ? ' nav-tab-active' : '');
-            echo '<a class="' . esc_attr($tabClass) . '" href="' . esc_url($tabUrl) . '">' . esc_html($tabLabel) . '</a>';
+            $description = match ($tabKey) {
+                'proposal' => __('Voorsteltekst en klantweergave openen alleen wanneer je die nodig hebt.', 'sbdp'),
+                'communication' => __('Berichten, drafts en klantreacties blijven beschikbaar buiten de hoofdcontrole.', 'sbdp'),
+                'handoff' => __('Technische overdracht blijft secundair en wordt pas dominant na acceptatie.', 'sbdp'),
+                'history' => __('Versies en audit blijven bewaard, maar staan niet in de weg bij beoordelen.', 'sbdp'),
+                default => __('Detailonderdeel openen.', 'sbdp'),
+            };
+            echo '<details><summary>' . esc_html($tabLabel) . '</summary><div><p>' . esc_html($description) . '</p><a class="button button-secondary button-small" href="' . esc_url($tabUrl) . '">' . esc_html__('Open onderdeel', 'sbdp') . '</a></div></details>';
         }
-        echo '</nav>';
+        echo '</div>';
         self::renderCommercialIntakeNotice($commercialIntakeNotice);
 
         if ($currentTab === 'dashboard') {
@@ -2669,12 +2689,136 @@ final class QuoteWorkspaceRenderer
         string $availabilityConfidence,
         array $alerts
     ): void {
-        unset($quote);
-        echo '<div class="bsp-quote-admin__summary-cards">';
-        self::renderQuoteCustomerRequestCard($request, $requester, $formattedAddress, $contactSummary);
-        self::renderQuoteProgramPriceCard($quoteId, $proposalProgram, $lineSummary, $amountLabel, $pricingConfidence, $availabilityConfidence);
+        $stats = is_array($proposalProgram['stats'] ?? null) ? $proposalProgram['stats'] : array();
+        $blockers = is_array($alerts['blockers'] ?? null) ? $alerts['blockers'] : array();
+        $partnerActions = is_array($alerts['partner_actions'] ?? null) ? $alerts['partner_actions'] : array();
+        $warnings = is_array($alerts['warnings'] ?? null) ? $alerts['warnings'] : array();
+        $summary = is_array($request) ? trim((string) ($request['request_summary'] ?? '')) : '';
+        $date = is_array($request) ? trim((string) ($request['preferred_date'] ?? '')) : '';
+        $groupSize = is_array($request) ? max(0, (int) ($request['group_size'] ?? 0)) : 0;
+        $discountLabel = self::resolveQuoteDiscountLabel($lineSummary);
+        $sendLabel = self::humanSendStatusLabel((string) ($quote['send_status'] ?? 'not_ready'), (string) ($quote['status'] ?? 'draft'));
+        $nextAction = self::resolveSummaryNextActionLabel($blockers, $partnerActions, $warnings, (string) ($quote['send_status'] ?? 'not_ready'), (string) ($quote['status'] ?? 'draft'));
+
+        echo '<section class="postbox bsp-quote-admin__summary-bar" aria-label="' . esc_attr__('Quote samenvatting', 'sbdp') . '">';
+        echo '<div class="bsp-quote-admin__summary-bar-section">';
+        echo '<h3>' . esc_html__('Klant', 'sbdp') . '</h3>';
+        echo '<div class="bsp-quote-admin__summary-bar-grid">';
+        echo self::renderSummaryBarItem(__('Naam', 'sbdp'), (string) (($requester['name'] ?? '') ?: __('Onbekend', 'sbdp')));
+        echo self::renderSummaryBarItem(__('Contact', 'sbdp'), $contactSummary !== array() ? implode(' | ', $contactSummary) : __('Ontbreekt', 'sbdp'));
+        echo self::renderSummaryBarItem(__('Datum', 'sbdp'), $date !== '' ? $date : __('Nog open', 'sbdp'));
+        echo self::renderSummaryBarItem(__('Groep', 'sbdp'), $groupSize > 0 ? sprintf(__('%d personen', 'sbdp'), $groupSize) : __('Nog open', 'sbdp'));
+        if ($formattedAddress !== '') {
+            echo self::renderSummaryBarItem(__('Adres', 'sbdp'), $formattedAddress);
+        }
+        echo '</div>';
+        if ($summary !== '') {
+            echo '<p class="bsp-quote-admin__summary-bar-note">' . esc_html($summary) . '</p>';
+        }
+        echo '</div>';
+
+        echo '<div class="bsp-quote-admin__summary-bar-section">';
+        echo '<h3>' . esc_html__('Prijs & programma', 'sbdp') . '</h3>';
+        echo '<div class="bsp-quote-admin__summary-bar-grid">';
+        echo self::renderSummaryBarItem(__('Onderdelen', 'sbdp'), (string) ((int) ($stats['total_lines'] ?? 0)));
+        echo self::renderSummaryBarItem(__('Gepland', 'sbdp'), sprintf('%d / %d', (int) ($stats['scheduled_lines'] ?? 0), (int) ($stats['total_lines'] ?? 0)));
+        echo self::renderSummaryBarItem(__('Subtotaal', 'sbdp'), (string) ($lineSummary['subtotal_label'] ?? __('Nog niet bepaald', 'sbdp')));
+        echo self::renderSummaryBarItem(__('Korting', 'sbdp'), $discountLabel);
+        echo self::renderSummaryBarItem($amountLabel, (string) ($lineSummary['total_label'] ?? __('Nog niet bepaald', 'sbdp')), true);
+        echo self::renderSummaryBarItem(__('Verzendstatus', 'sbdp'), $sendLabel);
+        echo '</div>';
+        echo '<div class="bsp-quote-admin__summary-status-row">';
+        echo self::renderInlineBadge(self::humanPricingStatusLabel($pricingConfidence), self::confidenceBadgeClass($pricingConfidence));
+        echo self::renderInlineBadge(self::humanAvailabilityStatusLabel($availabilityConfidence), self::confidenceBadgeClass($availabilityConfidence));
+        echo '<a class="button button-small" href="' . esc_url(self::workspaceTabUrl($quoteId, 'build')) . '">' . esc_html__('Open programma', 'sbdp') . '</a>';
+        echo '</div>';
+        echo '</div>';
+
+        echo '<div class="bsp-quote-admin__summary-bar-section bsp-quote-admin__summary-bar-section--actions">';
+        echo '<h3>' . esc_html__('Nog nodig vóór verzenden', 'sbdp') . '</h3>';
+        echo '<div class="bsp-quote-admin__summary-action-counts">';
+        echo self::renderInlineBadge(sprintf(_n('%d blocker', '%d blockers', count($blockers), 'sbdp'), count($blockers)), $blockers !== array() ? 'is-error' : 'is-good');
+        echo self::renderInlineBadge(sprintf(_n('%d partneractie', '%d partneracties', count($partnerActions), 'sbdp'), count($partnerActions)), $partnerActions !== array() ? 'is-warn' : 'is-neutral');
+        echo self::renderInlineBadge(sprintf(_n('%d waarschuwing', '%d waarschuwingen', count($warnings), 'sbdp'), count($warnings)), $warnings !== array() ? 'is-warn' : 'is-neutral');
+        echo '</div>';
+        echo '<strong class="bsp-quote-admin__summary-next-action">' . esc_html($nextAction) . '</strong>';
         self::renderQuoteAlertsCard($alerts);
         echo '</div>';
+        echo '</section>';
+    }
+
+    private static function renderSummaryBarItem(string $label, string $value, bool $isPrimary = false): string
+    {
+        return '<div class="' . esc_attr('bsp-quote-admin__summary-bar-item' . ($isPrimary ? ' is-primary' : '')) . '"><span>' . esc_html($label) . '</span><strong>' . esc_html($value) . '</strong></div>';
+    }
+
+    /**
+     * @param array<string, mixed> $lineSummary
+     */
+    private static function resolveQuoteDiscountLabel(array $lineSummary): string
+    {
+        $discountAmount = isset($lineSummary['discount_amount']) && is_numeric($lineSummary['discount_amount'])
+            ? (float) $lineSummary['discount_amount']
+            : 0.0;
+        if ($discountAmount > 0.0) {
+            $currency = trim((string) (($lineSummary['currency'] ?? '') ?: 'EUR'));
+            $label = trim((string) ($lineSummary['discount_label'] ?? __('Korting', 'sbdp')));
+
+            return sprintf('%s: %s', $label !== '' ? $label : __('Korting', 'sbdp'), self::formatMoney($discountAmount, $currency));
+        }
+
+        $candidates = array(
+            $lineSummary['discount_total_label'] ?? null,
+            $lineSummary['discount_amount_label'] ?? null,
+        );
+        foreach ($candidates as $candidate) {
+            $value = trim((string) $candidate);
+            if ($value !== '') {
+                return $value;
+            }
+        }
+
+        return __('Geen korting', 'sbdp');
+    }
+
+    private static function humanSendStatusLabel(string $sendStatus, string $quoteStatus): string
+    {
+        return match (true) {
+            $quoteStatus === 'accepted' => __('Geaccepteerd', 'sbdp'),
+            in_array($quoteStatus, array('sent', 'sent_manual'), true) => __('Verzonden', 'sbdp'),
+            in_array($quoteStatus, array('revision_requested', 'needs_revision'), true) => __('Revisie gevraagd', 'sbdp'),
+            $sendStatus === 'ready_to_send' => __('Klaar om te verzenden', 'sbdp'),
+            default => __('Niet verzendklaar', 'sbdp'),
+        };
+    }
+
+    /**
+     * @param array<int, mixed> $blockers
+     * @param array<int, mixed> $partnerActions
+     * @param array<int, mixed> $warnings
+     */
+    private static function resolveSummaryNextActionLabel(array $blockers, array $partnerActions, array $warnings, string $sendStatus, string $quoteStatus): string
+    {
+        if ($blockers !== array()) {
+            return __('Los blocker op', 'sbdp');
+        }
+        if ($partnerActions !== array()) {
+            return __('Vraag partnerbevestiging aan', 'sbdp');
+        }
+        if ($sendStatus === 'ready_to_send') {
+            return __('Verstuur voorstel', 'sbdp');
+        }
+        if ($quoteStatus === 'accepted') {
+            return __('Bereid handoff voor', 'sbdp');
+        }
+        if (in_array($quoteStatus, array('sent', 'sent_manual'), true)) {
+            return __('Bekijk voorstel / wacht op klant', 'sbdp');
+        }
+        if ($warnings !== array()) {
+            return __('Controleer details', 'sbdp');
+        }
+
+        return __('Werk programma bij', 'sbdp');
     }
 
     /**
@@ -2733,31 +2877,41 @@ final class QuoteWorkspaceRenderer
         $blockers = is_array($alerts['blockers'] ?? null) ? $alerts['blockers'] : array();
         $warnings = is_array($alerts['warnings'] ?? null) ? $alerts['warnings'] : array();
         $infos = is_array($alerts['infos'] ?? null) ? $alerts['infos'] : array();
-        echo '<section id="quote-blockers-card" class="postbox bsp-quote-admin__summary-card"><div class="bsp-quote-admin__panel-header"><h3>' . esc_html__('Blockers / waarschuwingen', 'sbdp') . '</h3></div><div class="bsp-quote-admin__panel-body">';
-        if ($blockers === array() && $warnings === array()) {
-            echo '<div class="bsp-quote-admin__readiness-summary"><strong>' . esc_html__('Geen blokkerende punten zichtbaar', 'sbdp') . '</strong><p>' . esc_html__('Controleer voorstel en communicatie voordat je de volgende stap uitvoert.', 'sbdp') . '</p></div>';
+        $partnerActions = is_array($alerts['partner_actions'] ?? null) ? $alerts['partner_actions'] : array();
+        echo '<div id="quote-blockers-card" class="bsp-quote-admin__action-center">';
+        if ($blockers === array() && $partnerActions === array() && $warnings === array()) {
+            echo '<div class="bsp-quote-admin__readiness-summary bsp-quote-admin__readiness-summary--compact"><strong>' . esc_html__('Geen blokkerende punten zichtbaar', 'sbdp') . '</strong><p>' . esc_html__('Controleer voorstel en communicatie voordat je de volgende stap uitvoert.', 'sbdp') . '</p></div>';
         } else {
-            self::renderQuoteAlertList(__('Blockers', 'sbdp'), $blockers, 'is-blocker');
-            self::renderQuoteAlertList(__('Waarschuwingen', 'sbdp'), $warnings, 'is-warning');
+            if ($blockers !== array()) {
+                self::renderQuoteAlertList(__('Moet vóór verzenden', 'sbdp'), $blockers, 'is-blocker', 2);
+            }
+            if ($partnerActions !== array()) {
+                self::renderQuoteAlertList(__('Partneracties', 'sbdp'), $partnerActions, 'is-partner', 2);
+            }
+            if ($warnings !== array()) {
+                echo '<details class="bsp-quote-admin__advanced-panel bsp-quote-admin__warning-details"><summary>' . esc_html__('Toon waarschuwingen', 'sbdp') . '</summary>';
+                self::renderQuoteAlertList(__('Waarschuwingen', 'sbdp'), $warnings, 'is-warning');
+                echo '</details>';
+            }
         }
         if ($infos !== array()) {
             echo '<details class="bsp-quote-admin__advanced-panel"><summary>' . esc_html__('Info', 'sbdp') . '</summary>';
             self::renderQuoteAlertList(__('Info', 'sbdp'), $infos, 'is-info');
             echo '</details>';
         }
-        echo '</div></section>';
+        echo '</div>';
     }
 
     /**
      * @param array<int, array{title:string,message:string}> $items
      */
-    private static function renderQuoteAlertList(string $title, array $items, string $className): void
+    private static function renderQuoteAlertList(string $title, array $items, string $className, int $visibleLimit = 4): void
     {
         if ($items === array()) {
             return;
         }
         echo '<div class="bsp-quote-admin__alert-list ' . esc_attr($className) . '"><strong>' . esc_html($title) . '</strong><ul>';
-        foreach (array_slice($items, 0, 4) as $item) {
+        foreach (array_slice($items, 0, max(1, $visibleLimit)) as $item) {
             echo '<li><span>' . esc_html((string) ($item['title'] ?? '')) . '</span><small>' . esc_html((string) ($item['message'] ?? '')) . '</small>';
             $actionHref = trim((string) ($item['action_href'] ?? ''));
             if ($actionHref !== '') {
@@ -2765,6 +2919,9 @@ final class QuoteWorkspaceRenderer
                 echo '<a class="button button-small" href="' . esc_url($actionHref) . '">' . esc_html($actionLabel !== '' ? $actionLabel : __('Open actie', 'sbdp')) . '</a>';
             }
             echo '</li>';
+        }
+        if (count($items) > $visibleLimit) {
+            echo '<li class="bsp-quote-admin__alert-more"><small>' . esc_html(sprintf(__('%d extra punt(en) onder details', 'sbdp'), count($items) - $visibleLimit)) . '</small></li>';
         }
         echo '</ul></div>';
     }
@@ -2794,11 +2951,15 @@ final class QuoteWorkspaceRenderer
             if (! is_array($blocker)) {
                 continue;
             }
+            $blockerCode = (string) ($blocker['code'] ?? 'send_blocker');
+            $isReviewBlocker = $blockerCode === 'review_not_approved';
             $blockers[] = array(
-                'title' => self::humanBlockerTitle((string) ($blocker['code'] ?? 'send_blocker')),
-                'message' => (string) ($blocker['message'] ?? ''),
-                'action_href' => self::workspaceTabUrl($quoteId, 'build'),
-                'action_label' => __('Controleer in Programma & prijs', 'sbdp'),
+                'title'        => self::humanBlockerTitle($blockerCode),
+                'message'      => (string) ($blocker['message'] ?? ''),
+                'action_href'  => self::workspaceTabUrl($quoteId, $isReviewBlocker ? 'dashboard' : 'build'),
+                'action_label' => $isReviewBlocker
+                    ? __('Naar Overzicht', 'sbdp')
+                    : __('Controleer in Programma & prijs', 'sbdp'),
             );
         }
 
@@ -2862,6 +3023,8 @@ final class QuoteWorkspaceRenderer
             'send_assumption_open' => __('Open commerciële check', 'sbdp'),
             'woo_product_missing', 'woo_product_not_found', 'woo_product_unavailable', 'woo_product_not_purchasable' => __('Woo-product niet klaar', 'sbdp'),
             'currency_mixed', 'discount_invalid' => __('Prijscontrole', 'sbdp'),
+            'review_not_approved' => __('Review niet afgerond', 'sbdp'),
+            'send_status_not_ready' => __('Offerte niet verzendklaar', 'sbdp'),
             default => __('Blocker', 'sbdp'),
         };
     }
@@ -2903,7 +3066,7 @@ final class QuoteWorkspaceRenderer
     {
         return match ($confidence) {
             'execution_verified' => __('Prijs bevestigd', 'sbdp'),
-            'snapshot' => __('Prijs uit snapshot', 'sbdp'),
+            'snapshot' => __('Onder voorbehoud', 'sbdp'),
             'projected', 'directional' => __('Richtprijs', 'sbdp'),
             default => __('Prijs nog controleren', 'sbdp'),
         };
@@ -3342,26 +3505,11 @@ final class QuoteWorkspaceRenderer
      */
     public static function inspectQuoteSendReadiness(int $quoteId, array $quote, ?array $currentVersion, QuoteRepositoryInterface $repository): array
     {
-        $workflowBlockers = array();
-        if ((string) ($quote['review_status'] ?? 'not_started') !== 'approved') {
-            $workflowBlockers[] = array(
-                'code' => 'review_not_approved',
-                'message' => __('Een voorstelmail kan pas worden verstuurd na goedgekeurde review.', 'sbdp'),
-            );
-        }
-        if ((string) ($quote['send_status'] ?? 'not_ready') !== 'ready_to_send') {
-            $workflowBlockers[] = array(
-                'code' => 'send_status_not_ready',
-                'message' => __('Deze offerte kan nog niet worden verstuurd.', 'sbdp'),
-            );
-        }
-
         $inspection = (new QuoteSendReadinessValidator($repository))->inspect($quoteId);
-        $blockers = array_merge($workflowBlockers, (array) ($inspection['blockers'] ?? array()));
 
         return array(
-            'ready' => $workflowBlockers === array() && ! empty($inspection['ready']),
-            'blockers' => $blockers,
+            'ready'      => ! empty($inspection['ready']),
+            'blockers'   => (array) ($inspection['blockers'] ?? array()),
             'version_id' => (int) ($currentVersion['id'] ?? 0),
         );
     }
@@ -4028,9 +4176,9 @@ final class QuoteWorkspaceRenderer
 
     private static function resolveWorkspaceTab(): string
     {
-        $tab = isset($_GET['workspace_tab']) ? (string) $_GET['workspace_tab'] : 'dashboard'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $tab = isset($_GET['workspace_tab']) ? (string) $_GET['workspace_tab'] : 'build'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
-        return self::normalizeWorkspaceTab($tab, 'dashboard');
+        return self::normalizeWorkspaceTab($tab, 'build');
     }
 
     private static function normalizeWorkspaceTab(string $tab, string $default = 'dashboard'): string

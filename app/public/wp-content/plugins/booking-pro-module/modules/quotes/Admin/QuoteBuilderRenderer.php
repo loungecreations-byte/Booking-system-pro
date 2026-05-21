@@ -176,10 +176,10 @@ final class QuoteBuilderRenderer
         $primaryActionUrl = add_query_arg(array(
             'page' => 'sbdp_quotes',
             'quote_id' => $quoteId,
-            'workspace_tab' => $readyToSend ? 'communication' : 'dashboard',
+            'workspace_tab' => $readyToSend ? 'communication' : 'build',
         ), admin_url('admin.php'));
 
-        echo '<section class="postbox bsp-quote-admin__panel"><div class="bsp-quote-admin__panel-header"><div><h3>' . esc_html__('Dagprogramma bouwen', 'sbdp') . '</h3><p class="bsp-quote-admin__muted">' . esc_html__('Kies activiteit, datum, aantal personen en daarna een beschikbaar tijdslot. Prijs en beschikbaarheid worden vóór verzenden gecontroleerd.', 'sbdp') . '</p></div></div><div class="bsp-quote-admin__panel-body">';
+        echo '<section class="postbox bsp-quote-admin__panel"><div class="bsp-quote-admin__panel-header"><div><h3>' . esc_html__('Offerte controleren', 'sbdp') . '</h3><p class="bsp-quote-admin__muted">' . esc_html__('Controleer klantvraag, programma, prijs, beschikbaarheid en open punten op één plek.', 'sbdp') . '</p></div></div><div class="bsp-quote-admin__panel-body">';
         echo '<div class="bsp-quote-admin__readiness-summary bsp-quote-admin__readiness-summary--operator"><strong>' . esc_html(sprintf(__('Werkversie %s', 'sbdp'), $versionLabel)) . '</strong><p>' . esc_html($frozenHint) . '</p></div>';
         echo '<div class="bsp-quote-admin__builder-intake"><div><span class="bsp-quote-admin__field-label">' . esc_html__('Eventdatum', 'sbdp') . '</span><strong>' . esc_html($defaultDate !== '' ? $defaultDate : __('Nog niet ingevuld', 'sbdp')) . '</strong></div><div><span class="bsp-quote-admin__field-label">' . esc_html__('Aantal personen', 'sbdp') . '</span><strong>' . esc_html($defaultParticipants > 0 ? sprintf(__('%d personen', 'sbdp'), $defaultParticipants) : __('Nog open', 'sbdp')) . '</strong></div><div><span class="bsp-quote-admin__field-label">' . esc_html__('Normale flow', 'sbdp') . '</span><strong>' . esc_html__('Activiteit -> datum -> tijdslot -> opslaan', 'sbdp') . '</strong></div></div>';
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" class="bsp-quote-admin__builder-form" data-builder-slots-url="' . esc_url($availabilitySlotsUrl) . '" data-builder-rest-nonce="' . esc_attr($restNonce) . '">';
@@ -277,6 +277,7 @@ final class QuoteBuilderRenderer
         $availabilityControlStatus = self::quoteLineAvailabilityControlStatus($line);
         $pricingLabel = self::quoteBuilderPricingLabel($pricingConfidence);
         $availabilityLabel = self::quoteBuilderAvailabilityLabel($availabilityConfidence);
+        $lineHasBlocker = $availabilityControlStatus === 'unavailable' || (string) ($line['line_status'] ?? '') === 'unavailable';
         $rowTitle = trim((string) ($line['title'] ?? ''));
         if ($rowTitle === '') {
             foreach ($catalog as $product) {
@@ -311,7 +312,7 @@ final class QuoteBuilderRenderer
         $html .= '<input type="hidden" name="lines[' . $indexAttr . '][position_group]" value="' . esc_attr((string) ($line['position_group'] ?? '')) . '">';
         $html .= '<input type="hidden" name="lines[' . $indexAttr . '][is_optional]" value="' . esc_attr(! empty($line['is_optional']) ? '1' : '0') . '">';
 
-        $html .= '<article class="bsp-quote-admin__builder-row bsp-quote-admin__builder-row--compact" data-builder-row draggable="true">';
+        $html .= '<article class="bsp-quote-admin__builder-row bsp-quote-admin__builder-row--compact' . ($lineHasBlocker ? ' has-blocker' : '') . '" data-builder-row draggable="true">';
         $html .= '<div class="bsp-quote-admin__builder-compact-summary">';
         $html .= '<div class="bsp-quote-admin__builder-row-drag"><button type="button" class="button-link bsp-quote-admin__builder-handle" aria-label="' . esc_attr__('Versleep', 'sbdp') . '">≡</button></div>';
         $html .= '<div><span class="bsp-quote-admin__tiny-label">' . esc_html__('Activiteit', 'sbdp') . '</span><strong data-builder-title-label>' . esc_html($rowTitle) . '</strong></div>';
@@ -325,7 +326,7 @@ final class QuoteBuilderRenderer
         $html .= '<button type="button" class="button-link bsp-quote-admin__builder-duplicate" title="' . esc_attr__('Dupliceer', 'sbdp') . '"><span class="dashicons dashicons-admin-page"></span></button>';
         $html .= '<button type="button" class="button-link bsp-quote-admin__builder-remove" title="' . esc_attr__('Verwijder', 'sbdp') . '"><span class="dashicons dashicons-trash"></span></button>';
         $html .= '</div></div>';
-        $html .= '<details class="bsp-quote-admin__builder-edit-panel"><summary class="button button-secondary">' . esc_html__('Bewerk', 'sbdp') . '</summary>';
+        $html .= '<details class="bsp-quote-admin__builder-edit-panel"' . ($lineHasBlocker ? ' open' : '') . '><summary class="button button-secondary">' . esc_html__('Bewerk', 'sbdp') . '</summary>';
         $html .= '<div class="bsp-quote-admin__builder-edit-fields">';
         $html .= '<div class="bsp-quote-admin__builder-row-main-inputs">';
         $html .= '<select name="lines[' . $indexAttr . '][product_id]" data-builder-product-select class="bsp-quote-admin__compact-select">' . $productOptions . '</select>';
@@ -555,7 +556,7 @@ final class QuoteBuilderRenderer
     {
         return match ($confidence) {
             'execution_verified' => __('Prijs bevestigd', 'sbdp'),
-            'snapshot' => __('Prijs vastgelegd', 'sbdp'),
+            'snapshot' => __('Onder voorbehoud', 'sbdp'),
             'projected', 'directional' => __('Prijs nog controleren', 'sbdp'),
             default => __('Prijs nog niet bevestigd', 'sbdp'),
         };
@@ -677,7 +678,7 @@ final class QuoteBuilderRenderer
             let dragSource = null;
             const pricingLabels = {
                 execution_verified: "Prijs bevestigd",
-                snapshot: "Prijs vastgelegd",
+                snapshot: "Onder voorbehoud",
                 projected: "Prijs nog controleren",
                 directional: "Prijs nog controleren",
                 unknown: "Prijs nog niet bevestigd"
@@ -1252,6 +1253,7 @@ final class QuoteBuilderRenderer
             .bsp-quote-admin__badge.is-good{background:#dff5e3;color:#0a5222}
             .bsp-quote-admin__badge.is-warn{background:#fff3cd;color:#7a4b00}
             .bsp-quote-admin__badge.is-neutral{background:#eef2f7;color:#324055}
+            .bsp-quote-admin__badge.is-error{background:#f8d7da;color:#8a2424}
             .bsp-badge {
                 display: inline-block;
                 padding: 2px 8px;
@@ -1268,28 +1270,54 @@ final class QuoteBuilderRenderer
             .bsp-quote-admin__actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
             .bsp-quote-admin__actions--stacked{align-items:flex-start}
             .bsp-quote-admin__link{text-decoration:none}
-            .bsp-quote-admin__workspace{display:flex;flex-direction:column;gap:16px;margin-top:16px}
-            .bsp-quote-admin__workspace-tabs{margin:0;padding-top:0}
-            .bsp-quote-admin__decision-strip{display:grid;grid-template-columns:minmax(0,1fr) minmax(180px,auto);gap:12px;align-items:stretch;margin:0;padding:12px;border:1px solid #d0d7de;border-radius:8px;background:#fff}
-            .bsp-quote-admin__decision-strip-main{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
-            .bsp-quote-admin__decision-strip-main > div,.bsp-quote-admin__compact-metrics > div{padding:9px 10px;border:1px solid #e2e4e7;border-radius:6px;background:#fbfcfe;min-width:0}
+            .bsp-quote-admin__workspace{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+            .bsp-quote-admin__workspace-accordion-nav{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:6px;margin:-2px 0 0}
+            .bsp-quote-admin__workspace-accordion-nav details{border:1px solid #d0d7de;border-radius:7px;background:#fff}
+            .bsp-quote-admin__workspace-accordion-nav summary{cursor:pointer;padding:7px 10px;font-size:12px;font-weight:700;color:#1d2327}
+            .bsp-quote-admin__workspace-accordion-nav div{padding:0 10px 10px}
+            .bsp-quote-admin__workspace-accordion-nav p{margin:0 0 8px;color:#646970;font-size:12px;line-height:1.35}
+            .bsp-quote-admin__decision-strip{position:sticky;top:32px;z-index:40;display:grid;grid-template-columns:minmax(0,1fr) minmax(170px,auto);gap:10px;align-items:center;margin:0;padding:8px 10px;border:1px solid #2f3a42;border-radius:7px;background:#171f26;color:#f6f7f7;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+            .bsp-quote-admin__decision-strip-main{display:grid;grid-template-columns:1.4fr repeat(6,minmax(88px,.75fr));gap:6px;align-items:stretch}
+            .bsp-quote-admin__decision-strip-main > div,.bsp-quote-admin__compact-metrics > div{padding:7px 8px;border:1px solid #e2e4e7;border-radius:6px;background:#fbfcfe;min-width:0}
             .bsp-quote-admin__decision-strip span,.bsp-quote-admin__compact-metrics span{display:block;margin-bottom:3px;color:#646970;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase}
             .bsp-quote-admin__decision-strip strong,.bsp-quote-admin__compact-metrics strong{display:block;color:#1d2327;font-size:13px;line-height:1.25;overflow-wrap:anywhere}
-            .bsp-quote-admin__decision-strip-action{display:flex;flex-direction:column;justify-content:center;gap:8px;min-width:180px}
+            .bsp-quote-admin__decision-strip .bsp-quote-admin__decision-strip-main > div{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.1)}
+            .bsp-quote-admin__decision-strip .bsp-quote-admin__decision-strip-main span,.bsp-quote-admin__decision-strip-action .bsp-quote-admin__field-label{color:#b8c4ce}
+            .bsp-quote-admin__decision-strip .bsp-quote-admin__decision-strip-main strong{color:#fff}
+            .bsp-quote-admin__decision-strip-action{display:flex;flex-direction:column;justify-content:center;gap:6px;min-width:170px}
             .bsp-quote-admin__decision-strip-action .button{width:100%;text-align:center}
+            .bsp-quote-admin__summary-bar{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1.2fr) minmax(260px,.75fr);gap:10px;align-items:start;margin:0;padding:10px;border:1px solid #d0d7de;border-radius:8px;background:#fff}
+            .bsp-quote-admin__summary-bar-section{min-width:0;padding:0 10px;border-right:1px solid #eef0f2}
+            .bsp-quote-admin__summary-bar-section:first-child{padding-left:0}
+            .bsp-quote-admin__summary-bar-section:last-child{padding-right:0;border-right:0}
+            .bsp-quote-admin__summary-bar-section h3{margin:0 0 8px;font-size:12px;line-height:1.2;text-transform:uppercase;letter-spacing:.05em;color:#50575e}
+            .bsp-quote-admin__summary-bar-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:6px}
+            .bsp-quote-admin__summary-bar-item{min-width:0;padding:6px 7px;border:1px solid #edf0f2;border-radius:6px;background:#fbfcfe}
+            .bsp-quote-admin__summary-bar-item span{display:block;margin-bottom:2px;font-size:10px;font-weight:700;line-height:1.2;text-transform:uppercase;letter-spacing:.04em;color:#646970}
+            .bsp-quote-admin__summary-bar-item strong{display:block;font-size:12px;line-height:1.2;color:#1d2327;overflow-wrap:anywhere}
+            .bsp-quote-admin__summary-bar-item.is-primary{border-color:#c8b58a;background:#fffaf0}
+            .bsp-quote-admin__summary-bar-item.is-primary strong{font-size:15px;color:#2b2116}
+            .bsp-quote-admin__summary-bar-note{margin:7px 0 0;color:#646970;font-size:12px;line-height:1.35;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+            .bsp-quote-admin__summary-status-row,.bsp-quote-admin__summary-action-counts{display:flex;flex-wrap:wrap;gap:5px;align-items:center;margin-top:8px}
+            .bsp-quote-admin__summary-next-action{display:block;margin-top:8px;font-size:14px;line-height:1.25;color:#1d2327}
+            .bsp-quote-admin__action-center{margin-top:8px}
             .bsp-quote-admin__summary-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;align-items:start}
             .bsp-quote-admin__summary-card{margin:0}
             .bsp-quote-admin__summary-card .bsp-quote-admin__panel-body{padding:12px}
             .bsp-quote-admin__compact-metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px}
-            .bsp-quote-admin__alert-list{margin-top:10px;padding:10px;border:1px solid #d0d7de;border-radius:8px;background:#fbfcfe}
+            .bsp-quote-admin__alert-list{margin-top:7px;padding:8px;border:1px solid #d0d7de;border-radius:7px;background:#fbfcfe}
             .bsp-quote-admin__alert-list:first-child{margin-top:0}
-            .bsp-quote-admin__alert-list ul{margin:8px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
-            .bsp-quote-admin__alert-list li{display:flex;flex-direction:column;gap:2px;margin:0}
-            .bsp-quote-admin__alert-list span{font-weight:600}
-            .bsp-quote-admin__alert-list small{color:#646970;line-height:1.35}
-            .bsp-quote-admin__alert-list.is-blocker{border-left:4px solid #d63638;background:#fff7f7}
+            .bsp-quote-admin__alert-list ul{margin:6px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px}
+            .bsp-quote-admin__alert-list li{display:flex;flex-direction:column;gap:3px;margin:0;padding:0 0 6px;border-bottom:1px solid rgba(0,0,0,.05)}
+            .bsp-quote-admin__alert-list li:last-child{padding-bottom:0;border-bottom:0}
+            .bsp-quote-admin__alert-list span{font-weight:600;font-size:12px}
+            .bsp-quote-admin__alert-list small{color:#646970;line-height:1.3;font-size:11px}
+            .bsp-quote-admin__alert-list .button{align-self:flex-start;min-height:24px;padding:1px 7px;font-size:11px;line-height:20px}
+            .bsp-quote-admin__alert-more small{font-style:italic}
+            .bsp-quote-admin__alert-list.is-blocker{border-left:3px solid #b32d2e;background:#fff8f8}
             .bsp-quote-admin__alert-list.is-warning{border-left:4px solid #dba617;background:#fffaf0}
             .bsp-quote-admin__alert-list.is-info{border-left:4px solid #72aee6}
+            .bsp-quote-admin__alert-list.is-partner{border-left:3px solid #2271b1;background:#f6fbff}
             .bsp-quote-admin__debug-json{max-height:360px;overflow:auto;padding:12px;border:1px solid #d0d7de;border-radius:6px;background:#f6f7f7;white-space:pre-wrap;overflow-wrap:anywhere}
             .bsp-quote-admin__workspace-hero--compact{padding:12px;margin:0;border-radius:8px;border:1px solid #d0d7de;background:#fff}
             .bsp-quote-admin__compact-quote-header{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;align-items:stretch}
@@ -1307,11 +1335,11 @@ final class QuoteBuilderRenderer
             .bsp-quote-admin__send-check-item.is-open span{background:#fff3cd;color:#7a4b00}
             .bsp-quote-admin__workspace-grid{display:grid;grid-template-columns:minmax(0,1.8fr) minmax(320px,1fr);gap:16px;align-items:start}
             .bsp-quote-admin__workspace-main,.bsp-quote-admin__workspace-side{display:flex;flex-direction:column;gap:16px}
-            .bsp-quote-admin__panel{margin:0; background:#fff; border:1px solid #dcdcde; border-radius:4px;}
-            .bsp-quote-admin__panel-header{padding:16px 16px 0; border-bottom:1px solid #f0f0f1; padding-bottom:12px;}
-            .bsp-quote-admin__panel-header h3{margin:0 0 4px;font-size:18px}
+            .bsp-quote-admin__panel{margin:0; background:#fff; border:1px solid #dcdcde; border-radius:6px;box-shadow:0 1px 2px rgba(0,0,0,.03)}
+            .bsp-quote-admin__panel-header{padding:12px 14px 9px;border-bottom:1px solid #f0f0f1}
+            .bsp-quote-admin__panel-header h3{margin:0 0 3px;font-size:15px;line-height:1.25}
             .bsp-quote-admin__panel-header p{margin:0}
-            .bsp-quote-admin__panel-body{padding:16px}
+            .bsp-quote-admin__panel-body{padding:12px 14px}
             .bsp-quote-admin__field-label{text-transform:uppercase;letter-spacing:.04em;font-size:11px;font-weight:700;color:#646970;display:block;margin-bottom:4px;}
 
             /* Compact Builder Styles */
@@ -1688,38 +1716,44 @@ final class QuoteBuilderRenderer
             .bsp-quote-admin__message-summary{margin:10px 0 0}
             .bsp-quote-admin__message-body{margin-top:8px;white-space:pre-wrap;line-height:1.5}
             .bsp-quote-admin__thread-actions{margin-top:10px}
-            .bsp-quote-admin__builder-intake{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin:0 0 16px;padding:14px;border:1px solid #d0d7de;border-radius:10px;background:#f6f8fa}
+            .bsp-quote-admin__builder-intake{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin:0 0 10px;padding:10px;border:1px solid #d0d7de;border-radius:8px;background:#f6f8fa}
             .bsp-quote-admin__builder-intake strong{display:block;margin-top:4px}
-            .bsp-quote-admin__quote-total-card{position:sticky;top:46px;bottom:auto;right:auto;width:auto;z-index:10;display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;padding:14px;border:1px solid #3b342d;border-radius:8px;background:#18120f;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.12)}
+            .bsp-quote-admin__quote-total-card{position:sticky;top:118px;bottom:auto;right:auto;width:auto;z-index:30;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding:10px;border:1px solid #3b342d;border-radius:8px;background:#18120f;color:#fff;box-shadow:0 2px 8px rgba(0,0,0,.12)}
             .bsp-quote-admin__quote-total-card .bsp-quote-admin__field-label,.bsp-quote-admin__quote-total-card .bsp-quote-admin__muted{color:#d7ccc2}
-            .bsp-quote-admin__quote-total-card strong{display:block;margin-top:5px;font-size:20px;line-height:1.25}
+            .bsp-quote-admin__quote-total-card .bsp-quote-admin__field-label{white-space:normal;line-height:1.1}
+            .bsp-quote-admin__quote-total-card > div{min-width:0}
+            .bsp-quote-admin__quote-total-card strong{display:block;margin-top:3px;font-size:13px;line-height:1.2;overflow-wrap:anywhere}
             .bsp-quote-admin__quote-total-card label{display:flex;flex-direction:column;gap:6px}
-            .bsp-quote-admin__quote-total-card input{max-width:180px;background:#fff;color:#1d2327}
-            .bsp-quote-admin__quote-discount-row{display:grid;grid-template-columns:minmax(80px,.8fr) 92px minmax(120px,1fr);gap:8px;align-items:end}
+            .bsp-quote-admin__quote-total-card input{max-width:100%;background:#fff;color:#1d2327}
+            .bsp-quote-admin__quote-discount-row{display:grid;grid-template-columns:64px minmax(70px,1fr) minmax(100px,1fr);gap:6px;align-items:end;grid-column:span 2}
             .bsp-quote-admin__quote-discount-row .bsp-quote-admin__field-label{align-self:center}
             .bsp-quote-admin__quote-discount-summary{font-size:12px;color:#d7ccc2;align-self:end}
-            .bsp-quote-admin__quote-total-card-total{border-top:1px solid rgba(255,255,255,.2);padding-top:8px}
+            .bsp-quote-admin__quote-total-card-total{border-top:0;padding-top:0}
             .bsp-quote-admin__quote-total-card-action{display:flex;align-items:end}
             .bsp-quote-admin__quote-total-card-action .button{width:100%;text-align:center}
-            .bsp-quote-admin__builder-form{display:flex;flex-direction:column;gap:16px}
-            .bsp-quote-admin__builder-list{display:flex;flex-direction:column;gap:12px}
-            .bsp-quote-admin__builder-row{display:flex;flex-direction:column;gap:12px;padding:16px;border:1px solid #d0d7de;border-radius:14px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.04)}
-            .bsp-quote-admin__builder-row--compact{padding:10px 12px;border-radius:8px}
-            .bsp-quote-admin__builder-compact-summary{display:grid;grid-template-columns:28px minmax(180px,1.6fr) minmax(105px,.8fr) minmax(105px,.8fr) minmax(80px,.6fr) minmax(100px,.8fr) minmax(120px,.9fr) minmax(180px,1fr) minmax(100px,.6fr);gap:10px;align-items:center}
-            .bsp-quote-admin__builder-compact-summary strong{display:block;font-size:13px;line-height:1.25}
+            .bsp-quote-admin__builder-form{display:flex;flex-direction:column;gap:10px}
+            .bsp-quote-admin__builder-list{display:flex;flex-direction:column;gap:8px}
+            .bsp-quote-admin__builder-row{position:relative;display:flex;flex-direction:column;gap:6px;padding:10px 132px 10px 10px;border:1px solid #d0d7de;border-radius:10px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+            .bsp-quote-admin__builder-row.has-blocker{border-left:3px solid #b32d2e;background:#fffafa}
+            .bsp-quote-admin__builder-row--compact{padding:7px 9px;border-radius:7px}
+            .bsp-quote-admin__builder-compact-summary{display:grid;grid-template-columns:22px minmax(170px,1.7fr) minmax(86px,.75fr) minmax(86px,.75fr) minmax(66px,.55fr) minmax(84px,.75fr) minmax(96px,.8fr) minmax(132px,.9fr) minmax(74px,.5fr);gap:6px;align-items:center;min-height:48px}
+            .bsp-quote-admin__builder-compact-summary strong{display:block;font-size:11px;line-height:1.15}
+            .bsp-quote-admin__builder-compact-summary .bsp-quote-admin__tiny-label{font-size:9px;line-height:1.05;margin-bottom:1px}
+            .bsp-quote-admin__builder-compact-summary .bsp-quote-admin__badge{padding:2px 6px;font-size:10px;line-height:1.15;white-space:nowrap;margin:0 3px 2px 0}
             .bsp-quote-admin__builder-row-drag{display:flex;align-items:center;justify-content:center}
             .bsp-quote-admin__builder-row-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px}
             .bsp-quote-admin__builder-edit-panel{position:relative}
-            .bsp-quote-admin__builder-edit-panel > summary{cursor:pointer;list-style:none}
+            .bsp-quote-admin__builder-edit-panel:not([open]){position:absolute;right:8px;bottom:6px;height:auto;margin:0}
+            .bsp-quote-admin__builder-edit-panel > summary{cursor:pointer;list-style:none;min-height:22px;padding:0 7px;font-size:11px;line-height:20px}
             .bsp-quote-admin__builder-edit-panel > summary::-webkit-details-marker{display:none}
-            .bsp-quote-admin__builder-edit-fields{grid-column:1/-1;margin-top:12px;padding:12px;border:1px solid #d0d7de;border-radius:8px;background:#fbfcfe}
+            .bsp-quote-admin__builder-edit-fields{grid-column:1/-1;margin-top:8px;padding:10px;border:1px solid #d0d7de;border-radius:8px;background:#fbfcfe}
             .bsp-quote-admin__builder-row.is-dragging{opacity:.55}
             .bsp-quote-admin__builder-row-top{display:flex;justify-content:space-between;gap:12px;align-items:center}
             .bsp-quote-admin__builder-row-order{display:flex;align-items:center;gap:10px}
             .bsp-quote-admin__builder-row-order > div{display:flex;flex-direction:column;gap:2px}
             .bsp-quote-admin__builder-row-order span{color:#50575e}
             .bsp-quote-admin__builder-handle{cursor:grab;text-decoration:none;font-size:18px;line-height:1}
-            .bsp-quote-admin__builder-card-status{display:flex;flex-wrap:wrap;gap:4px}
+            .bsp-quote-admin__builder-card-status{display:flex;flex-wrap:wrap;gap:3px}
             .bsp-quote-admin__builder-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
             .bsp-quote-admin__builder-grid--primary{grid-template-columns:minmax(240px,1.4fr) minmax(220px,1fr) minmax(170px,.7fr) minmax(150px,.6fr)}
             .bsp-quote-admin__builder-grid--commercial{grid-template-columns:180px 180px minmax(260px,1fr);align-items:end;padding:12px;border:1px solid #d0d7de;border-radius:12px;background:#fffaf0}
@@ -1735,7 +1769,7 @@ final class QuoteBuilderRenderer
             .bsp-quote-admin__slot-actions{display:flex;flex-direction:column;gap:8px;align-items:flex-start}
             .bsp-quote-admin__slot-actions label{font-size:12px;color:#50575e}
             .bsp-quote-admin__slot-list{display:flex;flex-wrap:wrap;gap:8px}
-            .bsp-quote-admin__slot-pill{border:1px solid #8c8f94;border-radius:999px;background:#fff;color:#1d2327;padding:7px 12px;cursor:pointer}
+            .bsp-quote-admin__slot-pill{border:1px solid #8c8f94;border-radius:999px;background:#fff;color:#1d2327;padding:5px 10px;cursor:pointer;font-size:12px}
             .bsp-quote-admin__slot-pill:hover,.bsp-quote-admin__slot-pill.is-selected{border-color:#0a5222;background:#dff5e3;color:#0a5222}
             .bsp-quote-admin__slot-empty{display:inline-flex;align-items:center;min-height:30px;color:#646970}
             .bsp-quote-admin__builder-advanced{border-top:1px dashed #d0d7de;padding-top:10px}
