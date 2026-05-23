@@ -38,10 +38,13 @@ final class Module implements ModuleInterface
             \add_action('admin_post_sbdp_quote_line_supplier_status', array(AdminController::class, 'handleUpdateLineSupplierStatus'));
             \add_action('admin_post_sbdp_quote_line_supplier_request_draft', array(AdminController::class, 'handleGenerateSupplierRequestDraft'));
             \add_action('admin_post_sbdp_quote_generate_proposal_draft', array(AdminController::class, 'handleGenerateProposalDraft'));
+            \add_action('wp_ajax_sbdp_quote_update_proposal_text', array(AdminController::class, 'handleUpdateProposalText'));
+            \add_action('wp_ajax_sbdp_quote_suggest_proposal_text', array(AdminController::class, 'handleSuggestProposalText'));
             \add_action('admin_post_sbdp_quote_generate_response_draft', array(AdminController::class, 'handleGenerateResponseDraft'));
             \add_action('admin_post_sbdp_quote_summarize_message', array(AdminController::class, 'handleSummarizeMessage'));
             \add_action('admin_post_sbdp_quote_send_message', array(AdminController::class, 'handleSendMessage'));
             \add_action('admin_post_sbdp_quote_update_intake', array(AdminController::class, 'handleUpdateQuoteIntake'));
+            \add_action('admin_post_sbdp_quote_update_customer_contact', array(AdminController::class, 'handleUpdateCustomerContact'));
             \add_action('admin_post_sbdp_quote_save_ai_mail_settings', array(AdminController::class, 'handleSaveAiMailSettings'));
             \add_action('admin_post_sbdp_quote_log_inbound_message', array(AdminController::class, 'handleLogInboundMessage'));
             \add_action('admin_post_sbdp_quote_resolve_inbound_failure', array(AdminController::class, 'handleResolveInboundFailure'));

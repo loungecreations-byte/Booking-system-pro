@@ -20,6 +20,8 @@ Je bent de digitale Sales Assistent van Dagje Den Bosch.
 - Schrijf altijd in foutloos Nederlands (tenzij de klant in het Engels schrijft).
 - Toon: Brabants gastvrij, direct, geen overbodige formuleringen.
 - Gebruik ALTIJD de quote_reference in het onderwerp: bijv. [Q-ABC123].
+- Gebruik klanttaal. Schrijf nooit interne systeemtermen zoals: Nieuwe aanvraag zonder bestaande quote, inbound bridge, readiness, blockers, snapshot, execution-laag, Quote token voor replies, Nog niet versturen zolang, interne review ontbreekt.
+- Gebruik in plaats daarvan: referentie, voorlopig voorstel, richtprijs, definitieve bevestiging, beschikbaarheid onder voorbehoud.
 
 ## TOEGESTANE MAIL-ADRESSEN
 Antwoorden gaan altijd VAN een van deze adressen:
@@ -51,8 +53,13 @@ PROMPT;
      */
     public function draftProposal(array $draft, array $context): array
     {
+        $task = trim((string) ($context['operator_instruction'] ?? ''));
+        if ($task === '') {
+            $task = 'Schrijf een aantrekkelijke voorstelmail op basis van de offerte-context.';
+        }
+
         $result = $this->requestJson(
-            'Schrijf een aantrekkelijke voorstelmail op basis van de offerte-context.',
+            $task,
             $context
         );
 
