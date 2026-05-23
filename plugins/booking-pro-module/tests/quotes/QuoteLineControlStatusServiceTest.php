@@ -33,7 +33,8 @@ final class QuoteLineControlStatusServiceTest extends TestCase
         $this->assertSame('execution_verified', $updatedVersion['pricing_confidence']);
         $this->assertSame('confirmed', $updatedVersion['availability_confidence']);
         $this->assertCount(2, $events);
-        $this->assertSame('quote_line_control_status_updated', $events[1]['event_type']);
+        $this->assertSame('quote_program_line_updated', $events[0]['event_type']);
+        $this->assertSame('quote_line_availability_updated', $events[1]['event_type']);
         $this->assertSame((int) $quote['id'], $events[1]['payload_json']['quote_id']);
         $this->assertSame((int) $version['id'], $events[1]['payload_json']['quote_version_id']);
         $this->assertSame((int) $line['id'], $events[1]['payload_json']['line_id']);

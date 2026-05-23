@@ -62,7 +62,7 @@ final class QuoteLineControlStatusService
         $newConfidence = (string) ($updatedLine[$dimension === 'pricing' ? 'pricing_confidence' : 'availability_confidence'] ?? 'unknown');
         $changedAt = function_exists('current_time') ? (string) current_time('mysql', true) : gmdate('Y-m-d H:i:s');
         $this->events->log(
-            'quote_line_control_status_updated',
+            $dimension === 'availability' ? 'quote_line_availability_updated' : 'quote_program_line_updated',
             isset($quote['quote_request_id']) ? (int) $quote['quote_request_id'] : null,
             $quoteId,
             $versionId,
