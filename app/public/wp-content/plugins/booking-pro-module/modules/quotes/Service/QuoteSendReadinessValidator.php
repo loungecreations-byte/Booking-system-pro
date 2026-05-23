@@ -54,6 +54,7 @@ final class QuoteSendReadinessValidator
             $this->inspectQuoteLines($context['lines']),
             $this->inspectOpenSendBlockers($quoteId),
             $this->inspectVersionConfidence($context['version']),
+            $this->inspectProposalCustomerText($quoteId, $context['version']),
             $this->inspectCommercialTotals($context['lines'], $context['version']),
             $this->inspectWooCommercialReadiness($context['lines'])
         );
@@ -143,6 +144,40 @@ final class QuoteSendReadinessValidator
         }
 
         return $blockers;
+    }
+
+    /**
+     * @param array<string, mixed> $version
+     */
+    private function inspectProposalCustomerText(int $quoteId, array $version): array
+    {
+        $texts = array(
+            (string) ($version['proposal_title'] ?? ''),
+            (string) ($version['proposal_summary'] ?? ''),
+        );
+
+        foreach ($this->repository->listQuoteMessages($quoteId) as $message) {
+            if ((string) ($message['message_type'] ?? '') !== 'proposal') {
+                continue;
+            }
+            if ((string) ($message['status'] ?? '') !== 'draft') {
+                continue;
+            }
+            $texts[] = (string) ($message['subject'] ?? '');
+            $texts[] = (string) ($message['body'] ?? '');
+            $texts[] = (string) ($message['body_summary'] ?? '');
+            break;
+        }
+
+        $terms = QuoteCommunicationService::detectInternalCustomerTextTerms(implode("\n", $texts));
+        if ($terms === array()) {
+            return array();
+        }
+
+        return array(array(
+            'code' => 'proposal_customer_text_internal_terms',
+            'message' => 'Quote kan niet verzendklaar worden gezet omdat het klantvoorstel interne systeemtekst bevat.',
+        ));
     }
 
     /**
