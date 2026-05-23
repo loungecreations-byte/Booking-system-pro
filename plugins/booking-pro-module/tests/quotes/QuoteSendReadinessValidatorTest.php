@@ -131,6 +131,83 @@ final class QuoteSendReadinessValidatorTest extends TestCase
         $send->markSentManual((int) $quote['id'], 'manual', '', 11);
     }
 
+    public function testManualSendRequiresApprovedReviewStatus(): void
+    {
+        $repository = new InMemoryQuoteRepository();
+        $events = new QuoteEventLogger($repository);
+        $send = new QuoteSendService($repository, $events);
+
+        $quote = $this->createReadyQuote($repository, array(
+            'review_status' => 'pending_review',
+            'send_status' => 'ready_to_send',
+        ));
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('goedgekeurde review');
+
+        $send->markSentManual((int) $quote['id'], 'manual', '', 11);
+    }
+
+    public function testManualSendRequiresReadyToSendStatus(): void
+    {
+        $repository = new InMemoryQuoteRepository();
+        $events = new QuoteEventLogger($repository);
+        $send = new QuoteSendService($repository, $events);
+
+        $quote = $this->createReadyQuote($repository, array(
+            'review_status' => 'approved',
+            'send_status' => 'not_ready',
+        ));
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('niet klaar om te worden verzonden');
+
+        $send->markSentManual((int) $quote['id'], 'manual', '', 11);
+    }
+
+    public function testManualSendBlocksInternalSystemTermsInProposalText(): void
+    {
+        $repository = new InMemoryQuoteRepository();
+        $events = new QuoteEventLogger($repository);
+        $send = new QuoteSendService($repository, $events);
+
+        $quote = $this->createReadyQuote($repository, array(
+            'review_status' => 'approved',
+            'send_status' => 'ready_to_send',
+        ));
+
+        $repository->createQuoteMessage(array(
+            'quote_id' => (int) $quote['id'],
+            'message_type' => 'proposal',
+            'status' => 'draft',
+            'subject' => 'Voorstel voor jullie dag',
+            'body' => 'Deze mail bevat readiness en blockers en mag daarom niet naar de klant.',
+            'body_summary' => '',
+        ));
+
+        $this->expectException(InvalidArgumentException::class);
+        $this->expectExceptionMessage('interne systeemtekst');
+
+        $send->markSentManual((int) $quote['id'], 'manual', '', 11);
+    }
+
+    public function testManualSendMarksValidApprovedReadyQuoteAsSent(): void
+    {
+        $repository = new InMemoryQuoteRepository();
+        $events = new QuoteEventLogger($repository);
+        $send = new QuoteSendService($repository, $events);
+
+        $quote = $this->createReadyQuote($repository, array(
+            'review_status' => 'approved',
+            'send_status' => 'ready_to_send',
+        ));
+
+        $sent = $send->markSentManual((int) $quote['id'], 'manual', 'Verstuurd na review.', 11);
+
+        $this->assertSame('sent_manual', $sent['send_status']);
+        $this->assertSame('sent', $sent['status']);
+    }
+
     public function testInspectReportsZeroLinesAndUnknownVersionConfidence(): void
     {
         $repository = new InMemoryQuoteRepository();
@@ -207,6 +284,43 @@ final class QuoteSendReadinessValidatorTest extends TestCase
 
         $this->assertFalse($inspection['ready']);
         $this->assertContains('quote_discount_exceeds_subtotal', array_column($inspection['blockers'], 'code'));
+    }
+
+    /**
+     * @param array<string, mixed> $quoteOverrides
+     * @return array<string, mixed>
+     */
+    private function createReadyQuote(InMemoryQuoteRepository $repository, array $quoteOverrides = array()): array
+    {
+        $request = $repository->createQuoteRequest(array(
+            'requester_email' => 'operator@example.test',
+        ));
+        $version = $repository->createQuoteVersion(array(
+            'quote_id' => 1,
+            'version_number' => 1,
+            'pricing_confidence' => 'snapshot',
+            'availability_confidence' => 'projected',
+        ));
+        $quote = $repository->createQuote(array_merge(array(
+            'quote_reference' => 'Q-SEND-GUARD',
+            'quote_request_id' => (int) $request['id'],
+            'current_version_id' => (int) $version['id'],
+            'review_status' => 'approved',
+            'send_status' => 'ready_to_send',
+        ), $quoteOverrides));
+
+        $repository->replaceQuoteLines((int) $version['id'], array(
+            array(
+                'line_number' => 1,
+                'product_id' => 0,
+                'currency' => 'EUR',
+                'pricing_confidence' => 'snapshot',
+                'unit_amount_snapshot' => 100.0,
+                'line_total_snapshot' => 100.0,
+            ),
+        ));
+
+        return $quote;
     }
 }
 }
