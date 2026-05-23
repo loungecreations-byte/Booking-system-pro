@@ -73,6 +73,21 @@ final class QuoteOperationsDraftService
         }
 
         $savedLines = $this->repository->replaceQuoteLines((int) $targetVersion['id'], $normalizedLines);
+        (new QuoteSupplierConfirmationService($this->repository, $this->events))->syncQuote((int) $quote['id'], $actorId);
+        $this->events->log(
+            'quote_program_line_updated',
+            isset($quote['quote_request_id']) ? (int) $quote['quote_request_id'] : null,
+            $quoteId,
+            (int) $targetVersion['id'],
+            $actorId,
+            'Programmaregels bijgewerkt vanuit inline Quote Control Dashboard.',
+            array(
+                'old_total' => $this->sumLineTotals($existingLines),
+                'new_total' => $this->sumLineTotals($savedLines),
+                'old_line_count' => count($existingLines),
+                'new_line_count' => count($savedLines),
+            )
+        );
 
         $this->events->log(
             'quote_operations_draft_saved',
@@ -93,6 +108,21 @@ final class QuoteOperationsDraftService
             'lines' => $savedLines,
             'created_new_version' => $mustClone,
         );
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $lines
+     */
+    private function sumLineTotals(array $lines): float
+    {
+        $total = 0.0;
+        foreach ($lines as $line) {
+            if (isset($line['line_total_snapshot']) && is_numeric($line['line_total_snapshot'])) {
+                $total += (float) $line['line_total_snapshot'];
+            }
+        }
+
+        return round($total, 2);
     }
 
     /**
