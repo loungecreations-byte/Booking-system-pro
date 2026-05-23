@@ -858,132 +858,6 @@ final class QuoteWorkspaceRenderer
     }
 
     /**
-     * @param array<int, array<string, mixed>> $rows
-     * @return array<int, array<string, mixed>>
-     */
-    private static function filterQuoteOverviewRows(array $rows, string $activeView): array
-    {
-        if ($activeView === 'all') {
-            return $rows;
-        }
-
-        return array_values(array_filter($rows, static fn (array $row): bool => (string) ($row['category'] ?? '') === $activeView));
-    }
-
-    /**
-     * @param array<int, array<string, mixed>> $rows
-     * @param array<int, array<string, mixed>> $visibleRows
-     */
-    private static function renderQuoteOverviewDashboard(array $rows, array $visibleRows, string $activeView): void
-    {
-        $counts = array(
-            'all' => count($rows),
-            'action' => count(array_filter($rows, static fn (array $row): bool => (string) ($row['category'] ?? '') === 'action')),
-            'assumptions' => count(array_filter($rows, static fn (array $row): bool => (string) ($row['category'] ?? '') === 'assumptions')),
-            'ready' => count(array_filter($rows, static fn (array $row): bool => (string) ($row['category'] ?? '') === 'ready')),
-            'done' => count(array_filter($rows, static fn (array $row): bool => (string) ($row['category'] ?? '') === 'done')),
-        );
-
-        echo '<section class="postbox bsp-quote-admin__panel bsp-quote-admin__overview-hero"><div class="bsp-quote-admin__panel-body">';
-        echo '<p class="bsp-quote-admin__eyebrow">' . esc_html__('Quote command center', 'sbdp') . '</p>';
-        echo '<h2>' . esc_html__('Wat heeft nu aandacht nodig?', 'sbdp') . '</h2>';
-        echo '<p class="bsp-quote-admin__muted">' . esc_html__('Read-only overzicht. Open de quote voor bewerken, review, communicatie of handoff.', 'sbdp') . '</p>';
-        echo '<div class="bsp-quote-admin__overview-stat-grid">';
-        echo self::renderQuoteOverviewStat(__('Alle quotes', 'sbdp'), $counts['all'], 'all', $activeView);
-        echo self::renderQuoteOverviewStat(__('Actie nodig', 'sbdp'), $counts['action'], 'action', $activeView);
-        echo self::renderQuoteOverviewStat(__('Niet verzendklaar', 'sbdp'), $counts['assumptions'], 'assumptions', $activeView);
-        echo self::renderQuoteOverviewStat(__('Verzendklaar', 'sbdp'), $counts['ready'], 'ready', $activeView);
-        echo self::renderQuoteOverviewStat(__('Afgerond', 'sbdp'), $counts['done'], 'done', $activeView);
-        echo '</div>';
-        echo '</div></section>';
-
-        if ($visibleRows !== array()) {
-            $first = $visibleRows[0];
-            echo '<section class="postbox bsp-quote-admin__panel bsp-quote-admin__overview-next"><div class="bsp-quote-admin__panel-body">';
-            echo '<span class="bsp-quote-admin__field-label">' . esc_html__('Eerst openen', 'sbdp') . '</span>';
-            echo '<strong>' . esc_html((string) ($first['focus_label'] ?? __('Actie nodig', 'sbdp'))) . '</strong>';
-            echo '<p>' . esc_html((string) ($first['focus_description'] ?? '')) . '</p>';
-            echo '<a class="button button-primary" href="' . esc_url((string) ($first['detail_url'] ?? '')) . '">' . esc_html__('Open deze quote', 'sbdp') . '</a>';
-            echo '</div></section>';
-        }
-
-        echo '<section class="postbox bsp-quote-admin__panel"><div class="bsp-quote-admin__panel-header"><h3>' . esc_html__('Alle quotes', 'sbdp') . '</h3></div><div class="bsp-quote-admin__panel-body">';
-        echo '<div class="bsp-quote-admin__table-wrap"><table class="widefat striped bsp-quote-admin__overview-table"><thead><tr>';
-        echo '<th>' . esc_html__('Aandacht', 'sbdp') . '</th>';
-        echo '<th>' . esc_html__('Quote', 'sbdp') . '</th>';
-        echo '<th>' . esc_html__('Klant / event', 'sbdp') . '</th>';
-        echo '<th>' . esc_html__('Workflow', 'sbdp') . '</th>';
-        echo '<th>' . esc_html__('Handoff / order', 'sbdp') . '</th>';
-        echo '<th>' . esc_html__('Bijgewerkt', 'sbdp') . '</th>';
-        echo '<th>' . esc_html__('Actie', 'sbdp') . '</th>';
-        echo '</tr></thead><tbody>';
-
-        if ($visibleRows === array()) {
-            echo '<tr><td colspan="7">' . esc_html__('Geen quotes in deze filter.', 'sbdp') . '</td></tr>';
-        }
-
-        foreach ($visibleRows as $row) {
-            self::renderQuoteOverviewRow($row);
-        }
-
-        echo '</tbody></table></div></div></section>';
-    }
-
-    private static function renderQuoteOverviewStat(string $label, int $count, string $view, string $activeView): string
-    {
-        $url = add_query_arg(array('page' => 'sbdp_quotes', 'quote_view' => $view), admin_url('admin.php'));
-        $class = 'bsp-quote-admin__overview-stat' . ($activeView === $view ? ' is-active' : '');
-
-        return '<a class="' . esc_attr($class) . '" href="' . esc_url($url) . '"><span>' . esc_html($label) . '</span><strong>' . esc_html((string) $count) . '</strong></a>';
-    }
-
-    /**
-     * @param array<string, mixed> $row
-     */
-    private static function renderQuoteOverviewRow(array $row): void
-    {
-        $quote = is_array($row['quote'] ?? null) ? $row['quote'] : array();
-        $request = is_array($row['request'] ?? null) ? $row['request'] : null;
-        $requester = is_array($row['requester'] ?? null) ? $row['requester'] : array();
-        $status = (string) ($quote['status'] ?? 'draft');
-        $reviewStatus = (string) ($quote['review_status'] ?? 'not_started');
-        $sendStatus = (string) ($quote['send_status'] ?? 'not_ready');
-        $hasBlockers = ((array) ($workspaceState['blockers'] ?? array())) !== array();
-        $handoffStatus = (string) ($quote['handoff_status'] ?? 'not_ready');
-        $category = (string) ($row['category'] ?? 'action');
-
-        echo '<tr class="bsp-quote-admin__overview-row is-' . esc_attr($category) . '">';
-        echo '<td><strong>' . esc_html((string) ($row['focus_label'] ?? __('Actie nodig', 'sbdp'))) . '</strong><br><span class="bsp-quote-admin__muted">' . esc_html((string) ($row['focus_description'] ?? '')) . '</span></td>';
-        echo '<td><strong>' . esc_html((string) ($quote['quote_reference'] ?? '')) . '</strong><br><span class="bsp-quote-admin__muted">#' . esc_html((string) ($quote['id'] ?? '0')) . '</span></td>';
-        echo '<td>';
-        echo '<strong>' . esc_html((string) (($requester['name'] ?? '') ?: __('Onbekend', 'sbdp'))) . '</strong>';
-        if (! empty($requester['email'])) {
-            echo '<br><span class="bsp-quote-admin__muted">' . esc_html((string) $requester['email']) . '</span>';
-        }
-        if (is_array($request)) {
-            echo '<br><span class="bsp-quote-admin__muted">' . esc_html((string) (((int) ($request['group_size'] ?? 0)) > 0 ? ((int) $request['group_size']) . ' personen' : __('Groep open', 'sbdp'))) . ' · ' . esc_html((string) (($request['preferred_date'] ?? '') ?: __('Datum open', 'sbdp'))) . '</span>';
-        }
-        echo '</td>';
-        echo '<td>';
-        echo self::renderInlineBadge(self::operatorStatusLabel($status), self::statusBadgeClass($status)) . ' ';
-        echo self::renderInlineBadge(self::operatorStatusLabel($reviewStatus), self::workflowBadgeClass($reviewStatus));
-        echo '<br>' . self::renderInlineBadge(self::operatorStatusLabel($sendStatus), self::workflowBadgeClass($sendStatus));
-        echo '</td>';
-        echo '<td><strong>' . esc_html((string) ($row['amount_label'] ?? __('Voorstelbedrag onder voorbehoud', 'sbdp'))) . '</strong><br>' . self::renderInlineBadge(self::operatorStatusLabel($handoffStatus), self::workflowBadgeClass($handoffStatus));
-        if (! empty($quote['woo_order_id'])) {
-            echo '<br><span class="bsp-quote-admin__muted">' . esc_html(sprintf(__('Order #%d', 'sbdp'), (int) $quote['woo_order_id'])) . '</span>';
-        }
-        echo '</td>';
-        echo '<td>' . esc_html((string) ($quote['updated_at'] ?? '')) . '</td>';
-        echo '<td><div class="bsp-quote-admin__actions"><a class="button button-primary" href="' . esc_url((string) ($row['detail_url'] ?? '')) . '">' . esc_html__('Open quote', 'sbdp') . '</a>';
-        if ((string) ($row['request_url'] ?? '') !== '') {
-            echo self::renderInlineLink((string) $row['request_url'], __('Request', 'sbdp'));
-        }
-        echo '</div></td>';
-        echo '</tr>';
-    }
-
-    /**
      * @param array<string, mixed> $dashboardState
      * @param array<string, mixed> $quote
      */
@@ -1213,19 +1087,6 @@ final class QuoteWorkspaceRenderer
         self::renderQuoteWorkspaceInner($repository, $quoteId, $quote);
     }
 
-    private static function renderQuoteDetail(QuoteRepository $repository, int $quoteId): void
-    {
-        $quote = $repository->findQuote($quoteId);
-        if ($quote === null) {
-            wp_die(esc_html__('Quote niet gevonden.', 'sbdp'));
-        }
-        QuoteBuilderRenderer::renderAdminStyles();
-        self::renderNotices();
-        echo '<div class="wrap">';
-        self::renderQuoteWorkspaceInner($repository, $quoteId, $quote);
-        echo '</div>';
-    }
-
     private static function renderQuoteWorkspaceInner(QuoteRepository $repository, int $quoteId, array $quote): void
     {
         // (body continues below — no outer wrap or duplicate styles)
@@ -1294,9 +1155,6 @@ final class QuoteWorkspaceRenderer
         $availabilityConfirmed = $availabilityConfidence === 'confirmed';
         $proposalReady = ! empty($proposalReadiness['ready']);
         $sendAllowed = ! empty($sendReadiness['ready']) && is_array($sendReadiness['blockers'] ?? array()) && (array) ($sendReadiness['blockers'] ?? array()) === array();
-        $amountLabel = $pricingConfirmed && $availabilityConfirmed && $sendAllowed
-            ? __('Offerteprijs', 'sbdp')
-            : __('Voorstelbedrag onder voorbehoud', 'sbdp');
         $sendCheckItems = self::buildWorkspaceSendCheckItems(
             $totalLines,
             $scheduledLines,
@@ -1310,7 +1168,6 @@ final class QuoteWorkspaceRenderer
         if ($currentTab === 'handoff' && ! $handoffAllowed) {
             $currentTab = 'dashboard';
         }
-        $primaryAction = self::resolveQuotePrimaryAction($quote, $workspaceState, $sendAllowed, $handoffAllowed);
         // Filter out stale auto-assumptions whose underlying condition is already resolved on the current version.
         $filteredAssumptions = array_values(array_filter($assumptions, static function (array $a) use ($availabilityConfirmed, $pricingConfirmed): bool {
             $type = (string) ($a['assumption_type'] ?? '');
@@ -1323,62 +1180,41 @@ final class QuoteWorkspaceRenderer
             return true;
         }));
         $workspaceAlerts = self::buildQuoteWorkspaceAlerts($quoteId, $sendReadiness, $businessValidation, $filteredAssumptions, $followups, $communicationState, $quoteCommerciallyEditable);
-        $workspaceTabs = array(
-            'dashboard' => __('Overzicht', 'sbdp'),
-            'build' => __('Programma & prijs', 'sbdp'),
-            'proposal' => __('Voorstel', 'sbdp'),
-            'communication' => __('Berichten', 'sbdp'),
-        );
-        if ($handoffAllowed) {
-            $workspaceTabs['handoff'] = __('Handoff', 'sbdp');
-        }
-        $workspaceTabs['history'] = __('Versies & audit', 'sbdp');
-
+        $workspaceBlockers = is_array($workspaceAlerts['blockers'] ?? null) ? $workspaceAlerts['blockers'] : array();
+        $sendAllowed = $sendAllowed && $workspaceBlockers === array();
+        $amountLabel = $pricingConfirmed && $availabilityConfirmed && $sendAllowed
+            ? __('Offerteprijs', 'sbdp')
+            : __('Voorstelbedrag onder voorbehoud', 'sbdp');
+        $primaryAction = self::resolveQuotePrimaryAction($quote, $workspaceState, $sendAllowed, $handoffAllowed);
         echo '<div class="bsp-quote-admin__workspace">';
-        self::renderQuoteDecisionStrip($quoteId, $quote, $request, $requester, $currentVersion, $pricingConfidence, $availabilityConfidence, $primaryAction);
-        self::renderQuoteWorkspaceSummaryCards($quoteId, $quote, $request, $requester, $formattedAddress, $contactSummary, $proposalProgram, $lineSummary, $amountLabel, $pricingConfidence, $availabilityConfidence, $workspaceAlerts);
-
-        echo '<div class="bsp-quote-admin__workspace-accordion-nav" aria-label="' . esc_attr__('Secundaire Quote OS onderdelen', 'sbdp') . '">';
-        foreach ($workspaceTabs as $tabKey => $tabLabel) {
-            if ($tabKey === 'dashboard' || $tabKey === 'build') {
-                continue;
-            }
-            $tabUrl = add_query_arg(array(
-                'page' => 'sbdp_quotes',
-                'quote_id' => $quoteId,
-                'workspace_tab' => $tabKey,
-            ), admin_url('admin.php'));
-            $description = match ($tabKey) {
-                'proposal' => __('Voorsteltekst en klantweergave openen alleen wanneer je die nodig hebt.', 'sbdp'),
-                'communication' => __('Berichten, drafts en klantreacties blijven beschikbaar buiten de hoofdcontrole.', 'sbdp'),
-                'handoff' => __('Technische overdracht blijft secundair en wordt pas dominant na acceptatie.', 'sbdp'),
-                'history' => __('Versies en audit blijven bewaard, maar staan niet in de weg bij beoordelen.', 'sbdp'),
-                default => __('Detailonderdeel openen.', 'sbdp'),
-            };
-            echo '<details><summary>' . esc_html($tabLabel) . '</summary><div><p>' . esc_html($description) . '</p><a class="button button-secondary button-small" href="' . esc_url($tabUrl) . '">' . esc_html__('Open onderdeel', 'sbdp') . '</a></div></details>';
-        }
-        echo '</div>';
         self::renderCommercialIntakeNotice($commercialIntakeNotice);
+        self::renderQuoteControlDashboard(
+            $quoteId,
+            $quote,
+            $request,
+            $requester,
+            $formattedAddress,
+            $currentVersion,
+            $lines,
+            $lineSummary,
+            $proposalProgram,
+            $sendReadiness,
+            $workspaceAlerts,
+            $communicationState,
+            $messages,
+            $events,
+            $messageDrafts,
+            $proposalReadiness,
+            $pricingConfidence,
+            $availabilityConfidence,
+            $sendAllowed,
+            $quoteCommerciallyEditable
+        );
+        echo '</div></div>';
 
-        if ($currentTab === 'dashboard') {
-            $dashboardState = (new DashboardBlockerService())->buildState(
-                $sendReadiness,
-                $businessValidation,
-                $assumptions,
-                $quoteCommerciallyEditable
-            );
+        return;
 
-            echo '<div class="bsp-quote-admin__workspace-single">';
-            self::renderQuoteDashboardFocus($dashboardState, $quoteId);
-
-            if ($request !== null) {
-                self::renderQuoteDashboardCustomerSummary($request, $requester);
-            }
-
-            echo '</div>';
-        } elseif ($currentTab === 'build') {
-            QuoteBuilderRenderer::renderQuoteBuildWorkspace($quoteId, $quote, $request, $currentVersion, $lines);
-        } elseif ($currentTab === 'proposal') {
+        if ($currentTab === 'proposal') {
             echo '<div class="bsp-quote-admin__workspace-grid">';
             echo '<div class="bsp-quote-admin__workspace-main">';
 
@@ -1670,6 +1506,7 @@ final class QuoteWorkspaceRenderer
             $currency = (string) $currentVersion['handoff_payload_json']['totals']['currency'];
         }
 
+        $total = null;
         if ($totalLines === 0) {
             $subtotalLabel = __('Nog niet bepaald', 'sbdp');
             $totalLabel = __('Nog niet bepaald', 'sbdp');
@@ -1692,6 +1529,8 @@ final class QuoteWorkspaceRenderer
             'subtotal_label' => $subtotalLabel,
             'discount_amount' => $discountAmount,
             'discount_label' => (string) ($commercialAdjustments['discount_label'] ?? __('Korting', 'sbdp')),
+            'subtotal_amount' => $subtotal,
+            'total_amount'    => $total,
             'total_label'    => $totalLabel,
         );
     }
@@ -2184,7 +2023,7 @@ final class QuoteWorkspaceRenderer
         $nextTitle = __('Vraag review aan', 'sbdp');
         $nextDescription = __('Zodra de commerciële opzet klopt, zet je de quote door naar interne review.', 'sbdp');
         $readinessLabel = __('Nog niet verzendklaar', 'sbdp');
-        $readinessDescription = __('Werk blockers weg en maak de review-flow leidend voordat je naar send of handoff kijkt.', 'sbdp');
+        $readinessDescription = __('Werk open punten weg en maak de review-flow leidend voordat je naar verzenden of handoff kijkt.', 'sbdp');
         $nextAction = array(
             'title' => $nextTitle,
             'description' => $nextDescription,
@@ -2444,152 +2283,6 @@ final class QuoteWorkspaceRenderer
     }
 
     /**
-     * @param array<string, mixed> $state
-     */
-    private static function renderQuoteDashboardFocus(array $state, int $quoteId): void
-    {
-        $stateName = (string) ($state['state'] ?? 'blocked');
-
-        if ($stateName === 'ready') {
-            self::renderQuoteDashboardReady($quoteId);
-            return;
-        }
-
-        if ($stateName === 'locked') {
-            self::renderQuoteDashboardLocked();
-            return;
-        }
-
-        if ($stateName === 'assumptions') {
-            self::renderQuoteDashboardAssumptions($state, $quoteId);
-            return;
-        }
-
-        self::renderQuoteDashboardBlocked($state, $quoteId);
-    }
-
-    /**
-     * @param array<string, mixed> $state
-     */
-    private static function renderQuoteDashboardBlocked(array $state, int $quoteId): void
-    {
-        $blocker = is_array($state['primary_blocker'] ?? null) ? $state['primary_blocker'] : array();
-        $label = (string) ($blocker['label'] ?? __('Offerte is nog geblokkeerd', 'sbdp'));
-        $message = trim((string) ($blocker['message'] ?? ''));
-        $steps = array_values(array_filter((array) ($blocker['steps'] ?? array()), static fn ($step): bool => trim((string) $step) !== ''));
-        $buttonTab = trim((string) ($blocker['button_tab'] ?? ''));
-        $buttonLabel = trim((string) ($blocker['button_label'] ?? __('Naar juiste tab', 'sbdp')));
-
-        echo '<section class="postbox bsp-quote-admin__panel bsp-quote-admin__focus-card bsp-quote-admin__focus-card--blocked">';
-        echo '<div class="bsp-quote-admin__panel-body">';
-        echo '<p class="bsp-quote-admin__focus-kicker">' . esc_html__('Stop - handeling nodig', 'sbdp') . '</p>';
-        echo '<h2>' . esc_html($label) . '</h2>';
-        if ($message !== '') {
-            echo '<p class="bsp-quote-admin__focus-message">' . esc_html($message) . '</p>';
-        }
-        if ($steps !== array()) {
-            echo '<div class="bsp-quote-admin__focus-steps"><strong>' . esc_html__('Wat nu doen:', 'sbdp') . '</strong><ol>';
-            foreach ($steps as $step) {
-                echo '<li>' . esc_html((string) $step) . '</li>';
-            }
-            echo '</ol></div>';
-        }
-        if ($buttonTab !== '') {
-            echo '<p><a class="button button-primary button-large bsp-quote-admin__focus-button" href="' . esc_url(self::workspaceTabUrl($quoteId, $buttonTab)) . '">' . esc_html($buttonLabel) . '</a></p>';
-        }
-        if ((int) ($state['hidden_count'] ?? 0) > 0) {
-            echo '<details class="bsp-quote-admin__focus-details"><summary>' . esc_html(sprintf(__('%d latere checks verborgen', 'sbdp'), (int) $state['hidden_count'])) . '</summary><p>' . esc_html__('Los eerst de hoofdactie hierboven op. Daarna toont het dashboard automatisch de volgende stap.', 'sbdp') . '</p></details>';
-        }
-        echo '</div></section>';
-    }
-
-    /**
-     * @param array<string, mixed> $state
-     */
-    private static function renderQuoteDashboardAssumptions(array $state, int $quoteId): void
-    {
-        $assumptions = array_values(array_filter((array) ($state['assumptions'] ?? array()), static fn ($assumption): bool => is_array($assumption)));
-
-        echo '<section class="postbox bsp-quote-admin__panel bsp-quote-admin__focus-card bsp-quote-admin__focus-card--assumptions">';
-        echo '<div class="bsp-quote-admin__panel-body">';
-        echo '<p class="bsp-quote-admin__focus-kicker">' . esc_html__('Controleer & bevestig', 'sbdp') . '</p>';
-        echo '<h2>' . esc_html__('Nog even checken voor verzending', 'sbdp') . '</h2>';
-        echo '<p class="bsp-quote-admin__focus-message">' . esc_html(sprintf(__('Deze offerte heeft %d punt(en) die je moet OK-en.', 'sbdp'), count($assumptions))) . '</p>';
-
-        foreach ($assumptions as $index => $assumption) {
-            $label = (string) ($assumption['label'] ?? __('Open check', 'sbdp'));
-            $message = trim((string) ($assumption['message'] ?? ''));
-            $steps = array_values(array_filter((array) ($assumption['steps'] ?? array()), static fn ($step): bool => trim((string) $step) !== ''));
-            $buttonLabel = (string) ($assumption['button_label'] ?? __('Bevestigd', 'sbdp'));
-
-            echo '<article class="bsp-quote-admin__assumption-card">';
-            echo '<strong>' . esc_html(sprintf('%d. %s', $index + 1, $label)) . '</strong>';
-            if ($message !== '') {
-                echo '<p>' . esc_html($message) . '</p>';
-            }
-            if ($steps !== array()) {
-                echo '<ol>';
-                foreach ($steps as $step) {
-                    echo '<li>' . esc_html((string) $step) . '</li>';
-                }
-                echo '</ol>';
-            }
-            if (! empty($state['quote_editable']) && (int) ($assumption['assumption_id'] ?? 0) > 0) {
-                echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" class="bsp-quote-admin__inline-form">';
-                \wp_nonce_field('sbdp_quote_resolve_assumption');
-                echo '<input type="hidden" name="action" value="sbdp_quote_resolve_assumption">';
-                echo '<input type="hidden" name="quote_id" value="' . esc_attr((string) $quoteId) . '">';
-                echo '<input type="hidden" name="assumption_id" value="' . esc_attr((string) ($assumption['assumption_id'] ?? 0)) . '">';
-                echo '<input type="hidden" name="workspace_tab" value="dashboard">';
-                echo '<label class="screen-reader-text" for="sbdp-assumption-note-' . esc_attr((string) ($assumption['assumption_id'] ?? 0)) . '">' . esc_html__('Operatornotitie', 'sbdp') . '</label>';
-                echo '<textarea id="sbdp-assumption-note-' . esc_attr((string) ($assumption['assumption_id'] ?? 0)) . '" class="large-text" rows="2" name="resolution_note" required placeholder="' . esc_attr__('Wie heeft wat gecontroleerd, wanneer en op basis waarvan?', 'sbdp') . '"></textarea>';
-                echo '<button class="button button-secondary" type="submit">' . esc_html($buttonLabel) . '</button>';
-                echo '</form>';
-            }
-            echo '</article>';
-        }
-
-        echo '<p class="bsp-quote-admin__muted">' . esc_html__('Na bevestiging toont het dashboard automatisch de volgende stap.', 'sbdp') . '</p>';
-        echo '</div></section>';
-    }
-
-    private static function renderQuoteDashboardReady(int $quoteId): void
-    {
-        echo '<section class="postbox bsp-quote-admin__panel bsp-quote-admin__focus-card bsp-quote-admin__focus-card--ready">';
-        echo '<div class="bsp-quote-admin__panel-body">';
-        echo '<p class="bsp-quote-admin__focus-kicker">' . esc_html__('Klaar om te verzenden', 'sbdp') . '</p>';
-        echo '<h2>' . esc_html__('Alle vereisten zijn voldaan', 'sbdp') . '</h2>';
-        echo '<p class="bsp-quote-admin__focus-message">' . esc_html__('De backend checks zijn groen. Controleer de voorstelmail en verstuur vanuit Communication.', 'sbdp') . '</p>';
-        echo '<p><a class="button button-primary button-large bsp-quote-admin__focus-button" href="' . esc_url(self::workspaceTabUrl($quoteId, 'communication')) . '">' . esc_html__('Naar voorstelmail', 'sbdp') . '</a></p>';
-        echo '</div></section>';
-    }
-
-    private static function renderQuoteDashboardLocked(): void
-    {
-        echo '<section class="postbox bsp-quote-admin__panel bsp-quote-admin__focus-card bsp-quote-admin__focus-card--ready">';
-        echo '<div class="bsp-quote-admin__panel-body">';
-        echo '<p class="bsp-quote-admin__focus-kicker">' . esc_html__('Geen actie nodig', 'sbdp') . '</p>';
-        echo '<h2>' . esc_html__('Deze offerte is commercieel bevroren', 'sbdp') . '</h2>';
-        echo '<p class="bsp-quote-admin__focus-message">' . esc_html__('Verzonden of geaccepteerde offertes tonen alleen auditinformatie. Maak een revisie als er commercieel iets moet wijzigen.', 'sbdp') . '</p>';
-        echo '</div></section>';
-    }
-
-    /**
-     * @param array<string, mixed> $request
-     * @param array<string, mixed> $requester
-     */
-    private static function renderQuoteDashboardCustomerSummary(array $request, array $requester): void
-    {
-        echo '<section class="postbox bsp-quote-admin__panel bsp-quote-admin__customer-strip"><div class="bsp-quote-admin__panel-header"><h3>' . esc_html__('Klantinfo', 'sbdp') . '</h3></div><div class="bsp-quote-admin__panel-body">';
-        echo '<div class="bsp-quote-admin__customer-grid">';
-        echo '<div><span class="bsp-quote-admin__field-label">' . esc_html__('Naam', 'sbdp') . '</span><strong>' . esc_html((string) ($requester['name'] ?? __('Onbekend', 'sbdp'))) . '</strong></div>';
-        echo '<div><span class="bsp-quote-admin__field-label">' . esc_html__('E-mail', 'sbdp') . '</span><strong>' . esc_html((string) (($requester['email'] ?? '') ?: __('Ontbreekt', 'sbdp'))) . '</strong></div>';
-        echo '<div><span class="bsp-quote-admin__field-label">' . esc_html__('Groep', 'sbdp') . '</span><strong>' . esc_html((string) ($request['group_size'] ?? '0')) . ' ' . esc_html__('personen', 'sbdp') . '</strong></div>';
-        echo '<div><span class="bsp-quote-admin__field-label">' . esc_html__('Datum', 'sbdp') . '</span><strong>' . esc_html((string) (($request['preferred_date'] ?? '') ?: __('Geen voorkeur', 'sbdp'))) . '</strong></div>';
-        echo '</div></div></section>';
-    }
-
-    /**
      * @param array<string, mixed>      $quote
      * @param array<string, mixed>|null $request
      * @param array<string, mixed>      $requester
@@ -2628,6 +2321,9 @@ final class QuoteWorkspaceRenderer
         echo '<div class="bsp-quote-admin__decision-strip-action">';
         echo '<span class="bsp-quote-admin__field-label">' . esc_html($versionLabel) . '</span>';
         echo self::renderQuotePrimaryAction($quoteId, $primaryAction);
+        if (! empty($primaryAction['description'])) {
+            echo '<small>' . esc_html((string) $primaryAction['description']) . '</small>';
+        }
         echo '</div>';
         echo '</section>';
     }
@@ -2664,13 +2360,13 @@ final class QuoteWorkspaceRenderer
         }
 
         if ($sendAllowed) {
-            return array('cta' => 'tab_link', 'tab' => 'communication', 'title' => __('Voorstel versturen', 'sbdp'), 'label' => __('Voorstel versturen', 'sbdp'));
+            return array('cta' => 'tab_link', 'tab' => 'communication', 'title' => __('Voorstel versturen', 'sbdp'), 'label' => __('Voorstel versturen', 'sbdp'), 'description' => __('Alle verplichte controles zijn afgerond.', 'sbdp'));
         }
 
         if ($sendStatus === 'ready_to_send' || $status === 'ready_to_send') {
             return $hasBlockers
-                ? array('cta' => 'tab_link', 'tab' => 'dashboard', 'anchor' => 'quote-blockers-card', 'title' => __('Blockers oplossen', 'sbdp'), 'label' => __('Bekijk blockers', 'sbdp'))
-                : array('cta' => 'tab_link', 'tab' => 'communication', 'title' => __('Voorstel controleren', 'sbdp'), 'label' => __('Open voorstel', 'sbdp'));
+                ? array('cta' => 'tab_link', 'tab' => 'build', 'anchor' => 'quote-blockers-card', 'title' => __('Los blockers op', 'sbdp'), 'label' => __('Controleer nu', 'sbdp'), 'description' => __('Nog niet verzendklaar: open blockers moeten eerst worden opgelost.', 'sbdp'))
+                : array('cta' => 'tab_link', 'tab' => 'build', 'anchor' => 'quote-blockers-card', 'title' => __('Controleer verzendstatus', 'sbdp'), 'label' => __('Controleer nu', 'sbdp'), 'description' => __('Nog niet verzendklaar: de readiness-check is nog niet groen.', 'sbdp'));
         }
 
         if ($reviewStatus === 'pending_review' || $status === 'pending_review') {
@@ -2684,13 +2380,13 @@ final class QuoteWorkspaceRenderer
             return $nextAction;
         }
         if ($cta === 'assumptions') {
-            return array('cta' => 'tab_link', 'tab' => 'dashboard', 'anchor' => 'quote-blockers-card', 'title' => __('Blockers oplossen', 'sbdp'), 'label' => __('Bekijk blockers', 'sbdp'));
+            return array('cta' => 'tab_link', 'tab' => 'build', 'anchor' => 'quote-blockers-card', 'title' => __('Blockers oplossen', 'sbdp'), 'label' => __('Controleer nu', 'sbdp'), 'description' => (string) ($nextAction['description'] ?? __('Nog niet verzendklaar: los eerst de open punten op.', 'sbdp')));
         }
         if ($cta === 'build') {
-            return array('cta' => 'tab_link', 'tab' => 'build', 'title' => __('Programma aanvullen', 'sbdp'), 'label' => __('Naar programma', 'sbdp'));
+            return array('cta' => 'tab_link', 'tab' => 'build', 'title' => (string) ($nextAction['title'] ?? __('Programma controleren', 'sbdp')), 'label' => __('Naar programma', 'sbdp'), 'description' => (string) ($nextAction['description'] ?? __('Nog niet verzendklaar: controleer eerst programma, prijs en beschikbaarheid.', 'sbdp')));
         }
 
-        return array('cta' => 'tab_link', 'tab' => 'build', 'title' => __('Concept afronden', 'sbdp'), 'label' => __('Werk programma bij', 'sbdp'));
+        return array('cta' => 'tab_link', 'tab' => 'build', 'title' => __('Concept afronden', 'sbdp'), 'label' => __('Werk programma bij', 'sbdp'), 'description' => __('Nog niet verzendklaar: rond eerst de hoofdcontrole af.', 'sbdp'));
     }
 
     /**
@@ -2713,7 +2409,8 @@ final class QuoteWorkspaceRenderer
         string $amountLabel,
         string $pricingConfidence,
         string $availabilityConfidence,
-        array $alerts
+        array $alerts,
+        bool $sendAllowed
     ): void {
         $stats = is_array($proposalProgram['stats'] ?? null) ? $proposalProgram['stats'] : array();
         $blockers = is_array($alerts['blockers'] ?? null) ? $alerts['blockers'] : array();
@@ -2723,17 +2420,19 @@ final class QuoteWorkspaceRenderer
         $date = is_array($request) ? trim((string) ($request['preferred_date'] ?? '')) : '';
         $groupSize = is_array($request) ? max(0, (int) ($request['group_size'] ?? 0)) : 0;
         $discountLabel = self::resolveQuoteDiscountLabel($lineSummary);
-        $sendLabel = self::humanSendStatusLabel((string) ($quote['send_status'] ?? 'not_ready'), (string) ($quote['status'] ?? 'draft'));
-        $nextAction = self::resolveSummaryNextActionLabel($blockers, $partnerActions, $warnings, (string) ($quote['send_status'] ?? 'not_ready'), (string) ($quote['status'] ?? 'draft'));
+        $sendLabel = self::humanSendStatusLabel((string) ($quote['send_status'] ?? 'not_ready'), (string) ($quote['status'] ?? 'draft'), $sendAllowed);
+        $nextAction = self::resolveSummaryNextActionLabel($blockers, $partnerActions, $warnings, (string) ($quote['send_status'] ?? 'not_ready'), (string) ($quote['status'] ?? 'draft'), $sendAllowed);
 
         echo '<section class="postbox bsp-quote-admin__summary-bar" aria-label="' . esc_attr__('Quote samenvatting', 'sbdp') . '">';
         echo '<div class="bsp-quote-admin__summary-bar-section">';
         echo '<h3>' . esc_html__('Klant', 'sbdp') . '</h3>';
         echo '<div class="bsp-quote-admin__summary-bar-grid">';
         echo self::renderSummaryBarItem(__('Naam', 'sbdp'), (string) (($requester['name'] ?? '') ?: __('Onbekend', 'sbdp')));
-        echo self::renderSummaryBarItem(__('Contact', 'sbdp'), $contactSummary !== array() ? implode(' | ', $contactSummary) : __('Ontbreekt', 'sbdp'));
-        echo self::renderSummaryBarItem(__('Datum', 'sbdp'), $date !== '' ? $date : __('Nog open', 'sbdp'));
-        echo self::renderSummaryBarItem(__('Groep', 'sbdp'), $groupSize > 0 ? sprintf(__('%d personen', 'sbdp'), $groupSize) : __('Nog open', 'sbdp'));
+        echo self::renderSummaryBarItem(__('E-mail', 'sbdp'), (string) (($requester['email'] ?? '') ?: __('Ontbreekt', 'sbdp')));
+        echo self::renderSummaryBarItem(__('Telefoon', 'sbdp'), (string) (($requester['phone'] ?? '') ?: __('Ontbreekt', 'sbdp')));
+        if (trim((string) ($requester['company'] ?? '')) !== '') {
+            echo self::renderSummaryBarItem(__('Bedrijf', 'sbdp'), (string) $requester['company']);
+        }
         if ($formattedAddress !== '') {
             echo self::renderSummaryBarItem(__('Adres', 'sbdp'), $formattedAddress);
         }
@@ -2741,6 +2440,7 @@ final class QuoteWorkspaceRenderer
         if ($summary !== '') {
             echo '<p class="bsp-quote-admin__summary-bar-note">' . esc_html($summary) . '</p>';
         }
+        self::renderCustomerContextModal($quoteId, $request, $requester, $summary);
         echo '</div>';
 
         echo '<div class="bsp-quote-admin__summary-bar-section">';
@@ -2779,6 +2479,36 @@ final class QuoteWorkspaceRenderer
     }
 
     /**
+     * @param array<string, mixed>|null $request
+     * @param array<string, mixed>      $requester
+     */
+    private static function renderCustomerContextModal(int $quoteId, ?array $request, array $requester, string $summary): void
+    {
+        $modalId = 'bsp-quote-customer-modal-' . $quoteId;
+        $date = is_array($request) ? trim((string) ($request['preferred_date'] ?? '')) : '';
+        $groupSize = is_array($request) ? max(0, (int) ($request['group_size'] ?? 0)) : 0;
+
+        echo '<button type="button" class="button button-small bsp-quote-admin__modal-open" data-modal-target="' . esc_attr($modalId) . '">' . esc_html__('Bewerk klantgegevens', 'sbdp') . '</button>';
+        echo '<div id="' . esc_attr($modalId) . '" class="bsp-quote-admin__modal" hidden role="dialog" aria-modal="true" aria-labelledby="' . esc_attr($modalId . '-title') . '">';
+        echo '<div class="bsp-quote-admin__modal-panel">';
+        echo '<div class="bsp-quote-admin__modal-header"><h3 id="' . esc_attr($modalId . '-title') . '">' . esc_html__('Klantgegevens', 'sbdp') . '</h3><button type="button" class="button-link bsp-quote-admin__modal-close" data-modal-close="' . esc_attr($modalId) . '">×</button></div>';
+        echo '<p class="bsp-quote-admin__muted">' . esc_html__('Naam, contact en aanvraagtekst zijn hier bewust read-only: er is nog geen aparte veilige save-action voor deze velden in de workspace. Datum en groepsgrootte gebruiken de bestaande intake-update.', 'sbdp') . '</p>';
+        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" class="bsp-quote-admin__modal-grid">';
+        \wp_nonce_field('sbdp_quote_update_intake');
+        echo '<input type="hidden" name="action" value="sbdp_quote_update_intake"><input type="hidden" name="quote_id" value="' . esc_attr((string) $quoteId) . '">';
+        echo '<label>' . esc_html__('Naam', 'sbdp') . '<input type="text" value="' . esc_attr((string) ($requester['name'] ?? '')) . '" readonly></label>';
+        echo '<label>' . esc_html__('Bedrijf', 'sbdp') . '<input type="text" value="' . esc_attr((string) ($requester['company'] ?? '')) . '" readonly></label>';
+        echo '<label>' . esc_html__('E-mail', 'sbdp') . '<input type="email" value="' . esc_attr((string) ($requester['email'] ?? '')) . '" readonly></label>';
+        echo '<label>' . esc_html__('Telefoon', 'sbdp') . '<input type="text" value="' . esc_attr((string) ($requester['phone'] ?? '')) . '" readonly></label>';
+        echo '<label>' . esc_html__('Voorkeursdatum', 'sbdp') . '<input type="date" name="preferred_date" value="' . esc_attr($date) . '"></label>';
+        echo '<label>' . esc_html__('Aantal personen', 'sbdp') . '<input type="number" min="0" name="group_size" value="' . esc_attr((string) $groupSize) . '"></label>';
+        echo '<label class="bsp-quote-admin__modal-span">' . esc_html__('Korte aanvraagomschrijving', 'sbdp') . '<textarea rows="4" readonly>' . esc_textarea($summary) . '</textarea></label>';
+        echo '<div class="bsp-quote-admin__modal-actions"><button type="button" class="button button-secondary" data-modal-close="' . esc_attr($modalId) . '">' . esc_html__('Annuleren', 'sbdp') . '</button><button type="submit" class="button button-primary">' . esc_html__('Datum/groep opslaan', 'sbdp') . '</button></div>';
+        echo '</form></div></div>';
+        echo '<script>(function(){if(window.bspQuoteCustomerModalBound){return;}window.bspQuoteCustomerModalBound=true;document.addEventListener("click",function(event){var open=event.target.closest("[data-modal-target]");if(open){var modal=document.getElementById(open.getAttribute("data-modal-target"));if(modal){modal.hidden=false;var field=modal.querySelector("input:not([readonly]),textarea:not([readonly]),button");if(field){field.focus();}}}var close=event.target.closest("[data-modal-close]");if(close){var target=document.getElementById(close.getAttribute("data-modal-close"));if(target){target.hidden=true;}}if(event.target.classList&&event.target.classList.contains("bsp-quote-admin__modal")){event.target.hidden=true;}});document.addEventListener("keydown",function(event){if(event.key==="Escape"){document.querySelectorAll(".bsp-quote-admin__modal:not([hidden])").forEach(function(modal){modal.hidden=true;});}});})();</script>';
+    }
+
+    /**
      * @param array<string, mixed> $lineSummary
      */
     private static function resolveQuoteDiscountLabel(array $lineSummary): string
@@ -2807,13 +2537,14 @@ final class QuoteWorkspaceRenderer
         return __('Geen korting', 'sbdp');
     }
 
-    private static function humanSendStatusLabel(string $sendStatus, string $quoteStatus): string
+    private static function humanSendStatusLabel(string $sendStatus, string $quoteStatus, bool $sendAllowed = false): string
     {
         return match (true) {
             $quoteStatus === 'accepted' => __('Geaccepteerd', 'sbdp'),
             in_array($quoteStatus, array('sent', 'sent_manual'), true) => __('Verzonden', 'sbdp'),
             in_array($quoteStatus, array('revision_requested', 'needs_revision'), true) => __('Revisie gevraagd', 'sbdp'),
-            $sendStatus === 'ready_to_send' => __('Klaar om te verzenden', 'sbdp'),
+            $sendStatus === 'ready_to_send' && $sendAllowed => __('Klaar om te versturen', 'sbdp'),
+            $sendStatus === 'ready_to_send' => __('Nog niet verzendklaar', 'sbdp'),
             default => __('Niet verzendklaar', 'sbdp'),
         };
     }
@@ -2823,7 +2554,7 @@ final class QuoteWorkspaceRenderer
      * @param array<int, mixed> $partnerActions
      * @param array<int, mixed> $warnings
      */
-    private static function resolveSummaryNextActionLabel(array $blockers, array $partnerActions, array $warnings, string $sendStatus, string $quoteStatus): string
+    private static function resolveSummaryNextActionLabel(array $blockers, array $partnerActions, array $warnings, string $sendStatus, string $quoteStatus, bool $sendAllowed = false): string
     {
         if ($blockers !== array()) {
             return __('Los blocker op', 'sbdp');
@@ -2831,8 +2562,11 @@ final class QuoteWorkspaceRenderer
         if ($partnerActions !== array()) {
             return __('Vraag partnerbevestiging aan', 'sbdp');
         }
-        if ($sendStatus === 'ready_to_send') {
+        if ($sendStatus === 'ready_to_send' && $sendAllowed) {
             return __('Verstuur voorstel', 'sbdp');
+        }
+        if ($sendStatus === 'ready_to_send') {
+            return __('Controleer verzendstatus', 'sbdp');
         }
         if ($quoteStatus === 'accepted') {
             return __('Bereid handoff voor', 'sbdp');
@@ -2845,54 +2579,6 @@ final class QuoteWorkspaceRenderer
         }
 
         return __('Werk programma bij', 'sbdp');
-    }
-
-    /**
-     * @param array<string, mixed>|null $request
-     * @param array<string, mixed>      $requester
-     * @param array<int, string>        $contactSummary
-     */
-    private static function renderQuoteCustomerRequestCard(?array $request, array $requester, string $formattedAddress, array $contactSummary): void
-    {
-        $summary = is_array($request) ? trim((string) ($request['request_summary'] ?? '')) : '';
-        echo '<section class="postbox bsp-quote-admin__summary-card"><div class="bsp-quote-admin__panel-header"><h3>' . esc_html__('Klant & aanvraag', 'sbdp') . '</h3></div><div class="bsp-quote-admin__panel-body">';
-        echo '<div class="bsp-quote-admin__customer-grid">';
-        echo '<div><span class="bsp-quote-admin__field-label">' . esc_html__('Naam', 'sbdp') . '</span><strong>' . esc_html((string) (($requester['name'] ?? '') ?: __('Onbekend', 'sbdp'))) . '</strong></div>';
-        echo '<div><span class="bsp-quote-admin__field-label">' . esc_html__('Contact', 'sbdp') . '</span><strong>' . esc_html($contactSummary !== array() ? implode(' | ', $contactSummary) : __('Ontbreekt', 'sbdp')) . '</strong></div>';
-        if (! empty($requester['company'])) {
-            echo '<div><span class="bsp-quote-admin__field-label">' . esc_html__('Bedrijf', 'sbdp') . '</span><strong>' . esc_html((string) $requester['company']) . '</strong></div>';
-        }
-        if ($formattedAddress !== '') {
-            echo '<div><span class="bsp-quote-admin__field-label">' . esc_html__('Adres', 'sbdp') . '</span><strong>' . esc_html($formattedAddress) . '</strong></div>';
-        }
-        echo '</div>';
-        echo '<p class="bsp-quote-admin__muted bsp-quote-admin__proposal-copy">' . esc_html($summary !== '' ? $summary : __('Nog geen aanvraagsamenvatting.', 'sbdp')) . '</p>';
-        echo '</div></section>';
-    }
-
-    /**
-     * @param array<string, mixed> $proposalProgram
-     * @param array<string, mixed> $lineSummary
-     */
-    private static function renderQuoteProgramPriceCard(
-        int $quoteId,
-        array $proposalProgram,
-        array $lineSummary,
-        string $amountLabel,
-        string $pricingConfidence,
-        string $availabilityConfidence
-    ): void {
-        $stats = is_array($proposalProgram['stats'] ?? null) ? $proposalProgram['stats'] : array();
-        echo '<section class="postbox bsp-quote-admin__summary-card"><div class="bsp-quote-admin__panel-header"><h3>' . esc_html__('Programma & prijs', 'sbdp') . '</h3></div><div class="bsp-quote-admin__panel-body">';
-        echo '<div class="bsp-quote-admin__compact-metrics">';
-        echo self::renderDecisionStripItem(__('Onderdelen', 'sbdp'), (string) ((int) ($stats['total_lines'] ?? 0)));
-        echo self::renderDecisionStripItem(__('Gepland', 'sbdp'), sprintf('%d / %d', (int) ($stats['scheduled_lines'] ?? 0), (int) ($stats['total_lines'] ?? 0)));
-        echo self::renderDecisionStripItem($amountLabel, (string) ($lineSummary['total_label'] ?? __('Nog niet bepaald', 'sbdp')));
-        echo self::renderDecisionStripItem(__('Prijsstatus', 'sbdp'), self::humanPricingStatusLabel($pricingConfidence));
-        echo self::renderDecisionStripItem(__('Beschikbaarheid', 'sbdp'), self::humanAvailabilityStatusLabel($availabilityConfidence));
-        echo '</div>';
-        echo '<p><a class="button button-secondary" href="' . esc_url(self::workspaceTabUrl($quoteId, 'build')) . '">' . esc_html__('Open programma & prijs', 'sbdp') . '</a></p>';
-        echo '</div></section>';
     }
 
     /**
@@ -3169,66 +2855,6 @@ final class QuoteWorkspaceRenderer
     }
 
     /**
-     * @param array<string, mixed> $validation
-     * @param array<string, mixed> $sendReadiness
-     */
-    private static function renderQuoteBusinessValidationSummary(array $validation, array $sendReadiness): void
-    {
-        $checks = array_values(array_filter(
-            isset($validation['checks']) && is_array($validation['checks']) ? $validation['checks'] : array(),
-            static fn ($check): bool => is_array($check)
-        ));
-        $totalChecks = count($checks);
-        $passedChecks = count(array_filter($checks, static fn (array $check): bool => ! empty($check['passed'])));
-        $completionPercent = $totalChecks > 0 ? (int) round(($passedChecks / $totalChecks) * 100) : 0;
-        $violations = isset($validation['violations']) && is_array($validation['violations']) ? $validation['violations'] : array();
-        $hasSendBlockers = ! empty($sendReadiness['ready']) ? false : ((array) ($sendReadiness['blockers'] ?? array())) !== array();
-
-        echo '<section class="postbox bsp-quote-admin__panel"><div class="bsp-quote-admin__panel-header"><h3>' . esc_html__('🧭 Validatie & voortgang', 'sbdp') . '</h3></div><div class="bsp-quote-admin__panel-body">';
-        echo '<p><strong>' . esc_html(sprintf(__('Voorbereiding: %d%% klaar', 'sbdp'), $completionPercent)) . '</strong></p>';
-        echo '<div style="background:#e5e7eb;border-radius:999px;overflow:hidden;height:10px;margin-bottom:12px;"><div style="background:#2271b1;height:10px;width:' . esc_attr((string) $completionPercent) . '%;"></div></div>';
-        echo '<div class="bsp-quote-admin__badge-row">';
-        foreach ($checks as $check) {
-            $badgeClass = ! empty($check['passed']) ? 'is-good' : (((string) ($check['severity'] ?? 'warning')) === 'error' ? 'is-warn' : 'is-neutral');
-            $label = (! empty($check['passed']) ? 'OK' : 'Open') . ' · ' . (string) ($check['label'] ?? '');
-            echo self::renderInlineBadge($label, $badgeClass);
-        }
-        echo '</div>';
-
-        if ($violations !== array()) {
-            echo '<div style="margin-top:16px">';
-            foreach ($violations as $violation) {
-                if (! is_array($violation)) {
-                    continue;
-                }
-
-                $tab = trim((string) ($violation['fix_url'] ?? ''));
-                $href = $tab !== ''
-                    ? esc_url(add_query_arg(array(
-                        'page' => 'sbdp_quotes',
-                        'quote_id' => isset($_GET['quote_id']) ? (int) $_GET['quote_id'] : 0, // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-                        'workspace_tab' => $tab,
-                    ), admin_url('admin.php')))
-                    : '';
-
-                echo '<article class="bsp-quote-admin__readiness-summary bsp-quote-admin__readiness-summary--action" style="margin-bottom:10px">';
-                echo '<strong>' . esc_html((string) ($violation['message'] ?? '')) . '</strong>';
-                echo '<p>' . esc_html((string) ($violation['fix'] ?? '')) . '</p>';
-                if ($href !== '') {
-                    echo '<p><a class="button button-secondary" href="' . $href . '">' . esc_html__('Ga naar fix', 'sbdp') . '</a></p>';
-                }
-                echo '</article>';
-            }
-            echo '</div>';
-        } elseif ($hasSendBlockers) {
-            echo '<p class="bsp-quote-admin__muted" style="margin-top:12px">' . esc_html__('De basis is ingevuld, maar backend send-readiness blokkeert nog verzending. Gebruik de checklist hieronder voor de exacte blokkade.', 'sbdp') . '</p>';
-        } else {
-            echo '<p class="bsp-quote-admin__muted" style="margin-top:12px">' . esc_html__('De basiscontext is compleet. Gebruik nu de send-readiness en communicatieblokken om de laatste commerciële stap af te ronden.', 'sbdp') . '</p>';
-        }
-        echo '</div></section>';
-    }
-
-    /**
      * @param array<string, mixed> $quote
      * @param array<string, mixed>|null $currentVersion
      * @param array<int, array<string, mixed>> $lines
@@ -3296,13 +2922,13 @@ final class QuoteWorkspaceRenderer
 
         if ($blockingAssumptions > 0) {
             $items[] = array(
-                'title'       => sprintf(__('Open blockers: %d', 'sbdp'), $blockingAssumptions),
+                'title'       => sprintf(__('Open punten: %d', 'sbdp'), $blockingAssumptions),
                 'description' => __('Er staan assumptions open die review of verzending blokkeren en eerst expliciet opgelost moeten worden.', 'sbdp'),
                 'action'      => array(
                     'type'          => 'followup_create',
                     'label'         => __('Maak blocker follow-up', 'sbdp'),
-                    'title'         => __('Werk open quote-blockers weg', 'sbdp'),
-                    'note'          => __('Los de open assumptions op die review of verzending blokkeren en werk daarna de readiness opnieuw bij.', 'sbdp'),
+                    'title'         => __('Werk open quote-punten weg', 'sbdp'),
+                    'note'          => __('Los de open controles op die review of verzending blokkeren en werk daarna de verzendcheck opnieuw bij.', 'sbdp'),
                     'priority'      => 'high',
                     'followup_type' => 'manual_review',
                     'secondary_href'=> '#quote-assumptions',
@@ -3381,7 +3007,7 @@ final class QuoteWorkspaceRenderer
 
         $label = __('Interne werkversie', 'sbdp');
         $title = __('Nog niet klaar als klantvoorstel', 'sbdp');
-        $description = __('Gebruik deze versie nog intern. Eerst review, blockers en commerciële onduidelijkheden wegwerken.', 'sbdp');
+        $description = __('Gebruik deze versie nog intern. Eerst review, open punten en commerciële onduidelijkheden wegwerken.', 'sbdp');
         $badgeClass = 'is-neutral';
 
         if ((string) ($quote['review_status'] ?? 'not_started') === 'approved' && $sendBlockingAssumptions === 0) {
@@ -3456,7 +3082,7 @@ final class QuoteWorkspaceRenderer
         $operatorActionAgeLabel = '';
         $operatorActionAgeBadgeClass = 'is-neutral';
         $proposalSendReady = false;
-        $proposalSendBlockReason = __('Vraag eerst review aan, los blockers op en keur de review goed voordat de voorstelmail verzonden mag worden.', 'sbdp');
+        $proposalSendBlockReason = __('Vraag eerst review aan, los open punten op en keur de review goed voordat de voorstelmail verzonden mag worden.', 'sbdp');
         $replyReady = false;
         $replyBlockReason = __('Verstuur eerst een voorstelmail. Zonder verzonden voorstel bestaat er nog geen reply-thread.', 'sbdp');
         $proposalAlreadySent = $latestProposal !== null;
@@ -4214,9 +3840,9 @@ final class QuoteWorkspaceRenderer
 
     private static function resolveWorkspaceTab(): string
     {
-        $tab = isset($_GET['workspace_tab']) ? (string) $_GET['workspace_tab'] : 'build'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        $tab = isset($_GET['workspace_tab']) ? (string) $_GET['workspace_tab'] : 'dashboard'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 
-        return self::normalizeWorkspaceTab($tab, 'build');
+        return self::normalizeWorkspaceTab($tab, 'dashboard');
     }
 
     private static function normalizeWorkspaceTab(string $tab, string $default = 'dashboard'): string
@@ -4230,44 +3856,6 @@ final class QuoteWorkspaceRenderer
         }
 
         return in_array($tab, $allowedTabs, true) ? $tab : $default;
-    }
-
-    /**
-     * @param array<string, mixed> $action
-     */
-    private static function renderWorkspaceAction(int $quoteId, array $action): string
-    {
-        $type = (string) ($action['type'] ?? '');
-        $label = (string) ($action['label'] ?? '');
-        $secondaryHref = (string) ($action['secondary_href'] ?? '');
-        $secondaryLabel = (string) ($action['secondary_label'] ?? '');
-        $secondary = '';
-
-        if ($secondaryHref !== '' && $secondaryLabel !== '') {
-            $secondary = '<a class="button-link" href="' . esc_url($secondaryHref) . '">' . esc_html($secondaryLabel) . '</a>';
-        }
-
-        if ($label === '') {
-            return $secondary;
-        }
-
-        switch ($type) {
-            case 'review_request':
-                return '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" class="bsp-quote-admin__inline-form">' . wp_nonce_field('sbdp_quote_review_request', '_wpnonce', true, false) . '<input type="hidden" name="action" value="sbdp_quote_review_request"><input type="hidden" name="quote_id" value="' . esc_attr((string) $quoteId) . '"><button class="button button-secondary" type="submit">' . esc_html($label) . '</button></form>' . $secondary;
-            case 'review_approve':
-                return '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" class="bsp-quote-admin__inline-form">' . wp_nonce_field('sbdp_quote_review_approve', '_wpnonce', true, false) . '<input type="hidden" name="action" value="sbdp_quote_review_approve"><input type="hidden" name="quote_id" value="' . esc_attr((string) $quoteId) . '"><button class="button button-secondary" type="submit">' . esc_html($label) . '</button></form>' . $secondary;
-            case 'followup_create':
-                return '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" class="bsp-quote-admin__inline-form">' . wp_nonce_field('sbdp_quote_followup_create', '_wpnonce', true, false) . '<input type="hidden" name="action" value="sbdp_quote_followup_create"><input type="hidden" name="quote_id" value="' . esc_attr((string) $quoteId) . '"><input type="hidden" name="title" value="' . esc_attr((string) ($action['title'] ?? '')) . '"><input type="hidden" name="note" value="' . esc_attr((string) ($action['note'] ?? '')) . '"><input type="hidden" name="priority" value="' . esc_attr((string) ($action['priority'] ?? 'normal')) . '"><input type="hidden" name="followup_type" value="' . esc_attr((string) ($action['followup_type'] ?? 'manual_review')) . '"><button class="button button-secondary" type="submit">' . esc_html($label) . '</button></form>' . $secondary;
-            case 'link':
-                $href = (string) ($action['href'] ?? '');
-                if ($href === '') {
-                    return $secondary;
-                }
-
-                return '<a class="button-link" href="' . esc_url($href) . '">' . esc_html($label) . '</a>' . $secondary;
-            default:
-                return $secondary;
-        }
     }
 
     private static function formatMoney(float $amount, string $currency): string
@@ -4311,6 +3899,7 @@ final class QuoteWorkspaceRenderer
             'quote_message_sent'    => __('Quote-mail verstuurd en vastgelegd in de thread.', 'sbdp'),
             'quote_inbound_logged'  => __('Inbound klantreply opgeslagen in de quote-thread.', 'sbdp'),
             'quote_intake_updated'  => __('Intakecontext bijgewerkt en intake-blockers opnieuw beoordeeld.', 'sbdp'),
+            'quote_contact_updated' => __('Klantgegevens bijgewerkt.', 'sbdp'),
             'quote_assumption_resolved' => __('Commerciële assumption opgelost en vrijgegeven voor de volgende workflowstap.', 'sbdp'),
             'quote_inbound_resolved' => __('Inbound inbox-item gekoppeld en verwerkt.', 'sbdp'),
             'followup_created'      => __('Follow-up aangemaakt.', 'sbdp'),
@@ -4343,55 +3932,6 @@ final class QuoteWorkspaceRenderer
         }
     }
 
-    private static function renderRequestStats(array $requests): void
-    {
-        $newCount = 0;
-        $convertedCount = 0;
-        foreach ($requests as $request) {
-            $status = (string) ($request['status'] ?? 'new');
-            if ($status === 'new') {
-                $newCount++;
-            }
-            if ($status === 'converted_to_quote') {
-                $convertedCount++;
-            }
-        }
-
-        echo '<div class="bsp-quote-admin__stats">';
-        echo self::renderStatCard(__('Totaal requests', 'sbdp'), (string) count($requests));
-        echo self::renderStatCard(__('Nieuw', 'sbdp'), (string) $newCount);
-        echo self::renderStatCard(__('Omgezet', 'sbdp'), (string) $convertedCount);
-        echo '</div>';
-    }
-
-    /**
-     * @param array<int, array<string, mixed>> $quotes
-     */
-    private static function renderQuoteStats(array $quotes): void
-    {
-        $draftCount = 0;
-        $reviewCount = 0;
-        $readyCount = 0;
-        foreach ($quotes as $quote) {
-            if ((string) ($quote['status'] ?? '') === 'draft') {
-                $draftCount++;
-            }
-            if ((string) ($quote['review_status'] ?? '') === 'pending_review') {
-                $reviewCount++;
-            }
-            if ((string) ($quote['handoff_status'] ?? '') === 'ready_for_resnapshot') {
-                $readyCount++;
-            }
-        }
-
-        echo '<div class="bsp-quote-admin__stats">';
-        echo self::renderStatCard(__('Totaal quotes', 'sbdp'), (string) count($quotes));
-        echo self::renderStatCard(__('Draft', 'sbdp'), (string) $draftCount);
-        echo self::renderStatCard(__('In review', 'sbdp'), (string) $reviewCount);
-        echo self::renderStatCard(__('Ready for resnapshot', 'sbdp'), (string) $readyCount);
-        echo '</div>';
-    }
-
     private static function renderStatCard(string $label, string $value): string
     {
         return '<div class="bsp-quote-admin__stat"><span class="bsp-quote-admin__stat-value">' . esc_html($value) . '</span><span class="bsp-quote-admin__stat-label">' . esc_html($label) . '</span></div>';
@@ -4400,11 +3940,6 @@ final class QuoteWorkspaceRenderer
     private static function renderInlineBadge(string $label, string $className): string
     {
         return '<span class="bsp-quote-admin__badge ' . esc_attr($className) . '">' . esc_html($label) . '</span>';
-    }
-
-    private static function renderCheckItem(string $label, bool $ok, string $detail): string
-    {
-        return '<div class="bsp-quote-admin__send-check-item ' . esc_attr($ok ? 'is-ok' : 'is-open') . '"><span>' . esc_html($ok ? '✓' : '!') . '</span><strong>' . esc_html($label) . '</strong><small>' . esc_html($detail) . '</small></div>';
     }
 
     /**
@@ -4608,6 +4143,1235 @@ final class QuoteWorkspaceRenderer
             default => 'is-neutral',
         };
     }
+
+    // ─── Quote Control Dashboard (single-screen, scopes 1-8) ──────────────────
+
+    /**
+     * Main entry point: renders the full single-screen control dashboard.
+     *
+     * @param array<int, array<string, mixed>> $lines
+     * @param array<int, array<string, mixed>> $messages
+     * @param array<int, array<string, mixed>> $events
+     * @param array<string, mixed>             $messageDrafts
+     * @param array<string, mixed>             $lineSummary
+     * @param array<string, mixed>             $proposalProgram
+     * @param array<string, mixed>             $sendReadiness
+     * @param array<string, mixed>             $workspaceAlerts
+     * @param array<string, mixed>             $communicationState
+     * @param array<string, mixed>             $proposalReadiness
+     */
+    private static function renderQuoteControlDashboard(
+        int $quoteId,
+        array $quote,
+        ?array $request,
+        array $requester,
+        string $formattedAddress,
+        ?array $currentVersion,
+        array $lines,
+        array $lineSummary,
+        array $proposalProgram,
+        array $sendReadiness,
+        array $workspaceAlerts,
+        array $communicationState,
+        array $messages,
+        array $events,
+        array $messageDrafts,
+        array $proposalReadiness,
+        string $pricingConfidence,
+        string $availabilityConfidence,
+        bool $sendAllowed,
+        bool $quoteCommerciallyEditable
+    ): void {
+        $matrix = self::buildQcdApprovalMatrix(
+            $requester,
+            $lines,
+            $lineSummary,
+            $availabilityConfidence,
+            $proposalReadiness,
+            $messageDrafts,
+            $communicationState,
+            $currentVersion,
+            $messages
+        );
+        $qcdSendAllowed = $sendAllowed && self::qcdApprovalMatrixAllowsSend($matrix);
+
+        echo '<div class="bsp-qcd">';
+        self::renderQcdDecisionBar($quoteId, $quote, $request, $requester, $currentVersion, $lineSummary, $matrix, $qcdSendAllowed, $sendReadiness, $pricingConfidence, $availabilityConfidence);
+        self::renderQcdApprovalMatrix($matrix, $quoteId);
+        echo '<div class="bsp-qcd__layout">';
+        echo '<main class="bsp-qcd__main">';
+        self::renderQcdCustomerCard($quoteId, $request, $requester, $formattedAddress, $quoteCommerciallyEditable);
+        echo '<div class="bsp-qcd__program-body" id="qcd-program-editor">';
+        QuoteBuilderRenderer::renderQuoteBuildWorkspace($quoteId, $quote, $request, $currentVersion, $lines);
+        echo '</div>';
+        self::renderQcdProposalPreview($quoteId, $quote, $currentVersion, $proposalReadiness, $messageDrafts, $lineSummary, $proposalProgram, $qcdSendAllowed, $sendReadiness, $communicationState, $messages);
+        echo '</main>';
+        echo '<aside class="bsp-qcd__side">';
+        self::renderQcdReadinessCard($sendReadiness, $matrix);
+        self::renderQcdMessagesCard($quoteId, $communicationState, $messages);
+        self::renderQcdAuditCard($quoteId, $events, $currentVersion);
+        echo '</aside>';
+        echo '</div>';
+        if ($quoteCommerciallyEditable) {
+            $ctxAddress  = isset($requester['address']) && is_array($requester['address']) ? $requester['address'] : array();
+            $ctxDate     = is_array($request) ? trim((string) ($request['preferred_date'] ?? '')) : '';
+            $ctxGroup    = is_array($request) ? max(0, (int) ($request['group_size'] ?? 0)) : 0;
+            $ctxSummary  = is_array($request) ? trim((string) ($request['request_summary'] ?? '')) : '';
+            self::renderQcdCustomerModal($quoteId, $request, $requester, $ctxAddress, $ctxDate, $ctxGroup, $ctxSummary);
+        }
+        echo '</div>';
+    }
+
+    /**
+     * Computes the approval-matrix data for the 6 control points.
+     *
+     * @param array<string, mixed>             $requester
+     * @param array<int, array<string, mixed>> $lines
+     * @param array<string, mixed>             $lineSummary
+     * @param array<string, mixed>             $proposalReadiness
+     * @param array<string, mixed>             $messageDrafts
+     * @param array<string, mixed>             $communicationState
+     * @param array<int, array<string, mixed>> $messages
+     * @return array<string, array<string, string>>
+     */
+    private static function buildQcdApprovalMatrix(
+        array $requester,
+        array $lines,
+        array $lineSummary,
+        string $availabilityConfidence,
+        array $proposalReadiness,
+        array $messageDrafts,
+        array $communicationState,
+        ?array $currentVersion,
+        array $messages
+    ): array {
+        $hasLines  = $lines !== array();
+        $totalLabel = (string) ($lineSummary['total_label'] ?? '');
+
+        // ── 1. Klantgegevens ──────────────────────────────────────────────────
+        $hasName  = trim((string) ($requester['name']  ?? '')) !== '';
+        $hasEmail = trim((string) ($requester['email'] ?? '')) !== '';
+        if ($hasName && $hasEmail) {
+            $customerPoint = array('icon' => 'ok',    'status' => __('Compleet', 'sbdp'),                          'action' => '',                       'tab' => '');
+        } elseif ($hasEmail) {
+            $customerPoint = array('icon' => 'warn',  'status' => __('Naam ontbreekt', 'sbdp'),                    'action' => __('Vul naam in', 'sbdp'), 'tab' => 'dashboard');
+        } elseif ($hasName) {
+            $customerPoint = array('icon' => 'error', 'status' => __('E-mail ontbreekt — blokkeert verzenden', 'sbdp'), 'action' => __('E-mail invullen', 'sbdp'), 'tab' => 'dashboard');
+        } else {
+            $customerPoint = array('icon' => 'error', 'status' => __('Naam en e-mail ontbreken', 'sbdp'),          'action' => __('Vul klantgegevens in', 'sbdp'), 'tab' => 'dashboard');
+        }
+
+        // ── 2. Programma + technische prijsvalidatie ──────────────────────────
+        $totalAmount = $lineSummary['total_amount'] ?? null;
+        $hasValidTotal = is_numeric($totalAmount) && (float) $totalAmount > 0.0;
+        $allLinesPriced = (int) ($lineSummary['total_lines'] ?? 0) > 0
+            && (int) ($lineSummary['priced_lines'] ?? 0) === (int) ($lineSummary['total_lines'] ?? 0);
+        if (! $hasLines) {
+            $programPoint = array('icon' => 'error', 'status' => __('Geen programmaregels', 'sbdp'), 'action' => __('Voeg programma toe', 'sbdp'), 'tab' => 'build');
+        } elseif (! $allLinesPriced || ! $hasValidTotal) {
+            $programPoint = array('icon' => 'error', 'status' => __('Programmatotaal ontbreekt of is ongeldig', 'sbdp'), 'action' => __('Werk prijsregels bij', 'sbdp'), 'tab' => 'build');
+        } else {
+            $cnt       = count($lines);
+            $scheduled = 0;
+            foreach ($lines as $l) {
+                if (trim((string) ($l['start_time'] ?? '')) !== '' || trim((string) ($l['service_date'] ?? '')) !== '') {
+                    $scheduled++;
+                }
+            }
+            if ($scheduled === $cnt) {
+                $programPoint = array('icon' => 'ok',   'status' => sprintf(_n('%d onderdeel, totaal geldig', '%d onderdelen, totaal geldig', $cnt, 'sbdp'), $cnt), 'action' => '', 'tab' => 'build');
+            } else {
+                $programPoint = array('icon' => 'warn', 'status' => sprintf(__('%d van %d onderdelen gepland', 'sbdp'), $scheduled, $cnt), 'action' => __('Vul ontbrekende tijden in', 'sbdp'), 'tab' => 'build');
+            }
+        }
+
+        // ── 3. Beschikbaarheid ────────────────────────────────────────────────
+        $availPoint = self::qcdAvailabilityMatrixPoint($lines);
+
+        // ── 4. Voorsteltekst ──────────────────────────────────────────────────
+        $draftSubject  = trim((string) ($messageDrafts['proposal']['subject'] ?? ''));
+        $draftBody     = trim((string) ($messageDrafts['proposal']['body'] ?? ''));
+        $proposalTitle = $currentVersion !== null ? trim((string) ($currentVersion['proposal_title'] ?? '')) : '';
+        $proposalSummary = $currentVersion !== null ? trim((string) ($currentVersion['proposal_summary'] ?? '')) : '';
+        $unsafeProposalTerms = self::qcdProposalTextSanitizerTerms(array($draftSubject, $draftBody, $proposalTitle, $proposalSummary));
+        if ($unsafeProposalTerms !== array()) {
+            $proposalPoint = array('icon' => 'error', 'status' => __('Interne systeemtekst gevonden', 'sbdp'), 'action' => __('Pas voorsteltekst aan', 'sbdp'), 'tab' => 'proposal');
+        } elseif ($draftSubject !== '' && $draftBody !== '') {
+            $proposalPoint = array('icon' => 'ok',   'status' => __('Voorstel gereed', 'sbdp'),                 'action' => __('Bekijk voorstel', 'sbdp'),    'tab' => 'proposal');
+        } elseif ($proposalTitle !== '' || $proposalSummary !== '') {
+            $proposalPoint = array('icon' => 'warn', 'status' => __('Voorsteltekst aanwezig, controleren', 'sbdp'), 'action' => __('Controleer voorstel', 'sbdp'), 'tab' => 'proposal');
+        } else {
+            $proposalPoint = array('icon' => 'warn', 'status' => __('Nog geen voorsteltekst', 'sbdp'),          'action' => __('Maak voorstel', 'sbdp'),       'tab' => 'proposal');
+        }
+
+        // ── 5. Communicatie ───────────────────────────────────────────────────
+        $waitingOnUs = ((string) ($communicationState['thread_label'] ?? '')) === __('Waiting on us', 'sbdp');
+        if ($messages === array()) {
+            $commPoint = array('icon' => 'na',   'status' => __('Nog geen berichten', 'sbdp'),       'action' => '',                             'tab' => 'communication');
+        } elseif ($waitingOnUs) {
+            $commPoint = array('icon' => 'warn', 'status' => __('Klant heeft gereageerd', 'sbdp'),   'action' => __('Antwoord voorbereiden', 'sbdp'), 'tab' => 'communication');
+        } else {
+            $commPoint = array('icon' => 'ok',   'status' => __('Geen open klantreactie', 'sbdp'),   'action' => __('Bekijk berichten', 'sbdp'),  'tab' => 'communication');
+        }
+
+        return array(
+            'customer'     => array_merge(array('label' => __('Klantgegevens', 'sbdp')),   $customerPoint),
+            'program'      => array_merge(array('label' => __('Programma', 'sbdp')),       $programPoint),
+            'availability' => array_merge(array('label' => __('Beschikbaarheid', 'sbdp')), $availPoint),
+            'proposal'     => array_merge(array('label' => __('Voorsteltekst', 'sbdp')),   $proposalPoint),
+            'communication'=> array_merge(array('label' => __('Communicatie', 'sbdp')),    $commPoint),
+            'audit'        => array('label' => __('Audit/historie', 'sbdp'), 'icon' => 'na', 'status' => __('Compact zichtbaar', 'sbdp'), 'action' => '', 'tab' => 'history'),
+        );
+    }
+
+    /**
+     * @param array<int, string> $texts
+     * @return array<int, string>
+     */
+    private static function qcdProposalTextSanitizerTerms(array $texts): array
+    {
+        if (! class_exists(\BSP\Quotes\Service\QuoteCommunicationService::class)) {
+            return array();
+        }
+
+        return \BSP\Quotes\Service\QuoteCommunicationService::detectInternalCustomerTextTerms(implode("\n", $texts));
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $lines
+     */
+    private static function qcdHasUnavailableLine(array $lines): bool
+    {
+        foreach ($lines as $line) {
+            if ((string) ($line['line_status'] ?? '') === 'unavailable') {
+                return true;
+            }
+            $snapshot = is_array($line['availability_snapshot_json'] ?? null) ? $line['availability_snapshot_json'] : array();
+            if ((string) ($snapshot['control_status'] ?? '') === 'unavailable') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $lines
+     * @return array<string, string>
+     */
+    private static function qcdAvailabilityMatrixPoint(array $lines): array
+    {
+        if ($lines === array()) {
+            return array('icon' => 'na', 'status' => __('Nog geen programma', 'sbdp'), 'action' => '', 'tab' => 'build');
+        }
+
+        $needsCheck = false;
+        foreach ($lines as $line) {
+            $status = self::qcdLineAvailabilityControlStatus($line);
+            if ($status === 'unavailable') {
+                return array('icon' => 'error', 'status' => __('Niet beschikbaar', 'sbdp'), 'action' => __('Los beschikbaarheid op', 'sbdp'), 'tab' => 'build');
+            }
+            if ($status === 'needs_check') {
+                $needsCheck = true;
+            }
+        }
+
+        if ($needsCheck) {
+            return array('icon' => 'warn', 'status' => __('Beschikbaarheid controleren', 'sbdp'), 'action' => __('Controleer beschikbaarheid', 'sbdp'), 'tab' => 'build');
+        }
+
+        return array('icon' => 'ok', 'status' => __('Beschikbaar of n.v.t.', 'sbdp'), 'action' => '', 'tab' => 'build');
+    }
+
+    /**
+     * @param array<string, mixed> $line
+     */
+    private static function qcdLineAvailabilityControlStatus(array $line): string
+    {
+        $snapshot = is_array($line['availability_snapshot_json'] ?? null) ? $line['availability_snapshot_json'] : array();
+        $status = (string) ($snapshot['control_status'] ?? '');
+        if (in_array($status, array('needs_check', 'confirmed', 'under_reservation', 'unavailable'), true)) {
+            return $status;
+        }
+        if ((string) ($line['line_status'] ?? '') === 'unavailable') {
+            return 'unavailable';
+        }
+
+        return (string) ($line['availability_confidence'] ?? 'unknown') === 'confirmed'
+            ? 'confirmed'
+            : 'needs_check';
+    }
+
+    /**
+     * @param array<string, array<string, string>> $matrix
+     */
+    private static function qcdApprovalMatrixAllowsSend(array $matrix): bool
+    {
+        foreach ($matrix as $point) {
+            if (in_array((string) ($point['icon'] ?? 'na'), array('error', 'warn'), true)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Scope 1 — Decision Bar: shows final status, key info, and primary CTA.
+     *
+     * @param array<string, mixed>             $quote
+     * @param array<string, mixed>             $lineSummary
+     * @param array<string, array<string, string>> $matrix
+     * @param array<string, mixed>             $sendReadiness
+     */
+    private static function renderQcdDecisionBar(
+        int $quoteId,
+        array $quote,
+        ?array $request,
+        array $requester,
+        ?array $currentVersion,
+        array $lineSummary,
+        array $matrix,
+        bool $sendAllowed,
+        array $sendReadiness,
+        string $pricingConfidence = 'unknown',
+        string $availabilityConfidence = 'unknown'
+    ): void {
+        $reference   = trim((string) ($quote['quote_reference'] ?? ''));
+        $customer    = trim((string) ($requester['name'] ?? ''));
+        $date        = is_array($request) ? trim((string) ($request['preferred_date'] ?? '')) : '';
+        $groupSize   = is_array($request) ? max(0, (int) ($request['group_size'] ?? 0)) : 0;
+        $totalLabel  = (string) ($lineSummary['total_label'] ?? __('Bedrag nog open', 'sbdp'));
+        $versionNum  = $currentVersion !== null ? (string) ($currentVersion['version_number'] ?? '1') : '1';
+
+        // Compute tri-state final status from matrix
+        $errorPoints = array_filter($matrix, static fn (array $p): bool => (string) ($p['icon'] ?? '') === 'error');
+        $warnPoints  = array_filter($matrix, static fn (array $p): bool => (string) ($p['icon'] ?? '') === 'warn');
+
+        // Find primary blocker tab for CTA
+        $primaryBlockerTab = 'dashboard';
+        foreach ($errorPoints as $pt) {
+            if (($pt['tab'] ?? '') !== '') { $primaryBlockerTab = (string) $pt['tab']; break; }
+        }
+        $primaryWarnTab = 'build';
+        foreach ($warnPoints as $pt) {
+            if (($pt['tab'] ?? '') !== '') { $primaryWarnTab = (string) $pt['tab']; break; }
+        }
+
+        if ($sendAllowed) {
+            $finalStatus = __('Klaar voor verzenden', 'sbdp');
+            $statusClass = 'bsp-qcd__status--ok';
+            $ctaLabel    = __('Voorstel versturen', 'sbdp');
+            $ctaUrl      = self::workspaceTabUrl($quoteId, 'communication');
+            $nextAction  = __('Alle verplichte controles zijn afgerond.', 'sbdp');
+        } elseif ($errorPoints !== array()) {
+            $finalStatus = __('Niet verzendklaar', 'sbdp');
+            $statusClass = 'bsp-qcd__status--error';
+            $ctaLabel    = __('Los blokkades op', 'sbdp');
+            $ctaUrl      = self::workspaceTabUrl($quoteId, $primaryBlockerTab);
+            $firstError  = reset($errorPoints);
+            $nextAction  = (string) ($firstError['status'] ?? __('Los open punten op', 'sbdp'));
+        } else {
+            $finalStatus = __('Controle nodig', 'sbdp');
+            $statusClass = 'bsp-qcd__status--warn';
+            $ctaLabel    = __('Controleer nu', 'sbdp');
+            $ctaUrl      = self::workspaceTabUrl($quoteId, $primaryWarnTab);
+            $firstWarn   = reset($warnPoints);
+            $nextAction  = (string) ($firstWarn['status'] ?? self::qcdPrimarySendReadinessReason($sendReadiness));
+        }
+
+        $priceLabel = self::humanPricingStatusLabel($pricingConfidence);
+        $availLabel = self::humanAvailabilityStatusLabel($availabilityConfidence);
+
+        echo '<div class="bsp-qcd__decision-bar">';
+        echo '<div class="bsp-qcd__db-col">';
+        echo '<span>' . esc_html__('Quote / Klant', 'sbdp') . '</span>';
+        echo '<strong>' . esc_html($reference !== '' ? $reference : sprintf('Q-%d', $quoteId)) . '</strong>';
+        echo '<small>' . esc_html($customer !== '' ? $customer : __('Onbekende klant', 'sbdp')) . '</small>';
+        echo '</div>';
+        echo '<div class="bsp-qcd__db-col">';
+        echo '<span>' . esc_html__('Datum', 'sbdp') . '</span>';
+        echo '<strong>' . esc_html($date !== '' ? $date : '—') . '</strong>';
+        echo '</div>';
+        echo '<div class="bsp-qcd__db-col">';
+        echo '<span>' . esc_html__('Groep', 'sbdp') . '</span>';
+        echo '<strong>' . esc_html($groupSize > 0 ? sprintf(_n('%d persoon', '%d personen', $groupSize, 'sbdp'), $groupSize) : '—') . '</strong>';
+        echo '</div>';
+        echo '<div class="bsp-qcd__db-col">';
+        echo '<span>' . esc_html__('Status', 'sbdp') . '</span>';
+        echo '<strong class="bsp-qcd__final-status ' . esc_attr($statusClass) . '">' . esc_html($finalStatus) . '</strong>';
+        echo '</div>';
+        echo '<div class="bsp-qcd__db-col">';
+        echo '<span>' . esc_html__('Prijs', 'sbdp') . '</span>';
+        echo '<strong>' . esc_html($totalLabel) . '</strong>';
+        echo '<small class="' . esc_attr(self::confidenceBadgeClass($pricingConfidence)) . '">' . esc_html($priceLabel) . '</small>';
+        echo '</div>';
+        echo '<div class="bsp-qcd__db-col">';
+        echo '<span>' . esc_html__('Beschikbaarheid', 'sbdp') . '</span>';
+        echo '<strong class="' . esc_attr(self::confidenceBadgeClass($availabilityConfidence)) . '">' . esc_html($availLabel) . '</strong>';
+        echo '</div>';
+        echo '<div class="bsp-qcd__db-col bsp-qcd__db-col--action">';
+        echo '<span>' . esc_html__('Volgende actie', 'sbdp') . '</span>';
+        echo '<strong>' . esc_html($nextAction) . '</strong>';
+        echo '<small>' . esc_html(sprintf(__('Versie %s', 'sbdp'), $versionNum)) . '</small>';
+        echo '<a href="' . esc_url($ctaUrl) . '" class="button button-primary bsp-qcd__primary-btn">' . esc_html($ctaLabel) . '</a>';
+        echo '</div>';
+        echo '</div>';
+    }
+
+    /**
+     * @param array<string, mixed> $sendReadiness
+     */
+    private static function qcdPrimarySendReadinessReason(array $sendReadiness): string
+    {
+        foreach ((array) ($sendReadiness['blockers'] ?? array()) as $blocker) {
+            if (! is_array($blocker)) {
+                continue;
+            }
+            $code = (string) ($blocker['code'] ?? '');
+            if ($code === 'review_not_approved') {
+                return __('Interne review ontbreekt', 'sbdp');
+            }
+            if ($code === 'send_status_not_ready') {
+                return __('Voorsteltekst nog niet vrijgegeven', 'sbdp');
+            }
+            $message = trim((string) ($blocker['message'] ?? ''));
+            if ($message !== '') {
+                return $message;
+            }
+        }
+
+        return __('Controleer open punten', 'sbdp');
+    }
+
+    /**
+     * Scope 2 — Context Grid: 3-column KLANT | PRIJS & PROGRAMMA | NOG NODIG.
+     *
+     * @param array<string, mixed>                 $request
+     * @param array<string, mixed>                 $requester
+     * @param array<string, mixed>                 $lineSummary
+     * @param array<string, mixed>                 $proposalProgram
+     * @param array<string, array<string, string>> $matrix
+     * @param array<string, mixed>                 $workspaceAlerts
+     */
+    private static function renderQcdContextGrid(
+        int $quoteId,
+        ?array $request,
+        array $requester,
+        array $lineSummary,
+        array $proposalProgram,
+        array $matrix,
+        array $workspaceAlerts,
+        bool $sendAllowed,
+        bool $quoteCommerciallyEditable
+    ): void {
+        // KLANT data
+        $name      = trim((string) ($requester['name']    ?? ''));
+        $company   = trim((string) ($requester['company'] ?? ''));
+        $email     = trim((string) ($requester['email']   ?? ''));
+        $phone     = trim((string) ($requester['phone']   ?? ''));
+        $summary   = is_array($request) ? trim((string) ($request['request_summary'] ?? '')) : '';
+        $modalId   = 'bsp-qcd-customer-modal-' . $quoteId;
+
+        // PRIJS & PROGRAMMA data
+        $stats          = is_array($proposalProgram['stats'] ?? null) ? $proposalProgram['stats'] : array();
+        $totalLines     = (int) ($stats['total_lines'] ?? $lineSummary['total_lines'] ?? 0);
+        $scheduledLines = (int) ($stats['scheduled_lines'] ?? 0);
+        $subtotal       = (string) ($lineSummary['subtotal_label'] ?? $lineSummary['total_label'] ?? '—');
+        $total          = (string) ($lineSummary['total_label'] ?? '—');
+        $discountLabel  = (string) ($lineSummary['discount_label'] ?? '');
+        $discountAmount = (string) ($lineSummary['discount_amount_label'] ?? '');
+
+        // NOG NODIG data
+        $blockers       = is_array($workspaceAlerts['blockers'] ?? null) ? (array) $workspaceAlerts['blockers'] : array();
+        $partnerActions = is_array($workspaceAlerts['partner_actions'] ?? null) ? (array) $workspaceAlerts['partner_actions'] : array();
+        $warnings       = is_array($workspaceAlerts['warnings'] ?? null) ? (array) $workspaceAlerts['warnings'] : array();
+        $blockerCount   = count($blockers);
+        $partnerCount   = count($partnerActions);
+        $warnCount      = count($warnings);
+
+        echo '<div class="bsp-qcd__context-grid">';
+
+        // ── Column 1: KLANT ───────────────────────────────────────────────────
+        echo '<div class="bsp-qcd__context-col bsp-qcd__context-klant">';
+        echo '<h4 class="bsp-qcd__context-heading">' . esc_html__('Klant', 'sbdp') . '</h4>';
+        echo '<div class="bsp-qcd__cf-list">';
+        echo '<div class="bsp-qcd__cf"><span>' . esc_html__('Naam', 'sbdp') . '</span><strong>' . esc_html($name !== '' ? $name : __('Ontbreekt', 'sbdp')) . '</strong></div>';
+        if ($company !== '') {
+            echo '<div class="bsp-qcd__cf"><span>' . esc_html__('Bedrijf', 'sbdp') . '</span><strong>' . esc_html($company) . '</strong></div>';
+        }
+        echo '<div class="bsp-qcd__cf"><span>' . esc_html__('E-mail', 'sbdp') . '</span><strong>' . ($email !== '' ? '<a href="mailto:' . esc_attr($email) . '">' . esc_html($email) . '</a>' : esc_html__('Ontbreekt', 'sbdp')) . '</strong></div>';
+        echo '<div class="bsp-qcd__cf"><span>' . esc_html__('Telefoon', 'sbdp') . '</span><strong>' . esc_html($phone !== '' ? $phone : __('Ontbreekt', 'sbdp')) . '</strong></div>';
+        if ($summary !== '') {
+            echo '<div class="bsp-qcd__cf bsp-qcd__cf--wide"><span>' . esc_html__('Omschrijving', 'sbdp') . '</span><strong>' . esc_html(\wp_trim_words($summary, 18)) . '</strong></div>';
+        }
+        echo '</div>';
+        if ($quoteCommerciallyEditable) {
+            echo '<button type="button" class="button button-small bsp-quote-admin__modal-open" data-modal-target="' . esc_attr($modalId) . '">' . esc_html__('Bewerk klantgegevens', 'sbdp') . '</button>';
+        }
+        echo '</div>';
+
+        // ── Column 2: PRIJS & PROGRAMMA ───────────────────────────────────────
+        echo '<div class="bsp-qcd__context-col bsp-qcd__context-prijs">';
+        echo '<h4 class="bsp-qcd__context-heading">' . esc_html__('Prijs & programma', 'sbdp') . '</h4>';
+        echo '<div class="bsp-qcd__cf-list">';
+        echo '<div class="bsp-qcd__cf"><span>' . esc_html__('Onderdelen', 'sbdp') . '</span><strong>' . esc_html((string) $totalLines) . '</strong></div>';
+        echo '<div class="bsp-qcd__cf"><span>' . esc_html__('Gepland', 'sbdp') . '</span><strong>' . esc_html($totalLines > 0 ? sprintf('%d/%d', $scheduledLines, $totalLines) : '—') . '</strong></div>';
+        echo '<div class="bsp-qcd__cf"><span>' . esc_html__('Subtotaal', 'sbdp') . '</span><strong>' . esc_html($subtotal) . '</strong></div>';
+        if ($discountAmount !== '') {
+            echo '<div class="bsp-qcd__cf"><span>' . esc_html($discountLabel !== '' ? $discountLabel : __('Korting', 'sbdp')) . '</span><strong>' . esc_html($discountAmount) . '</strong></div>';
+        }
+        echo '<div class="bsp-qcd__cf bsp-qcd__cf--primary"><span>' . esc_html__('Voorstelbed.', 'sbdp') . '</span><strong>' . esc_html($total) . '</strong></div>';
+        echo '</div>';
+        echo '<a class="button button-small" href="#qcd-program-editor">' . esc_html__('Open programma', 'sbdp') . '</a>';
+        echo '</div>';
+
+        // ── Column 3: NOG NODIG VOOR VERZENDEN ───────────────────────────────
+        echo '<div class="bsp-qcd__context-col bsp-qcd__context-nodig">';
+        echo '<h4 class="bsp-qcd__context-heading">' . esc_html__('Nog nodig voor verzenden', 'sbdp') . '</h4>';
+
+        // Badge counts row
+        echo '<div class="bsp-qcd__nodig-counts">';
+        $blockerBadge = $blockerCount > 0 ? 'bsp-qcd__nodig-badge--error' : 'bsp-qcd__nodig-badge--ok';
+        echo '<span class="bsp-qcd__nodig-badge ' . esc_attr($blockerBadge) . '">' . esc_html(sprintf(_n('%d blokker', '%d blockers', $blockerCount, 'sbdp'), $blockerCount)) . '</span>';
+        if ($partnerCount > 0) {
+            echo '<span class="bsp-qcd__nodig-badge bsp-qcd__nodig-badge--warn">' . esc_html(sprintf(_n('%d partneractie', '%d partneracties', $partnerCount, 'sbdp'), $partnerCount)) . '</span>';
+        }
+        if ($warnCount > 0) {
+            echo '<span class="bsp-qcd__nodig-badge bsp-qcd__nodig-badge--warn">' . esc_html(sprintf(_n('%d waarschuwing', '%d waarschuwingen', $warnCount, 'sbdp'), $warnCount)) . '</span>';
+        }
+        echo '</div>';
+
+        // Top blockers (max 3)
+        $shownBlockers = array_slice($blockers, 0, 3);
+        if ($shownBlockers !== array()) {
+            echo '<p class="bsp-qcd__nodig-must">' . esc_html__('Moet voor verzenden:', 'sbdp') . '</p>';
+            echo '<ul class="bsp-qcd__nodig-list">';
+            foreach ($shownBlockers as $blocker) {
+                if (! is_array($blocker)) {
+                    continue;
+                }
+                $title  = (string) ($blocker['title'] ?? __('Open punt', 'sbdp'));
+                $href   = (string) ($blocker['action_href'] ?? '');
+                $action = (string) ($blocker['action_label'] ?? '');
+                echo '<li class="bsp-qcd__nodig-item">';
+                echo '<span class="bsp-qcd__nodig-icon">✕</span>';
+                echo '<span>' . esc_html($title);
+                if ($href !== '' && $action !== '') {
+                    echo ' <a href="' . esc_url($href) . '">' . esc_html($action) . ' →</a>';
+                }
+                echo '</span></li>';
+            }
+            echo '</ul>';
+        }
+
+        // Partner actions (max 2)
+        $shownPartner = array_slice($partnerActions, 0, 2);
+        foreach ($shownPartner as $pa) {
+            if (! is_array($pa)) {
+                continue;
+            }
+            $paHref = (string) ($pa['action_href'] ?? '');
+            echo '<p class="bsp-qcd__nodig-partner">' . esc_html((string) ($pa['title'] ?? ''));
+            if ($paHref !== '') {
+                echo ' <a href="' . esc_url($paHref) . '">' . esc_html__('Open partnerstatus', 'sbdp') . '</a>';
+            }
+            echo '</p>';
+        }
+
+        if ($blockers === array() && $partnerActions === array()) {
+            // Check matrix for any blocking/warn points
+            $matrixBlockers = array_filter($matrix, static fn (array $p): bool => in_array((string) ($p['icon'] ?? ''), array('error', 'warn'), true));
+            if ($matrixBlockers !== array()) {
+                echo '<ul class="bsp-qcd__nodig-list">';
+                foreach (array_slice($matrixBlockers, 0, 3) as $point) {
+                    echo '<li class="bsp-qcd__nodig-item"><span class="bsp-qcd__nodig-icon">' . esc_html((string) ($point['icon'] ?? '') === 'error' ? '✕' : '!') . '</span>';
+                    echo '<span>' . esc_html((string) ($point['label'] ?? '')) . ' — ' . esc_html((string) ($point['status'] ?? ''));
+                    $tab = (string) ($point['tab'] ?? '');
+                    if ($tab !== '') {
+                        echo ' <a href="' . esc_url(self::workspaceTabUrl($quoteId, $tab)) . '">' . esc_html((string) ($point['action'] ?? 'Controleer')) . ' →</a>';
+                    }
+                    echo '</span></li>';
+                }
+                echo '</ul>';
+            } else {
+                echo '<p class="bsp-qcd__nodig-ok">✓ ' . esc_html__('Alle controlepunten akkoord.', 'sbdp') . '</p>';
+            }
+        }
+
+        if ($sendAllowed) {
+            echo '<a class="button button-primary button-small bsp-qcd__nodig-cta" href="' . esc_url(self::workspaceTabUrl($quoteId, 'communication')) . '">' . esc_html__('Voorstel versturen', 'sbdp') . '</a>';
+        }
+
+        echo '</div>'; // .bsp-qcd__context-nodig
+        echo '</div>'; // .bsp-qcd__context-grid
+    }
+
+    /**
+     * Scope 3 — Approval Matrix: 6 control points each with ✓/!/✕/–.
+     *
+     * @param array<string, array<string, string>> $matrix
+     */
+    private static function renderQcdApprovalMatrix(array $matrix, int $quoteId): void
+    {
+        $iconMap = array(
+            'ok'    => array('char' => '✓', 'class' => 'is-good', 'label' => __('Akkoord', 'sbdp')),
+            'warn'  => array('char' => '!', 'class' => 'is-warn',    'label' => __('Controle nodig', 'sbdp')),
+            'error' => array('char' => '✕', 'class' => 'is-error',   'label' => __('Blokkeert verzending', 'sbdp')),
+            'na'    => array('char' => '–', 'class' => 'is-neutral',  'label' => __('Niet van toepassing', 'sbdp')),
+        );
+
+        echo '<section class="postbox bsp-qcd__matrix-section"><div class="bsp-qcd__matrix-header"><h3>' . esc_html__('Controle overzicht', 'sbdp') . '</h3></div>';
+        echo '<div class="bsp-qcd__matrix-grid">';
+
+        foreach ($matrix as $key => $point) {
+            $iconKey    = (string) ($point['icon'] ?? 'na');
+            $icon       = $iconMap[$iconKey] ?? $iconMap['na'];
+            $label      = (string) ($point['label'] ?? '');
+            $status     = (string) ($point['status'] ?? '');
+            $actionText = (string) ($point['action'] ?? '');
+            $tab        = (string) ($point['tab'] ?? '');
+
+            echo '<div class="bsp-qcd__matrix-item bsp-qcd__matrix-item--' . esc_attr($iconKey) . '">';
+            echo '<span class="bsp-qcd__matrix-icon ' . esc_attr($icon['class']) . '" title="' . esc_attr($icon['label']) . '">' . esc_html($icon['char']) . '</span>';
+            echo '<div class="bsp-qcd__matrix-body">';
+            echo '<strong class="bsp-qcd__matrix-label">' . esc_html($label) . '</strong>';
+            echo '<span class="bsp-qcd__matrix-status">' . esc_html($status) . '</span>';
+            if ($actionText !== '') {
+                $href = $tab !== '' ? esc_url(self::workspaceTabUrl($quoteId, $tab)) : '#';
+                echo '<a class="bsp-qcd__matrix-action" href="' . $href . '">' . esc_html($actionText) . ' →</a>';
+            }
+            echo '</div></div>';
+        }
+
+        echo '</div></section>';
+    }
+
+    /**
+     * Scope 4 — Program Timeline: sorted by start_time, per-line status icons.
+     *
+     * @param array<int, array<string, mixed>> $lines
+     */
+    private static function renderQcdProgramTimeline(array $lines, string $currency, int $quoteId): void
+    {
+        echo '<section class="postbox bsp-qcd__program-section">';
+        echo '<div class="bsp-qcd__program-header">';
+        echo '<h3>' . esc_html__('Programma', 'sbdp') . '</h3>';
+        echo '<a class="button button-small" href="' . esc_url(self::workspaceTabUrl($quoteId, 'build')) . '">' . esc_html__('Bewerk programma', 'sbdp') . '</a>';
+        echo '</div>';
+
+        if ($lines === array()) {
+            echo '<p class="bsp-qcd__empty">' . esc_html__('Nog geen programmaregels. Voeg activiteiten toe via "Bewerk programma".', 'sbdp') . '</p>';
+            echo '</section>';
+            return;
+        }
+
+        // Sort lines by start_time
+        $sorted = $lines;
+        usort($sorted, static function (array $a, array $b): int {
+            $ta = trim((string) ($a['service_date'] ?? '')) . ' ' . trim((string) ($a['start_time'] ?? ''));
+            $tb = trim((string) ($b['service_date'] ?? '')) . ' ' . trim((string) ($b['start_time'] ?? ''));
+            return strcmp($ta, $tb);
+        });
+
+        echo '<div class="bsp-qcd__timeline">';
+        foreach ($sorted as $idx => $line) {
+            $num          = (int) ($line['line_number'] ?? ($idx + 1));
+            $title        = trim((string) ($line['title'] ?? __('Activiteit', 'sbdp')));
+            $date         = trim((string) ($line['service_date'] ?? ''));
+            $startTime    = trim((string) ($line['proposed_start_time'] ?? ($line['start_time'] ?? '')));
+            $endTime      = trim((string) ($line['proposed_end_time'] ?? ($line['end_time'] ?? '')));
+            $participants = max(0, (int) ($line['participants'] ?? 0));
+            $lineTotal    = isset($line['line_total_snapshot']) && $line['line_total_snapshot'] !== null ? (float) $line['line_total_snapshot'] : null;
+            $unitAmount   = isset($line['unit_amount_snapshot']) && $line['unit_amount_snapshot'] !== null ? (float) $line['unit_amount_snapshot'] : null;
+            $lineCurrency = (string) (($line['currency'] ?? '') ?: $currency);
+            $pConf        = (string) ($line['pricing_confidence'] ?? 'unknown');
+            $aConf        = (string) ($line['availability_confidence'] ?? 'unknown');
+
+            // Time label
+            if ($startTime !== '' && $endTime !== '') {
+                $timeLabel = sprintf('%s – %s', $startTime, $endTime);
+            } elseif ($startTime !== '') {
+                $timeLabel = $startTime;
+            } elseif ($date !== '') {
+                $timeLabel = $date;
+            } else {
+                $timeLabel = __('Tijd nog open', 'sbdp');
+            }
+
+            // Price/availability icon
+            $pIcon = $pConf === 'execution_verified' ? '✓' : ($pConf === 'unknown' ? '?' : '!');
+            $pClass = $pConf === 'execution_verified' ? 'is-good' : 'is-warn';
+            $aIcon = $aConf === 'confirmed' ? '✓' : ($aConf === 'unknown' ? '?' : '!');
+            $aClass = $aConf === 'confirmed' ? 'is-good' : 'is-warn';
+
+            echo '<div class="bsp-qcd__timeline-item">';
+            echo '<div class="bsp-qcd__tl-num">' . esc_html((string) $num) . '</div>';
+            echo '<div class="bsp-qcd__tl-time">' . esc_html($timeLabel) . '</div>';
+            echo '<div class="bsp-qcd__tl-body">';
+            echo '<strong class="bsp-qcd__tl-title">' . esc_html($title) . '</strong>';
+            $details = array();
+            if ($participants > 0) {
+                $details[] = sprintf(_n('%d persoon', '%d personen', $participants, 'sbdp'), $participants);
+            }
+            if ($unitAmount !== null && $participants > 0) {
+                $details[] = self::formatMoney($unitAmount, $lineCurrency) . ' p.p.';
+            }
+            if ($lineTotal !== null) {
+                $details[] = self::formatMoney($lineTotal, $lineCurrency) . ' totaal';
+            }
+            if ($details !== array()) {
+                echo '<span class="bsp-qcd__tl-detail">' . esc_html(implode(' · ', $details)) . '</span>';
+            }
+            echo '</div>';
+            echo '<div class="bsp-qcd__tl-status">';
+            echo '<span class="bsp-qcd__tl-badge ' . esc_attr($pClass) . '" title="' . esc_attr__('Prijsstatus', 'sbdp') . '">';
+            echo 'Prijs ' . esc_html($pIcon);
+            echo '</span>';
+            echo '<span class="bsp-qcd__tl-badge ' . esc_attr($aClass) . '" title="' . esc_attr__('Beschikbaarheidsstatus', 'sbdp') . '">';
+            echo 'Beschikb. ' . esc_html($aIcon);
+            echo '</span>';
+            echo '</div>';
+            echo '</div>';
+        }
+        echo '</div>';
+        echo '</section>';
+    }
+
+    /**
+     * Scope 5 — Customer & NAW card: direct visibility + editable modal.
+     *
+     * @param array<string, mixed>      $requester
+     */
+    private static function renderQcdCustomerCard(
+        int $quoteId,
+        ?array $request,
+        array $requester,
+        string $formattedAddress,
+        bool $quoteCommerciallyEditable
+    ): void {
+        $name        = trim((string) ($requester['name']    ?? ''));
+        $company     = trim((string) ($requester['company'] ?? ''));
+        $email       = trim((string) ($requester['email']   ?? ''));
+        $phone       = trim((string) ($requester['phone']   ?? ''));
+        $date        = is_array($request) ? trim((string) ($request['preferred_date'] ?? '')) : '';
+        $groupSize   = is_array($request) ? max(0, (int) ($request['group_size'] ?? 0)) : 0;
+        $summary     = is_array($request) ? trim((string) ($request['request_summary'] ?? '')) : '';
+        $address     = isset($requester['address']) && is_array($requester['address']) ? $requester['address'] : array();
+        $street      = trim((string) ($address['address_1'] ?? ''));
+        $postcode    = trim((string) ($address['postcode'] ?? ''));
+        $city        = trim((string) ($address['city'] ?? ''));
+        $country     = trim((string) ($address['country'] ?? ''));
+
+        echo '<section class="postbox bsp-qcd__customer-section">';
+        echo '<div class="bsp-qcd__customer-header">';
+        echo '<h3>' . esc_html__('Klant & NAW', 'sbdp') . '</h3>';
+        if ($quoteCommerciallyEditable) {
+            $modalId = 'bsp-qcd-customer-modal-' . $quoteId;
+            echo '<button type="button" class="button button-small bsp-quote-admin__modal-open" data-modal-target="' . esc_attr($modalId) . '">' . esc_html__('Bewerk klantgegevens', 'sbdp') . '</button>';
+        }
+        echo '</div>';
+
+        echo '<div class="bsp-qcd__customer-grid">';
+        echo '<div class="bsp-qcd__cf"><span>' . esc_html__('Naam', 'sbdp') . '</span><strong>' . esc_html($name !== '' ? $name : __('Ontbreekt', 'sbdp')) . '</strong></div>';
+        if ($company !== '') {
+            echo '<div class="bsp-qcd__cf"><span>' . esc_html__('Bedrijf', 'sbdp') . '</span><strong>' . esc_html($company) . '</strong></div>';
+        }
+        echo '<div class="bsp-qcd__cf"><span>' . esc_html__('E-mail', 'sbdp') . '</span><strong>' . ($email !== '' ? '<a href="mailto:' . esc_attr($email) . '">' . esc_html($email) . '</a>' : esc_html__('Ontbreekt', 'sbdp')) . '</strong></div>';
+        echo '<div class="bsp-qcd__cf"><span>' . esc_html__('Telefoon', 'sbdp') . '</span><strong>' . esc_html($phone !== '' ? $phone : __('Ontbreekt', 'sbdp')) . '</strong></div>';
+        echo '<div class="bsp-qcd__cf"><span>' . esc_html__('Datum', 'sbdp') . '</span><strong>' . esc_html($date !== '' ? $date : __('Nog open', 'sbdp')) . '</strong></div>';
+        echo '<div class="bsp-qcd__cf"><span>' . esc_html__('Personen', 'sbdp') . '</span><strong>' . ($groupSize > 0 ? esc_html(sprintf(_n('%d persoon', '%d personen', $groupSize, 'sbdp'), $groupSize)) : esc_html__('Nog open', 'sbdp')) . '</strong></div>';
+        echo '<div class="bsp-qcd__cf"><span>' . esc_html__('Straat + huisnummer', 'sbdp') . '</span><strong>' . esc_html($street !== '' ? $street : __('Ontbreekt', 'sbdp')) . '</strong></div>';
+        echo '<div class="bsp-qcd__cf"><span>' . esc_html__('Postcode', 'sbdp') . '</span><strong>' . esc_html($postcode !== '' ? $postcode : __('Ontbreekt', 'sbdp')) . '</strong></div>';
+        echo '<div class="bsp-qcd__cf"><span>' . esc_html__('Plaats', 'sbdp') . '</span><strong>' . esc_html($city !== '' ? $city : __('Ontbreekt', 'sbdp')) . '</strong></div>';
+        echo '<div class="bsp-qcd__cf"><span>' . esc_html__('Land', 'sbdp') . '</span><strong>' . esc_html($country !== '' ? $country : __('Ontbreekt', 'sbdp')) . '</strong></div>';
+        if ($formattedAddress !== '') {
+            echo '<div class="bsp-qcd__cf bsp-qcd__cf--wide"><span>' . esc_html__('Adresregel', 'sbdp') . '</span><strong>' . esc_html($formattedAddress) . '</strong></div>';
+        }
+        if ($summary !== '') {
+            echo '<div class="bsp-qcd__cf bsp-qcd__cf--wide"><span>' . esc_html__('Omschrijving', 'sbdp') . '</span><strong>' . esc_html($summary) . '</strong></div>';
+        }
+        echo '</div>';
+
+        if ($quoteCommerciallyEditable) {
+            self::renderQcdCustomerModal($quoteId, $request, $requester, $address, $date, $groupSize, $summary);
+        }
+        echo '</section>';
+    }
+
+    /**
+     * Renders the fully editable customer modal for QCD.
+     *
+     * @param array<string, mixed>      $requester
+     * @param array<string, mixed>      $address
+     */
+    private static function renderQcdCustomerModal(
+        int $quoteId,
+        ?array $request,
+        array $requester,
+        array $address,
+        string $date,
+        int $groupSize,
+        string $summary
+    ): void {
+        $modalId = 'bsp-qcd-customer-modal-' . $quoteId;
+        echo '<div id="' . esc_attr($modalId) . '" class="bsp-quote-admin__modal" hidden role="dialog" aria-modal="true" aria-labelledby="' . esc_attr($modalId . '-title') . '">';
+        echo '<div class="bsp-quote-admin__modal-panel bsp-qcd__modal-panel">';
+        echo '<div class="bsp-quote-admin__modal-header"><h3 id="' . esc_attr($modalId . '-title') . '">' . esc_html__('Klantgegevens bewerken', 'sbdp') . '</h3>';
+        echo '<button type="button" class="button-link bsp-quote-admin__modal-close" data-modal-close="' . esc_attr($modalId) . '">×</button></div>';
+        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" class="bsp-qcd__modal-form">';
+        \wp_nonce_field('sbdp_quote_update_customer_contact');
+        echo '<input type="hidden" name="action" value="sbdp_quote_update_customer_contact">';
+        echo '<input type="hidden" name="quote_id" value="' . esc_attr((string) $quoteId) . '">';
+        echo '<div class="bsp-qcd__modal-grid">';
+        echo '<label>' . esc_html__('Naam', 'sbdp') . '<input type="text" name="requester_name" value="' . esc_attr((string) ($requester['name'] ?? '')) . '" class="regular-text"></label>';
+        echo '<label>' . esc_html__('Bedrijf', 'sbdp') . '<input type="text" name="requester_company" value="' . esc_attr((string) ($requester['company'] ?? '')) . '" class="regular-text"></label>';
+        echo '<label>' . esc_html__('E-mail', 'sbdp') . '<input type="email" name="requester_email" value="' . esc_attr((string) ($requester['email'] ?? '')) . '" class="regular-text"></label>';
+        echo '<label>' . esc_html__('Telefoon', 'sbdp') . '<input type="text" name="requester_phone" value="' . esc_attr((string) ($requester['phone'] ?? '')) . '" class="regular-text"></label>';
+        echo '<label>' . esc_html__('Voorkeursdatum', 'sbdp') . '<input type="date" name="preferred_date" value="' . esc_attr($date) . '" class="regular-text"></label>';
+        echo '<label>' . esc_html__('Aantal personen', 'sbdp') . '<input type="number" name="group_size" value="' . esc_attr((string) $groupSize) . '" min="0" class="small-text"></label>';
+        echo '<label>' . esc_html__('Straat + huisnummer', 'sbdp') . '<input type="text" name="requester_address_1" value="' . esc_attr((string) ($address['address_1'] ?? '')) . '" class="regular-text"></label>';
+        echo '<label>' . esc_html__('Postcode', 'sbdp') . '<input type="text" name="requester_postcode" value="' . esc_attr((string) ($address['postcode'] ?? '')) . '" class="small-text"></label>';
+        echo '<label>' . esc_html__('Plaats', 'sbdp') . '<input type="text" name="requester_city" value="' . esc_attr((string) ($address['city'] ?? '')) . '" class="regular-text"></label>';
+        echo '<label>' . esc_html__('Land', 'sbdp') . '<input type="text" name="requester_country" value="' . esc_attr((string) ($address['country'] ?? 'NL')) . '" class="small-text"></label>';
+        echo '<label class="bsp-qcd__modal-wide">' . esc_html__('Aanvraagomschrijving', 'sbdp') . '<textarea name="request_summary" rows="3" class="large-text">' . esc_textarea($summary) . '</textarea></label>';
+        echo '</div>';
+        echo '<div class="bsp-quote-admin__modal-actions">';
+        echo '<button type="button" class="button button-secondary" data-modal-close="' . esc_attr($modalId) . '">' . esc_html__('Annuleren', 'sbdp') . '</button>';
+        echo '<button type="submit" class="button button-primary">' . esc_html__('Klantgegevens opslaan', 'sbdp') . '</button>';
+        echo '</div></form></div></div>';
+        echo '<script>(function(){if(window.bspQuoteCustomerModalBound){return;}window.bspQuoteCustomerModalBound=true;document.addEventListener("click",function(event){var open=event.target.closest("[data-modal-target]");if(open){var modal=document.getElementById(open.getAttribute("data-modal-target"));if(modal){modal.hidden=false;var field=modal.querySelector("input:not([readonly]),textarea:not([readonly]),button");if(field){field.focus();}}}var close=event.target.closest("[data-modal-close]");if(close){var target=document.getElementById(close.getAttribute("data-modal-close"));if(target){target.hidden=true;}}if(event.target.classList&&event.target.classList.contains("bsp-quote-admin__modal")){event.target.hidden=true;}});document.addEventListener("keydown",function(event){if(event.key==="Escape"){document.querySelectorAll(".bsp-quote-admin__modal:not([hidden])").forEach(function(modal){modal.hidden=true;});}});})();</script>';
+    }
+
+    /**
+     * Scope 6 — Proposal Preview card: inline readiness + readability.
+     *
+     * @param array<string, mixed> $quote
+     * @param array<string, mixed> $proposalReadiness
+     * @param array<string, mixed> $messageDrafts
+     * @param array<string, mixed> $lineSummary
+     * @param array<string, mixed> $proposalProgram
+     */
+    private static function renderQcdProposalPreview(
+        int $quoteId,
+        array $quote,
+        ?array $currentVersion,
+        array $proposalReadiness,
+        array $messageDrafts,
+        array $lineSummary,
+        array $proposalProgram,
+        bool $sendAllowed,
+        array $sendReadiness,
+        array $communicationState,
+        array $messages
+    ): void {
+        $proposalTitle   = $currentVersion !== null ? trim((string) ($currentVersion['proposal_title'] ?? '')) : '';
+        $proposalSummary = $currentVersion !== null ? trim((string) ($currentVersion['proposal_summary'] ?? '')) : '';
+        $draftSubject    = trim((string) ($messageDrafts['proposal']['subject'] ?? ''));
+        $draftBody       = trim((string) ($messageDrafts['proposal']['body'] ?? ''));
+        $totalLabel      = (string) ($lineSummary['total_label'] ?? '');
+        $proposalReady   = ! empty($proposalReadiness['ready']);
+        $versionNum      = $currentVersion !== null ? (string) ($currentVersion['version_number'] ?? '1') : '1';
+        $updatedAt       = $currentVersion !== null ? trim((string) ($currentVersion['updated_at'] ?? '')) : '';
+        $stats           = is_array($proposalProgram['stats'] ?? null) ? $proposalProgram['stats'] : array();
+        $readinessItems  = is_array($proposalReadiness['items'] ?? null) ? array_slice((array) $proposalReadiness['items'], 0, 4) : array();
+        foreach ((array) ($sendReadiness['blockers'] ?? array()) as $blocker) {
+            if (! is_array($blocker)) {
+                continue;
+            }
+            $code = (string) ($blocker['code'] ?? '');
+            if (! in_array($code, array('review_not_approved', 'send_status_not_ready'), true)) {
+                continue;
+            }
+            $readinessItems[] = array(
+                'title' => $code === 'review_not_approved' ? __('Interne review ontbreekt', 'sbdp') : __('Voorsteltekst nog niet vrijgegeven', 'sbdp'),
+                'description' => (string) ($blocker['message'] ?? __('Rond eerst review en vrijgave af voordat je verzendt.', 'sbdp')),
+            );
+        }
+        $readinessItems = array_slice($readinessItems, 0, 5);
+
+        $subject     = $draftSubject !== '' ? $draftSubject : ($proposalTitle !== '' ? $proposalTitle : __('Nog geen voorstelonderwerp', 'sbdp'));
+        $statusLabel = $proposalReady ? __('Verzendklaar', 'sbdp') : __('Niet verzendklaar', 'sbdp');
+        $bodySnippet = $draftBody !== ''
+            ? \wp_trim_words($draftBody, 38)
+            : ($proposalSummary !== '' ? \wp_trim_words($proposalSummary, 38) : __('Nog geen voorsteltekst vastgelegd.', 'sbdp'));
+        $programSummary = sprintf(
+            __('%d onderdeel(en), %d gepland, %d geprijsd', 'sbdp'),
+            (int) ($stats['total_lines'] ?? 0),
+            (int) ($stats['scheduled_lines'] ?? 0),
+            (int) ($stats['priced_lines'] ?? 0)
+        );
+        $caveat = $sendAllowed
+            ? __('Definitieve bevestiging volgt na akkoord en laatste controle.', 'sbdp')
+            : __('Voorlopig voorstel: definitieve bevestiging en beschikbaarheid zijn onder voorbehoud.', 'sbdp');
+        $sanitizerTerms = self::qcdProposalTextSanitizerTerms(array($subject, $bodySnippet, $caveat, $draftBody, $proposalSummary));
+        $latestProposal = self::findLatestQuoteMessage($messages, 'outbound', 'proposal', 'sent');
+        $latestInbound = self::findLatestQuoteMessage($messages, 'inbound');
+        $mailStatus = self::qcdMailStatusState($communicationState, $latestProposal, $latestInbound);
+        $sendBlockReason = trim((string) ($communicationState['proposal_send_block_reason'] ?? ''));
+
+        echo '<section class="bsp-qcd__bottom-row bsp-qcd__proposal-row" id="qcd-customer-mail">';
+        echo '<div class="bsp-qcd__bottom-row-header">';
+        echo '<span class="bsp-qcd__bottom-row-title">' . esc_html__('Klantmail & voorstel', 'sbdp') . '</span>';
+        echo '<span class="bsp-qcd__bottom-row-meta">';
+        echo '<span class="bsp-qcd__card-status ' . esc_attr($proposalReady ? 'is-good' : 'is-warn') . '" data-qcd-proposal-status>' . esc_html($statusLabel) . '</span>';
+        echo ' · ' . esc_html(sprintf(__('versie #%s%s', 'sbdp'), $versionNum, $updatedAt !== '' ? ' · ' . sprintf(__('bijgewerkt %s', 'sbdp'), $updatedAt) : ''));
+        echo '</span>';
+        echo '</div>';
+        echo '<div class="bsp-qcd__bottom-row-body">';
+        echo '<div class="bsp-qcd__mail-status-rail" aria-label="' . esc_attr__('Mailstatus', 'sbdp') . '">';
+        foreach ($mailStatus['steps'] as $step) {
+            echo '<span class="bsp-qcd__mail-step ' . esc_attr((string) ($step['class'] ?? '')) . '">' . esc_html((string) ($step['label'] ?? '')) . '</span>';
+        }
+        echo '</div>';
+        echo '<p class="bsp-qcd__mail-truth">' . esc_html((string) ($mailStatus['description'] ?? '')) . '</p>';
+        echo '<div class="bsp-qcd__card-grid">';
+        echo self::renderSummaryBarItem(__('Status', 'sbdp'), $statusLabel, ! $proposalReady);
+        echo '<div class="bsp-quote-admin__summary-bar-item"><span>' . esc_html__('Onderwerp', 'sbdp') . '</span><strong data-qcd-proposal-subject>' . esc_html($subject) . '</strong></div>';
+        echo self::renderSummaryBarItem(__('Prijsregel', 'sbdp'), $totalLabel !== '' ? $totalLabel : '—');
+        echo self::renderSummaryBarItem(__('Programma', 'sbdp'), $programSummary);
+        echo '</div><div class="bsp-qcd__proposal-copy">';
+        echo '<p><strong>' . esc_html__('Korte tekst', 'sbdp') . '</strong><br><span data-qcd-proposal-body>' . esc_html($bodySnippet) . '</span></p>';
+        echo '<p><strong>' . esc_html__('Voorwaarden / voorbehoud', 'sbdp') . '</strong><br><span data-qcd-proposal-terms>' . esc_html($caveat) . '</span></p>';
+        echo '</div><ul class="bsp-qcd__readiness-list" data-qcd-proposal-readiness>';
+        if ($sanitizerTerms !== array()) {
+            echo '<li><span class="bsp-qcd__readiness-icon is-warn">!</span><strong>' . esc_html__('Interne systeemtekst gevonden', 'sbdp') . '</strong><span>' . esc_html__('Pas de klanttekst aan voordat je verzendt.', 'sbdp') . '</span></li>';
+        }
+        if ($readinessItems === array() && $sanitizerTerms === array()) {
+            echo '<li><span class="bsp-qcd__readiness-icon is-good">✓</span><strong>' . esc_html__('Voorstelcontrole', 'sbdp') . '</strong><span>' . esc_html__('Geen open voorstelpunten gevonden.', 'sbdp') . '</span></li>';
+        } else {
+            foreach ($readinessItems as $item) {
+                $title = (string) ($item['title'] ?? __('Controlepunt', 'sbdp'));
+                $description = (string) ($item['description'] ?? '');
+                echo '<li><span class="bsp-qcd__readiness-icon is-warn">!</span><strong>' . esc_html($title) . '</strong><span>' . esc_html($description) . '</span></li>';
+            }
+        }
+        echo '</ul><div class="bsp-qcd__card-actions">';
+        if ($sendAllowed) {
+            echo ' <a class="button button-primary button-small" href="' . esc_url(self::workspaceTabUrl($quoteId, 'communication')) . '">' . esc_html__('Voorstel versturen', 'sbdp') . '</a>';
+        } else {
+            echo '<button type="button" class="button button-secondary button-small" disabled title="' . esc_attr($sendBlockReason !== '' ? $sendBlockReason : __('Nog niet verzendklaar.', 'sbdp')) . '">' . esc_html__('Voorstel versturen', 'sbdp') . '</button>';
+            echo '<span class="bsp-qcd__send-disabled-reason">' . esc_html($sendBlockReason !== '' ? sprintf(__('Nog niet verzendklaar: %s', 'sbdp'), $sendBlockReason) : __('Nog niet verzendklaar: controleer review, klantmail en open punten.', 'sbdp')) . '</span>';
+        }
+        echo '</div>';
+        self::renderQcdProposalInlineEditor($quoteId, $subject, $proposalSummary, $draftBody, $totalLabel, $caveat);
+        echo '</div>';
+        echo '</section>';
+    }
+
+    /**
+     * @param array<string, mixed>|null $latestProposal
+     * @param array<string, mixed>|null $latestInbound
+     * @return array{description:string,steps:array<int,array{label:string,class:string}>}
+     */
+    private static function qcdMailStatusState(array $communicationState, ?array $latestProposal, ?array $latestInbound): array
+    {
+        $steps = array(
+            array('label' => __('Niet verzonden', 'sbdp'), 'class' => $latestProposal === null ? 'is-current' : 'is-done'),
+            array('label' => __('Concept klaar', 'sbdp'), 'class' => ! empty($communicationState['proposal_send_ready']) && $latestProposal === null ? 'is-current' : ($latestProposal !== null ? 'is-done' : '')),
+            array('label' => __('Verzonden via WordPress', 'sbdp'), 'class' => $latestProposal !== null ? 'is-done' : ''),
+            array('label' => __('SMTP onbekend', 'sbdp'), 'class' => 'is-unknown'),
+            array('label' => __('Reactie ontvangen', 'sbdp'), 'class' => $latestInbound !== null ? 'is-current' : ''),
+        );
+
+        if ($latestProposal !== null) {
+            $sentAt = trim((string) (($latestProposal['sent_at'] ?? '') ?: ($latestProposal['created_at'] ?? '')));
+            return array(
+                'steps' => $steps,
+                'description' => $sentAt !== ''
+                    ? sprintf(__('WordPress heeft een verzendpoging geregistreerd op %s. Echte aflevering vraagt SMTP-provider logging, bounce- en replytracking.', 'sbdp'), $sentAt)
+                    : __('WordPress heeft een verzendpoging geregistreerd. Echte aflevering vraagt SMTP-provider logging, bounce- en replytracking.', 'sbdp'),
+            );
+        }
+
+        return array(
+            'steps' => $steps,
+            'description' => __('Nog niet verzonden. WordPress kan straks alleen de verzendpoging vastleggen; echte aflevering is pas bewijsbaar met SMTP-provider logging, bounce- en replytracking.', 'sbdp'),
+        );
+    }
+
+    private static function renderQcdProposalInlineEditor(int $quoteId, string $subject, string $intro, string $programText, string $priceRule, string $terms): void
+    {
+        $ajaxUrl = function_exists('admin_url') ? admin_url('admin-ajax.php') : '';
+        $saveNonce = function_exists('wp_create_nonce') ? (string) wp_create_nonce('sbdp_quote_update_proposal_text') : '';
+        $aiNonce = function_exists('wp_create_nonce') ? (string) wp_create_nonce('sbdp_quote_suggest_proposal_text') : '';
+        $closing = __('Met vriendelijke groet, DagjeDenBosch', 'sbdp');
+
+        echo '<div class="bsp-qcd__proposal-editor-inline">';
+        echo '<div class="bsp-qcd__proposal-editor-head"><div><h4>' . esc_html__('Voorsteltekst bewerken', 'sbdp') . '</h4><p class="bsp-quote-admin__muted">' . esc_html__('AI helpt alleen met tekst. Controleer en sla expliciet op; review blijft verplicht.', 'sbdp') . '</p></div>';
+        echo '<div class="bsp-qcd__proposal-ai-actions" data-qcd-ai-actions>';
+        echo '<button type="button" class="button button-secondary button-small" data-qcd-proposal-ai="generate">' . esc_html__('Genereer klantmail', 'sbdp') . '</button>';
+        echo '<button type="button" class="button button-secondary button-small" data-qcd-proposal-ai="warmer">' . esc_html__('Maak warmer', 'sbdp') . '</button>';
+        echo '<button type="button" class="button button-secondary button-small" data-qcd-proposal-ai="shorter">' . esc_html__('Korter', 'sbdp') . '</button>';
+        echo '<button type="button" class="button button-secondary button-small" data-qcd-proposal-ai="formal">' . esc_html__('Zakelijker', 'sbdp') . '</button>';
+        echo '<button type="button" class="button button-secondary button-small" data-qcd-proposal-ai="caveat">' . esc_html__('Voorbehoud', 'sbdp') . '</button>';
+        echo '<button type="button" class="button button-secondary button-small" data-qcd-proposal-ai="tone">' . esc_html__('Controleer toon', 'sbdp') . '</button>';
+        echo '</div></div>';
+        echo '<form class="bsp-qcd__proposal-form" data-qcd-proposal-form data-ajax-url="' . esc_url($ajaxUrl) . '" data-ai-nonce="' . esc_attr($aiNonce) . '">';
+        echo '<input type="hidden" name="action" value="sbdp_quote_update_proposal_text">';
+        echo '<input type="hidden" name="_ajax_nonce" value="' . esc_attr($saveNonce) . '">';
+        echo '<input type="hidden" name="quote_id" value="' . esc_attr((string) $quoteId) . '">';
+        echo '<div class="bsp-qcd__proposal-editor-grid">';
+        echo '<label class="bsp-qcd__proposal-editor-wide">' . esc_html__('Onderwerp', 'sbdp') . '<input type="text" name="subject" value="' . esc_attr($subject) . '" class="regular-text" required></label>';
+        echo '<label>' . esc_html__('Intro / korte klanttekst', 'sbdp') . '<textarea name="intro" rows="4" class="large-text">' . esc_textarea($intro) . '</textarea></label>';
+        echo '<label>' . esc_html__('Voorbehoud / voorwaardenregel', 'sbdp') . '<textarea name="terms" rows="4" class="large-text">' . esc_textarea($terms) . '</textarea></label>';
+        echo '<label class="bsp-qcd__proposal-editor-wide">' . esc_html__('Voorsteltekst / programmatekst', 'sbdp') . '<textarea name="program_text" rows="8" class="large-text" required>' . esc_textarea($programText) . '</textarea></label>';
+        echo '<label>' . esc_html__('Prijsregel', 'sbdp') . '<textarea name="price_rule" rows="2" class="large-text">' . esc_textarea($priceRule !== '' ? sprintf(__('Offerteprijs: %s', 'sbdp'), $priceRule) : '') . '</textarea></label>';
+        echo '<label>' . esc_html__('Afsluittekst', 'sbdp') . '<textarea name="closing" rows="2" class="large-text">' . esc_textarea($closing) . '</textarea></label>';
+        echo '<label>' . esc_html__('Interne notitie', 'sbdp') . '<textarea name="internal_note" rows="2" class="large-text"></textarea></label>';
+        echo '</div>';
+        echo '<p class="bsp-qcd__proposal-form-message" data-qcd-proposal-message hidden></p>';
+        echo '<div class="bsp-qcd__modal-actions"><button type="submit" class="button button-primary">' . esc_html__('Voorsteltekst opslaan', 'sbdp') . '</button></div>';
+        echo '</form>';
+        echo '</div>';
+        self::renderQcdProposalEditorScript();
+    }
+
+    private static function renderQcdProposalEditorScript(): void
+    {
+        static $rendered = false;
+        if ($rendered) {
+            return;
+        }
+        $rendered = true;
+        echo <<<'HTML'
+<script>
+(function(){
+    if (window.bspQuoteProposalEditorBound) { return; }
+    window.bspQuoteProposalEditorBound = true;
+
+    function setMessage(form, text, className) {
+        var message = form.querySelector("[data-qcd-proposal-message]");
+        if (!message) { return; }
+        message.hidden = false;
+        message.textContent = text;
+        message.className = "bsp-qcd__proposal-form-message" + (className ? " " + className : "");
+    }
+
+    function applyDraft(form, data) {
+        if (data.subject && form.elements.subject) { form.elements.subject.value = data.subject; }
+        if (data.intro && form.elements.intro) { form.elements.intro.value = data.intro; }
+        if (data.body && form.elements.program_text) { form.elements.program_text.value = data.body; }
+        if (data.priceRule && form.elements.price_rule) { form.elements.price_rule.value = data.priceRule; }
+        if (data.terms && form.elements.terms) { form.elements.terms.value = data.terms; }
+        if (data.closing && form.elements.closing) { form.elements.closing.value = data.closing; }
+    }
+
+    document.addEventListener("click", function(event) {
+        var trigger = event.target.closest("[data-qcd-proposal-ai]");
+        if (!trigger) { return; }
+        var editor = trigger.closest(".bsp-qcd__proposal-editor-inline");
+        var form = editor ? editor.querySelector("[data-qcd-proposal-form]") : null;
+        if (!form) { return; }
+        event.preventDefault();
+        var data = new FormData(form);
+        data.set("action", "sbdp_quote_suggest_proposal_text");
+        data.set("_ajax_nonce", form.getAttribute("data-ai-nonce") || "");
+        data.set("mode", trigger.getAttribute("data-qcd-proposal-ai") || "improve");
+        trigger.disabled = true;
+        setMessage(form, "AI-voorstel ophalen...", "");
+        fetch(form.getAttribute("data-ajax-url") || window.ajaxurl, { method: "POST", credentials: "same-origin", body: data })
+            .then(function(response){ return response.json(); })
+            .then(function(payload){
+                if (!payload || !payload.success) {
+                    throw new Error(payload && payload.data && payload.data.message ? payload.data.message : "AI-voorstel kon niet worden geladen.");
+                }
+                applyDraft(form, payload.data || {});
+                var aiTerms = payload.data && Array.isArray(payload.data.sanitizerTerms) ? payload.data.sanitizerTerms : [];
+                setMessage(form, aiTerms.length ? "Interne systeemtekst gevonden. Pas de klanttekst aan voor verzending." : ((payload.data && payload.data.message) || "AI-voorstel geladen. Controleer en sla expliciet op."), aiTerms.length ? "is-error" : "is-success");
+            })
+            .catch(function(error){ setMessage(form, error.message, "is-error"); })
+            .finally(function(){ trigger.disabled = false; });
+    });
+
+    document.addEventListener("submit", function(event) {
+        var form = event.target.closest("[data-qcd-proposal-form]");
+        if (!form) { return; }
+        event.preventDefault();
+        setMessage(form, "Opslaan...", "");
+        var button = form.querySelector("button[type=submit]");
+        if (button) { button.disabled = true; }
+        fetch(form.getAttribute("data-ajax-url") || window.ajaxurl, { method: "POST", credentials: "same-origin", body: new FormData(form) })
+            .then(function(response){ return response.json(); })
+            .then(function(payload){
+                if (!payload || !payload.success) {
+                    throw new Error(payload && payload.data && payload.data.message ? payload.data.message : "Voorsteltekst kon niet worden opgeslagen.");
+                }
+                var data = payload.data || {};
+                var subject = document.querySelector("[data-qcd-proposal-subject]");
+                if (subject) { subject.textContent = data.subject || ""; }
+                var body = document.querySelector("[data-qcd-proposal-body]");
+                if (body) { body.textContent = data.summary || data.body || ""; }
+                var terms = document.querySelector("[data-qcd-proposal-terms]");
+                if (terms) { terms.textContent = data.terms || ""; }
+                var status = document.querySelector("[data-qcd-proposal-status]");
+                if (status) {
+                    status.textContent = data.statusLabel || "Niet verzendklaar";
+                    status.classList.remove("is-good");
+                    status.classList.remove("is-warn");
+                    status.classList.add(data.sendReady ? "is-good" : "is-warn");
+                }
+                var readiness = document.querySelector("[data-qcd-proposal-readiness]");
+                if (readiness) {
+                    readiness.innerHTML = '<li><span class="bsp-qcd__readiness-icon ' + (data.sendReady ? 'is-good' : 'is-warn') + '">' + (data.sendReady ? '✓' : '!') + '</span><strong>' + (data.readinessTitle || (data.sendReady ? "Voorstelmail klaar" : "Nog niet verzendklaar")) + '</strong><span>' + (data.readinessDescription || (data.sendReady ? "Alle verplichte controles zijn groen." : "Controleer open punten voordat je verzendt.")) + '</span></li>';
+                }
+                var audit = document.querySelector(".bsp-qcd__audit-list");
+                if (audit) {
+                    var li = document.createElement("li");
+                    li.className = "bsp-qcd__audit-item";
+                    li.innerHTML = '<span class="bsp-qcd__audit-time bsp-quote-admin__muted">nu</span><span class="bsp-qcd__audit-type">' + (data.eventType || "quote_proposal_text_updated") + '</span><span class="bsp-qcd__audit-msg bsp-quote-admin__muted">' + (data.eventMessage || "Voorsteltekst bijgewerkt.") + '</span>';
+                    audit.prepend(li);
+                }
+                var sanitizerTerms = Array.isArray(data.sanitizerTerms) ? data.sanitizerTerms : [];
+                if (sanitizerTerms.length && readiness) {
+                    readiness.innerHTML = '<li><span class="bsp-qcd__readiness-icon is-warn">!</span><strong>Interne systeemtekst gevonden</strong><span>Pas de klanttekst aan voordat je verzendt.</span></li>' + readiness.innerHTML;
+                }
+                setMessage(form, sanitizerTerms.length ? (data.sanitizerMessage || "Interne systeemtekst gevonden in klantvoorstel.") : (data.message || "Voorsteltekst opgeslagen."), sanitizerTerms.length ? "is-error" : "is-success");
+            })
+            .catch(function(error){ setMessage(form, error.message, "is-error"); })
+            .finally(function(){ if (button) { button.disabled = false; } });
+    });
+})();
+</script>
+HTML;
+    }
+
+    /**
+     * @param array<string, mixed> $sendReadiness
+     * @param array<string, array<string, string>> $matrix
+     */
+    private static function renderQcdReadinessCard(array $sendReadiness, array $matrix): void
+    {
+        $blockingPoints = array_values(array_filter($matrix, static fn (array $point): bool => in_array((string) ($point['icon'] ?? ''), array('error', 'warn'), true)));
+        $sendBlockers = array_values(array_filter((array) ($sendReadiness['blockers'] ?? array()), static fn ($blocker): bool => is_array($blocker)));
+        $ready = ! empty($sendReadiness['ready']) && $blockingPoints === array() && $sendBlockers === array();
+
+        echo '<section class="postbox bsp-qcd__info-card bsp-qcd__readiness-card">';
+        echo '<div class="bsp-qcd__card-header"><div><h3>' . esc_html__('Verzendcheck', 'sbdp') . '</h3><p>' . esc_html__('Compacte controle vóór verzenden.', 'sbdp') . '</p></div>';
+        echo '<span class="bsp-qcd__card-status ' . esc_attr($ready ? 'is-good' : 'is-warn') . '">' . esc_html($ready ? __('Klaar', 'sbdp') : __('Controle nodig', 'sbdp')) . '</span></div>';
+
+        echo '<ul class="bsp-qcd__readiness-list">';
+        if ($ready) {
+            echo '<li><span class="bsp-qcd__readiness-icon is-good">✓</span><strong>' . esc_html__('Klaar voor verzending', 'sbdp') . '</strong><span>' . esc_html__('Alle verplichte controles zijn groen.', 'sbdp') . '</span></li>';
+        } else {
+            $items = array();
+            foreach ($blockingPoints as $point) {
+                $items[] = array(
+                    'title' => (string) ($point['label'] ?? __('Controlepunt', 'sbdp')),
+                    'description' => (string) ($point['status'] ?? ''),
+                );
+            }
+            foreach ($sendBlockers as $blocker) {
+                $code = (string) ($blocker['code'] ?? '');
+                $items[] = array(
+                    'title' => $code === 'review_not_approved' ? __('Vrijgave nodig', 'sbdp') : __('Nog nodig voor verzenden', 'sbdp'),
+                    'description' => (string) ($blocker['message'] ?? __('Controleer open punten.', 'sbdp')),
+                );
+            }
+            foreach (array_slice($items, 0, 5) as $item) {
+                echo '<li><span class="bsp-qcd__readiness-icon is-warn">!</span><strong>' . esc_html((string) $item['title']) . '</strong><span>' . esc_html((string) $item['description']) . '</span></li>';
+            }
+        }
+        echo '</ul></section>';
+    }
+
+    /**
+     * Scope 7 — Messages summary card.
+     *
+     * @param array<string, mixed>             $communicationState
+     * @param array<int, array<string, mixed>> $messages
+     */
+    private static function renderQcdMessagesCard(int $quoteId, array $communicationState, array $messages): void
+    {
+        $threadLabel   = (string) ($communicationState['thread_label'] ?? '');
+        $proposalLabel = (string) ($communicationState['proposal_label'] ?? '');
+        $latestMsg     = $messages !== array() ? end($messages) : null;
+        $waitingOnUs   = $threadLabel === __('Waiting on us', 'sbdp');
+
+        $statusDisplay  = $threadLabel !== '' ? $threadLabel : __('No thread yet', 'sbdp');
+        $proposalDisplay = $proposalLabel !== '' ? $proposalLabel : __('Nothing sent', 'sbdp');
+
+        $lastMsgDate = '';
+        if (is_array($latestMsg)) {
+            $lastMsgDate = trim((string) (($latestMsg['sent_at'] ?? '') ?: ($latestMsg['created_at'] ?? '')));
+        }
+        $subject = is_array($latestMsg) ? (string) ($latestMsg['subject'] ?? __('Bericht zonder onderwerp', 'sbdp')) : '';
+        $snippet = is_array($latestMsg)
+            ? \wp_trim_words((string) ($latestMsg['body_summary'] ?? $latestMsg['body'] ?? ''), 32)
+            : __('Er zijn nog geen voorstelmails of klantreacties vastgelegd.', 'sbdp');
+
+        echo '<section class="bsp-qcd__bottom-row bsp-qcd__messages-row">';
+        echo '<div class="bsp-qcd__bottom-row-header">';
+        echo '<span class="bsp-qcd__bottom-row-title">' . esc_html__('Berichten & klantreacties', 'sbdp') . '</span>';
+        echo '<span class="bsp-qcd__bottom-row-meta">';
+        echo '<span class="bsp-qcd__card-status ' . esc_attr($waitingOnUs ? 'is-warn' : 'is-neutral') . '">' . esc_html($statusDisplay) . '</span>';
+        echo $lastMsgDate !== '' ? ' · ' . esc_html(sprintf(__('laatste bericht %s', 'sbdp'), $lastMsgDate)) : ' · ' . esc_html__('geen berichten', 'sbdp');
+        echo '</span>';
+        echo '</div>';
+        echo '<div class="bsp-qcd__bottom-row-body">';
+        echo '<div class="bsp-qcd__card-grid">';
+        echo self::renderSummaryBarItem(__('Status', 'sbdp'), $statusDisplay, $waitingOnUs);
+        echo self::renderSummaryBarItem(__('Voorstel', 'sbdp'), $proposalDisplay);
+        echo self::renderSummaryBarItem(__('Laatste bericht', 'sbdp'), $lastMsgDate !== '' ? $lastMsgDate : __('Nog geen bericht', 'sbdp'));
+        echo '</div><div class="bsp-qcd__message-snippet">';
+        if ($subject !== '') {
+            echo '<strong>' . esc_html($subject) . '</strong>';
+        }
+        echo '<p>' . esc_html($snippet) . '</p></div>';
+        echo '<div class="bsp-qcd__card-actions">';
+        echo '<a class="button button-secondary button-small" href="' . esc_url(self::workspaceTabUrl($quoteId, 'communication')) . '">' . esc_html__('Bekijk alle berichten / reageer', 'sbdp') . '</a>';
+        echo '</div>';
+        echo '</div>';
+        echo '</section>';
+    }
+
+    /**
+     * Scope 8 — Compact Audit card: last 5 events + link to full audit.
+     *
+     * @param array<int, array<string, mixed>> $events
+     */
+    private static function renderQcdAuditCard(int $quoteId, array $events, ?array $currentVersion): void
+    {
+        $recentEvents = array_slice($events, 0, 5);
+        $versionNum   = $currentVersion !== null ? (string) ($currentVersion['version_number'] ?? '1') : '—';
+        $lastEvent    = $recentEvents !== array() ? $recentEvents[0] : null;
+        $lastEventAt  = is_array($lastEvent) ? trim((string) ($lastEvent['occurred_at'] ?? '')) : '';
+
+        echo '<section class="bsp-qcd__bottom-row bsp-qcd__audit-row">';
+        echo '<div class="bsp-qcd__bottom-row-header">';
+        echo '<span class="bsp-qcd__bottom-row-title">' . esc_html__('Versies & audit', 'sbdp') . '</span>';
+        echo '<span class="bsp-qcd__bottom-row-meta">';
+        echo esc_html(sprintf(__('versie #%s', 'sbdp'), $versionNum));
+        echo $lastEventAt !== '' ? ' · ' . esc_html(sprintf(__('laatste wijziging %s', 'sbdp'), $lastEventAt)) : '';
+        echo '</span>';
+        echo '</div>';
+        echo '<div class="bsp-qcd__bottom-row-body">';
+        if ($recentEvents === array()) {
+            echo '<p class="bsp-qcd__empty">' . esc_html__('Nog geen auditregels.', 'sbdp') . '</p>';
+        } else {
+            echo '<ul class="bsp-qcd__audit-list">';
+            foreach ($recentEvents as $event) {
+                $occurred = (string) ($event['occurred_at'] ?? '');
+                $type     = (string) ($event['event_type'] ?? '');
+                $message  = (string) ($event['message'] ?? '');
+                echo '<li class="bsp-qcd__audit-item">';
+                echo '<span class="bsp-qcd__audit-time bsp-quote-admin__muted">' . esc_html($occurred) . '</span>';
+                echo '<span class="bsp-qcd__audit-type">' . esc_html($type) . '</span>';
+                if ($message !== '') {
+                    echo '<span class="bsp-qcd__audit-msg bsp-quote-admin__muted">' . esc_html($message) . '</span>';
+                }
+                echo '</li>';
+            }
+            echo '</ul>';
+        }
+        echo '<div class="bsp-qcd__card-actions">';
+        echo '<a class="button button-secondary button-small" href="' . esc_url(self::workspaceTabUrl($quoteId, 'history')) . '">' . esc_html__('Toon volledige audit', 'sbdp') . '</a>';
+        echo '</div>';
+        echo '</div>';
+        echo '</section>';
+    }
+
+    // ─── End Quote Control Dashboard ──────────────────────────────────────────
 
     private static function extractRequesterContext(array $request): array
     {
