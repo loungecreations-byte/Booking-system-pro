@@ -10,6 +10,18 @@ use InvalidArgumentException;
 
 final class QuoteCommunicationService
 {
+    private const CUSTOMER_TEXT_REPLACEMENTS = array(
+        'Nieuwe aanvraag zonder bestaande quote' => 'Nieuwe aanvraag',
+        'inbound bridge' => 'klantreactie',
+        'readiness' => 'controle',
+        'blockers' => 'open punten',
+        'snapshot' => 'voorstelversie',
+        'execution-laag' => 'uitvoering',
+        'Quote token voor replies' => 'referentie voor uw reactie',
+        'Nog niet versturen zolang' => 'Dit voorstel is onder voorbehoud zolang',
+        'interne review ontbreekt' => 'definitieve controle nog loopt',
+    );
+
     public function __construct(
         private QuoteRepositoryInterface $repository,
         private QuoteEventLogger $events
@@ -35,11 +47,7 @@ final class QuoteCommunicationService
         $lineLabels = $this->buildProposalLineLabels($lines);
 
         $draft = array(
-            'subject' => trim(sprintf(
-                '%s [%s]',
-                $proposalTitle !== '' ? $proposalTitle : $this->t('Voorstel Dagje Den Bosch'),
-                (string) ($quote['quote_reference'] ?? '')
-            )),
+            'subject' => $this->buildCustomerProposalSubject($proposalTitle),
             'body'    => $this->buildProposalDraftBody(
                 $greetingName,
                 (string) ($quote['quote_reference'] ?? ''),
@@ -85,6 +93,271 @@ final class QuoteCommunicationService
         );
 
         return $message;
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @return array<string, mixed>
+     */
+    public function updateProposalText(int $quoteId, array $payload, ?int $actorId = null): array
+    {
+        (new QuoteImmutabilityGuard($this->repository))->assertQuoteCommercialContextEditable($quoteId);
+
+        $context = $this->buildContext($quoteId);
+        $quote = $context['quote'];
+        $version = $context['version'];
+        $requester = $context['requester'];
+
+        $subject = trim((string) ($payload['subject'] ?? ''));
+        $intro = trim((string) ($payload['intro'] ?? ''));
+        $programText = trim((string) ($payload['program_text'] ?? ''));
+        $priceRule = trim((string) ($payload['price_rule'] ?? ''));
+        $terms = trim((string) ($payload['terms'] ?? ''));
+        $closing = trim((string) ($payload['closing'] ?? ''));
+        $internalNote = trim((string) ($payload['internal_note'] ?? ''));
+        $unsafeTerms = self::detectInternalCustomerTextTerms(implode("\n", array($subject, $intro, $programText, $priceRule, $terms, $closing)));
+
+        if ($subject === '') {
+            throw new InvalidArgumentException($this->t('Voorsteltekst vereist een onderwerp.'));
+        }
+
+        $bodyParts = array_values(array_filter(array($intro, $programText, $priceRule, $terms, $closing), static fn (string $part): bool => $part !== ''));
+        if ($bodyParts === array()) {
+            throw new InvalidArgumentException($this->t('Voorsteltekst vereist minimaal één tekstblok.'));
+        }
+
+        $body = implode("\n\n", $bodyParts);
+        $summary = $intro !== '' ? $intro : $this->snippet($body, 280);
+        $versionId = (int) ($version['id'] ?? 0);
+
+        $updatedVersion = $this->repository->updateQuoteVersion($versionId, array(
+            'proposal_title' => $subject,
+            'proposal_summary' => $summary,
+        ));
+
+        $message = $this->storeDraft((int) $quote['id'], 'proposal', array(
+            'quote_version_id' => $versionId,
+            'direction' => 'outbound',
+            'message_type' => 'proposal',
+            'channel' => 'email',
+            'status' => 'draft',
+            'subject' => $subject,
+            'body' => $body,
+            'body_summary' => $summary,
+            'to_name' => trim((string) ($requester['name'] ?? '')),
+            'to_email' => trim((string) ($requester['email'] ?? '')),
+            'thread_token' => (string) ($quote['quote_reference'] ?? ''),
+            'created_by' => $actorId,
+        ));
+
+        $this->events->log(
+            'quote_proposal_text_updated',
+            isset($quote['quote_request_id']) ? (int) $quote['quote_request_id'] : null,
+            (int) $quote['id'],
+            $versionId,
+            $actorId,
+            'Voorsteltekst bijgewerkt vanuit Quote Control Dashboard.',
+            array(
+                'message_id' => $message['id'] ?? null,
+                'subject' => $subject,
+                'review_reset' => false,
+                'internal_note' => $internalNote,
+            )
+        );
+
+        if ($unsafeTerms !== array()) {
+            $this->events->log(
+                'quote_proposal_text_sanitizer_warning',
+                isset($quote['quote_request_id']) ? (int) $quote['quote_request_id'] : null,
+                (int) $quote['id'],
+                $versionId,
+                $actorId,
+                'Interne systeemtekst gevonden in klantvoorstel.',
+                array('terms' => $unsafeTerms)
+            );
+        }
+
+        return array(
+            'quote' => $quote,
+            'version' => $updatedVersion,
+            'message' => $message,
+            'subject' => $subject,
+            'body' => $body,
+            'summary' => $summary,
+            'terms' => $terms,
+            'closing' => $closing,
+            'review_required' => false,
+            'sanitizer_terms' => $unsafeTerms,
+        );
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     * @return array<string, mixed>
+     */
+    public function suggestProposalText(int $quoteId, array $payload, string $mode = 'improve'): array
+    {
+        $context = $this->buildContext($quoteId);
+        $quote = $context['quote'];
+        $request = $context['request'];
+        $version = $context['version'];
+        $lines = $context['lines'];
+
+        $subject = trim((string) ($payload['subject'] ?? ''));
+        $body = trim(implode("\n\n", array_filter(array(
+            trim((string) ($payload['intro'] ?? '')),
+            trim((string) ($payload['program_text'] ?? '')),
+            trim((string) ($payload['price_rule'] ?? '')),
+            trim((string) ($payload['terms'] ?? '')),
+            trim((string) ($payload['closing'] ?? '')),
+        ), static fn (string $part): bool => $part !== '')));
+
+        $proposalTitle = trim((string) ($version['proposal_title'] ?? ''));
+        $lineLabels = $this->buildProposalLineLabels($lines);
+        $generatedBody = $this->buildProposalDraftBody(
+            trim((string) ($context['requester']['name'] ?? '')) ?: $this->t('klant'),
+            (string) ($quote['quote_reference'] ?? ''),
+            $proposalTitle,
+            trim((string) ($request['preferred_date'] ?? '')),
+            (int) ($request['group_size'] ?? 0),
+            $lineLabels,
+            $quote,
+            $version,
+            $lines
+        );
+        $fallbackBody = ($mode === 'generate' || $body === '') ? $generatedBody : $body;
+
+        $draft = array(
+            'subject' => $mode === 'generate' ? $this->t('Voorstel voor jullie dag in Den Bosch') : ($subject !== '' ? $subject : $this->buildCustomerProposalSubject($proposalTitle)),
+            'body' => $fallbackBody,
+            'source' => 'template',
+        );
+
+        $context['rewrite_mode'] = $mode;
+        $context['current_proposal_text'] = array(
+            'subject' => $draft['subject'],
+            'body' => $fallbackBody,
+        );
+        $context['operator_instruction'] = match ($mode) {
+            'generate' => 'Schrijf een complete klantmail op basis van de offerte-context. Gebruik alleen klanttaal en wijzig geen feiten, prijzen, tijden of voorbehouden.',
+            'shorter' => 'Maak de voorsteltekst korter en scanbaarder zonder feiten te wijzigen.',
+            'warmer' => 'Maak de voorsteltekst klantvriendelijker en gastvrijer zonder feiten te wijzigen.',
+            'formal' => 'Maak de voorsteltekst zakelijker en formeler zonder feiten te wijzigen.',
+            'caveat' => 'Voeg duidelijke voorbehouden toe over beschikbaarheid, partnerbevestiging en handmatige controle zonder nieuwe voorwaarden te verzinnen.',
+            'tone' => 'Controleer de toon en herschrijf interne of technische formuleringen naar heldere klanttaal zonder feiten te wijzigen.',
+            default => 'Verbeter de voorsteltekst op helderheid, toon en structuur zonder feiten te wijzigen.',
+        };
+
+        if ($mode !== 'generate') {
+            $draft = (array) apply_filters('bsp/quotes/ai/draft_proposal_email', $draft, $context);
+        }
+        if ($mode === 'generate') {
+            $draft['intro'] = $this->buildGeneratedProposalIntro(
+                trim((string) ($context['requester']['name'] ?? '')) ?: $this->t('klant'),
+                trim((string) ($request['preferred_date'] ?? '')),
+                (int) ($request['group_size'] ?? 0)
+            );
+            $draft['body'] = $this->buildGeneratedProposalProgramText($lineLabels);
+        }
+        $draft['subject'] = trim((string) ($draft['subject'] ?? $subject));
+        $draft['body'] = self::sanitizeCustomerText(trim((string) ($draft['body'] ?? $fallbackBody)));
+        $draft['summary'] = $this->snippet((string) $draft['body'], 280);
+        $draft['price_rule'] = $mode === 'generate' ? $this->buildProposalPriceRule($version, $lines) : trim((string) ($payload['price_rule'] ?? ''));
+        $draft['terms'] = self::sanitizeCustomerText(trim((string) ($payload['terms'] ?? '')));
+        if ($mode === 'generate') {
+            $draft['terms'] = $this->buildGeneratedProposalTerms($quote, $version, $lines);
+        }
+        $draft['closing'] = self::sanitizeCustomerText(trim((string) ($payload['closing'] ?? '')));
+        if ($mode === 'generate') {
+            $draft['closing'] = $this->t("Met vriendelijke groet,\n\nDagjeDenBosch.nl");
+        }
+        $draft['sanitizer_terms'] = self::detectInternalCustomerTextTerms(implode("\n", array($draft['subject'], $draft['body'], $draft['terms'], $draft['closing'])));
+
+        return $draft;
+    }
+
+    private function buildGeneratedProposalIntro(string $greetingName, string $dateLabel, int $groupSize): string
+    {
+        $lines = array(sprintf($this->t('Hallo %s,'), $greetingName), '');
+        $lines[] = $dateLabel !== '' && $groupSize > 0
+            ? sprintf($this->t('Bedankt voor uw aanvraag. We hebben een voorstel samengesteld voor jullie dag in Den Bosch op %s met %d personen.'), $dateLabel, $groupSize)
+            : $this->t('Bedankt voor uw aanvraag. We hebben een voorstel samengesteld voor jullie dag in Den Bosch.');
+        $lines[] = '';
+        $lines[] = $this->t('We hebben een programma voor jullie klaargezet met activiteiten die logisch op elkaar aansluiten. Daarbij hebben we gekeken naar de gewenste datum, groepsgrootte, tijden en beschikbare partners.');
+
+        return implode("\n", $lines);
+    }
+
+    /**
+     * @param array<int, string> $lineLabels
+     */
+    private function buildGeneratedProposalProgramText(array $lineLabels): string
+    {
+        $lines = array($this->t('Programma-overzicht:'));
+        if ($lineLabels === array()) {
+            $lines[] = $this->t('- Programma wordt nog afgestemd.');
+        } else {
+            foreach ($lineLabels as $lineLabel) {
+                $lines[] = $lineLabel;
+            }
+        }
+
+        return implode("\n", $lines);
+    }
+
+    /**
+     * @param array<string, mixed> $quote
+     * @param array<string, mixed> $version
+     * @param array<int, array<string, mixed>> $lines
+     */
+    private function buildGeneratedProposalTerms(array $quote, array $version, array $lines): string
+    {
+        $reference = trim((string) ($quote['quote_reference'] ?? ''));
+        $proposalUrl = $this->buildProposalOpenUrl((int) ($quote['id'] ?? 0), (int) ($version['id'] ?? 0), $reference);
+        $openProposalLine = $proposalUrl !== ''
+            ? sprintf($this->t('Bekijk onze offerte hier: %s'), $proposalUrl)
+            : $this->t('Bekijk onze offerte hier: [Open voorstel]');
+
+        $linesOut = array(
+            $this->proposalAvailabilityCaveat($version, $lines),
+            '',
+            $openProposalLine,
+            $this->t('Als alles klopt, kunt u via het voorstel akkoord geven. Wilt u nog iets aanpassen, dan kunt u dat ook via het voorstel aangeven.'),
+        );
+        if ($reference !== '') {
+            $linesOut[] = '';
+            $linesOut[] = sprintf($this->t('Referentie: %s'), $reference);
+        }
+
+        return implode("\n", $linesOut);
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public static function detectInternalCustomerTextTerms(string $text): array
+    {
+        $found = array();
+        foreach (array_keys(self::CUSTOMER_TEXT_REPLACEMENTS) as $term) {
+            if (stripos($text, $term) !== false) {
+                $found[] = $term;
+            }
+        }
+
+        return array_values(array_unique($found));
+    }
+
+    public static function sanitizeCustomerText(string $text): string
+    {
+        if ($text === '') {
+            return '';
+        }
+
+        return str_ireplace(
+            array_keys(self::CUSTOMER_TEXT_REPLACEMENTS),
+            array_values(self::CUSTOMER_TEXT_REPLACEMENTS),
+            $text
+        );
     }
 
     /**
@@ -548,14 +821,6 @@ final class QuoteCommunicationService
 
     private function assertProposalSendAllowed(int $quoteId, array $quote): void
     {
-        if ((string) ($quote['review_status'] ?? 'not_started') !== 'approved') {
-            throw new InvalidArgumentException($this->t('Een voorstelmail kan pas worden verstuurd na goedgekeurde review.'));
-        }
-
-        if ((string) ($quote['send_status'] ?? 'not_ready') !== 'ready_to_send') {
-            throw new InvalidArgumentException($this->t('Deze quote is nog niet verzendklaar voor een voorstelmail.'));
-        }
-
         (new QuoteSendReadinessValidator($this->repository))->assertReadyToSend($quoteId);
 
         foreach ($this->repository->listQuoteAssumptions($quoteId) as $assumption) {
@@ -727,51 +992,123 @@ final class QuoteCommunicationService
         array $version,
         array $lines
     ): string {
+        $proposalUrl = $this->buildProposalOpenUrl((int) ($quote['id'] ?? 0), (int) ($version['id'] ?? 0), $quoteReference);
+        $openProposalLine = $proposalUrl !== ''
+            ? sprintf($this->t('Bekijk onze offerte hier: %s'), $proposalUrl)
+            : $this->t('Bekijk onze offerte hier: [Open voorstel]');
+        $proposalAmount = $this->buildProposalTotalLabel($version, $lines);
+        $priceUnderReservation = (string) ($version['pricing_confidence'] ?? 'unknown') !== 'execution_verified';
+        $proposalPriceLine = $proposalAmount !== ''
+            ? ($priceUnderReservation
+                ? sprintf($this->t('Totaal voorstelbedrag onder voorbehoud: %s'), $proposalAmount)
+                : sprintf($this->t('Totaal voorstelbedrag: %s'), $proposalAmount))
+            : $this->t('Totaal voorstelbedrag: op aanvraag');
+
         $bodyLines = array(
             sprintf($this->t('Hallo %s,'), $greetingName),
             '',
-            $proposalTitle !== ''
-                ? sprintf($this->t('Hierbij ontvangt u ons voorstel: %s.'), $proposalTitle)
-                : $this->t('Hierbij ontvangt u ons actuele voorstel.'),
+            $dateLabel !== '' && $groupSize > 0
+                ? sprintf($this->t('Bedankt voor uw aanvraag. We hebben een voorstel samengesteld voor jullie dag in Den Bosch op %s met %d personen.'), $dateLabel, $groupSize)
+                : $this->t('Bedankt voor uw aanvraag. We hebben een voorstel samengesteld voor jullie dag in Den Bosch.'),
+            '',
+            $this->t('We hebben een programma voor jullie klaargezet met activiteiten die logisch op elkaar aansluiten. Daarbij hebben we gekeken naar de gewenste datum, groepsgrootte, tijden en beschikbare partners. Bij partneractiviteiten blijft definitieve bevestiging onder voorbehoud.'),
+            '',
+            $this->t('Programma-overzicht:'),
         );
-
-        if ($dateLabel !== '') {
-            $bodyLines[] = sprintf($this->t('Voorkeursdatum in deze versie: %s.'), $dateLabel);
-        }
-        if ($groupSize > 0) {
-            $bodyLines[] = sprintf($this->t('Uitgangspunt groepsgrootte: %d personen.'), $groupSize);
-        }
         if ($lineLabels !== array()) {
-            $bodyLines[] = $this->t('Deze versie bevat onder meer:');
-            foreach (array_slice($lineLabels, 0, 6) as $lineLabel) {
-                $bodyLines[] = '- ' . $lineLabel;
+            foreach ($lineLabels as $lineLabel) {
+                $bodyLines[] = $lineLabel;
+            }
+        } else {
+            $bodyLines[] = $this->t('- Programma wordt nog afgestemd.');
+        }
+
+        $bodyLines[] = '';
+        $bodyLines[] = $proposalPriceLine;
+        $bodyLines[] = '';
+        $bodyLines[] = $this->proposalAvailabilityCaveat($version, $lines);
+        $bodyLines[] = '';
+        $bodyLines[] = $openProposalLine;
+        $bodyLines[] = $this->t('Als alles klopt, kunt u via het voorstel akkoord geven. Wilt u nog iets aanpassen, dan kunt u dat ook via het voorstel aangeven.');
+        if ($quoteReference !== '') {
+            $bodyLines[] = '';
+            $bodyLines[] = sprintf($this->t('Referentie: %s'), $quoteReference);
+        }
+        $bodyLines[] = '';
+        $bodyLines[] = $this->t('Met vriendelijke groet,');
+        $bodyLines[] = '';
+        $bodyLines[] = 'DagjeDenBosch.nl';
+
+        return implode("\n", $bodyLines);
+    }
+
+    private function buildCustomerProposalSubject(string $proposalTitle): string
+    {
+        $proposalTitle = trim($proposalTitle);
+        if ($proposalTitle !== '' && stripos($proposalTitle, 'dagplanning') === false) {
+            return $proposalTitle;
+        }
+
+        return $this->t('Voorstel voor jullie dag in Den Bosch');
+    }
+
+    private function buildProposalOpenUrl(int $quoteId, int $versionId, string $quoteReference): string
+    {
+        if ($quoteId <= 0 || $versionId <= 0 || $quoteReference === '') {
+            return '';
+        }
+
+        $token = (new PublicQuoteProposalTokenService())->create($quoteId, $versionId, $quoteReference);
+        $url = PublicProposalController::publicUrl($token);
+
+        return is_string($url) ? trim($url) : '';
+    }
+
+    /**
+     * @param array<string, mixed> $version
+     * @param array<int, array<string, mixed>> $lines
+     */
+    private function buildProposalTotalLabel(array $version, array $lines): string
+    {
+        $currency = 'EUR';
+        $total = 0.0;
+        $priced = 0;
+
+        foreach ($lines as $line) {
+            $currency = trim((string) (($line['currency'] ?? '') ?: $currency));
+            if (isset($line['line_total_snapshot']) && is_numeric($line['line_total_snapshot'])) {
+                $total += (float) $line['line_total_snapshot'];
+                $priced++;
             }
         }
 
-        $proposalUrl = PublicProposalController::publicUrl(
-            (new PublicQuoteProposalTokenService())->create(
-                (int) ($quote['id'] ?? 0),
-                (int) ($version['id'] ?? 0),
-                $quoteReference
-            )
-        );
-        if ($proposalUrl !== '') {
-            $bodyLines[] = '';
-            $bodyLines[] = sprintf($this->t('Bekijk en beantwoord uw voorstel: %s'), $proposalUrl);
+        $pricingSnapshot = is_array($version['pricing_snapshot_json'] ?? null) ? $version['pricing_snapshot_json'] : array();
+        $adjustments = is_array($pricingSnapshot['commercial_adjustments'] ?? null) ? $pricingSnapshot['commercial_adjustments'] : array();
+        $discountAmount = isset($adjustments['discount_amount']) && is_numeric($adjustments['discount_amount'])
+            ? max(0.0, (float) $adjustments['discount_amount'])
+            : 0.0;
+
+        if ($priced <= 0) {
+            return '';
         }
 
-        foreach ($this->buildCommercialCaveatLines($version, $lines) as $caveat) {
-            $bodyLines[] = $caveat;
+        return $this->formatProposalMoney(max(0.0, $total - $discountAmount), $currency);
+    }
+
+    /**
+     * @param array<string, mixed> $version
+     * @param array<int, array<string, mixed>> $lines
+     */
+    private function buildProposalPriceRule(array $version, array $lines): string
+    {
+        $total = $this->buildProposalTotalLabel($version, $lines);
+        if ($total === '') {
+            return $this->t('Totaal voorstelbedrag: op aanvraag');
         }
 
-        $bodyLines[] = '';
-        $bodyLines[] = sprintf($this->t('Referentie voor uw reactie: %s'), $quoteReference);
-        $bodyLines[] = $this->t('Laat het gerust weten als u akkoord wilt geven of eerst nog iets wilt aanpassen.');
-        $bodyLines[] = '';
-        $bodyLines[] = $this->t('Met vriendelijke groet,');
-        $bodyLines[] = $this->resolveFromName();
-
-        return implode("\n", $bodyLines);
+        return (string) ($version['pricing_confidence'] ?? 'unknown') === 'execution_verified'
+            ? sprintf($this->t('Totaal voorstelbedrag: %s'), $total)
+            : sprintf($this->t('Totaal voorstelbedrag onder voorbehoud: %s'), $total);
     }
 
     /**
@@ -787,28 +1124,90 @@ final class QuoteCommunicationService
                 continue;
             }
 
-            $bits = array($title);
+            $bits = array('- ' . $title);
             $timing = $this->buildLineTimingLabel($line);
             if ($timing !== '') {
-                $bits[] = $timing;
+                $bits[] = sprintf($this->t('  Tijd: %s'), $timing);
             }
 
             $optionLabels = isset($line['selected_option_labels_json']) && is_array($line['selected_option_labels_json'])
                 ? array_values(array_filter(array_map(static fn ($value): string => trim((string) $value), $line['selected_option_labels_json'])))
                 : array();
             if ($optionLabels !== array()) {
-                $bits[] = implode(' | ', $optionLabels);
+                $bits[] = sprintf($this->t('  Optie: %s'), implode(' | ', $optionLabels));
             }
 
             $participants = max(0, (int) ($line['participants'] ?? 0));
             if ($participants > 0) {
-                $bits[] = sprintf($this->t('%d deelnemers'), $participants);
+                $bits[] = sprintf($this->t('  Aantal personen: %d'), $participants);
             }
 
-            $labels[] = implode(' - ', $bits);
+            $currency = trim((string) (($line['currency'] ?? '') ?: 'EUR'));
+            if (isset($line['unit_amount_snapshot']) && is_numeric($line['unit_amount_snapshot'])) {
+                $bits[] = sprintf($this->t('  Prijs: %s p.p.'), $this->formatProposalMoney((float) $line['unit_amount_snapshot'], $currency));
+            }
+            if (isset($line['line_total_snapshot']) && is_numeric($line['line_total_snapshot'])) {
+                $bits[] = sprintf($this->t('  Totaal: %s'), $this->formatProposalMoney((float) $line['line_total_snapshot'], $currency));
+            }
+
+            $status = $this->proposalLineCustomerStatus($line);
+            if ($status !== '') {
+                $bits[] = sprintf($this->t('  Status: %s'), $status);
+            }
+
+            $labels[] = implode("\n", $bits);
         }
 
         return $labels;
+    }
+
+    /**
+     * @param array<string, mixed> $line
+     */
+    private function proposalLineCustomerStatus(array $line): string
+    {
+        $snapshot = is_array($line['availability_snapshot_json'] ?? null) ? $line['availability_snapshot_json'] : array();
+        $supplierStatus = trim((string) ($snapshot['supplierStatus'] ?? ''));
+        if (in_array($supplierStatus, array('supplier_confirmation_required', 'supplier_option_requested'), true)) {
+            return $this->t('partnerbevestiging nodig');
+        }
+        if ($supplierStatus === 'supplier_booking_confirmed' || (string) ($line['availability_confidence'] ?? 'unknown') === 'confirmed') {
+            return $this->t('bevestigd');
+        }
+        if ((string) ($line['line_status'] ?? '') === 'unavailable' || $supplierStatus === 'supplier_declined') {
+            return $this->t('niet beschikbaar');
+        }
+        if (in_array((string) ($line['availability_confidence'] ?? 'unknown'), array('snapshot', 'projected', 'unknown'), true)) {
+            return $this->t('onder voorbehoud');
+        }
+
+        return '';
+    }
+
+    /**
+     * @param array<string, mixed> $version
+     * @param array<int, array<string, mixed>> $lines
+     */
+    private function proposalAvailabilityCaveat(array $version, array $lines): string
+    {
+        foreach ($this->buildCommercialCaveatLines($version, $lines) as $caveat) {
+            if (stripos($caveat, 'Beschikbaarheid') !== false || stripos($caveat, 'Prijs') !== false) {
+                return $this->t('De beschikbaarheid en definitieve bevestiging blijven onder voorbehoud totdat de betrokken partners akkoord hebben gegeven.');
+            }
+        }
+
+        return $this->t('De prijs en beschikbaarheid zijn gecontroleerd op basis van de huidige gegevens.');
+    }
+
+    private function formatProposalMoney(float $amount, string $currency): string
+    {
+        $formatted = function_exists('number_format_i18n')
+            ? (string) number_format_i18n($amount, 2)
+            : number_format($amount, 2, ',', '.');
+
+        $currencyLabel = strtoupper(trim($currency)) === 'EUR' ? '€' : trim($currency);
+
+        return trim($currencyLabel . ' ' . $formatted);
     }
 
     /**
@@ -1071,6 +1470,20 @@ final class QuoteCommunicationService
         return \function_exists('current_time')
             ? (string) \current_time('mysql', true)
             : gmdate('Y-m-d H:i:s');
+    }
+
+    private function snippet(string $text, int $limit): string
+    {
+        $plain = trim(preg_replace('/\s+/', ' ', $text) ?? '');
+        if ($plain === '') {
+            return '';
+        }
+
+        if (function_exists('mb_strlen') && function_exists('mb_substr')) {
+            return mb_strlen($plain) > $limit ? rtrim(mb_substr($plain, 0, $limit)) . '...' : $plain;
+        }
+
+        return strlen($plain) > $limit ? rtrim(substr($plain, 0, $limit)) . '...' : $plain;
     }
 
     /**
