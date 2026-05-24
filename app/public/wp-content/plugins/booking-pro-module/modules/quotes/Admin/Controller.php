@@ -21,6 +21,8 @@ use BSP\Quotes\Service\QuoteOperationsDraftService;
 use BSP\Quotes\Service\QuoteRequestService;
 use BSP\Quotes\Service\QuoteReviewService;
 use BSP\Quotes\Service\QuoteSendService;
+use BSP\Quotes\Service\QuoteSendReadinessValidator;
+use BSP\Quotes\Service\QuoteSupplierConfirmationService;
 use BSP\Quotes\Service\WooCartLaunchGateway;
 use function add_query_arg;
 use function add_menu_page;
@@ -441,6 +443,117 @@ final class Controller
         }
         self::redirect('sbdp_quotes', array('quote_id' => $quoteId, 'workspace_tab' => $workspaceTab, 'quote_message_draft_generated' => '1'));
     }
+
+    public static function handleUpdateProposalText(): void {
+        self::assertAccess();
+        if (function_exists('check_ajax_referer')) {
+            \check_ajax_referer('sbdp_quote_update_proposal_text');
+        }
+
+        $quoteId = isset($_POST['quote_id']) ? (int) $_POST['quote_id'] : 0;
+        $repository = new QuoteRepository();
+        $events = new QuoteEventLogger($repository);
+        $service = new QuoteCommunicationService($repository, $events);
+        $payload = array(
+            'subject' => sanitize_text_field((string) \wp_unslash($_POST['subject'] ?? '')),
+            'intro' => sanitize_textarea_field((string) \wp_unslash($_POST['intro'] ?? '')),
+            'program_text' => sanitize_textarea_field((string) \wp_unslash($_POST['program_text'] ?? '')),
+            'price_rule' => sanitize_textarea_field((string) \wp_unslash($_POST['price_rule'] ?? '')),
+            'terms' => sanitize_textarea_field((string) \wp_unslash($_POST['terms'] ?? '')),
+            'closing' => sanitize_textarea_field((string) \wp_unslash($_POST['closing'] ?? '')),
+            'internal_note' => sanitize_textarea_field((string) \wp_unslash($_POST['internal_note'] ?? '')),
+        );
+
+        try {
+            $result = $service->updateProposalText(
+                $quoteId,
+                $payload,
+                function_exists('get_current_user_id') ? (int) get_current_user_id() : null
+            );
+        } catch (\Throwable $exception) {
+            \wp_send_json_error(array(
+                'message' => $exception->getMessage(),
+            ), 400);
+        }
+
+        $sendInspection = (new QuoteSendReadinessValidator($repository))->inspect($quoteId);
+        $sendReady = ! empty($sendInspection['ready']) && (array) ($sendInspection['blockers'] ?? array()) === array();
+        $firstBlocker = '';
+        foreach ((array) ($sendInspection['blockers'] ?? array()) as $blocker) {
+            if (is_array($blocker)) {
+                $firstBlocker = (string) ($blocker['message'] ?? '');
+                break;
+            }
+        }
+
+        \wp_send_json_success(array(
+            'message' => $sendReady
+                ? __('Voorstelmail klaar. Je kunt het voorstel versturen.', 'sbdp')
+                : __('Voorstelmail opgeslagen. Je kunt het voorstel nu versturen zodra alle checks groen zijn.', 'sbdp'),
+            'subject' => (string) ($result['subject'] ?? ''),
+            'body' => (string) ($result['body'] ?? ''),
+            'summary' => (string) ($result['summary'] ?? ''),
+            'terms' => (string) ($result['terms'] ?? ''),
+            'closing' => (string) ($result['closing'] ?? ''),
+            'statusLabel' => $sendReady ? __('Verzendklaar', 'sbdp') : __('Niet verzendklaar', 'sbdp'),
+            'readinessTitle' => $sendReady ? __('Voorstelmail klaar', 'sbdp') : __('Nog niet verzendklaar', 'sbdp'),
+            'readinessDescription' => $sendReady
+                ? __('Alle verplichte controles zijn groen.', 'sbdp')
+                : ($firstBlocker !== '' ? $firstBlocker : __('Controleer open punten voordat je verzendt.', 'sbdp')),
+            'sendReady' => $sendReady,
+            'eventType' => 'quote_proposal_text_updated',
+            'eventMessage' => __('Voorsteltekst bijgewerkt vanuit Quote Control Dashboard.', 'sbdp'),
+            'sanitizerTerms' => (array) ($result['sanitizer_terms'] ?? array()),
+            'sanitizerMessage' => ((array) ($result['sanitizer_terms'] ?? array())) !== array()
+                ? __('Interne systeemtekst gevonden in klantvoorstel.', 'sbdp')
+                : '',
+        ));
+    }
+
+    public static function handleSuggestProposalText(): void {
+        self::assertAccess();
+        if (function_exists('check_ajax_referer')) {
+            \check_ajax_referer('sbdp_quote_suggest_proposal_text');
+        }
+
+        $quoteId = isset($_POST['quote_id']) ? (int) $_POST['quote_id'] : 0;
+        $repository = new QuoteRepository();
+        $events = new QuoteEventLogger($repository);
+        $service = new QuoteCommunicationService($repository, $events);
+        $payload = array(
+            'subject' => sanitize_text_field((string) \wp_unslash($_POST['subject'] ?? '')),
+            'intro' => sanitize_textarea_field((string) \wp_unslash($_POST['intro'] ?? '')),
+            'program_text' => sanitize_textarea_field((string) \wp_unslash($_POST['program_text'] ?? '')),
+            'price_rule' => sanitize_textarea_field((string) \wp_unslash($_POST['price_rule'] ?? '')),
+            'terms' => sanitize_textarea_field((string) \wp_unslash($_POST['terms'] ?? '')),
+            'closing' => sanitize_textarea_field((string) \wp_unslash($_POST['closing'] ?? '')),
+        );
+        $mode = sanitize_key((string) ($_POST['mode'] ?? 'improve'));
+
+        try {
+            $draft = $service->suggestProposalText($quoteId, $payload, $mode);
+        } catch (\Throwable $exception) {
+            \wp_send_json_error(array(
+                'message' => $exception->getMessage(),
+            ), 400);
+        }
+
+        \wp_send_json_success(array(
+            'message' => $mode === 'generate'
+                ? __('Klantmail opgesteld. Controleer de tekst en sla daarna expliciet op.', 'sbdp')
+                : __('AI-voorstel geladen. Controleer de tekst en sla daarna expliciet op.', 'sbdp'),
+            'subject' => (string) ($draft['subject'] ?? ''),
+            'intro' => (string) ($draft['intro'] ?? ''),
+            'body' => (string) ($draft['body'] ?? ''),
+            'summary' => (string) ($draft['summary'] ?? ''),
+            'priceRule' => (string) ($draft['price_rule'] ?? ''),
+            'terms' => (string) ($draft['terms'] ?? ''),
+            'closing' => (string) ($draft['closing'] ?? ''),
+            'source' => (string) ($draft['source'] ?? 'template'),
+            'sanitizerTerms' => (array) ($draft['sanitizer_terms'] ?? array()),
+        ));
+    }
+
     public static function handleGenerateResponseDraft(): void {
         self::assertAccess();
         check_admin_referer('sbdp_quote_generate_response_draft');
@@ -571,6 +684,133 @@ final class Controller
             'quote_id' => $quoteId,
             'workspace_tab' => 'dashboard',
             'quote_intake_updated' => '1',
+        ));
+    }
+    /**
+     * Handles saving of full customer contact data (NAW) from the QCD customer modal.
+     * Meta keys used:
+     *   quote_requests.requester_name
+     *   quote_requests.requester_email
+     *   quote_requests.requester_phone
+     *   quote_requests.requester_company
+     *   quote_requests.request_summary
+     *   quote_requests.group_size
+     *   quote_requests.preferred_date
+     *   quote_requests.normalized_payload.requester (JSON sub-object with address)
+     * No WooCommerce order/customer/cart data is touched.
+     */
+    public static function handleUpdateCustomerContact(): void {
+        self::assertAccess();
+        check_admin_referer('sbdp_quote_update_customer_contact');
+        $quoteId    = isset($_POST['quote_id']) ? (int) $_POST['quote_id'] : 0;
+        $repository = new QuoteRepository();
+        $events     = new QuoteEventLogger($repository);
+        $quote      = $repository->findQuote($quoteId);
+        $requestId  = is_array($quote) ? (int) ($quote['quote_request_id'] ?? 0) : 0;
+        $request    = $requestId > 0 ? $repository->findQuoteRequest($requestId) : null;
+        if (! is_array($quote) || ! is_array($request)) {
+            self::redirect('sbdp_quotes', array(
+                'quote_id' => $quoteId,
+                'workspace_tab' => 'dashboard',
+                'quote_error' => rawurlencode(__('Gekoppelde quote request ontbreekt.', 'sbdp')),
+            ));
+            return;
+        }
+        try {
+            (new \BSP\Quotes\Service\QuoteImmutabilityGuard($repository))->assertQuoteCommercialContextEditable($quoteId);
+        } catch (\InvalidArgumentException $guardException) {
+            self::redirect('sbdp_quotes', array(
+                'quote_id' => $quoteId,
+                'workspace_tab' => 'dashboard',
+                'quote_error' => rawurlencode($guardException->getMessage()),
+            ));
+            return;
+        }
+        // Sanitize contact fields
+        $name    = sanitize_text_field((string) ($_POST['requester_name']    ?? ''));
+        $company = sanitize_text_field((string) ($_POST['requester_company'] ?? ''));
+        $phone   = sanitize_text_field((string) ($_POST['requester_phone']   ?? ''));
+        $summary = sanitize_textarea_field((string) ($_POST['request_summary'] ?? ''));
+        // Validate email
+        $rawEmail = trim((string) ($_POST['requester_email'] ?? ''));
+        $email    = $rawEmail !== '' ? sanitize_email($rawEmail) : '';
+        if ($rawEmail !== '' && $email === '') {
+            self::redirect('sbdp_quotes', array(
+                'quote_id' => $quoteId,
+                'workspace_tab' => 'dashboard',
+                'quote_error' => rawurlencode(__('Voer een geldig e-mailadres in.', 'sbdp')),
+            ));
+            return;
+        }
+        // Sanitize date
+        $rawDate = trim(sanitize_text_field((string) ($_POST['preferred_date'] ?? '')));
+        if ($rawDate !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $rawDate) !== 1) {
+            self::redirect('sbdp_quotes', array(
+                'quote_id' => $quoteId,
+                'workspace_tab' => 'dashboard',
+                'quote_error' => rawurlencode(__('Voer een geldige voorkeursdatum in (YYYY-MM-DD).', 'sbdp')),
+            ));
+            return;
+        }
+        $preferredDate = $rawDate !== '' ? $rawDate : (string) ($request['preferred_date'] ?? '');
+        $groupSize     = isset($_POST['group_size']) ? max(0, (int) $_POST['group_size']) : (int) ($request['group_size'] ?? 0);
+        // Sanitize address
+        $address1 = sanitize_text_field((string) ($_POST['requester_address_1'] ?? ''));
+        $postcode = sanitize_text_field((string) ($_POST['requester_postcode']   ?? ''));
+        $city     = sanitize_text_field((string) ($_POST['requester_city']       ?? ''));
+        $country  = sanitize_text_field((string) ($_POST['requester_country']    ?? 'NL'));
+        // Build updated normalized_payload.requester (preserve existing payload, only update requester)
+        $existingPayload = isset($request['normalized_payload']) && is_array($request['normalized_payload'])
+            ? $request['normalized_payload']
+            : array();
+        $updatedRequester = array(
+            'name'    => $name,
+            'email'   => $email,
+            'phone'   => $phone,
+            'company' => $company,
+        );
+        $updatedAddress = array_filter(array(
+            'address_1' => $address1,
+            'postcode'  => $postcode,
+            'city'      => $city,
+            'country'   => $country,
+        ), static fn ($v): bool => $v !== '');
+        if ($updatedAddress !== array()) {
+            $updatedRequester['address'] = $updatedAddress;
+        }
+        $updatedRequester = array_filter($updatedRequester, static fn ($v): bool => is_array($v) ? $v !== array() : $v !== '');
+        $existingPayload['requester'] = $updatedRequester;
+        $changes = array(
+            'requester_name'    => $name,
+            'requester_email'   => $email,
+            'requester_phone'   => $phone,
+            'requester_company' => $company,
+            'request_summary'   => $summary,
+            'group_size'        => $groupSize,
+            'preferred_date'    => $preferredDate !== '' ? $preferredDate : null,
+            'normalized_payload'=> $existingPayload,
+        );
+        $repository->updateQuoteRequest($requestId, $changes);
+        $events->log(
+            'quote_customer_contact_updated',
+            $requestId,
+            $quoteId,
+            isset($quote['current_version_id']) ? (int) $quote['current_version_id'] : null,
+            function_exists('get_current_user_id') ? (int) get_current_user_id() : null,
+            'Klantgegevens bijgewerkt vanuit quote-workspace.',
+            array(
+                'fields' => array_filter(array(
+                    'name'    => $name !== '' ? $name : null,
+                    'email'   => $email !== '' ? $email : null,
+                    'company' => $company !== '' ? $company : null,
+                    'city'    => $city !== '' ? $city : null,
+                )),
+            )
+        );
+        self::redirect('sbdp_quotes', array(
+            'quote_id' => $quoteId,
+            'workspace_tab' => 'dashboard',
+            'quote_contact_updated' => '1',
         ));
     }
     public static function handleSaveAiMailSettings(): void {
