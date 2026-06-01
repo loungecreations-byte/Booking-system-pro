@@ -9,35 +9,28 @@ function isoDate(daysFromNow = 1): string {
 }
 
 test.describe("critical execution journey", () => {
-  test("product detail keeps booking metadata intact from cart into checkout", async ({ page }) => {
+  test("request-only product routes booking metadata into the quote request", async ({ page }) => {
     await page.goto(PRODUCT_URL, { waitUntil: "domcontentloaded" });
 
     await expect(page.locator("#sbdp-booking-form")).toBeVisible();
     await expect(page.locator('input[name="sbdp_booking_nonce"]')).toHaveCount(1);
+    await expect(page.locator('#sbdp-booking-form button[type="submit"]')).toHaveCount(0);
 
-    await page.locator("#sbdp_date").fill(isoDate());
+    const date = isoDate();
+    await page.locator("#sbdp_date").fill(date);
     await page.locator(".ui-chip").first().click();
     await page.locator("#sbdp_participants").fill("10");
 
-    await page.locator('#sbdp-booking-form button[type="submit"]').click();
-    await page.waitForURL(/winkelwagen|cart/i, { timeout: 30000 });
-    await expect(page).toHaveURL(/winkelwagen|cart/i);
+    const quoteButton = page.locator('#sbdp-booking-form [data-sbdp-action="quote"]');
+    await expect(quoteButton).toBeVisible();
+    await expect(quoteButton).toBeEnabled();
+    await quoteButton.click();
 
-    const orderTable = page.locator("table").first();
-    await expect(orderTable).toContainText("Bierproeverij");
-    await expect(page.getByText(/Deelnemers:\s*10/i)).toBeVisible();
-
-    const checkoutLink = page.getByRole("link", { name: /Doorgaan naar afrekenen|Verder naar afrekenen/i }).first();
-    if (await checkoutLink.count()) {
-      await checkoutLink.click();
-    } else {
-      await page.goto("http://dagjedenbosch.local/checkout/", { waitUntil: "domcontentloaded" });
-    }
-
-    await page.waitForURL(/checkout|afrekenen/i, { timeout: 30000 });
-    await expect(page.getByText("Bierproeverij", { exact: false }).first()).toBeVisible();
-    await expect(
-      page.getByText(/(personen|deelnemers)\s*:\s*10|10\s*(personen|deelnemers)/i).first()
-    ).toBeVisible();
+    await page.waitForURL(/offerte/i, { timeout: 30000 });
+    const quoteUrl = new URL(page.url());
+    expect(quoteUrl.searchParams.get("product_id")).toBe("352");
+    expect(quoteUrl.searchParams.get("date")).toBe(date);
+    expect(quoteUrl.searchParams.get("time")).toBe("10:00");
+    expect(quoteUrl.searchParams.get("participants")).toBe("10");
   });
 });
