@@ -9,10 +9,12 @@ function isoDate(daysFromNow = 1): string {
 }
 
 async function clearPlannerStorage(page: Page) {
-  await page.addInitScript(() => {
+  await page.goto("http://dagjedenbosch.local/", { waitUntil: "domcontentloaded" });
+  await page.evaluate(() => {
     try {
       window.localStorage.removeItem("sbdpPlannerDraftV1");
       window.sessionStorage.removeItem("sbdpPlannerPrefillQueue");
+      window.sessionStorage.removeItem("sbdpPlannerFreshPrefillBootstrapV1");
     } catch (error) {
       // Ignore browser storage errors in test bootstrap.
     }
@@ -170,28 +172,29 @@ test.describe("planner combi flow", () => {
     await expect(page.locator('[data-planner-primary-surface="active"]').first().locator(".sbdp-planner-checkout")).toContainText("3 gekozen");
   });
 
-  test("cart keeps the selected combi names instead of repeating the main product title", async ({ page }) => {
+  test("request-only product keeps the selected combi names before quote handoff", async ({ page }) => {
     await prepareCombiDeal(page);
 
-    await page.locator('#sbdp-booking-form button[type="submit"]').click();
-    await page.waitForURL(/winkelwagen|cart/i, { timeout: 30000 });
-    await expect(page).toHaveURL(/winkelwagen|cart/i);
+    await expect(page.locator('#sbdp-booking-form button[type="submit"]')).toHaveCount(0);
+    const quoteButton = page.locator('#sbdp-booking-form [data-sbdp-action="quote"]');
+    await expect(quoteButton).toBeVisible();
+    await expect(quoteButton).toBeEnabled();
 
-    const orderTable = page.locator("table").first();
-    await expect(orderTable).toContainText("Bierproeverij");
-    await expect(page.getByText("Bossche Bol", { exact: false }).first()).toBeVisible();
-    await expect(page.getByText("3 Gangen", { exact: false }).first()).toBeVisible();
+    const selectedCombis = await page.locator("#sbdp_active_combis").evaluate((input) => {
+      const value = input instanceof HTMLInputElement ? input.value : "";
+      return JSON.parse(value) as Array<{ label?: string; timing?: string }>;
+    });
+    expect(selectedCombis.map((item) => item.label)).toEqual(["3 Gangen diner", "Bossche Bol met koffie"]);
+    expect(selectedCombis.map((item) => item.timing)).toEqual(["before", "after"]);
+    await expect(page.locator(".sbdp-summary-card")).toContainText("Bierproeverij");
+    await expect(page.locator(".sbdp-summary-card")).toContainText("3 Gangen diner");
+    await expect(page.locator(".sbdp-summary-card")).toContainText("Bossche Bol met koffie");
 
-    const matchingRows = await orderTable.locator("tr").evaluateAll((rows) =>
-      rows
-        .map((row) => row.textContent?.trim() || "")
-        .filter((text) =>
-          /Bierproeverij|Bossche Bol met koffie|3 Gangen diner/i.test(text)
-        )
-    );
-
-    expect(matchingRows.filter((text) => /Bierproeverij/i.test(text))).toHaveLength(1);
-    expect(matchingRows.filter((text) => /Bossche Bol met koffie/i.test(text))).toHaveLength(1);
-    expect(matchingRows.filter((text) => /3 Gangen diner/i.test(text))).toHaveLength(1);
+    await quoteButton.click();
+    await page.waitForURL(/offerte/i, { timeout: 30000 });
+    const quoteUrl = new URL(page.url());
+    expect(quoteUrl.searchParams.get("product_id")).toBe("352");
+    expect(quoteUrl.searchParams.get("date")).toBe(isoDate());
+    expect(quoteUrl.searchParams.get("participants")).toBe("10");
   });
 });
