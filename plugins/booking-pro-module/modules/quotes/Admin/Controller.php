@@ -425,64 +425,6 @@ final class Controller
             'quote_line_control_updated' => '1',
         ));
     }
-    public static function handleUpdateLineSupplierStatus(): void {
-        self::assertAccess();
-        check_admin_referer('sbdp_quote_line_supplier_status');
-        $quoteId = isset($_POST['quote_id']) ? (int) $_POST['quote_id'] : 0;
-        $lineId = isset($_POST['line_id']) ? (int) $_POST['line_id'] : 0;
-        $status = sanitize_key((string) ($_POST['supplier_status'] ?? ''));
-        $optionExpiresAt = trim(sanitize_text_field((string) ($_POST['option_expires_at'] ?? '')));
-        $supplierBookingReference = trim(sanitize_text_field((string) ($_POST['supplier_booking_reference'] ?? '')));
-        $internalNote = sanitize_textarea_field((string) ($_POST['internal_note'] ?? ''));
-        $repository = new QuoteRepository();
-        $events = new QuoteEventLogger($repository);
-        $service = new QuoteSupplierConfirmationService($repository, $events);
-        try {
-            $service->updateStatus($quoteId, $lineId, $status, array(
-                'option_expires_at' => $optionExpiresAt,
-                'supplier_booking_reference' => $supplierBookingReference,
-                'internal_note' => $internalNote,
-            ), function_exists('get_current_user_id') ? (int) get_current_user_id() : null);
-        } catch (\Throwable $exception) {
-            self::redirect('sbdp_quotes', array(
-                'quote_id' => $quoteId,
-                'workspace_tab' => 'build',
-                'quote_error' => rawurlencode($exception->getMessage()),
-            ));
-        }
-        self::redirect('sbdp_quotes', array(
-            'quote_id' => $quoteId,
-            'workspace_tab' => 'build',
-            'quote_supplier_status_updated' => '1',
-        ));
-    }
-    public static function handleGenerateSupplierRequestDraft(): void {
-        self::assertAccess();
-        check_admin_referer('sbdp_quote_line_supplier_request_draft');
-        $quoteId = isset($_POST['quote_id']) ? (int) $_POST['quote_id'] : 0;
-        $lineId  = isset($_POST['line_id'])  ? (int) $_POST['line_id']  : 0;
-        $repository = new QuoteRepository();
-        $events     = new QuoteEventLogger($repository);
-        $service    = new QuoteSupplierConfirmationService($repository, $events);
-        try {
-            $service->generateSupplierRequestDraft(
-                $quoteId,
-                $lineId,
-                function_exists('get_current_user_id') ? (int) get_current_user_id() : null
-            );
-        } catch (\Throwable $exception) {
-            self::redirect('sbdp_quotes', array(
-                'quote_id'      => $quoteId,
-                'workspace_tab' => 'build',
-                'quote_error'   => rawurlencode($exception->getMessage()),
-            ));
-        }
-        self::redirect('sbdp_quotes', array(
-            'quote_id'               => $quoteId,
-            'workspace_tab'          => 'build',
-            'supplier_draft_created' => '1',
-        ));
-    }
     public static function handleGenerateProposalDraft(): void {
         self::assertAccess();
         check_admin_referer('sbdp_quote_generate_proposal_draft');
@@ -1062,8 +1004,11 @@ final class Controller
         if ($quote === null) {
             self::redirect('sbdp_quotes', array('quote_id' => $quoteId, 'quote_error' => rawurlencode('Quote niet gevonden.')));
         }
-        $versionId = (int) ($quote['current_version_id'] ?? 0);
-        $version = $versionId > 0 ? $repository->findQuoteVersion($versionId) : null;
+        $versionId = (int) ($quote['approved_version_id'] ?? 0);
+        if ($versionId <= 0) {
+            self::redirect('sbdp_quotes', array('quote_id' => $quoteId, 'quote_error' => rawurlencode('Quote heeft geen geaccepteerde versie (approved_version_id ontbreekt).')));
+        }
+        $version = $repository->findQuoteVersion($versionId);
         $handoffPayload = is_array($version['handoff_payload_json'] ?? null) ? $version['handoff_payload_json'] : array();
         $launchPayload = isset($handoffPayload['execution_launch']) && is_array($handoffPayload['execution_launch'])
             ? $handoffPayload['execution_launch']
