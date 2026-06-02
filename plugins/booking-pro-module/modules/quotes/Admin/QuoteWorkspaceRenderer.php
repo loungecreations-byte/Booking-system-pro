@@ -1940,9 +1940,6 @@ final class QuoteWorkspaceRenderer
         $projectedPricingLines = 0;
         $projectedAvailabilityLines = 0;
         $unscheduledLines = 0;
-        $supplierConfirmationBlockerCount = 0;
-        $otherBlockerAssumptionCount = 0;
-        $firstSupplierName = '';
 
         if ($currentVersion === null) {
             $blockers[] = __('Er is nog geen actieve quote-versie beschikbaar.', 'sbdp');
@@ -1964,13 +1961,6 @@ final class QuoteWorkspaceRenderer
             if (trim((string) ($line['service_date'] ?? '')) === '' || self::resolveProposalLineStartTime($line) === '') {
                 $unscheduledLines++;
             }
-            if ($firstSupplierName === '') {
-                $lineSnap = is_array($line['availability_snapshot_json'] ?? null) ? $line['availability_snapshot_json'] : array();
-                $sName = trim((string) ($lineSnap['supplierName'] ?? ''));
-                if ($sName !== '') {
-                    $firstSupplierName = $sName;
-                }
-            }
         }
 
         foreach ($assumptions as $assumption) {
@@ -1985,11 +1975,6 @@ final class QuoteWorkspaceRenderer
 
             if (! empty($assumption['blocks_review']) || ! empty($assumption['blocks_send'])) {
                 $blockers[] = $message;
-                if ((string) ($assumption['assumption_type'] ?? '') === 'supplier_confirmation_required') {
-                    $supplierConfirmationBlockerCount++;
-                } else {
-                    $otherBlockerAssumptionCount++;
-                }
                 continue;
             }
 
@@ -2050,17 +2035,6 @@ final class QuoteWorkspaceRenderer
             $nextDescription = __('Controleer de prijs per onderdeel in Programma. Klantreacties komen pas daarna als primaire actie.', 'sbdp');
             $readinessLabel = __('Prijs nog niet bevestigd', 'sbdp');
             $readinessDescription = __('Deze offerte kan nog niet worden verstuurd omdat de prijs nog niet definitief is bevestigd.', 'sbdp');
-            $nextAction = array(
-                'title' => $nextTitle,
-                'description' => $nextDescription,
-                'cta' => 'build',
-            );
-        } elseif ($supplierConfirmationBlockerCount > 0 && $otherBlockerAssumptionCount === 0) {
-            $displaySupplier = $firstSupplierName !== '' ? $firstSupplierName : __('partner', 'sbdp');
-            $nextTitle = sprintf(__('Vraag bevestiging aan bij %s', 'sbdp'), $displaySupplier);
-            $nextDescription = __('Partnerbevestiging is de laatste stap vóór verzending voor deze regel.', 'sbdp');
-            $readinessLabel = __('Wacht op partnerbevestiging', 'sbdp');
-            $readinessDescription = __('De partner moet de beschikbaarheid bevestigen voordat de offerte verstuurd kan worden.', 'sbdp');
             $nextAction = array(
                 'title' => $nextTitle,
                 'description' => $nextDescription,
@@ -2587,18 +2561,18 @@ final class QuoteWorkspaceRenderer
     private static function renderQuoteAlertsCard(array $alerts): void
     {
         $blockers = is_array($alerts['blockers'] ?? null) ? $alerts['blockers'] : array();
-        $partner_actions = is_array($alerts['partner_actions'] ?? null) ? $alerts['partner_actions'] : array();
         $warnings = is_array($alerts['warnings'] ?? null) ? $alerts['warnings'] : array();
         $infos = is_array($alerts['infos'] ?? null) ? $alerts['infos'] : array();
+        $partnerActions = is_array($alerts['partner_actions'] ?? null) ? $alerts['partner_actions'] : array();
         echo '<div id="quote-blockers-card" class="bsp-quote-admin__action-center">';
-        if ($blockers === array() && $partner_actions === array() && $warnings === array()) {
+        if ($blockers === array() && $partnerActions === array() && $warnings === array()) {
             echo '<div class="bsp-quote-admin__readiness-summary bsp-quote-admin__readiness-summary--compact"><strong>' . esc_html__('Geen blokkerende punten zichtbaar', 'sbdp') . '</strong><p>' . esc_html__('Controleer voorstel en communicatie voordat je de volgende stap uitvoert.', 'sbdp') . '</p></div>';
         } else {
             if ($blockers !== array()) {
                 self::renderQuoteAlertList(__('Moet vóór verzenden', 'sbdp'), $blockers, 'is-blocker', 2);
             }
-            if ($partner_actions !== array()) {
-                self::renderQuoteAlertList(__('Partneracties', 'sbdp'), $partner_actions, 'is-partner', 2);
+            if ($partnerActions !== array()) {
+                self::renderQuoteAlertList(__('Partneracties', 'sbdp'), $partnerActions, 'is-partner', 2);
             }
             if ($warnings !== array()) {
                 echo '<details class="bsp-quote-admin__advanced-panel bsp-quote-admin__warning-details"><summary>' . esc_html__('Toon waarschuwingen', 'sbdp') . '</summary>';
@@ -2644,7 +2618,7 @@ final class QuoteWorkspaceRenderer
      * @param array<int, array<string, mixed>> $assumptions
      * @param array<int, array<string, mixed>> $followups
      * @param array<string, mixed>             $communicationState
-     * @return array{blockers:array<int,array{title:string,message:string}>,partner_actions:array<int,array{title:string,message:string,action_href?:string,action_label?:string}>,warnings:array<int,array{title:string,message:string}>,infos:array<int,array{title:string,message:string}>}
+     * @return array{blockers:array<int,array{title:string,message:string}>,warnings:array<int,array{title:string,message:string}>,infos:array<int,array{title:string,message:string}>}
      */
     private static function buildQuoteWorkspaceAlerts(
         int $quoteId,
@@ -2656,7 +2630,6 @@ final class QuoteWorkspaceRenderer
         bool $quoteCommerciallyEditable
     ): array {
         $blockers = array();
-        $partner_actions = array();
         $warnings = array();
         $infos = array();
 
@@ -2688,15 +2661,6 @@ final class QuoteWorkspaceRenderer
 
         foreach ($assumptions as $assumption) {
             if (! is_array($assumption) || (string) ($assumption['status'] ?? 'open') !== 'open') {
-                continue;
-            }
-            if ((string) ($assumption['assumption_type'] ?? '') === 'supplier_confirmation_required') {
-                $partner_actions[] = array(
-                    'title' => __('Partneractie vereist', 'sbdp'),
-                    'message' => (string) ($assumption['message'] ?? ''),
-                    'action_href' => self::workspaceTabUrl($quoteId, 'build'),
-                    'action_label' => __('Open partnerstatus', 'sbdp'),
-                );
                 continue;
             }
             $target = (! empty($assumption['blocks_send']) || ! empty($assumption['blocks_handoff']) || ! empty($assumption['blocks_review'])) ? 'blockers' : 'warnings';
@@ -2732,7 +2696,6 @@ final class QuoteWorkspaceRenderer
 
         return array(
             'blockers' => $blockers,
-            'partner_actions' => $partner_actions,
             'warnings' => $warnings,
             'infos' => $infos,
         );
@@ -2759,7 +2722,6 @@ final class QuoteWorkspaceRenderer
             'uncertain_availability' => __('Beschikbaarheid nog controleren', 'sbdp'),
             'missing_group_size' => __('Groepsgrootte ontbreekt', 'sbdp'),
             'missing_date' => __('Datum ontbreekt', 'sbdp'),
-            'supplier_confirmation_required' => __('Partneractie vereist', 'sbdp'),
             default => __('Open punt', 'sbdp'),
         };
     }
@@ -4514,7 +4476,16 @@ final class QuoteWorkspaceRenderer
         echo '<span>' . esc_html__('Volgende actie', 'sbdp') . '</span>';
         echo '<strong>' . esc_html($nextAction) . '</strong>';
         echo '<small>' . esc_html(sprintf(__('Versie %s', 'sbdp'), $versionNum)) . '</small>';
-        echo '<a href="' . esc_url($ctaUrl) . '" class="button button-primary bsp-qcd__primary-btn">' . esc_html($ctaLabel) . '</a>';
+        if ((string) ($quote['handoff_status'] ?? '') === 'ready_to_confirm' && (string) ($quote['status'] ?? '') === 'accepted') {
+            echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
+            echo wp_nonce_field('sbdp_quote_confirm_ready', '_wpnonce', true, false);
+            echo '<input type="hidden" name="action" value="sbdp_quote_confirm_ready">';
+            echo '<input type="hidden" name="quote_id" value="' . esc_attr((string) $quoteId) . '">';
+            echo '<button type="submit" class="button button-primary bsp-qcd__primary-btn">' . esc_html__('Bevestig quote', 'sbdp') . '</button>';
+            echo '</form>';
+        } else {
+            echo '<a href="' . esc_url($ctaUrl) . '" class="button button-primary bsp-qcd__primary-btn">' . esc_html($ctaLabel) . '</a>';
+        }
         echo '</div>';
         echo '</div>';
     }
