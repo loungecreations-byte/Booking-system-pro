@@ -1,10 +1,13 @@
 <?php
 declare(strict_types=1);
 namespace BSP\Quotes\Admin;
+use BSP\Bookings\Service\BookingManager;
+use BSP\Bookings\Service\BookingRepository as BookingStorageRepository;
 use BSP\Quotes\Repository\QuoteRepository;
 use BSP\Quotes\Repository\QuoteRepositoryInterface;
 use BSP\Quotes\Service\QuoteAssumptionService;
 use BSP\Quotes\Service\QuoteAdminConfirmationService;
+use BSP\Quotes\Service\QuoteBookingBridgeService;
 use BSP\Quotes\Service\QuoteCommunicationService;
 use BSP\Quotes\Service\QuoteConversionService;
 use BSP\Quotes\Service\QuoteConfirmationReadinessService;
@@ -1033,6 +1036,25 @@ final class Controller
         }
         self::redirect('sbdp_quotes', $query);
     }
+    public static function handleCreateBookingBridge(): void {
+        self::assertAccess();
+        check_admin_referer('sbdp_quote_create_booking_bridge');
+        $quoteId = isset($_POST['quote_id']) ? (int) $_POST['quote_id'] : 0;
+        $repository = new QuoteRepository();
+        $events = new QuoteEventLogger($repository);
+        try {
+            $service = new QuoteBookingBridgeService($repository, $events, self::createQuoteBookingBridgeManager());
+            $result = $service->createOperationsBooking($quoteId, function_exists('get_current_user_id') ? (int) get_current_user_id() : null);
+        } catch (\Throwable $exception) {
+            self::redirect('sbdp_quotes', array('quote_id' => $quoteId, 'workspace_tab' => 'handoff', 'quote_error' => rawurlencode($exception->getMessage())));
+        }
+        self::redirect('sbdp_quotes', array(
+            'quote_id' => $quoteId,
+            'workspace_tab' => 'handoff',
+            'operations_ready' => '1',
+            'booking_master_id' => (string) ((int) ($result['booking_master_id'] ?? 0)),
+        ));
+    }
     public static function handleConfirmReadyQuote(): void {
         self::assertAccess();
         check_admin_referer('sbdp_quote_confirm_ready');
@@ -1082,6 +1104,18 @@ final class Controller
         $url = add_query_arg(array_merge(array('page' => $page), $query), admin_url('admin.php'));
         wp_redirect($url);
         exit;
+    }
+    private static function createQuoteBookingBridgeManager(): BookingManager {
+        if (! class_exists('\BSP\Planner\Vendor\CityGuideProfileStore')) {
+            throw new \InvalidArgumentException('Booking bridge vereist de planner guide profile store.');
+        }
+        if (! class_exists('\BSP\Planner\Module') && class_exists('\SBDP\Modules\Planner\Module')) {
+            class_alias('SBDP\Modules\Planner\Module', 'BSP\Planner\Module');
+        }
+        if (! class_exists('\BSP\Planner\Module')) {
+            throw new \InvalidArgumentException('Booking bridge vereist de planner module.');
+        }
+        return BookingManager::createDefault(new BookingStorageRepository());
     }
     private static function assertAccess(): void {
         if (! self::canManageQuotes()) {
