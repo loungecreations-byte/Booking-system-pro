@@ -1164,7 +1164,7 @@ final class QuoteWorkspaceRenderer
             $sendReadiness,
             $communicationState
         );
-        $handoffAllowed = (string) ($quote['status'] ?? '') === 'accepted' && (int) ($quote['approved_version_id'] ?? 0) > 0;
+        $handoffAllowed = in_array((string) ($quote['status'] ?? ''), array('accepted', 'confirmed'), true) && (int) ($quote['approved_version_id'] ?? 0) > 0;
         if ($currentTab === 'handoff' && ! $handoffAllowed) {
             $currentTab = 'dashboard';
         }
@@ -2776,7 +2776,7 @@ final class QuoteWorkspaceRenderer
     private static function renderQuoteHandoffWorkspacePanel(int $quoteId, array $quote, ?array $currentVersion, array $currentPayload): void
     {
         $approvedVersionId = (int) ($quote['approved_version_id'] ?? 0);
-        if ((string) ($quote['status'] ?? '') !== 'accepted' || $approvedVersionId <= 0) {
+        if (! in_array((string) ($quote['status'] ?? ''), array('accepted', 'confirmed'), true) || $approvedVersionId <= 0) {
             echo '<section class="postbox bsp-quote-admin__panel"><div class="bsp-quote-admin__panel-header"><h3>' . esc_html__('Handoff nog niet beschikbaar', 'sbdp') . '</h3></div><div class="bsp-quote-admin__panel-body">';
             echo '<p>' . esc_html__('Woo-overdracht wordt pas zichtbaar nadat de klant akkoord heeft gegeven en een geaccepteerde versie is vastgezet.', 'sbdp') . '</p>';
             echo '</div></section>';
@@ -2795,6 +2795,14 @@ final class QuoteWorkspaceRenderer
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">' . wp_nonce_field('sbdp_quote_validate_execution_payload', '_wpnonce', true, false) . '<input type="hidden" name="action" value="sbdp_quote_validate_execution_payload"><input type="hidden" name="quote_id" value="' . esc_attr((string) $quoteId) . '"><button class="button button-secondary" type="submit">' . esc_html__('Valideer voor Woo', 'sbdp') . '</button></form>';
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">' . wp_nonce_field('sbdp_quote_build_execution_launch', '_wpnonce', true, false) . '<input type="hidden" name="action" value="sbdp_quote_build_execution_launch"><input type="hidden" name="quote_id" value="' . esc_attr((string) $quoteId) . '"><button class="button button-secondary" type="submit">' . esc_html__('Maak checkout-start klaar', 'sbdp') . '</button></form>';
         echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">' . wp_nonce_field('sbdp_quote_hydrate_woo_cart', '_wpnonce', true, false) . '<input type="hidden" name="action" value="sbdp_quote_hydrate_woo_cart"><input type="hidden" name="quote_id" value="' . esc_attr((string) $quoteId) . '"><button class="button button-secondary" type="submit">' . esc_html__('Open in Woo winkelwagen', 'sbdp') . '</button></form>';
+        $bookingMasterId = (int) ($quote['booking_master_id'] ?? 0);
+        if ($bookingMasterId > 0) {
+            echo '<div class="bsp-quote-admin__readiness-summary"><strong>' . esc_html__('Operationele boeking aangemaakt', 'sbdp') . '</strong><p>' . esc_html(sprintf(__('Booking master #%d', 'sbdp'), $bookingMasterId)) . '</p></div>';
+        } elseif ((string) ($quote['status'] ?? '') === 'confirmed' && (string) ($quote['handoff_status'] ?? '') === 'woo_cart_hydrated') {
+            echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">' . wp_nonce_field('sbdp_quote_create_booking_bridge', '_wpnonce', true, false) . '<input type="hidden" name="action" value="sbdp_quote_create_booking_bridge"><input type="hidden" name="quote_id" value="' . esc_attr((string) $quoteId) . '"><button class="button button-primary" type="submit">' . esc_html__('Maak operationele boeking', 'sbdp') . '</button></form>';
+        } elseif ((string) ($quote['status'] ?? '') === 'confirmed') {
+            echo '<p class="bsp-quote-admin__muted">' . esc_html__('Operationele boeking kan pas na gecontroleerde Woo winkelwagenvoorbereiding.', 'sbdp') . '</p>';
+        }
         echo '</div>';
         echo '<details class="bsp-quote-admin__advanced-panel"><summary>' . esc_html__('Technische handoffdetails', 'sbdp') . '</summary>';
         echo '<div class="bsp-quote-admin__badge-row">' . self::renderInlineBadge((string) ($quote['handoff_status'] ?? 'not_ready'), self::workflowBadgeClass((string) ($quote['handoff_status'] ?? 'not_ready'))) . '</div>';
@@ -3873,6 +3881,7 @@ final class QuoteWorkspaceRenderer
             'execution_validated'   => __('Executionvoorbereiding runtime gecontroleerd.', 'sbdp'),
             'execution_launch_ready' => __('Woo-startvoorbereiding opgebouwd.', 'sbdp'),
             'woo_cart_hydrated'     => __('Woo winkelwagen voorbereid vanuit geaccepteerde offerte.', 'sbdp'),
+            'operations_ready'      => __('Operationele boeking aangemaakt.', 'sbdp'),
             'quote_ai_mail_saved'   => __('Quote AI & Mail instellingen opgeslagen.', 'sbdp'),
         );
 
@@ -3980,6 +3989,7 @@ final class QuoteWorkspaceRenderer
             'completed', 'closed', 'declined', 'cancelled' => __('Afgerond', 'sbdp'),
             'pending_review' => __('Wacht op review', 'sbdp'),
             'ready_for_resnapshot', 'execution_payload_ready', 'execution_validated', 'execution_launch_ready', 'woo_cart_hydrated' => __('Execution voorbereid', 'sbdp'),
+            'operations_ready' => __('Operations gereed', 'sbdp'),
             default => __('Nog niet bevestigd', 'sbdp'),
         };
     }
@@ -4091,7 +4101,7 @@ final class QuoteWorkspaceRenderer
     private static function workflowBadgeClass(string $status): string
     {
         return match ($status) {
-            'approved', 'ready_to_send', 'ready_for_resnapshot', 'execution_payload_ready', 'execution_validated', 'execution_launch_ready', 'woo_cart_hydrated' => 'is-good',
+            'approved', 'ready_to_send', 'ready_for_resnapshot', 'execution_payload_ready', 'execution_validated', 'execution_launch_ready', 'woo_cart_hydrated', 'operations_ready' => 'is-good',
             'not_started', 'not_ready' => 'is-neutral',
             default => 'is-warn',
         };
