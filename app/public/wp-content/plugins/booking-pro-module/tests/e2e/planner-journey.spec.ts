@@ -19,6 +19,7 @@ test.describe("critical execution journey", () => {
     const date = isoDate();
     await page.locator("#sbdp_date").fill(date);
     await page.locator(".ui-chip").first().click();
+    const selectedTime = await page.locator("#sbdp_time").inputValue();
     await page.locator("#sbdp_participants").fill("10");
 
     const quoteButton = page.locator('#sbdp-booking-form [data-sbdp-action="quote"]');
@@ -28,9 +29,18 @@ test.describe("critical execution journey", () => {
 
     await page.waitForURL(/offerte/i, { timeout: 30000 });
     const quoteUrl = new URL(page.url());
-    expect(quoteUrl.searchParams.get("product_id")).toBe("352");
-    expect(quoteUrl.searchParams.get("date")).toBe(date);
-    expect(quoteUrl.searchParams.get("time")).toBe("10:00");
-    expect(quoteUrl.searchParams.get("participants")).toBe("10");
+    expect(quoteUrl.searchParams.get("planner_plan")).toMatch(/^\d+$/);
+    expect(quoteUrl.searchParams.get("edit_token")).toMatch(/^[a-f0-9]{32,}$/i);
+    expect(quoteUrl.searchParams.get("product_id")).toBeNull();
+    expect(quoteUrl.searchParams.get("date")).toBeNull();
+    expect(quoteUrl.searchParams.get("time")).toBeNull();
+    expect(quoteUrl.searchParams.get("participants")).toBeNull();
+
+    await expect(page.getByText(/Ongeldige aanvraaglink/i)).toHaveCount(0);
+    await expect(page.locator(".sbdp-offerte-form")).toBeVisible();
+    await expect(page.locator(".sbdp-offerte-summary")).toContainText("Bierproeverij");
+    await expect(page.locator(".sbdp-offerte-summary")).toContainText("10 personen");
+    await expect(page.locator(".sbdp-offerte-summary")).toContainText(selectedTime);
+    await expect(page.locator(".sbdp-offerte-summary__meta")).toContainText("Datum");
   });
 });
