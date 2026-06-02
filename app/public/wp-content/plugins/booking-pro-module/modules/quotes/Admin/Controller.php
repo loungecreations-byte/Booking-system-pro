@@ -4,8 +4,10 @@ namespace BSP\Quotes\Admin;
 use BSP\Quotes\Repository\QuoteRepository;
 use BSP\Quotes\Repository\QuoteRepositoryInterface;
 use BSP\Quotes\Service\QuoteAssumptionService;
+use BSP\Quotes\Service\QuoteAdminConfirmationService;
 use BSP\Quotes\Service\QuoteCommunicationService;
 use BSP\Quotes\Service\QuoteConversionService;
+use BSP\Quotes\Service\QuoteConfirmationReadinessService;
 use BSP\Quotes\Service\QuoteExecutionLookupService;
 use BSP\Quotes\Service\QuoteExecutionLaunchService;
 use BSP\Quotes\Service\QuoteExecutionRunnerService;
@@ -1030,6 +1032,24 @@ final class Controller
             $query['cart_url'] = rawurlencode($result['cart_url']);
         }
         self::redirect('sbdp_quotes', $query);
+    }
+    public static function handleConfirmReadyQuote(): void {
+        self::assertAccess();
+        check_admin_referer('sbdp_quote_confirm_ready');
+        $quoteId = isset($_POST['quote_id']) ? (int) $_POST['quote_id'] : 0;
+        $repository = new QuoteRepository();
+        $events = new QuoteEventLogger($repository);
+        $service = new QuoteAdminConfirmationService(
+            $repository,
+            $events,
+            new QuoteConfirmationReadinessService($repository, $events)
+        );
+        try {
+            $service->confirmReadyQuote($quoteId, function_exists('get_current_user_id') ? (int) get_current_user_id() : null);
+        } catch (\Throwable $exception) {
+            self::redirect('sbdp_quotes', array('quote_id' => $quoteId, 'quote_error' => rawurlencode($exception->getMessage())));
+        }
+        self::redirect('sbdp_quotes', array('quote_id' => $quoteId, 'quote_confirmed' => '1'));
     }
     public static function renderQuoteRequestsPage(): void {
         QuoteWorkspaceRenderer::renderQuoteRequestsPage();

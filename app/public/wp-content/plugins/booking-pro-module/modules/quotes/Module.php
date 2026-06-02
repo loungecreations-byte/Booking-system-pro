@@ -59,6 +59,7 @@ final class Module implements ModuleInterface
             \add_action('admin_post_sbdp_quote_validate_execution_payload', array(AdminController::class, 'handleValidateExecutionPayload'));
             \add_action('admin_post_sbdp_quote_build_execution_launch', array(AdminController::class, 'handleBuildExecutionLaunch'));
             \add_action('admin_post_sbdp_quote_hydrate_woo_cart', array(AdminController::class, 'handleHydrateWooCart'));
+            \add_action('admin_post_sbdp_quote_confirm_ready', array(AdminController::class, 'handleConfirmReadyQuote'));
             \add_action('admin_post_sbdp_quote_quick_prepare_to_send', array(AdminController::class, 'handleQuickPrepareToSend'));
 
             new OpenAiQuoteDraftAdapter();
