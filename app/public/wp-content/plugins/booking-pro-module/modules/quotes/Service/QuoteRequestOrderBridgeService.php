@@ -38,7 +38,12 @@ final class QuoteRequestOrderBridgeService
 
         $existingOrderId = isset($quote['woo_order_id']) ? (int) $quote['woo_order_id'] : 0;
         if ($existingOrderId > 0 && ! $force) {
-            return $this->existingOrderPayload($quoteId, $quote, $existingOrderId);
+            $existingVersionId = $this->resolveExistingOrderVersionId($quote, $quoteId);
+            if ($existingVersionId > 0) {
+                $this->attachOrderQuoteMeta($existingOrderId, $quoteId, $existingVersionId, $quote);
+            }
+
+            return $this->existingOrderPayload($quoteId, $quote, $existingOrderId, $existingVersionId);
         }
 
         $requestId = isset($quote['quote_request_id']) ? (int) $quote['quote_request_id'] : 0;
@@ -51,21 +56,13 @@ final class QuoteRequestOrderBridgeService
             );
         }
 
-        $versionId = isset($quote['current_version_id']) ? (int) $quote['current_version_id'] : 0;
-        if ($versionId <= 0) {
-            throw new HandoffValidationException(
-                'bsp_quotes_handoff_missing_version',
-                'Quote heeft geen actieve versie.',
-                422,
-                array('quote_id' => $quoteId)
-            );
-        }
+        $versionId = $this->resolveOrderVersionId($quote, $quoteId);
 
         $version = $this->repository->findQuoteVersion($versionId);
         if ($version === null) {
             throw new HandoffValidationException(
                 'bsp_quotes_handoff_version_not_found',
-                'Actieve quote-versie niet gevonden.',
+                'Quote-versie voor Woo request-order niet gevonden.',
                 404,
                 array('quote_id' => $quoteId, 'version_id' => $versionId)
             );
@@ -156,6 +153,8 @@ final class QuoteRequestOrderBridgeService
             );
         }
 
+        $this->attachOrderQuoteMeta($orderId, $quoteId, $versionId, $quote);
+
         $updatedQuote = $this->repository->updateQuote($quoteId, array(
             'woo_order_id' => $orderId,
             'handoff_status' => 'woo_request_order_created',
@@ -166,23 +165,69 @@ final class QuoteRequestOrderBridgeService
             'quote_woo_request_order_created',
             $requestId,
             $quoteId,
-            isset($updatedQuote['current_version_id']) ? (int) $updatedQuote['current_version_id'] : null,
+            $versionId,
             $actorId,
             'Woo request-order aangemaakt vanuit quote.',
             array(
                 'order_id' => $orderId,
+                'quote_version_id' => $versionId,
                 'force' => $force,
             )
         );
 
         return array(
             'quote_id' => $quoteId,
+            'quote_version_id' => $versionId,
             'quote_reference' => (string) ($updatedQuote['quote_reference'] ?? ''),
             'woo_order_id' => $orderId,
             'redirect' => (string) ($result['redirect'] ?? ''),
             'view_url' => (string) ($result['view_url'] ?? ''),
             'created' => true,
         );
+    }
+
+    /**
+     * @param array<string, mixed> $quote
+     */
+    private function resolveOrderVersionId(array $quote, int $quoteId): int
+    {
+        if ((string) ($quote['status'] ?? '') === 'accepted') {
+            $approvedVersionId = (int) ($quote['approved_version_id'] ?? 0);
+            if ($approvedVersionId <= 0) {
+                throw new HandoffValidationException(
+                    'bsp_quotes_handoff_missing_approved_version',
+                    'Geaccepteerde quote mist approved_version_id; Woo request-order wordt niet aangemaakt.',
+                    422,
+                    array('quote_id' => $quoteId)
+                );
+            }
+
+            return $approvedVersionId;
+        }
+
+        $currentVersionId = isset($quote['current_version_id']) ? (int) $quote['current_version_id'] : 0;
+        if ($currentVersionId <= 0) {
+            throw new HandoffValidationException(
+                'bsp_quotes_handoff_missing_version',
+                'Quote heeft geen actieve versie.',
+                422,
+                array('quote_id' => $quoteId)
+            );
+        }
+
+        return $currentVersionId;
+    }
+
+    /**
+     * @param array<string, mixed> $quote
+     */
+    private function resolveExistingOrderVersionId(array $quote, int $quoteId): int
+    {
+        if ((string) ($quote['status'] ?? '') === 'accepted') {
+            return $this->resolveOrderVersionId($quote, $quoteId);
+        }
+
+        return (int) ($quote['approved_version_id'] ?? 0) ?: (int) ($quote['current_version_id'] ?? 0);
     }
 
     /**
@@ -252,7 +297,7 @@ final class QuoteRequestOrderBridgeService
      * @param array<string, mixed> $quote
      * @return array<string, mixed>
      */
-    private function existingOrderPayload(int $quoteId, array $quote, int $orderId): array
+    private function existingOrderPayload(int $quoteId, array $quote, int $orderId, int $versionId = 0): array
     {
         $viewUrl = '';
         if (function_exists('wc_get_order')) {
@@ -264,11 +309,39 @@ final class QuoteRequestOrderBridgeService
 
         return array(
             'quote_id' => $quoteId,
+            'quote_version_id' => $versionId,
             'quote_reference' => (string) ($quote['quote_reference'] ?? ''),
             'woo_order_id' => $orderId,
             'view_url' => $viewUrl,
             'created' => false,
         );
+    }
+
+    /**
+     * @param array<string, mixed> $quote
+     */
+    private function attachOrderQuoteMeta(int $orderId, int $quoteId, int $versionId, array $quote): void
+    {
+        if ($orderId <= 0 || $quoteId <= 0 || $versionId <= 0 || ! \function_exists('wc_get_order')) {
+            return;
+        }
+
+        $order = \wc_get_order($orderId);
+        if (! $order || ! method_exists($order, 'update_meta_data')) {
+            return;
+        }
+
+        $order->update_meta_data('_sbdp_quote_id', $quoteId);
+        $order->update_meta_data('_sbdp_quote_version_id', $versionId);
+        $order->update_meta_data('sbdp_quote_id', $quoteId);
+        $order->update_meta_data('sbdp_quote_version_id', $versionId);
+        $quoteReference = trim((string) ($quote['quote_reference'] ?? ''));
+        if ($quoteReference !== '') {
+            $order->update_meta_data('_sbdp_quote_reference', $quoteReference);
+        }
+        if (method_exists($order, 'save')) {
+            $order->save();
+        }
     }
 
     private function now(): string

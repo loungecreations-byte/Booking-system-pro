@@ -70,6 +70,46 @@ final class QuoteRequestOrderBridgeServiceTest extends TestCase
         }
     }
 
+    public function testAcceptedQuoteFailsHardWhenApprovedVersionIsMissing(): void
+    {
+        $repository = new InMemoryQuoteRepository();
+        $events = new QuoteEventLogger($repository);
+        $service = new QuoteRequestOrderBridgeService($repository, $events);
+
+        $version = $repository->createQuoteVersion(array(
+            'quote_id' => 21,
+            'handoff_payload_json' => array(
+                'execution_adapter' => array(
+                    'adapter_type' => 'cart_order_prep',
+                    'items' => array(
+                        array(
+                            'product_id' => 352,
+                            'start' => '2026-07-16T14:00:00+00:00',
+                            'end' => '2026-07-16T16:00:00+00:00',
+                            'participants' => 8,
+                        ),
+                    ),
+                ),
+            ),
+        ));
+
+        $quote = $repository->createQuote(array(
+            'quote_reference' => 'Q-TEST-ACCEPTED-MISSING-APPROVED',
+            'quote_request_id' => 61,
+            'status' => 'accepted',
+            'current_version_id' => (int) $version['id'],
+            'approved_version_id' => 0,
+        ));
+
+        try {
+            $service->createWooRequestOrder((int) $quote['id']);
+            $this->fail('Expected HandoffValidationException was not thrown.');
+        } catch (HandoffValidationException $exception) {
+            $this->assertSame('bsp_quotes_handoff_missing_approved_version', $exception->restCode());
+            $this->assertSame(422, $exception->status());
+        }
+    }
+
     public function testThrowsInvalidAdapterTypeCodeForUnsupportedPayload(): void
     {
         $repository = new InMemoryQuoteRepository();
