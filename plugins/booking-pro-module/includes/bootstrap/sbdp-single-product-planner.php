@@ -308,6 +308,10 @@ function sbdp_render_product_planner_form($atts = array()) {
     $compose_nonce = function_exists('wp_create_nonce') && class_exists('\BSPModule\Core\Rest\RestService')
         ? wp_create_nonce(\BSPModule\Core\Rest\RestService::PUBLIC_NONCE_ACTION)
         : (function_exists('wp_create_nonce') ? wp_create_nonce('wp_rest') : '');
+    $planner_rest_base = function_exists('rest_url') ? rest_url('planner/v1') : '';
+    $planner_nonce = function_exists('wp_create_nonce') && class_exists('\BSPModule\Core\Rest\RestService')
+        ? wp_create_nonce(\BSPModule\Core\Rest\RestService::PUBLIC_NONCE_ACTION)
+        : (function_exists('wp_create_nonce') ? wp_create_nonce('wp_rest') : '');
     $cart_url = function_exists('wc_get_cart_url') ? wc_get_cart_url() : home_url('/cart/');
     $quote_url = sbdp_legacy_product_planner_get_quote_url();
     $supplier_provider = strtolower(trim((string) get_post_meta($product_id, '_ddb_supplier_provider', true)));
@@ -510,6 +514,8 @@ function sbdp_render_product_planner_form($atts = array()) {
             const quoteButton = bookingForm ? bookingForm.querySelector('[data-sbdp-action="quote"]') : null;
             const composeUrl = <?php echo wp_json_encode($compose_url); ?>;
             const composeNonce = <?php echo wp_json_encode($compose_nonce); ?>;
+            const plannerRestBase = <?php echo wp_json_encode($planner_rest_base); ?>;
+            const plannerNonce = <?php echo wp_json_encode($planner_nonce); ?>;
             const cartUrl = <?php echo wp_json_encode($cart_url); ?>;
             const quoteUrl = <?php echo wp_json_encode($quote_url); ?>;
             const isEliioRequestOnly = <?php echo $is_eliio_request_only ? 'true' : 'false'; ?>;
@@ -864,6 +870,139 @@ function sbdp_render_product_planner_form($atts = array()) {
                 };
             }
 
+            function buildQuotePlanPayload(plannerEntry) {
+                const combiItems = Array.isArray(plannerEntry.combiItems) ? plannerEntry.combiItems : [];
+                const participantCount = parseInt(plannerEntry.participants, 10) || 1;
+                const endTime = addMinutes(plannerEntry.time || '', mainDuration);
+                const plannerItem = {
+                    id: plannerEntry.traceId || ('product-' + String(plannerEntry.productId || productId || '')),
+                    source: plannerEntry.source || 'product_planner_legacy',
+                    productId: plannerEntry.productId,
+                    product_id: plannerEntry.productId,
+                    resourceId: 0,
+                    resource_id: 0,
+                    title: mainTitle,
+                    date: plannerEntry.date || '',
+                    startTime: plannerEntry.time || '',
+                    endTime: endTime || '',
+                    durationMinutes: mainDuration,
+                    participants: participantCount,
+                    people: participantCount,
+                    options: {
+                        combiItems: combiItems
+                    },
+                    combiItems: combiItems,
+                    route_intent: 'quote',
+                    booking_capability: 'REQUEST'
+                };
+
+                if (plannerEntry.plannerInput) {
+                    plannerItem.plannerInput = plannerEntry.plannerInput;
+                }
+                const plannerItems = [plannerItem];
+                combiItems.forEach(item => {
+                    const combiProductId = parseInt(item && item.id, 10) || 0;
+                    const combiTitle = item && item.label ? String(item.label) : '';
+                    if (!combiProductId && !combiTitle) {
+                        return;
+                    }
+
+                    plannerItems.push({
+                        id: plannerEntry.traceId ? plannerEntry.traceId + '-combi-' + String(combiProductId || plannerItems.length) : 'combi-' + String(combiProductId || plannerItems.length),
+                        source: 'product_planner_legacy_combi',
+                        productId: combiProductId,
+                        product_id: combiProductId,
+                        resourceId: 0,
+                        resource_id: 0,
+                        title: combiTitle,
+                        date: plannerEntry.date || '',
+                        startTime: '',
+                        endTime: '',
+                        participants: participantCount,
+                        people: participantCount,
+                        timing: item && item.timing === 'after' ? 'after' : 'before',
+                        route_intent: 'quote',
+                        booking_capability: 'REQUEST'
+                    });
+                });
+
+                return {
+                    title: mainTitle ? mainTitle + ' offerte' : 'Offerte aanvraag',
+                    days: [
+                        {
+                            date: plannerEntry.date || '',
+                            slots: [
+                                {
+                                    product_id: plannerEntry.productId,
+                                    activity_id: plannerEntry.productId,
+                                    resource_id: 0,
+                                    start: plannerEntry.time || '',
+                                    end: endTime || '',
+                                    people: participantCount,
+                                    duration_minutes: mainDuration,
+                                    currency: 'EUR'
+                                }
+                            ]
+                        }
+                    ],
+                    participants: [],
+                    meta: {
+                        source: 'product_detail_quote',
+                        form: {
+                            participants: participantCount
+                        },
+                        participant_count: participantCount,
+                        product_id: plannerEntry.productId,
+                        date: plannerEntry.date || '',
+                        time: plannerEntry.time || '',
+                        planner_items: plannerItems
+                    }
+                };
+            }
+
+            async function plannerRequest(path, options) {
+                const base = (plannerRestBase || '').replace(/\/+$/, '');
+                if (!base) {
+                    throw new Error('Offerte-aanvraag kon niet worden voorbereid.');
+                }
+
+                const response = await fetch(base + path, {
+                    method: options && options.method ? options.method : 'GET',
+                    credentials: 'omit',
+                    referrerPolicy: 'origin',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-WP-Nonce': plannerNonce || '',
+                        'x-sbdp-nonce': plannerNonce || ''
+                    },
+                    body: options && options.body ? JSON.stringify(options.body) : undefined
+                });
+                const data = await response.json().catch(() => null);
+                if (!response.ok || !data) {
+                    throw new Error((data && data.message) || response.statusText || 'Offerte-aanvraag kon niet worden voorbereid.');
+                }
+
+                return data;
+            }
+
+            function extractSavedPlan(data) {
+                return data && data.plan && typeof data.plan === 'object' ? data.plan : null;
+            }
+
+            function extractPlanToken(plan) {
+                if (!plan || typeof plan !== 'object') {
+                    return '';
+                }
+                if (typeof plan.edit_token === 'string' && plan.edit_token.trim() !== '') {
+                    return plan.edit_token.trim();
+                }
+                if (plan.meta && typeof plan.meta.edit_token === 'string' && plan.meta.edit_token.trim() !== '') {
+                    return plan.meta.edit_token.trim();
+                }
+
+                return '';
+            }
+
             async function submitDirectBooking(event) {
                 if (event) {
                     event.preventDefault();
@@ -912,26 +1051,50 @@ function sbdp_render_product_planner_form($atts = array()) {
                 }
             }
 
-            function submitQuoteRequest(event) {
+            async function submitQuoteRequest(event) {
                 if (event) {
                     event.preventDefault();
                 }
 
                 const plannerEntry = buildPlannerEntry();
-                const target = new URL(quoteUrl || '/offerte/', window.location.origin);
-                if (plannerEntry.productId) {
-                    target.searchParams.set('product_id', String(plannerEntry.productId));
+                if (!plannerEntry.productId || !plannerEntry.date || !plannerEntry.time) {
+                    alert('Kies eerst een datum en tijdslot.');
+                    return;
                 }
-                if (plannerEntry.date) {
-                    target.searchParams.set('date', plannerEntry.date);
+
+                if (quoteButton) {
+                    quoteButton.disabled = true;
+                    quoteButton.setAttribute('aria-busy', 'true');
                 }
-                if (plannerEntry.time) {
-                    target.searchParams.set('time', plannerEntry.time);
+
+                try {
+                    const saved = await plannerRequest('/plan', {
+                        method: 'POST',
+                        body: buildQuotePlanPayload(plannerEntry)
+                    });
+                    const plan = extractSavedPlan(saved);
+                    const planId = parseInt(plan && plan.id, 10) || 0;
+                    const planToken = extractPlanToken(plan);
+                    if (!planId || !planToken) {
+                        throw new Error('Offerte-aanvraag kon niet worden voorbereid.');
+                    }
+
+                    const quoteResult = await plannerRequest('/plan/' + String(planId) + '/quote?edit_token=' + encodeURIComponent(planToken), {
+                        method: 'POST'
+                    });
+                    if (!quoteResult || typeof quoteResult.quote_url !== 'string' || quoteResult.quote_url.trim() === '') {
+                        throw new Error('Offerte-aanvraag kon niet worden geopend.');
+                    }
+
+                    window.location.href = quoteResult.quote_url;
+                } catch (error) {
+                    alert(error && error.message ? error.message : 'Offerte-aanvraag kon niet worden voorbereid.');
+                } finally {
+                    if (quoteButton) {
+                        quoteButton.disabled = false;
+                        quoteButton.removeAttribute('aria-busy');
+                    }
                 }
-                if (plannerEntry.participants) {
-                    target.searchParams.set('participants', String(plannerEntry.participants));
-                }
-                window.location.href = target.toString();
             }
 
             function updateUI() {
