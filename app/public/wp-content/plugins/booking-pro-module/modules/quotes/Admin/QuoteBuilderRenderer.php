@@ -2655,6 +2655,150 @@ final class QuoteBuilderRenderer
             .bsp-qcd__status--warn  { background: #2b1d00; color: #e3b341; border: 1px solid #4a3810; }
             .bsp-qcd__status--error { background: #2d1117; color: #f85149; border: 1px solid #4a1a1a; }
             .bsp-qcd__primary-btn   { font-weight: 600; margin-top: 4px; align-self: flex-start; }
+            .sbdp-qcd-status-summary {
+                display: grid;
+                grid-template-columns: minmax(0, 1.15fr) minmax(320px, .85fr);
+                gap: 8px;
+                margin: 0 0 8px;
+                border: 1px solid #2a2a2a;
+                border-radius: 7px;
+                background: #080b0f;
+                padding: 8px;
+            }
+            .sbdp-qcd-chain {
+                display: grid;
+                grid-template-columns: repeat(8, minmax(72px, 1fr));
+                gap: 4px;
+                min-width: 0;
+            }
+            .sbdp-qcd-chain-step {
+                position: relative;
+                display: grid;
+                grid-template-columns: 10px minmax(0, 1fr);
+                grid-template-rows: auto auto;
+                column-gap: 6px;
+                row-gap: 1px;
+                align-items: center;
+                min-width: 0;
+                padding: 7px 8px;
+                border: 1px solid #242a32;
+                border-radius: 6px;
+                background: #0d1117;
+            }
+            .sbdp-qcd-chain-dot {
+                grid-row: 1 / span 2;
+                width: 8px;
+                height: 8px;
+                border-radius: 99px;
+                background: #6e7681;
+            }
+            .sbdp-qcd-chain-label {
+                color: #e6edf3;
+                font-size: 11px;
+                font-weight: 700;
+                line-height: 1.1;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            .sbdp-qcd-chain-state {
+                color: #7d8590;
+                font-size: 9px;
+                line-height: 1;
+                text-transform: uppercase;
+            }
+            .sbdp-qcd-chain-step.is-done { border-color: #2a4a3a; background: #0d1a16; }
+            .sbdp-qcd-chain-step.is-done .sbdp-qcd-chain-dot { background: #3fb950; }
+            .sbdp-qcd-chain-step.is-current { border-color: #6b5420; background: #201806; }
+            .sbdp-qcd-chain-step.is-current .sbdp-qcd-chain-dot { background: #e3b341; }
+            .sbdp-qcd-chain-step.is-blocked { border-color: #5a2224; background: #241014; }
+            .sbdp-qcd-chain-step.is-blocked .sbdp-qcd-chain-dot { background: #f85149; }
+            .sbdp-qcd-chain-step.is-pending { border-color: #253244; }
+            .sbdp-qcd-chain-step.is-not_started { opacity: .62; }
+            .sbdp-qcd-status-summary__body {
+                display: grid;
+                grid-template-columns: minmax(180px, .9fr) minmax(0, 1.1fr);
+                gap: 8px;
+                min-width: 0;
+            }
+            .sbdp-qcd-next-action {
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                gap: 4px;
+                min-width: 0;
+                padding: 10px 12px;
+                border-radius: 6px;
+                border: 1px solid #4a3810;
+                background: #171303;
+            }
+            .sbdp-qcd-next-action span {
+                color: #e3b341;
+                font-size: 10px;
+                font-weight: 700;
+                text-transform: uppercase;
+            }
+            .sbdp-qcd-next-action strong {
+                color: #f0f6fc;
+                font-size: 15px;
+                line-height: 1.2;
+            }
+            .sbdp-qcd-next-action small {
+                color: #adbac7;
+                font-size: 11px;
+                line-height: 1.3;
+            }
+            .sbdp-qcd-chip-panel,
+            .sbdp-qcd-chip-group,
+            .sbdp-qcd-cta-explain {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 5px;
+                align-content: flex-start;
+                min-width: 0;
+            }
+            .sbdp-qcd-chip-panel { flex-direction: column; }
+            .sbdp-qcd-meta-chip,
+            .sbdp-qcd-blocker-chip,
+            .sbdp-qcd-communication-chip,
+            .sbdp-qcd-chip-group-label,
+            .sbdp-qcd-cta-state {
+                display: inline-flex;
+                align-items: center;
+                gap: 5px;
+                max-width: 100%;
+                border-radius: 999px;
+                padding: 3px 8px;
+                font-size: 10px;
+                line-height: 1.2;
+                text-decoration: none;
+            }
+            .sbdp-qcd-meta-chip { border: 1px solid #2f3b4d; background: #101721; color: #adbac7; }
+            .sbdp-qcd-meta-chip:hover { color: #e6edf3; border-color: #58a6ff; }
+            .sbdp-qcd-meta-chip span,
+            .sbdp-qcd-cta-state em { color: #7d8590; font-style: normal; }
+            .sbdp-qcd-meta-chip strong,
+            .sbdp-qcd-cta-state strong {
+                color: #e6edf3;
+                font-weight: 700;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            .sbdp-qcd-blocker-chip { border: 1px solid #5a2224; background: #241014; color: #ffb3ad; font-weight: 700; }
+            .sbdp-qcd-chip-group-label { border: 1px solid #30363d; background: #0d1117; color: #7d8590; font-weight: 700; text-transform: uppercase; }
+            .sbdp-qcd-communication-chip { border: 1px solid #4a3810; background: #171303; color: #f2cc60; font-weight: 700; }
+            .sbdp-qcd-communication-chip.is-done { border-color: #2a4a3a; background: #0d1a16; color: #7ee787; }
+            .sbdp-qcd-communication-chip.is-blocked { border-color: #5a2224; background: #241014; color: #ffb3ad; }
+            .sbdp-qcd-cta-state { border: 1px solid #242a32; background: #0d1117; color: #adbac7; }
+            .sbdp-qcd-cta-state.is-visible { border-color: #2a4a3a; background: #0d1a16; }
+            .sbdp-qcd-cta-state.is-visible em { color: #3fb950; }
+            .sbdp-qcd-cta-state.is-hidden em { color: #6e7681; }
+            @media (max-width: 1280px) {
+                .sbdp-qcd-status-summary,
+                .sbdp-qcd-status-summary__body { grid-template-columns: 1fr; }
+                .sbdp-qcd-chain { grid-template-columns: repeat(4, minmax(88px, 1fr)); }
+            }
 
             /* ── Context Grid: KLANT | PRIJS & PROGRAMMA | NOG NODIG ── */
             .bsp-qcd__context-grid {
