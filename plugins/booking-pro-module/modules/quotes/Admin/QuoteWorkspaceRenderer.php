@@ -7,6 +7,7 @@ namespace BSP\Quotes\Admin;
 use BSP\Quotes\Repository\QuoteRepositoryInterface;
 use BSP\Quotes\Repository\QuoteRepository;
 use BSP\Quotes\Service\QuoteAssumptionService;
+use BSP\Quotes\Service\QuoteAdminStatusSummaryService;
 use BSP\Quotes\Service\QuoteCommunicationService;
 use BSP\Quotes\Service\QuoteConversionService;
 use BSP\Quotes\Service\QuoteExecutionLookupService;
@@ -1182,6 +1183,7 @@ final class QuoteWorkspaceRenderer
         $workspaceAlerts = self::buildQuoteWorkspaceAlerts($quoteId, $sendReadiness, $businessValidation, $filteredAssumptions, $followups, $communicationState, $quoteCommerciallyEditable);
         $workspaceBlockers = is_array($workspaceAlerts['blockers'] ?? null) ? $workspaceAlerts['blockers'] : array();
         $sendAllowed = $sendAllowed && $workspaceBlockers === array();
+        $adminStatusSummary = (new QuoteAdminStatusSummaryService($repository))->summarize($quoteId, array('send_allowed' => $sendAllowed));
         $amountLabel = $pricingConfirmed && $availabilityConfirmed && $sendAllowed
             ? __('Offerteprijs', 'sbdp')
             : __('Voorstelbedrag onder voorbehoud', 'sbdp');
@@ -1208,7 +1210,8 @@ final class QuoteWorkspaceRenderer
             $pricingConfidence,
             $availabilityConfidence,
             $sendAllowed,
-            $quoteCommerciallyEditable
+            $quoteCommerciallyEditable,
+            $adminStatusSummary
         );
         echo '</div></div>';
 
@@ -4131,6 +4134,7 @@ final class QuoteWorkspaceRenderer
      * @param array<string, mixed>             $workspaceAlerts
      * @param array<string, mixed>             $communicationState
      * @param array<string, mixed>             $proposalReadiness
+     * @param array<string, mixed>             $adminStatusSummary
      */
     private static function renderQuoteControlDashboard(
         int $quoteId,
@@ -4152,7 +4156,8 @@ final class QuoteWorkspaceRenderer
         string $pricingConfidence,
         string $availabilityConfidence,
         bool $sendAllowed,
-        bool $quoteCommerciallyEditable
+        bool $quoteCommerciallyEditable,
+        array $adminStatusSummary = array()
     ): void {
         $matrix = self::buildQcdApprovalMatrix(
             $requester,
@@ -4168,7 +4173,7 @@ final class QuoteWorkspaceRenderer
         $qcdSendAllowed = $sendAllowed && self::qcdApprovalMatrixAllowsSend($matrix);
 
         echo '<div class="bsp-qcd">';
-        self::renderQcdDecisionBar($quoteId, $quote, $request, $requester, $currentVersion, $lineSummary, $matrix, $qcdSendAllowed, $sendReadiness, $pricingConfidence, $availabilityConfidence);
+        self::renderQcdDecisionBar($quoteId, $quote, $request, $requester, $currentVersion, $lineSummary, $matrix, $qcdSendAllowed, $sendReadiness, $pricingConfidence, $availabilityConfidence, $adminStatusSummary);
         self::renderQcdApprovalMatrix($matrix, $quoteId);
         echo '<div class="bsp-qcd__layout">';
         echo '<main class="bsp-qcd__main">';
@@ -4395,6 +4400,7 @@ final class QuoteWorkspaceRenderer
      * @param array<string, mixed>             $lineSummary
      * @param array<string, array<string, string>> $matrix
      * @param array<string, mixed>             $sendReadiness
+     * @param array<string, mixed>             $adminStatusSummary
      */
     private static function renderQcdDecisionBar(
         int $quoteId,
@@ -4407,7 +4413,8 @@ final class QuoteWorkspaceRenderer
         bool $sendAllowed,
         array $sendReadiness,
         string $pricingConfidence = 'unknown',
-        string $availabilityConfidence = 'unknown'
+        string $availabilityConfidence = 'unknown',
+        array $adminStatusSummary = array()
     ): void {
         $reference   = trim((string) ($quote['quote_reference'] ?? ''));
         $customer    = trim((string) ($requester['name'] ?? ''));
@@ -4498,6 +4505,130 @@ final class QuoteWorkspaceRenderer
         }
         echo '</div>';
         echo '</div>';
+        self::renderQcdAdminStatusSummary($adminStatusSummary);
+    }
+
+    /**
+     * @param array<string, mixed> $summary
+     */
+    private static function renderQcdAdminStatusSummary(array $summary): void
+    {
+        if ($summary === array()) {
+            return;
+        }
+
+        $chainSteps = array_values(array_filter((array) ($summary['chain_steps'] ?? array()), static fn ($step): bool => is_array($step)));
+        $metaChips = array_values(array_filter((array) ($summary['meta_chips'] ?? array()), static fn ($chip): bool => is_array($chip)));
+        $blockerChips = array_values(array_filter((array) ($summary['blocker_chips'] ?? array()), static fn ($chip): bool => is_array($chip)));
+        $communicationChips = array_values(array_filter((array) ($summary['communication_chips'] ?? array()), static fn ($chip): bool => is_array($chip)));
+        $cta = is_array($summary['cta_visibility'] ?? null) ? $summary['cta_visibility'] : array();
+
+        echo '<section class="sbdp-qcd-status-summary" aria-label="' . esc_attr__('Quote ketenstatus', 'sbdp') . '">';
+        echo '<div class="sbdp-qcd-chain" role="list" aria-label="' . esc_attr__('Quote flow stappen', 'sbdp') . '">';
+        foreach ($chainSteps as $step) {
+            $status = (string) ($step['status'] ?? 'pending');
+            echo '<span class="sbdp-qcd-chain-step is-' . esc_attr($status) . '" role="listitem">';
+            echo '<span class="sbdp-qcd-chain-dot" aria-hidden="true"></span>';
+            echo '<span class="sbdp-qcd-chain-label">' . esc_html((string) ($step['label'] ?? '')) . '</span>';
+            echo '<span class="sbdp-qcd-chain-state">' . esc_html($status) . '</span>';
+            echo '</span>';
+        }
+        echo '</div>';
+
+        echo '<div class="sbdp-qcd-status-summary__body">';
+        echo '<div class="sbdp-qcd-next-action">';
+        echo '<span>' . esc_html__('Volgende veilige actie', 'sbdp') . '</span>';
+        echo '<strong>' . esc_html((string) ($summary['next_action'] ?? __('Controleer quote', 'sbdp'))) . '</strong>';
+        $reason = trim((string) ($summary['next_action_reason'] ?? ''));
+        if ($reason !== '') {
+            echo '<small>' . esc_html($reason) . '</small>';
+        }
+        echo '</div>';
+
+        echo '<div class="sbdp-qcd-chip-panel">';
+        if ($metaChips !== array()) {
+            echo '<div class="sbdp-qcd-chip-group" aria-label="' . esc_attr__('Quote IDs', 'sbdp') . '">';
+            foreach ($metaChips as $chip) {
+                echo self::renderQcdMetaChip($chip);
+            }
+            echo '</div>';
+        }
+        if ($blockerChips !== array()) {
+            echo '<div class="sbdp-qcd-chip-group sbdp-qcd-chip-group--blockers" aria-label="' . esc_attr__('Operations en supplier blokkades', 'sbdp') . '">';
+            echo '<span class="sbdp-qcd-chip-group-label">' . esc_html__('Operations', 'sbdp') . '</span>';
+            foreach ($blockerChips as $chip) {
+                echo self::renderQcdBlockerChip($chip);
+            }
+            echo '</div>';
+        }
+        if ($communicationChips !== array()) {
+            echo '<div class="sbdp-qcd-chip-group sbdp-qcd-chip-group--communication" aria-label="' . esc_attr__('Communicatie status', 'sbdp') . '">';
+            echo '<span class="sbdp-qcd-chip-group-label">' . esc_html__('Communicatie', 'sbdp') . '</span>';
+            foreach ($communicationChips as $chip) {
+                echo self::renderQcdCommunicationChip($chip);
+            }
+            echo '</div>';
+        }
+        echo '<div class="sbdp-qcd-cta-explain" aria-label="' . esc_attr__('CTA zichtbaarheid', 'sbdp') . '">';
+        echo self::renderQcdCtaState(__('Bevestig quote', 'sbdp'), ! empty($cta['confirm_quote']));
+        echo self::renderQcdCtaState(__('Open Woo winkelwagen', 'sbdp'), ! empty($cta['open_woo_cart']));
+        echo self::renderQcdCtaState(__('Maak operationele boeking', 'sbdp'), ! empty($cta['create_booking_bridge']));
+        echo '</div>';
+        echo '</div>';
+        echo '</div>';
+        echo '</section>';
+    }
+
+    /**
+     * @param array<string, mixed> $chip
+     */
+    private static function renderQcdMetaChip(array $chip): string
+    {
+        $label = trim((string) ($chip['label'] ?? ''));
+        $value = trim((string) ($chip['value'] ?? ''));
+        $url = trim((string) ($chip['url'] ?? ''));
+        if ($label === '' || $value === '') {
+            return '';
+        }
+
+        $inner = '<span>' . esc_html($label) . '</span><strong>' . esc_html($value) . '</strong>';
+        if ($url !== '') {
+            return '<a class="sbdp-qcd-meta-chip" href="' . esc_url($url) . '">' . $inner . '</a>';
+        }
+
+        return '<span class="sbdp-qcd-meta-chip">' . $inner . '</span>';
+    }
+
+    /**
+     * @param array<string, mixed> $chip
+     */
+    private static function renderQcdBlockerChip(array $chip): string
+    {
+        $label = trim((string) ($chip['label'] ?? ''));
+        if ($label === '') {
+            return '';
+        }
+
+        return '<span class="sbdp-qcd-blocker-chip">' . esc_html($label) . '</span>';
+    }
+
+    /**
+     * @param array<string, mixed> $chip
+     */
+    private static function renderQcdCommunicationChip(array $chip): string
+    {
+        $label = trim((string) ($chip['label'] ?? ''));
+        if ($label === '') {
+            return '';
+        }
+
+        $status = (string) ($chip['status'] ?? 'notice');
+        return '<span class="sbdp-qcd-communication-chip is-' . esc_attr($status) . '">' . esc_html($label) . '</span>';
+    }
+
+    private static function renderQcdCtaState(string $label, bool $visible): string
+    {
+        return '<span class="sbdp-qcd-cta-state ' . esc_attr($visible ? 'is-visible' : 'is-hidden') . '"><strong>' . esc_html($label) . '</strong><em>' . esc_html($visible ? __('zichtbaar', 'sbdp') : __('verborgen', 'sbdp')) . '</em></span>';
     }
 
     /**
