@@ -329,17 +329,26 @@ final class QuoteBuilderRenderer
         $hiddenFields .= '<input type="hidden" name="lines[' . $indexAttr . '][selected_option_labels]" value="' . esc_attr((string) ($line['selected_option_labels'] ?? '')) . '">';
         $hiddenFields .= '<input type="hidden" name="lines[' . $indexAttr . '][duration_minutes]" value="' . esc_attr((string) ((int) ($line['duration_minutes'] ?? 0))) . '" data-builder-duration>';
 
+        $dateLabel = $dateValue !== '' ? $dateValue : __('Datum open', 'sbdp');
+        $timeLabel = $slotLabel !== '' ? $slotLabel : __('Tijd open', 'sbdp');
+        $participantsLabel = sprintf(__('%d pers.', 'sbdp'), max(0, (int) ($line['participants'] ?? 0)));
+
         $html = '<article class="bsp-quote-admin__builder-row bsp-quote-admin__builder-row--compact' . ($lineHasBlocker ? ' has-blocker' : '') . '" data-builder-row draggable="true">';
         $html .= $hiddenFields;
-        $html .= '<div class="bsp-quote-admin__builder-compact-summary">';
-        $html .= '<div class="bsp-quote-admin__builder-row-drag"><button type="button" class="button-link bsp-quote-admin__builder-handle" aria-label="' . esc_attr__('Versleep', 'sbdp') . '">≡</button></div>';
-        $html .= '<div class="bsp-quote-admin__builder-row-headline"><span class="bsp-quote-admin__tiny-label">' . esc_html(sprintf(__('Regel %d', 'sbdp'), $sortOrder)) . '</span><strong data-builder-title-label>' . esc_html($rowTitle) . '</strong><small><span data-builder-time-label>' . esc_html($slotLabel !== '' ? $slotLabel : __('Tijd nog open', 'sbdp')) . '</span> · <span data-builder-participants-label>' . esc_html((string) ((int) ($line['participants'] ?? 0))) . '</span> ' . esc_html__('pers.', 'sbdp') . ' · <span data-builder-unit-summary>' . esc_html($unitLabel) . '</span> · <span data-builder-line-summary-total>' . esc_html($totalLabel) . '</span></small></div>';
-        $html .= '<div class="bsp-quote-admin__builder-availability-summary"><span title="' . esc_attr($availabilityText) . '">' . esc_html($availabilitySymbol) . '</span><small>' . esc_html($availabilityText) . '</small></div>';
-        $html .= '<div class="bsp-quote-admin__builder-row-actions">';
+        $html .= '<div class="bsp-quote-admin__builder-compact-summary sbdp-qcd-line-row">';
+        $html .= '<div class="bsp-quote-admin__builder-row-drag sbdp-qcd-line-drag"><button type="button" class="button-link bsp-quote-admin__builder-handle" aria-label="' . esc_attr__('Versleep', 'sbdp') . '">≡</button></div>';
+        $html .= '<div class="bsp-quote-admin__builder-row-headline sbdp-qcd-line-main"><span class="bsp-quote-admin__tiny-label">' . esc_html(sprintf(__('Regel %d', 'sbdp'), $sortOrder)) . '</span><strong data-builder-title-label>' . esc_html($rowTitle) . '</strong><small>' . esc_html($lineTypeLabel) . '</small></div>';
+        $html .= '<div class="sbdp-qcd-line-meta"><strong>' . esc_html($dateLabel) . '</strong><small><span data-builder-time-label>' . esc_html($timeLabel) . '</span> · <span data-builder-participants-label>' . esc_html($participantsLabel) . '</span></small></div>';
+        $html .= '<div class="sbdp-qcd-line-price"><strong data-builder-line-summary-total>' . esc_html($totalLabel) . '</strong><small data-builder-unit-summary>' . esc_html($unitLabel) . '</small></div>';
+        $html .= self::renderLineAvailabilityControls($quoteId, $line, $availabilityControlStatus);
+        $html .= self::renderLinePricingControl($quoteId, $line, $pricingControlStatus);
+        $html .= '<details class="bsp-quote-admin__builder-row-actions sbdp-qcd-line-actions">';
+        $html .= '<summary aria-label="' . esc_attr__('Regelacties', 'sbdp') . '">⋯</summary>';
+        $html .= '<div class="sbdp-qcd-line-actions-menu">';
         $html .= '<button type="button" class="button button-small bsp-quote-admin__builder-edit-toggle" data-builder-edit-toggle>' . esc_html__('Wijzig', 'sbdp') . '</button>';
-        $html .= '<button type="button" class="button-link bsp-quote-admin__builder-duplicate" title="' . esc_attr__('Dupliceer', 'sbdp') . '"><span class="dashicons dashicons-admin-page"></span></button>';
-        $html .= '<button type="button" class="button-link bsp-quote-admin__builder-remove" title="' . esc_attr__('Verwijder', 'sbdp') . '"><span class="dashicons dashicons-trash"></span></button>';
-        $html .= '</div></div>';
+        $html .= '<button type="button" class="button button-small bsp-quote-admin__builder-duplicate">' . esc_html__('Dupliceer', 'sbdp') . '</button>';
+        $html .= '<button type="button" class="button button-small button-link-delete bsp-quote-admin__builder-remove">' . esc_html__('Verwijder', 'sbdp') . '</button>';
+        $html .= '</div></details></div>';
         $html .= '<div class="bsp-quote-admin__builder-edit-panel">';
         $html .= '<div class="bsp-quote-admin__builder-edit-fields">';
         $html .= '<div class="bsp-quote-admin__builder-row-main-inputs">';
@@ -591,19 +600,40 @@ final class QuoteBuilderRenderer
             return '<p class="bsp-quote-admin__muted">' . esc_html__('Sla deze nieuwe regel eerst op om beschikbaarheid te markeren.', 'sbdp') . '</p>';
         }
 
+        $supplierAvailabilityBlocked = self::lineRequiresSupplierConfirmation($line);
+        $availabilityActions = array(
+            'confirmed' => __('✓ Beschikbaar', 'sbdp'),
+            'needs_check' => __('! Controleren', 'sbdp'),
+            'unavailable' => __('✕ Niet beschikbaar', 'sbdp'),
+            'under_reservation' => __('– N.v.t.', 'sbdp'),
+        );
+        if ($supplierAvailabilityBlocked) {
+            unset($availabilityActions['confirmed']);
+        }
+
         $html = '<div id="quote-line-control-' . esc_attr((string) $lineId) . '" class="bsp-quote-admin__line-control-panel">';
         $html .= self::renderLineControlGroup(
             __('Beschikbaarheid', 'sbdp'),
             self::quoteLineControlLabel($availabilityStatus, 'availability'),
             $lineId,
             'availability',
-            array(
-                'confirmed' => __('✓ Beschikbaar', 'sbdp'),
-                'needs_check' => __('! Controleren', 'sbdp'),
-                'unavailable' => __('✕ Niet beschikbaar', 'sbdp'),
-                'under_reservation' => __('– N.v.t.', 'sbdp'),
-            ),
+            $availabilityActions,
             $availabilityStatus
+        );
+        if ($supplierAvailabilityBlocked) {
+            $html .= '<p class="bsp-quote-admin__line-control-blocker">' . esc_html__('Supplier bevestiging nodig: deze regel wordt pas beschikbaar na supplier_booking_confirmed.', 'sbdp') . '</p>';
+        }
+        $html .= self::renderLineControlGroup(
+            __('Prijs', 'sbdp'),
+            self::quoteLineControlLabel($pricingStatus, 'pricing'),
+            $lineId,
+            'pricing',
+            array(
+                'confirmed' => __('✓ Prijs akkoord', 'sbdp'),
+                'needs_check' => __('! Controleren', 'sbdp'),
+                'under_reservation' => __('– Onder voorbehoud', 'sbdp'),
+            ),
+            $pricingStatus
         );
         if ($availabilityStatus === 'unavailable') {
             $html .= '<p class="bsp-quote-admin__line-control-blocker">' . esc_html__('Blocker: deze programmaregel is niet beschikbaar en kan zo niet worden verzonden.', 'sbdp') . '</p>';
@@ -611,6 +641,96 @@ final class QuoteBuilderRenderer
         $html .= '</div>';
 
         return $html;
+    }
+
+    /**
+     * @param array<string, mixed> $line
+     */
+    private static function renderLineAvailabilityControls(int $quoteId, array $line, string $availabilityStatus): string
+    {
+        $lineId = (int) ($line['id'] ?? 0);
+        if ($quoteId <= 0 || $lineId <= 0) {
+            return '';
+        }
+
+        $supplierAvailabilityBlocked = self::lineRequiresSupplierConfirmation($line);
+        $availabilityActions = $supplierAvailabilityBlocked
+            ? array(
+                'unavailable' => __('✕ Afgewezen', 'sbdp'),
+                'needs_check' => __('? Nog controleren', 'sbdp'),
+            )
+            : array(
+                'confirmed' => __('✓ Beschikbaar', 'sbdp'),
+                'unavailable' => __('✕ Afgewezen', 'sbdp'),
+                'needs_check' => __('? Nog controleren', 'sbdp'),
+            );
+
+        $html = '<div class="sbdp-qcd-line-status-group sbdp-qcd-line-status-group--availability" aria-label="' . esc_attr__('Beschikbaarheidsstatus', 'sbdp') . '">';
+        if ($supplierAvailabilityBlocked) {
+            $html .= '<span class="sbdp-qcd-line-chip sbdp-qcd-line-chip--warning" title="' . esc_attr__('Supplier bevestiging nodig', 'sbdp') . '">' . esc_html__('Supplier nodig', 'sbdp') . '</span>';
+        }
+        foreach ($availabilityActions as $status => $label) {
+            $html .= self::renderLineStatusChip($lineId, 'availability', (string) $status, $availabilityStatus, $label);
+        }
+        $html .= '</div>';
+
+        return $html;
+    }
+
+    /**
+     * @param array<string, mixed> $line
+     */
+    private static function renderLinePricingControl(int $quoteId, array $line, string $pricingStatus): string
+    {
+        $lineId = (int) ($line['id'] ?? 0);
+        if ($quoteId <= 0 || $lineId <= 0) {
+            return '';
+        }
+
+        $label = $pricingStatus === 'confirmed' ? __('✓ Prijs akkoord', 'sbdp') : __('Prijs check nodig', 'sbdp');
+        $html = '<div class="sbdp-qcd-line-status-group sbdp-qcd-line-status-group--pricing" aria-label="' . esc_attr__('Prijsstatus', 'sbdp') . '">';
+        $html .= self::renderLineStatusChip($lineId, 'pricing', 'confirmed', $pricingStatus, $label);
+        $html .= '</div>';
+
+        return $html;
+    }
+
+    private static function renderLineStatusChip(int $lineId, string $dimension, string $status, string $currentStatus, string $label): string
+    {
+        $active = $status === $currentStatus;
+        $classes = 'button button-small sbdp-qcd-line-chip is-' . sanitize_html_class($dimension) . ' is-' . sanitize_html_class($status);
+        if ($active) {
+            $classes .= ' sbdp-qcd-line-chip--active';
+        }
+        $classes .= match ($dimension . ':' . $status) {
+            'availability:confirmed', 'pricing:confirmed' => ' sbdp-qcd-line-chip--ok',
+            'availability:unavailable' => ' sbdp-qcd-line-chip--danger',
+            'availability:needs_check' => ' sbdp-qcd-line-chip--neutral',
+            default => ' sbdp-qcd-line-chip--warning',
+        };
+
+        return '<button type="submit" class="' . esc_attr($classes) . '" form="' . esc_attr(self::lineControlFormId($lineId, $dimension, $status)) . '"' . ($active ? ' disabled' : '') . '>' . esc_html($label) . '</button>';
+    }
+
+    /**
+     * @param array<string, mixed> $line
+     */
+    private static function lineRequiresSupplierConfirmation(array $line): bool
+    {
+        $productId = (int) ($line['product_id'] ?? 0);
+        $snapshot = is_array($line['availability_snapshot_json'] ?? null) ? $line['availability_snapshot_json'] : array();
+        $bookingMode = strtolower(trim((string) ($snapshot['bookingMode'] ?? $snapshot['booking_mode'] ?? '')));
+        $supplierProvider = strtolower(trim((string) ($snapshot['supplierProvider'] ?? $snapshot['provider'] ?? '')));
+        $supplierStatus = strtolower(trim((string) ($snapshot['supplierStatus'] ?? $snapshot['supplier_status'] ?? '')));
+
+        if ($supplierStatus === 'supplier_booking_confirmed') {
+            return false;
+        }
+
+        return $productId === 115
+            || $bookingMode === BookingModeService::MODE_SUPPLIER_CONFIRMATION
+            || $supplierProvider === 'eliio'
+            || in_array($supplierStatus, array('supplier_confirmation_required', 'supplier_option_requested'), true);
     }
 
     /**
@@ -2794,10 +2914,112 @@ final class QuoteBuilderRenderer
             .sbdp-qcd-cta-state.is-visible { border-color: #2a4a3a; background: #0d1a16; }
             .sbdp-qcd-cta-state.is-visible em { color: #3fb950; }
             .sbdp-qcd-cta-state.is-hidden em { color: #6e7681; }
+            .bsp-qcd__inline-review-form { display: inline-flex; margin: 0; }
+            .sbdp-qcd-line-row {
+                display: grid;
+                grid-template-columns: 22px minmax(180px, 1.4fr) minmax(130px, .85fr) minmax(110px, .7fr) minmax(220px, 1fr) minmax(118px, .55fr) 40px;
+                gap: 7px;
+                align-items: center;
+                min-width: 0;
+            }
+            .sbdp-qcd-line-main,
+            .sbdp-qcd-line-meta,
+            .sbdp-qcd-line-price {
+                min-width: 0;
+            }
+            .sbdp-qcd-line-main strong,
+            .sbdp-qcd-line-meta strong,
+            .sbdp-qcd-line-price strong {
+                display: block;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            .sbdp-qcd-line-main small,
+            .sbdp-qcd-line-meta small,
+            .sbdp-qcd-line-price small {
+                display: block;
+                color: #7d8590;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+            .sbdp-qcd-line-status-group {
+                display: inline-flex;
+                gap: 3px;
+                align-items: center;
+                min-width: 0;
+            }
+            .sbdp-qcd-line-status-group--availability {
+                justify-content: flex-start;
+            }
+            .sbdp-qcd-line-status-group--pricing {
+                justify-content: flex-start;
+            }
+            .sbdp-qcd-line-chip {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                min-height: 24px;
+                padding: 2px 7px;
+                border-radius: 999px;
+                font-size: 11px;
+                font-weight: 700;
+                line-height: 1.1;
+                white-space: nowrap;
+                text-decoration: none;
+            }
+            .sbdp-qcd-line-chip--ok { border-color: #2a4a3a; color: #7ee787; background: #0d1a16; }
+            .sbdp-qcd-line-chip--danger { border-color: #5a2224; color: #ffb3ad; background: #241014; }
+            .sbdp-qcd-line-chip--warning { border-color: #4a3810; color: #f2cc60; background: #171303; }
+            .sbdp-qcd-line-chip--neutral { border-color: #30363d; color: #adbac7; background: #0d1117; }
+            .sbdp-qcd-line-chip:not(.sbdp-qcd-line-chip--active) {
+                background: #0d1117;
+                color: #7d8590;
+                border-color: #30363d;
+                font-weight: 600;
+            }
+            .sbdp-qcd-line-chip--active {
+                box-shadow: inset 0 0 0 1px currentColor;
+            }
+            .sbdp-qcd-line-actions {
+                position: relative;
+                justify-self: end;
+            }
+            .sbdp-qcd-line-actions summary {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                width: 28px;
+                height: 26px;
+                border: 1px solid #30363d;
+                border-radius: 6px;
+                background: #0d1117;
+                color: #adbac7;
+                cursor: pointer;
+                list-style: none;
+            }
+            .sbdp-qcd-line-actions summary::-webkit-details-marker { display: none; }
+            .sbdp-qcd-line-actions-menu {
+                position: absolute;
+                right: 0;
+                z-index: 10;
+                display: grid;
+                gap: 4px;
+                min-width: 120px;
+                padding: 6px;
+                border: 1px solid #30363d;
+                border-radius: 7px;
+                background: #161b22;
+                box-shadow: 0 8px 18px rgba(0,0,0,.35);
+            }
+            .sbdp-qcd-line-actions:not([open]) .sbdp-qcd-line-actions-menu { display: none; }
             @media (max-width: 1280px) {
                 .sbdp-qcd-status-summary,
                 .sbdp-qcd-status-summary__body { grid-template-columns: 1fr; }
                 .sbdp-qcd-chain { grid-template-columns: repeat(4, minmax(88px, 1fr)); }
+                .sbdp-qcd-line-row { grid-template-columns: 22px minmax(180px, 1fr) minmax(150px, .8fr) minmax(180px, 1fr) 40px; }
+                .sbdp-qcd-line-price { display: none; }
             }
 
             /* ── Context Grid: KLANT | PRIJS & PROGRAMMA | NOG NODIG ── */
@@ -3044,11 +3266,32 @@ final class QuoteBuilderRenderer
             .bsp-quote-admin__builder-list{gap:5px}
             .bsp-quote-admin__builder-row{padding:0;border-radius:7px;overflow:hidden}
             .bsp-quote-admin__builder-row--compact{padding:0}
-            .bsp-quote-admin__builder-compact-summary{grid-template-columns:22px minmax(260px,1fr) 112px 118px;gap:8px;min-height:48px;padding:7px 8px}
+            .bsp-quote-admin__builder-compact-summary.sbdp-qcd-line-row{
+                grid-template-columns:minmax(180px,1.35fr) minmax(112px,.75fr) minmax(92px,.58fr) minmax(164px,1fr) minmax(96px,.56fr) 30px;
+                gap:5px;
+                min-height:36px;
+                padding:5px 6px;
+            }
+            .sbdp-qcd-line-drag{display:none}
+            .sbdp-qcd-line-main strong,.sbdp-qcd-line-meta strong,.sbdp-qcd-line-price strong{font-size:11px;line-height:1.12}
+            .sbdp-qcd-line-main small,.sbdp-qcd-line-meta small,.sbdp-qcd-line-price small{font-size:9px;line-height:1.1}
+            .sbdp-qcd-line-status-group{gap:2px;flex-wrap:wrap}
+            .sbdp-qcd-line-chip{
+                min-height:21px;
+                max-width:100%;
+                padding:1px 6px;
+                font-size:10px;
+                line-height:1.05;
+            }
+            .sbdp-qcd-line-status-group--availability .sbdp-qcd-line-chip{min-width:0}
+            .sbdp-qcd-line-status-group--pricing .sbdp-qcd-line-chip{width:100%}
+            .sbdp-qcd-line-actions summary{width:26px;height:23px}
+            .sbdp-qcd-line-actions-menu{top:25px}
             .bsp-quote-admin__builder-row-headline strong{font-size:12px}
             .bsp-quote-admin__builder-row-headline small{font-size:10px}
-            .bsp-quote-admin__builder-availability-summary{display:flex;align-items:center;gap:5px;justify-content:flex-end;color:#adbac7;font-size:10px}
-            .bsp-quote-admin__builder-availability-summary span{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:#161b22;border:1px solid #30363d;font-weight:700;color:#e3b341}
+            .bsp-quote-admin__builder-availability-summary{display:flex;align-items:center;justify-content:center;color:#adbac7;font-size:10px}
+            .bsp-quote-admin__builder-availability-summary small{display:none}
+            .bsp-quote-admin__builder-availability-summary span{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:6px;background:#161b22;border:1px solid #30363d;font-weight:700;color:#e3b341}
             .bsp-quote-admin__builder-row.has-blocker .bsp-quote-admin__builder-availability-summary span{background:#2d1117;color:#f85149}
             .bsp-quote-admin__builder-row-actions{gap:5px}
             .bsp-quote-admin__builder-row-actions .button-link{min-width:22px;height:22px}
@@ -3111,7 +3354,22 @@ final class QuoteBuilderRenderer
             .bsp-qcd__program-body .bsp-quote-admin__actions--stacked .button{min-height:28px;padding:1px 8px;font-size:11px}
             @media (max-width: 1180px){.bsp-qcd__layout{grid-template-columns:1fr}.bsp-qcd__side{position:static}.bsp-qcd__context-grid{grid-template-columns:1fr 1fr}.bsp-qcd__context-nodig{grid-column:1/-1}.bsp-qcd__matrix-grid{grid-template-columns:repeat(3,1fr)}}
             @media (max-width: 900px){.bsp-qcd__decision-bar{grid-template-columns:1fr 1fr 1fr;row-gap:0}.bsp-qcd__db-col{border-bottom:1px solid #1a1a1a}}
-            @media (max-width: 782px){.bsp-qcd__context-grid{grid-template-columns:1fr}.bsp-qcd__matrix-grid{grid-template-columns:1fr 1fr}.bsp-quote-admin__builder-compact-summary{grid-template-columns:22px minmax(0,1fr)}.bsp-quote-admin__builder-availability-summary,.bsp-quote-admin__builder-row-actions{grid-column:2}.bsp-quote-admin__builder-row-main-inputs,.bsp-qcd__proposal-editor-grid,.bsp-quote-admin__quote-total-card{grid-template-columns:1fr}}
+            @media (max-width: 1180px){
+                .bsp-quote-admin__builder-compact-summary.sbdp-qcd-line-row{
+                    grid-template-columns:minmax(170px,1.2fr) minmax(110px,.8fr) minmax(154px,1fr) minmax(92px,.62fr) 30px;
+                }
+                .sbdp-qcd-line-price{display:none}
+            }
+            @media (max-width: 920px){
+                .bsp-quote-admin__builder-compact-summary.sbdp-qcd-line-row{
+                    grid-template-columns:minmax(180px,1fr) minmax(150px,.8fr) 30px;
+                    row-gap:5px;
+                }
+                .sbdp-qcd-line-status-group--availability,
+                .sbdp-qcd-line-status-group--pricing{grid-column:1 / span 2}
+                .sbdp-qcd-line-actions{grid-column:3;grid-row:1}
+            }
+            @media (max-width: 782px){.bsp-qcd__context-grid{grid-template-columns:1fr}.bsp-qcd__matrix-grid{grid-template-columns:1fr 1fr}.bsp-quote-admin__builder-compact-summary.sbdp-qcd-line-row{grid-template-columns:minmax(0,1fr) 30px}.sbdp-qcd-line-meta,.sbdp-qcd-line-status-group--availability,.sbdp-qcd-line-status-group--pricing{grid-column:1}.sbdp-qcd-line-actions{grid-column:2;grid-row:1}.bsp-quote-admin__builder-row-main-inputs,.bsp-qcd__proposal-editor-grid,.bsp-quote-admin__quote-total-card{grid-template-columns:1fr}}
         </style>';
     }
 }
