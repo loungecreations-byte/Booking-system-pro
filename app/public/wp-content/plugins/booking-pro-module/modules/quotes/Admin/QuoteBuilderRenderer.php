@@ -657,12 +657,12 @@ final class QuoteBuilderRenderer
         $availabilityActions = $supplierAvailabilityBlocked
             ? array(
                 'unavailable' => __('✕ Afgewezen', 'sbdp'),
-                'needs_check' => __('? Nog controleren', 'sbdp'),
+                'needs_check' => __('? Check', 'sbdp'),
             )
             : array(
                 'confirmed' => __('✓ Beschikbaar', 'sbdp'),
                 'unavailable' => __('✕ Afgewezen', 'sbdp'),
-                'needs_check' => __('? Nog controleren', 'sbdp'),
+                'needs_check' => __('? Check', 'sbdp'),
             );
 
         $html = '<div class="sbdp-qcd-line-status-group sbdp-qcd-line-status-group--availability" aria-label="' . esc_attr__('Beschikbaarheidsstatus', 'sbdp') . '">';
@@ -687,7 +687,7 @@ final class QuoteBuilderRenderer
             return '';
         }
 
-        $label = $pricingStatus === 'confirmed' ? __('✓ Prijs akkoord', 'sbdp') : __('Prijs check nodig', 'sbdp');
+        $label = $pricingStatus === 'confirmed' ? __('✓ Prijs akkoord', 'sbdp') : __('Prijs check', 'sbdp');
         $html = '<div class="sbdp-qcd-line-status-group sbdp-qcd-line-status-group--pricing" aria-label="' . esc_attr__('Prijsstatus', 'sbdp') . '">';
         $html .= self::renderLineStatusChip($lineId, 'pricing', 'confirmed', $pricingStatus, $label);
         $html .= '</div>';
@@ -2917,8 +2917,8 @@ final class QuoteBuilderRenderer
             .bsp-qcd__inline-review-form { display: inline-flex; margin: 0; }
             .sbdp-qcd-line-row {
                 display: grid;
-                grid-template-columns: 22px minmax(180px, 1.4fr) minmax(130px, .85fr) minmax(110px, .7fr) minmax(220px, 1fr) minmax(118px, .55fr) 40px;
-                gap: 7px;
+                grid-template-columns: 22px minmax(0, 1.45fr) minmax(82px, .7fr) minmax(74px, .55fr) minmax(150px, 1.1fr) minmax(82px, .58fr) 30px;
+                gap: 5px;
                 align-items: center;
                 min-width: 0;
             }
@@ -2945,28 +2945,33 @@ final class QuoteBuilderRenderer
                 white-space: nowrap;
             }
             .sbdp-qcd-line-status-group {
-                display: inline-flex;
+                display: grid;
                 gap: 3px;
                 align-items: center;
                 min-width: 0;
             }
             .sbdp-qcd-line-status-group--availability {
-                justify-content: flex-start;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
             }
             .sbdp-qcd-line-status-group--pricing {
-                justify-content: flex-start;
+                grid-template-columns: minmax(0, 1fr);
             }
             .sbdp-qcd-line-chip {
                 display: inline-flex;
                 align-items: center;
                 justify-content: center;
+                width: 100%;
+                min-width: 0;
+                max-width: 100%;
                 min-height: 24px;
-                padding: 2px 7px;
+                padding: 2px 5px;
                 border-radius: 999px;
-                font-size: 11px;
+                font-size: 10px;
                 font-weight: 700;
                 line-height: 1.1;
                 white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
                 text-decoration: none;
             }
             .sbdp-qcd-line-chip--ok { border-color: #2a4a3a; color: #7ee787; background: #0d1a16; }
@@ -3267,24 +3272,25 @@ final class QuoteBuilderRenderer
             .bsp-quote-admin__builder-row{padding:0;border-radius:7px;overflow:hidden}
             .bsp-quote-admin__builder-row--compact{padding:0}
             .bsp-quote-admin__builder-compact-summary.sbdp-qcd-line-row{
-                grid-template-columns:minmax(180px,1.35fr) minmax(112px,.75fr) minmax(92px,.58fr) minmax(164px,1fr) minmax(96px,.56fr) 30px;
-                gap:5px;
+                grid-template-columns:minmax(0,1.4fr) minmax(82px,.72fr) minmax(76px,.52fr) minmax(142px,1.08fr) minmax(82px,.55fr) 28px;
+                column-gap:4px;
+                row-gap:4px;
                 min-height:36px;
                 padding:5px 6px;
             }
             .sbdp-qcd-line-drag{display:none}
             .sbdp-qcd-line-main strong,.sbdp-qcd-line-meta strong,.sbdp-qcd-line-price strong{font-size:11px;line-height:1.12}
             .sbdp-qcd-line-main small,.sbdp-qcd-line-meta small,.sbdp-qcd-line-price small{font-size:9px;line-height:1.1}
-            .sbdp-qcd-line-status-group{gap:2px;flex-wrap:wrap}
+            .sbdp-qcd-line-status-group{gap:2px}
             .sbdp-qcd-line-chip{
                 min-height:21px;
                 max-width:100%;
-                padding:1px 6px;
-                font-size:10px;
+                padding:1px 4px;
+                font-size:9.5px;
                 line-height:1.05;
             }
-            .sbdp-qcd-line-status-group--availability .sbdp-qcd-line-chip{min-width:0}
-            .sbdp-qcd-line-status-group--pricing .sbdp-qcd-line-chip{width:100%}
+            .sbdp-qcd-line-status-group--availability{grid-template-columns:repeat(3,minmax(0,1fr))}
+            .sbdp-qcd-line-status-group--pricing{grid-template-columns:minmax(0,1fr)}
             .sbdp-qcd-line-actions summary{width:26px;height:23px}
             .sbdp-qcd-line-actions-menu{top:25px}
             .bsp-quote-admin__builder-row-headline strong{font-size:12px}
@@ -3356,13 +3362,13 @@ final class QuoteBuilderRenderer
             @media (max-width: 900px){.bsp-qcd__decision-bar{grid-template-columns:1fr 1fr 1fr;row-gap:0}.bsp-qcd__db-col{border-bottom:1px solid #1a1a1a}}
             @media (max-width: 1180px){
                 .bsp-quote-admin__builder-compact-summary.sbdp-qcd-line-row{
-                    grid-template-columns:minmax(170px,1.2fr) minmax(110px,.8fr) minmax(154px,1fr) minmax(92px,.62fr) 30px;
+                    grid-template-columns:minmax(0,1.25fr) minmax(82px,.72fr) minmax(136px,1fr) minmax(78px,.56fr) 28px;
                 }
                 .sbdp-qcd-line-price{display:none}
             }
             @media (max-width: 920px){
                 .bsp-quote-admin__builder-compact-summary.sbdp-qcd-line-row{
-                    grid-template-columns:minmax(180px,1fr) minmax(150px,.8fr) 30px;
+                    grid-template-columns:minmax(0,1fr) minmax(92px,.45fr) 28px;
                     row-gap:5px;
                 }
                 .sbdp-qcd-line-status-group--availability,
