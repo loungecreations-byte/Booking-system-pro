@@ -3182,6 +3182,7 @@ final class QuoteWorkspaceRenderer
             'send_assumption_open' => __('Open send-blocker', 'sbdp'),
             'pricing_confidence_missing' => __('Prijs nog niet bevestigd', 'sbdp'),
             'availability_confidence_missing' => __('Beschikbaarheid nog niet bevestigd', 'sbdp'),
+            'proposal_customer_text_missing' => __('Voorsteltekst ontbreekt', 'sbdp'),
             'line_amount_invalid' => __('Bedrag ongeldig', 'sbdp'),
             'line_amount_negative' => __('Ongeldig bedrag', 'sbdp'),
             'line_currency_invalid' => __('Ongeldige valuta', 'sbdp'),
@@ -5159,6 +5160,18 @@ final class QuoteWorkspaceRenderer
             }
         }
         echo '</ul><div class="bsp-qcd__card-actions">';
+        if ((string) ($quote['review_status'] ?? 'not_started') !== 'approved') {
+            if (! empty($sendReadiness['ready']) && (array) ($sendReadiness['blockers'] ?? array()) === array()) {
+                echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" class="bsp-qcd__inline-review-form">';
+                echo wp_nonce_field('sbdp_quote_review_approve', '_wpnonce', true, false);
+                echo '<input type="hidden" name="action" value="sbdp_quote_review_approve">';
+                echo '<input type="hidden" name="quote_id" value="' . esc_attr((string) $quoteId) . '">';
+                echo '<button type="submit" class="button button-primary button-small">' . esc_html__('Controle afgerond', 'sbdp') . '</button>';
+                echo '</form>';
+            } else {
+                echo '<button type="button" class="button button-secondary button-small" disabled title="' . esc_attr($sendBlockReason !== '' ? $sendBlockReason : __('Rond eerst alle verzendchecks af.', 'sbdp')) . '">' . esc_html__('Controle afgerond', 'sbdp') . '</button>';
+            }
+        }
         if ($sendAllowed) {
             echo ' <a class="button button-primary button-small" href="' . esc_url(self::workspaceTabUrl($quoteId, 'communication')) . '">' . esc_html__('Voorstel versturen', 'sbdp') . '</a>';
         } else {

@@ -169,6 +169,13 @@ final class QuoteSendReadinessValidator
             break;
         }
 
+        if (trim(implode('', $texts)) === '') {
+            return array(array(
+                'code' => 'proposal_customer_text_missing',
+                'message' => 'Quote kan niet verzendklaar worden gezet zonder klantgerichte voorsteltekst.',
+            ));
+        }
+
         $terms = QuoteCommunicationService::detectInternalCustomerTextTerms(implode("\n", $texts));
         if ($terms === array()) {
             return array();

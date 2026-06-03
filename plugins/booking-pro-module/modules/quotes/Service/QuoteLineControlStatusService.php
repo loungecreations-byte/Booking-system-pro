@@ -47,9 +47,20 @@ final class QuoteLineControlStatusService
         if ($line === null || (int) ($line['quote_version_id'] ?? 0) !== $versionId) {
             throw new InvalidArgumentException('Programmaregel niet gevonden in de actieve quote-versie.');
         }
+        if ($dimension === 'availability' && $status === 'confirmed' && $this->requiresSupplierConfirmation($line)) {
+            throw new InvalidArgumentException('Supplierregels kunnen alleen beschikbaar worden gezet na supplier_booking_confirmed.');
+        }
 
         $oldStatus = $this->resolveControlStatus($line, $dimension);
         $oldConfidence = (string) ($line[$dimension === 'pricing' ? 'pricing_confidence' : 'availability_confidence'] ?? 'unknown');
+        if ($oldStatus === $status) {
+            return array(
+                'quote' => $quote,
+                'version' => $version,
+                'line' => $line,
+            );
+        }
+
         $changes = $this->buildLineChanges($line, $dimension, $status, $actorId);
         $updatedLine = $this->repository->updateQuoteLine($lineId, $changes);
 
@@ -184,6 +195,35 @@ final class QuoteLineControlStatusService
             'under_reservation' => 'projected',
             default => 'unknown',
         };
+    }
+
+    /**
+     * @param array<string, mixed> $line
+     */
+    private function requiresSupplierConfirmation(array $line): bool
+    {
+        $productId = (int) ($line['product_id'] ?? 0);
+        $snapshot = is_array($line['availability_snapshot_json'] ?? null) ? $line['availability_snapshot_json'] : array();
+        $bookingMode = strtolower(trim((string) ($snapshot['bookingMode'] ?? $snapshot['booking_mode'] ?? '')));
+        $supplierProvider = strtolower(trim((string) ($snapshot['supplierProvider'] ?? $snapshot['provider'] ?? '')));
+        $supplierStatus = strtolower(trim((string) ($snapshot['supplierStatus'] ?? $snapshot['supplier_status'] ?? '')));
+
+        if ($supplierStatus === 'supplier_booking_confirmed') {
+            return false;
+        }
+        if ($productId === 115 || $bookingMode === 'supplier_confirmation' || $supplierProvider === 'eliio') {
+            return true;
+        }
+        if (in_array($supplierStatus, array('supplier_confirmation_required', 'supplier_option_requested'), true)) {
+            return true;
+        }
+        if (\function_exists('get_post_meta') && $productId > 0) {
+            $provider = strtolower(trim((string) \get_post_meta($productId, '_ddb_supplier_provider', true)));
+            $required = strtolower(trim((string) \get_post_meta($productId, '_ddb_supplier_confirmation_required', true)));
+            return $provider === 'eliio' || $required === 'yes';
+        }
+
+        return false;
     }
 
     /**

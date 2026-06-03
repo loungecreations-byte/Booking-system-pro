@@ -25,6 +25,9 @@ final class QuoteReviewService
         if ($quote === null) {
             throw new InvalidArgumentException('Quote not found.');
         }
+        if ((string) ($quote['review_status'] ?? '') === 'approved' && (string) ($quote['send_status'] ?? '') === 'ready_to_send') {
+            return $quote;
+        }
 
         (new QuoteImmutabilityGuard($this->repository))->assertQuoteCommercialContextEditable($quoteId);
 
@@ -67,6 +70,9 @@ final class QuoteReviewService
         $quote = $this->repository->findQuote($quoteId);
         if ($quote === null) {
             throw new InvalidArgumentException('Quote not found.');
+        }
+        if ((string) ($quote['review_status'] ?? '') === 'approved' && (string) ($quote['send_status'] ?? '') === 'ready_to_send') {
+            return $quote;
         }
 
         (new QuoteImmutabilityGuard($this->repository))->assertQuoteCommercialContextEditable($quoteId);
