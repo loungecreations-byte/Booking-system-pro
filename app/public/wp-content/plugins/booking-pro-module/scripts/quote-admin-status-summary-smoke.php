@@ -288,8 +288,9 @@ try {
     $acceptedSummary = sbdp_quote_admin_status_summary_smoke_summarize($repository, $service, (int) $accepted['quote_id']);
     sbdp_quote_admin_status_summary_smoke_assert_view_model($acceptedSummary, 'accepted');
     sbdp_quote_admin_status_summary_smoke_ok((string) ($acceptedSummary['next_action'] ?? '') === 'Wacht op betaling', 'Accepted quote next_action mismatch.');
-    sbdp_quote_admin_status_summary_smoke_ok((string) ($acceptedSummary['communication_status'] ?? '') === 'review_missing', 'Accepted communication status mismatch.');
-    sbdp_quote_admin_status_summary_smoke_ok(sbdp_quote_admin_status_summary_smoke_has_chip($acceptedSummary, 'communication_chips', 'Interne review ontbreekt'), 'Accepted communication review blocker missing.');
+    sbdp_quote_admin_status_summary_smoke_ok((string) ($acceptedSummary['communication_status'] ?? '') === 'control_complete_available', 'Accepted communication status mismatch.');
+    sbdp_quote_admin_status_summary_smoke_ok((string) ($acceptedSummary['proposal_next_action'] ?? '') === 'Controle afronden', 'Accepted proposal next_action mismatch.');
+    sbdp_quote_admin_status_summary_smoke_ok(! sbdp_quote_admin_status_summary_smoke_has_chip($acceptedSummary, 'communication_chips', 'Interne review ontbreekt'), 'Accepted communication should not show review missing.');
     sbdp_quote_admin_status_summary_smoke_ok(empty($acceptedSummary['cta_visibility']['confirm_quote']), 'Accepted quote should not show confirm CTA.');
     sbdp_quote_admin_status_summary_smoke_ok(empty($acceptedSummary['cta_visibility']['create_booking_bridge']), 'Accepted quote should not show booking CTA.');
     sbdp_quote_admin_status_summary_smoke_ok(sbdp_quote_admin_status_summary_smoke_has_chip($acceptedSummary, 'meta_chips', 'Approved version'), 'Accepted summary missing approved version chip.');
@@ -307,8 +308,8 @@ try {
     $pending = sbdp_quote_admin_status_summary_smoke_make_quote($repository, $events, $created, 'PENDING', 'draft', 'not_ready', 352, 'product', $directAvailability, true, false, false, false, array(), 'pending_review', 'not_ready');
     $pendingSummary = sbdp_quote_admin_status_summary_smoke_summarize($repository, $service, (int) $pending['quote_id']);
     sbdp_quote_admin_status_summary_smoke_assert_view_model($pendingSummary, 'pending');
-    sbdp_quote_admin_status_summary_smoke_ok((string) ($pendingSummary['communication_status'] ?? '') === 'review_pending', 'Pending communication status mismatch.');
-    sbdp_quote_admin_status_summary_smoke_ok(sbdp_quote_admin_status_summary_smoke_has_chip($pendingSummary, 'communication_chips', 'Review in behandeling'), 'Pending review chip missing.');
+    sbdp_quote_admin_status_summary_smoke_ok((string) ($pendingSummary['communication_status'] ?? '') === 'control_complete_available', 'Pending communication status mismatch.');
+    sbdp_quote_admin_status_summary_smoke_ok((string) ($pendingSummary['proposal_next_action'] ?? '') === 'Controle afronden', 'Pending proposal next_action mismatch.');
 
     $supplierAvailability = array(
         'bookingMode' => 'supplier_confirmation',
@@ -322,7 +323,7 @@ try {
     sbdp_quote_admin_status_summary_smoke_ok(in_array('missing supplier_booking_confirmed', (array) ($supplierSummary['supplier_manual_blockers'] ?? array()), true), 'Supplier blocker missing.');
     sbdp_quote_admin_status_summary_smoke_ok(sbdp_quote_admin_status_summary_smoke_has_chip($supplierSummary, 'blocker_chips', 'missing supplier_booking_confirmed'), 'Supplier blocker chip missing.');
     sbdp_quote_admin_status_summary_smoke_ok(! sbdp_quote_admin_status_summary_smoke_has_chip($supplierSummary, 'blocker_chips', 'Interne review ontbreekt'), 'Communication blocker leaked into supplier blocker chips.');
-    sbdp_quote_admin_status_summary_smoke_ok(sbdp_quote_admin_status_summary_smoke_has_chip($supplierSummary, 'communication_chips', 'Interne review ontbreekt'), 'Supplier communication blocker missing.');
+    sbdp_quote_admin_status_summary_smoke_ok(sbdp_quote_admin_status_summary_smoke_has_chip($supplierSummary, 'communication_chips', 'Supplier confirmation ontbreekt'), 'Supplier communication blocker missing.');
     sbdp_quote_admin_status_summary_smoke_ok(empty($supplierSummary['cta_visibility']['confirm_quote']), 'Supplier quote should not show confirm CTA.');
     sbdp_quote_admin_status_summary_smoke_ok(empty($supplierSummary['cta_visibility']['create_booking_bridge']), 'Supplier quote should not show booking CTA.');
 
@@ -359,8 +360,8 @@ try {
     sbdp_quote_admin_status_summary_smoke_assert_view_model($opsSummary, 'operations');
     sbdp_quote_admin_status_summary_smoke_ok((string) ($opsSummary['next_action'] ?? '') === 'Geen actie nodig / operations ready', 'Operations ready next_action mismatch.');
     sbdp_quote_admin_status_summary_smoke_ok((string) ($opsSummary['operations_status'] ?? '') === 'operations_ready', 'Operations status mismatch.');
-    sbdp_quote_admin_status_summary_smoke_ok((string) ($opsSummary['communication_status'] ?? '') === 'review_missing', 'Operations communication status mismatch.');
-    sbdp_quote_admin_status_summary_smoke_ok(sbdp_quote_admin_status_summary_smoke_has_chip($opsSummary, 'communication_chips', 'Interne review ontbreekt'), 'Operations communication blocker missing.');
+    sbdp_quote_admin_status_summary_smoke_ok((string) ($opsSummary['communication_status'] ?? '') === 'control_complete_available', 'Operations communication status mismatch.');
+    sbdp_quote_admin_status_summary_smoke_ok(! sbdp_quote_admin_status_summary_smoke_has_chip($opsSummary, 'communication_chips', 'Interne review ontbreekt'), 'Operations communication should not show review missing.');
     sbdp_quote_admin_status_summary_smoke_ok((int) ($opsSummary['booking_master_id'] ?? 0) === $masterId, 'Booking master ID missing.');
     sbdp_quote_admin_status_summary_smoke_ok((int) ($opsSummary['booking_legs_count'] ?? 0) > 0, 'Booking legs count missing.');
     sbdp_quote_admin_status_summary_smoke_ok(sbdp_quote_admin_status_summary_smoke_has_chip($opsSummary, 'meta_chips', 'Booking master'), 'Operations summary missing booking master chip.');
