@@ -41,8 +41,9 @@ final class QuoteAdminStatusSummaryService
         $booking = $this->bookingStatus((int) ($quote['booking_master_id'] ?? 0));
         $invoice = $this->invoiceMetadata($orderId, $paymentEvent);
         $order = $this->orderStatus($orderId, $quoteId, $approvedVersionId);
-        $sendAllowed = ! empty($context['send_allowed']);
-        $communication = $this->communicationStatus($quoteId, $quote, $sendAllowed);
+        $decision = (new QuoteProposalSendDecisionService($this->repository))->decide($quoteId);
+        $sendAllowed = ! empty($context['send_allowed']) && ! empty($decision['can_send']);
+        $communication = $this->communicationStatus($quoteId, $quote, $decision);
 
         $nextAction = $this->nextAction(
             $quote,
@@ -51,7 +52,8 @@ final class QuoteAdminStatusSummaryService
             $eventTypes,
             $hydration,
             $booking,
-            $blockers
+            $blockers,
+            $communication
         );
         $ctaVisibility = array(
             'confirm_quote' => $readiness['outcome'] === QuoteConfirmationReadinessService::READY_TO_CONFIRM
@@ -92,6 +94,8 @@ final class QuoteAdminStatusSummaryService
             'proposal_review_status' => $communication['review_status'],
             'proposal_send_status' => $communication['send_status'],
             'proposal_send_ready' => $communication['send_ready'],
+            'proposal_can_complete_control' => $communication['can_complete_control'],
+            'proposal_can_send' => $communication['can_send'],
             'proposal_next_action' => $communication['next_action'],
             'next_action' => $nextAction,
             'next_action_reason' => $this->nextActionReason($nextAction, $readiness['outcome'], $blockers),
@@ -409,47 +413,53 @@ final class QuoteAdminStatusSummaryService
      *     review_status:string,
      *     send_status:string,
      *     send_ready:bool,
+     *     can_complete_control:bool,
+     *     can_send:bool,
      *     next_action:string
      * }
      */
-    private function communicationStatus(int $quoteId, array $quote, bool $sendAllowed): array
+    private function communicationStatus(int $quoteId, array $quote, array $decision): array
     {
-        $reviewStatus = (string) ($quote['review_status'] ?? 'not_started');
-        $sendStatus = (string) ($quote['send_status'] ?? 'not_ready');
+        $reviewStatus = (string) ($decision['review_status'] ?? ($quote['review_status'] ?? 'not_started'));
+        $sendStatus = (string) ($decision['send_status'] ?? ($quote['send_status'] ?? 'not_ready'));
         $proposalSent = $this->hasSentProposal($quoteId) || in_array($sendStatus, array('sent', 'sent_manual'), true);
-        $sendReady = $reviewStatus === 'approved' && $sendStatus === 'ready_to_send' && $sendAllowed;
+        $proposalSendReady = ! empty($decision['proposal_send_ready']);
+        $canCompleteControl = ! empty($decision['can_complete_control']);
+        $canSend = ! empty($decision['can_send']);
+        $sendReady = $canSend;
         $blockers = array();
 
-        if ($reviewStatus === 'pending_review') {
-            $blockers[] = array('code' => 'review_pending', 'label' => 'Review in behandeling', 'status' => 'notice');
-        } elseif ($reviewStatus !== 'approved') {
-            $blockers[] = array('code' => 'review_not_approved', 'label' => 'Interne review ontbreekt', 'status' => 'blocked');
-        }
-
-        if ($reviewStatus === 'approved' && ! in_array($sendStatus, array('ready_to_send', 'sent', 'sent_manual'), true)) {
-            $blockers[] = array('code' => 'send_status_not_ready', 'label' => 'Verzenden niet klaar', 'status' => 'blocked');
+        foreach ((array) ($decision['blockers'] ?? array()) as $decisionBlocker) {
+            if (! is_array($decisionBlocker)) {
+                continue;
+            }
+            $blockers[] = array(
+                'code' => (string) ($decisionBlocker['code'] ?? 'proposal_send_blocker'),
+                'label' => $this->proposalBlockerLabel((string) ($decisionBlocker['code'] ?? 'proposal_send_blocker')),
+                'status' => 'blocked',
+            );
         }
 
         if ($proposalSent) {
             $status = 'sent';
             $label = 'Proposal verzonden';
             $nextAction = 'Communicatiehistorie aanwezig';
-        } elseif ($reviewStatus === 'pending_review') {
-            $status = 'review_pending';
-            $label = 'Review in behandeling';
-            $nextAction = 'Keur review goed';
-        } elseif ($reviewStatus !== 'approved') {
-            $status = 'review_missing';
-            $label = 'Interne review ontbreekt';
-            $nextAction = 'Controleer voorsteltekst';
-        } elseif ($sendStatus === 'ready_to_send') {
+        } elseif ($canSend) {
             $status = 'send_ready';
             $label = 'Verzenden klaar';
-            $nextAction = 'Verstuur offerte';
+            $nextAction = 'Voorstel versturen';
+        } elseif ($canCompleteControl) {
+            $status = 'control_complete_available';
+            $label = 'Voorstel klaar voor verzending';
+            $nextAction = 'Controle afronden';
+        } elseif ($proposalSendReady) {
+            $status = 'control_complete_available';
+            $label = 'Voorstel klaar voor verzending';
+            $nextAction = (string) ($decision['next_action'] ?? 'Controle afronden');
         } else {
             $status = 'send_not_ready';
-            $label = 'Verzenden niet klaar';
-            $nextAction = 'Controleer voorsteltekst';
+            $label = 'Controle nodig';
+            $nextAction = (string) ($decision['next_action'] ?? 'Nog nodig: controleer open punten');
         }
 
         $chips = array(array(
@@ -458,6 +468,9 @@ final class QuoteAdminStatusSummaryService
             'status' => $blockers === array() ? 'done' : 'notice',
         ));
 
+        if ($canCompleteControl) {
+            $chips[] = array('key' => 'control_complete_available', 'label' => 'Controle afronden', 'status' => 'notice');
+        }
         if ($reviewStatus === 'approved') {
             $chips[] = array('key' => 'review_approved', 'label' => 'Review akkoord', 'status' => 'done');
         }
@@ -483,8 +496,21 @@ final class QuoteAdminStatusSummaryService
             'review_status' => $reviewStatus,
             'send_status' => $sendStatus,
             'send_ready' => $sendReady,
+            'can_complete_control' => $canCompleteControl,
+            'can_send' => $canSend,
             'next_action' => $nextAction,
         );
+    }
+
+    private function proposalBlockerLabel(string $code): string
+    {
+        return match ($code) {
+            'customer_email_missing' => 'Klantmail ontbreekt',
+            'proposal_text_missing' => 'Voorsteltekst ontbreekt',
+            'quote_lines_missing' => 'Open programmaregel',
+            'supplier_confirmation_missing' => 'Supplier confirmation ontbreekt',
+            default => 'Nog nodig voor verzenden',
+        };
     }
 
     private function hasSentProposal(int $quoteId): bool
@@ -511,7 +537,7 @@ final class QuoteAdminStatusSummaryService
      * @param array{booking_master_id:int,admin_url:string,legs_count:int,operations_status:string} $booking
      * @param array<int, string> $blockers
      */
-    private function nextAction(array $quote, bool $sendAllowed, string $readinessOutcome, array $eventTypes, array $hydration, array $booking, array $blockers): string
+    private function nextAction(array $quote, bool $sendAllowed, string $readinessOutcome, array $eventTypes, array $hydration, array $booking, array $blockers, array $communication = array()): string
     {
         $quoteStatus = (string) ($quote['status'] ?? '');
         $handoffStatus = (string) ($quote['handoff_status'] ?? '');
@@ -553,7 +579,10 @@ final class QuoteAdminStatusSummaryService
             return 'Wacht op acceptatie';
         }
         if ($sendAllowed) {
-            return 'Verstuur offerte';
+            return 'Voorstel versturen';
+        }
+        if (! empty($communication['can_complete_control'])) {
+            return 'Controle afronden';
         }
 
         return 'Los blokkade op';

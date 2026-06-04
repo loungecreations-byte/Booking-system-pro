@@ -23,6 +23,7 @@ use BSP\Quotes\Service\QuoteFollowupService;
 use BSP\Quotes\Service\QuoteHandoffAdapterService;
 use BSP\Quotes\Service\QuoteHandoffPreparationService;
 use BSP\Quotes\Service\QuoteOperationsDraftService;
+use BSP\Quotes\Service\QuoteProposalSendDecisionService;
 use BSP\Quotes\Service\QuoteRequestService;
 use BSP\Quotes\Service\QuoteReviewService;
 use BSP\Quotes\Service\QuoteSendService;
@@ -1135,8 +1136,9 @@ final class QuoteWorkspaceRenderer
         $proposalProgram = self::buildQuoteProgram($lines, (string) ($lineSummary['currency'] ?? 'EUR'));
         $proposalReadiness = self::buildQuoteProposalReadiness($quote, $currentVersion, $lines, $assumptions);
         $sendReadiness = self::inspectQuoteSendReadiness($quoteId, $quote, $currentVersion, $repository);
+        $sendDecision = (new QuoteProposalSendDecisionService($repository))->decide($quoteId);
         $businessValidation = (new QuoteBusinessRuleValidator($repository))->validateComplete($quoteId);
-        $communicationState = self::buildQuoteCommunicationState($quote, $currentVersion, $messages, $assumptions, $sendReadiness);
+        $communicationState = self::buildQuoteCommunicationState($quote, $currentVersion, $messages, $assumptions, $sendReadiness, $sendDecision);
         $commercialIntakeNotice = self::buildCommercialIntakeNoticeState($lines, $followups, $assumptions);
         $openAiStatus = self::readOpenAiStatus();
         $workspaceState = self::buildQuoteWorkspaceState($quote, $currentVersion, $lines, $assumptions, $followups, $communicationState, $sendReadiness, $proposalReadiness);
@@ -1155,7 +1157,7 @@ final class QuoteWorkspaceRenderer
         $pricingConfirmed = $pricingConfidence === 'execution_verified';
         $availabilityConfirmed = $availabilityConfidence === 'confirmed';
         $proposalReady = ! empty($proposalReadiness['ready']);
-        $sendAllowed = ! empty($sendReadiness['ready']) && is_array($sendReadiness['blockers'] ?? array()) && (array) ($sendReadiness['blockers'] ?? array()) === array();
+        $sendAllowed = ! empty($sendDecision['can_send']);
         $sendCheckItems = self::buildWorkspaceSendCheckItems(
             $totalLines,
             $scheduledLines,
@@ -1183,6 +1185,7 @@ final class QuoteWorkspaceRenderer
         $workspaceAlerts = self::buildQuoteWorkspaceAlerts($quoteId, $sendReadiness, $businessValidation, $filteredAssumptions, $followups, $communicationState, $quoteCommerciallyEditable);
         $workspaceBlockers = is_array($workspaceAlerts['blockers'] ?? null) ? $workspaceAlerts['blockers'] : array();
         $sendAllowed = $sendAllowed && $workspaceBlockers === array();
+        $sendDecision['can_send'] = $sendAllowed;
         $adminStatusSummary = (new QuoteAdminStatusSummaryService($repository))->summarize($quoteId, array('send_allowed' => $sendAllowed));
         $amountLabel = $pricingConfirmed && $availabilityConfirmed && $sendAllowed
             ? __('Offerteprijs', 'sbdp')
@@ -2063,6 +2066,16 @@ final class QuoteWorkspaceRenderer
                 'description' => $nextDescription,
                 'cta' => 'proposal_readiness',
             );
+        } elseif (! empty($sendReadiness['ready']) && (string) ($quote['review_status'] ?? 'not_started') !== 'approved') {
+            $nextTitle = __('Controle afronden', 'sbdp');
+            $nextDescription = __('Alle verplichte controles zijn groen. Rond de controle af om het voorstel vrij te geven voor verzending.', 'sbdp');
+            $readinessLabel = __('Voorstel klaar voor verzending', 'sbdp');
+            $readinessDescription = __('Geen aparte review-blokkade meer: de volgende stap is controle afronden.', 'sbdp');
+            $nextAction = array(
+                'title' => $nextTitle,
+                'description' => $nextDescription,
+                'cta' => 'review_approve',
+            );
         } elseif ($customerReplyOpen) {
             $nextTitle = __('Verwerk klantreactie', 'sbdp');
             $nextDescription = __('De klant heeft gereageerd. Maak eerst een antwoorddraft of samenvatting voordat je verdere workflowstappen neemt.', 'sbdp');
@@ -2075,10 +2088,10 @@ final class QuoteWorkspaceRenderer
                 'message_id' => (int) $communicationState['latest_inbound_message_id'],
             );
         } elseif (! empty($sendReadiness['ready'])) {
-            $nextTitle = __('Offerte versturen', 'sbdp');
-            $nextDescription = __('Alle primaire checks zijn klaar. Verstuur of registreer nu het klantvoorstel.', 'sbdp');
-            $readinessLabel = __('Klaar om te versturen', 'sbdp');
-            $readinessDescription = __('Prijs, beschikbaarheid en voorstel zijn klaar voor klantcommunicatie.', 'sbdp');
+            $nextTitle = __('Voorstel versturen', 'sbdp');
+            $nextDescription = __('Alle primaire checks zijn klaar en de controle is afgerond. Verstuur of registreer nu het klantvoorstel.', 'sbdp');
+            $readinessLabel = __('Klaar voor verzending', 'sbdp');
+            $readinessDescription = __('Voorstel klaar voor verzending.', 'sbdp');
             $nextAction = array(
                 'title' => $nextTitle,
                 'description' => $nextDescription,
@@ -2347,7 +2360,7 @@ final class QuoteWorkspaceRenderer
         }
 
         if ($reviewStatus === 'pending_review' || $status === 'pending_review') {
-            return array('cta' => 'review_approve', 'title' => __('Review goedkeuren', 'sbdp'), 'label' => __('Review goedkeuren', 'sbdp'));
+            return array('cta' => 'review_approve', 'title' => __('Controle afronden', 'sbdp'), 'label' => __('Controle afronden', 'sbdp'));
         }
 
         $nextAction = is_array($workspaceState['next_action'] ?? null) ? $workspaceState['next_action'] : array();
@@ -2361,6 +2374,9 @@ final class QuoteWorkspaceRenderer
         }
         if ($cta === 'build') {
             return array('cta' => 'tab_link', 'tab' => 'build', 'title' => (string) ($nextAction['title'] ?? __('Programma controleren', 'sbdp')), 'label' => __('Naar programma', 'sbdp'), 'description' => (string) ($nextAction['description'] ?? __('Nog niet verzendklaar: controleer eerst programma, prijs en beschikbaarheid.', 'sbdp')));
+        }
+        if ($cta === 'review_approve') {
+            return array('cta' => 'review_approve', 'title' => __('Controle afronden', 'sbdp'), 'label' => __('Controle afronden', 'sbdp'), 'description' => (string) ($nextAction['description'] ?? __('Alle verplichte controles zijn groen.', 'sbdp')));
         }
 
         return array('cta' => 'tab_link', 'tab' => 'build', 'title' => __('Concept afronden', 'sbdp'), 'label' => __('Werk programma bij', 'sbdp'), 'description' => __('Nog niet verzendklaar: rond eerst de hoofdcontrole af.', 'sbdp'));
@@ -3026,7 +3042,7 @@ final class QuoteWorkspaceRenderer
      * @param array<string, mixed> $sendReadiness
      * @return array<string, mixed>
      */
-    public static function buildQuoteCommunicationState(array $quote, ?array $currentVersion, array $messages, array $assumptions, array $sendReadiness): array
+    public static function buildQuoteCommunicationState(array $quote, ?array $currentVersion, array $messages, array $assumptions, array $sendReadiness, array $sendDecision = array()): array
     {
         $latestProposal = null;
         $latestInbound = null;
@@ -3042,7 +3058,10 @@ final class QuoteWorkspaceRenderer
                 $latestInbound = $message;
             }
         }
-        $proposalSendBlockers = self::formatSendReadinessBlockers($sendReadiness);
+        $decisionBlockers = isset($sendDecision['blockers']) && is_array($sendDecision['blockers']) ? $sendDecision['blockers'] : array();
+        $proposalSendBlockers = $decisionBlockers !== array()
+            ? self::formatSendDecisionBlockers($decisionBlockers)
+            : self::formatSendReadinessBlockers($sendReadiness);
 
         $proposalLabel = __('Nothing sent', 'sbdp');
         $proposalBadgeClass = 'is-neutral';
@@ -3054,8 +3073,10 @@ final class QuoteWorkspaceRenderer
         $operatorActionDescription = __('Maak of controleer eerst de voorstelmail. Zonder echte outbound mail is er nog geen klantthread om op te werken.', 'sbdp');
         $operatorActionAgeLabel = '';
         $operatorActionAgeBadgeClass = 'is-neutral';
-        $proposalSendReady = false;
-        $proposalSendBlockReason = __('Vraag eerst review aan, los open punten op en keur de review goed voordat de voorstelmail verzonden mag worden.', 'sbdp');
+        $proposalSendReady = ! empty($sendDecision['proposal_send_ready']);
+        $proposalCanCompleteControl = ! empty($sendDecision['can_complete_control']);
+        $proposalCanSend = ! empty($sendDecision['can_send']);
+        $proposalSendBlockReason = __('Nog nodig: controleer open punten.', 'sbdp');
         $replyReady = false;
         $replyBlockReason = __('Verstuur eerst een voorstelmail. Zonder verzonden voorstel bestaat er nog geen reply-thread.', 'sbdp');
         $proposalAlreadySent = $latestProposal !== null;
@@ -3098,13 +3119,10 @@ final class QuoteWorkspaceRenderer
             $description = __('Review is afgerond, maar er is nog geen echte voorstelmail in de quote-thread vastgelegd.', 'sbdp');
         }
 
-        if ((string) ($quote['review_status'] ?? 'not_started') === 'approved'
-            && (string) ($quote['send_status'] ?? 'not_ready') === 'ready_to_send'
-            && ! empty($sendReadiness['ready'])) {
-            $proposalSendReady = true;
+        if ($proposalCanSend) {
             $proposalSendBlockReason = '';
-        } elseif ((string) ($quote['review_status'] ?? 'not_started') !== 'approved') {
-            $proposalSendBlockReason = __('Een voorstelmail kan pas worden verstuurd na goedgekeurde review.', 'sbdp');
+        } elseif ($proposalCanCompleteControl) {
+            $proposalSendBlockReason = __('Controle afgerond is de volgende stap. Daarna wordt voorstel versturen beschikbaar.', 'sbdp');
         } elseif (($proposalSendBlockers !== array())) {
             $proposalSendBlockReason = (string) ($proposalSendBlockers[0]['message'] ?? __('Quote is nog niet verzendklaar.', 'sbdp'));
         } elseif ((string) ($quote['send_status'] ?? 'not_ready') !== 'ready_to_send') {
@@ -3124,6 +3142,9 @@ final class QuoteWorkspaceRenderer
             'operator_action_age_label'  => $operatorActionAgeLabel,
             'operator_action_age_badge_class' => $operatorActionAgeBadgeClass,
             'proposal_send_ready'        => $proposalSendReady,
+            'proposal_can_complete_control' => $proposalCanCompleteControl,
+            'proposal_can_send'          => $proposalCanSend,
+            'proposal_next_action'       => (string) ($sendDecision['next_action'] ?? ''),
             'proposal_already_sent'      => $proposalAlreadySent,
             'proposal_send_block_reason' => $proposalSendBlockReason,
             'proposal_send_blockers'     => $proposalSendBlockers,
@@ -3174,15 +3195,41 @@ final class QuoteWorkspaceRenderer
         return $formatted;
     }
 
+    /**
+     * @param array<int, array<string, mixed>> $blockers
+     * @return array<int, array{code:string,label:string,message:string}>
+     */
+    private static function formatSendDecisionBlockers(array $blockers): array
+    {
+        $formatted = array();
+        foreach ($blockers as $blocker) {
+            if (! is_array($blocker)) {
+                continue;
+            }
+
+            $code = (string) ($blocker['code'] ?? 'unknown');
+            $formatted[] = array(
+                'code' => $code,
+                'label' => self::sendReadinessBlockerLabel($code),
+                'message' => (string) ($blocker['message'] ?? ''),
+            );
+        }
+
+        return $formatted;
+    }
+
     private static function sendReadinessBlockerLabel(string $code): string
     {
         return match ($code) {
             'quote_lines_missing' => __('Geen programmaregels', 'sbdp'),
             'customer_email_invalid' => __('Klant e-mail ontbreekt', 'sbdp'),
+            'customer_email_missing' => __('Klantmail ontbreekt', 'sbdp'),
             'send_assumption_open' => __('Open send-blocker', 'sbdp'),
             'pricing_confidence_missing' => __('Prijs nog niet bevestigd', 'sbdp'),
             'availability_confidence_missing' => __('Beschikbaarheid nog niet bevestigd', 'sbdp'),
             'proposal_customer_text_missing' => __('Voorsteltekst ontbreekt', 'sbdp'),
+            'proposal_text_missing' => __('Voorsteltekst ontbreekt', 'sbdp'),
+            'supplier_confirmation_missing' => __('Supplier confirmation ontbreekt', 'sbdp'),
             'line_amount_invalid' => __('Bedrag ongeldig', 'sbdp'),
             'line_amount_negative' => __('Ongeldig bedrag', 'sbdp'),
             'line_currency_invalid' => __('Ongeldige valuta', 'sbdp'),
@@ -3933,8 +3980,9 @@ final class QuoteWorkspaceRenderer
     ): array {
         $pricingConfirmed = $pricingConfidence === 'execution_verified';
         $availabilityConfirmed = $availabilityConfidence === 'confirmed';
-        $sendAllowed = ! empty($sendReadiness['ready']) && (array) ($sendReadiness['blockers'] ?? array()) === array();
-        $openBlockers = count((array) ($sendReadiness['blockers'] ?? array()));
+        $sendAllowed = ! empty($communicationState['proposal_can_send']);
+        $canCompleteControl = ! empty($communicationState['proposal_can_complete_control']);
+        $openBlockers = count((array) ($communicationState['proposal_send_blockers'] ?? ($sendReadiness['blockers'] ?? array())));
 
         return array(
             array(
@@ -3963,9 +4011,9 @@ final class QuoteWorkspaceRenderer
                 'detail' => $proposalReady ? __('Klaar', 'sbdp') : __('Nog controleren', 'sbdp'),
             ),
             array(
-                'label' => $sendAllowed ? __('Offerte versturen mogelijk', 'sbdp') : __('Versturen geblokkeerd', 'sbdp'),
-                'ok' => $sendAllowed,
-                'detail' => $sendAllowed ? __('Alle checks groen', 'sbdp') : sprintf(_n('%d punt open', '%d punten open', $openBlockers, 'sbdp'), $openBlockers),
+                'label' => $sendAllowed ? __('Voorstel versturen mogelijk', 'sbdp') : ($canCompleteControl ? __('Controle afronden', 'sbdp') : __('Nog nodig', 'sbdp')),
+                'ok' => $sendAllowed || $canCompleteControl,
+                'detail' => $sendAllowed ? __('Voorstel klaar voor verzending', 'sbdp') : ($canCompleteControl ? __('Alle verplichte controles zijn groen', 'sbdp') : sprintf(_n('%d punt open', '%d punten open', $openBlockers, 'sbdp'), $openBlockers)),
             ),
         );
     }
@@ -5088,23 +5136,14 @@ final class QuoteWorkspaceRenderer
         $updatedAt       = $currentVersion !== null ? trim((string) ($currentVersion['updated_at'] ?? '')) : '';
         $stats           = is_array($proposalProgram['stats'] ?? null) ? $proposalProgram['stats'] : array();
         $readinessItems  = is_array($proposalReadiness['items'] ?? null) ? array_slice((array) $proposalReadiness['items'], 0, 4) : array();
-        foreach ((array) ($sendReadiness['blockers'] ?? array()) as $blocker) {
-            if (! is_array($blocker)) {
-                continue;
-            }
-            $code = (string) ($blocker['code'] ?? '');
-            if (! in_array($code, array('review_not_approved', 'send_status_not_ready'), true)) {
-                continue;
-            }
-            $readinessItems[] = array(
-                'title' => $code === 'review_not_approved' ? __('Interne review ontbreekt', 'sbdp') : __('Voorsteltekst nog niet vrijgegeven', 'sbdp'),
-                'description' => (string) ($blocker['message'] ?? __('Rond eerst review en vrijgave af voordat je verzendt.', 'sbdp')),
-            );
-        }
         $readinessItems = array_slice($readinessItems, 0, 5);
 
         $subject     = $draftSubject !== '' ? $draftSubject : ($proposalTitle !== '' ? $proposalTitle : __('Nog geen voorstelonderwerp', 'sbdp'));
-        $statusLabel = $proposalReady ? __('Verzendklaar', 'sbdp') : __('Niet verzendklaar', 'sbdp');
+        $statusLabel = ! empty($communicationState['proposal_can_send'])
+            ? __('Klaar voor verzending', 'sbdp')
+            : (! empty($communicationState['proposal_can_complete_control'])
+                ? __('Controle afronden', 'sbdp')
+                : ($proposalReady ? __('Voorstel klaar', 'sbdp') : __('Controle nodig', 'sbdp')));
         $bodySnippet = $draftBody !== ''
             ? \wp_trim_words($draftBody, 38)
             : ($proposalSummary !== '' ? \wp_trim_words($proposalSummary, 38) : __('Nog geen voorsteltekst vastgelegd.', 'sbdp'));
@@ -5160,23 +5199,21 @@ final class QuoteWorkspaceRenderer
             }
         }
         echo '</ul><div class="bsp-qcd__card-actions">';
-        if ((string) ($quote['review_status'] ?? 'not_started') !== 'approved') {
-            if (! empty($sendReadiness['ready']) && (array) ($sendReadiness['blockers'] ?? array()) === array()) {
+        if (! empty($communicationState['proposal_can_complete_control'])) {
                 echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" class="bsp-qcd__inline-review-form">';
                 echo wp_nonce_field('sbdp_quote_review_approve', '_wpnonce', true, false);
                 echo '<input type="hidden" name="action" value="sbdp_quote_review_approve">';
                 echo '<input type="hidden" name="quote_id" value="' . esc_attr((string) $quoteId) . '">';
                 echo '<button type="submit" class="button button-primary button-small">' . esc_html__('Controle afgerond', 'sbdp') . '</button>';
                 echo '</form>';
-            } else {
+        } elseif (empty($communicationState['proposal_can_send']) && (string) ($quote['review_status'] ?? 'not_started') !== 'approved') {
                 echo '<button type="button" class="button button-secondary button-small" disabled title="' . esc_attr($sendBlockReason !== '' ? $sendBlockReason : __('Rond eerst alle verzendchecks af.', 'sbdp')) . '">' . esc_html__('Controle afgerond', 'sbdp') . '</button>';
-            }
         }
         if ($sendAllowed) {
             echo ' <a class="button button-primary button-small" href="' . esc_url(self::workspaceTabUrl($quoteId, 'communication')) . '">' . esc_html__('Voorstel versturen', 'sbdp') . '</a>';
         } else {
             echo '<button type="button" class="button button-secondary button-small" disabled title="' . esc_attr($sendBlockReason !== '' ? $sendBlockReason : __('Nog niet verzendklaar.', 'sbdp')) . '">' . esc_html__('Voorstel versturen', 'sbdp') . '</button>';
-            echo '<span class="bsp-qcd__send-disabled-reason">' . esc_html($sendBlockReason !== '' ? sprintf(__('Nog niet verzendklaar: %s', 'sbdp'), $sendBlockReason) : __('Nog niet verzendklaar: controleer review, klantmail en open punten.', 'sbdp')) . '</span>';
+            echo '<span class="bsp-qcd__send-disabled-reason">' . esc_html($sendBlockReason !== '' ? sprintf(__('Nog nodig: %s', 'sbdp'), $sendBlockReason) : __('Nog nodig: controleer open punten.', 'sbdp')) . '</span>';
         }
         echo '</div>';
         self::renderQcdProposalInlineEditor($quoteId, $subject, $proposalSummary, $draftBody, $totalLabel, $caveat);

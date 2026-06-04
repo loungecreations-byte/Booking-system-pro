@@ -23,6 +23,7 @@ use BSP\Quotes\Service\QuoteHandoffAdapterService;
 use BSP\Quotes\Service\QuoteHandoffPreparationService;
 use BSP\Quotes\Service\QuoteLineControlStatusService;
 use BSP\Quotes\Service\QuoteOperationsDraftService;
+use BSP\Quotes\Service\QuoteProposalSendDecisionService;
 use BSP\Quotes\Service\QuoteRequestService;
 use BSP\Quotes\Service\QuoteReviewService;
 use BSP\Quotes\Service\QuoteSendService;
@@ -482,9 +483,12 @@ final class Controller
         }
 
         $sendInspection = (new QuoteSendReadinessValidator($repository))->inspect($quoteId);
-        $sendReady = ! empty($sendInspection['ready']) && (array) ($sendInspection['blockers'] ?? array()) === array();
+        $sendDecision = (new QuoteProposalSendDecisionService($repository))->decide($quoteId);
+        $sendReady = ! empty($sendDecision['proposal_send_ready']);
+        $canCompleteControl = ! empty($sendDecision['can_complete_control']);
+        $canSend = ! empty($sendDecision['can_send']);
         $firstBlocker = '';
-        foreach ((array) ($sendInspection['blockers'] ?? array()) as $blocker) {
+        foreach ((array) ($sendDecision['blockers'] ?? ($sendInspection['blockers'] ?? array())) as $blocker) {
             if (is_array($blocker)) {
                 $firstBlocker = (string) ($blocker['message'] ?? '');
                 break;
@@ -492,20 +496,24 @@ final class Controller
         }
 
         \wp_send_json_success(array(
-            'message' => $sendReady
-                ? __('Voorstelmail klaar. Je kunt het voorstel versturen.', 'sbdp')
-                : __('Voorstelmail opgeslagen. Je kunt het voorstel nu versturen zodra alle checks groen zijn.', 'sbdp'),
+            'message' => $canSend
+                ? __('Voorstel klaar voor verzending.', 'sbdp')
+                : ($canCompleteControl
+                    ? __('Voorstel klaar voor verzending. Rond de controle af voordat je verstuurt.', 'sbdp')
+                    : __('Voorstelmail opgeslagen. Je kunt het voorstel nu versturen zodra alle checks groen zijn.', 'sbdp')),
             'subject' => (string) ($result['subject'] ?? ''),
             'body' => (string) ($result['body'] ?? ''),
             'summary' => (string) ($result['summary'] ?? ''),
             'terms' => (string) ($result['terms'] ?? ''),
             'closing' => (string) ($result['closing'] ?? ''),
-            'statusLabel' => $sendReady ? __('Verzendklaar', 'sbdp') : __('Niet verzendklaar', 'sbdp'),
-            'readinessTitle' => $sendReady ? __('Voorstelmail klaar', 'sbdp') : __('Nog niet verzendklaar', 'sbdp'),
+            'statusLabel' => $canSend ? __('Klaar voor verzending', 'sbdp') : ($canCompleteControl ? __('Controle afronden', 'sbdp') : __('Controle nodig', 'sbdp')),
+            'readinessTitle' => $sendReady ? __('Voorstel klaar voor verzending', 'sbdp') : __('Nog nodig', 'sbdp'),
             'readinessDescription' => $sendReady
-                ? __('Alle verplichte controles zijn groen.', 'sbdp')
+                ? ($canSend ? __('Je kunt het voorstel versturen.', 'sbdp') : __('Alle verplichte controles zijn groen. Rond de controle af.', 'sbdp'))
                 : ($firstBlocker !== '' ? $firstBlocker : __('Controleer open punten voordat je verzendt.', 'sbdp')),
             'sendReady' => $sendReady,
+            'canCompleteControl' => $canCompleteControl,
+            'canSend' => $canSend,
             'eventType' => 'quote_proposal_text_updated',
             'eventMessage' => __('Voorsteltekst bijgewerkt vanuit Quote Control Dashboard.', 'sbdp'),
             'sanitizerTerms' => (array) ($result['sanitizer_terms'] ?? array()),
