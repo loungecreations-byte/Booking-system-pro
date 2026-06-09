@@ -3119,7 +3119,9 @@ final class QuoteWorkspaceRenderer
             $description = __('Review is afgerond, maar er is nog geen echte voorstelmail in de quote-thread vastgelegd.', 'sbdp');
         }
 
-        if ($proposalCanSend) {
+        if ($proposalAlreadySent) {
+            $proposalSendBlockReason = __('Deze offerte kan nog niet worden verstuurd.', 'sbdp');
+        } elseif ($proposalCanSend) {
             $proposalSendBlockReason = '';
         } elseif ($proposalCanCompleteControl) {
             $proposalSendBlockReason = __('Controle afgerond is de volgende stap. Daarna wordt voorstel versturen beschikbaar.', 'sbdp');

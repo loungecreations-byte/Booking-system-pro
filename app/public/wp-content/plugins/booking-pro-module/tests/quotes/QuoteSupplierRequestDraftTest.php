@@ -89,7 +89,7 @@ namespace BSP\Tests\Quotes {
             self::assertStringContainsString('2026-05-23', $body);      // datum
             self::assertStringContainsString('10:00', $body);           // starttijd
             self::assertStringContainsString('10', $body);              // personen
-            self::assertStringContainsString('available', $body);       // availabilityStatus
+            self::assertStringContainsString('n.b.', $body);            // availabilityStatus remains unconfirmed
 
             // subject line must contain title, date, participants
             self::assertStringContainsString('E-Chopper tour', $subject);

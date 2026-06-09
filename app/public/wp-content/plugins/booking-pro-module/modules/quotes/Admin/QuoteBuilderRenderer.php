@@ -375,9 +375,17 @@ final class QuoteBuilderRenderer
         $html .= '<input type="hidden" name="lines[' . $indexAttr . '][line_total_snapshot]" value="' . esc_attr((string) ($line['line_total_snapshot'] ?? '')) . '" data-builder-line-total>';
         $html .= '</div></div>';
 
+        $html .= '<details class="bsp-quote-admin__builder-advanced-compact">';
+        $html .= '<summary>' . esc_html__('Geavanceerd / maatwerk', 'sbdp') . '</summary>';
+        $html .= '<div class="bsp-quote-admin__builder-advanced-grid">';
+        $html .= '<label class="bsp-quote-admin__compact-field"><span>' . esc_html__('Opmerking mapping', 'sbdp') . '</span><input type="text" name="lines[' . $indexAttr . '][mapping_notes]" value="' . esc_attr((string) ($line['mapping_notes'] ?? '')) . '" class="bsp-quote-admin__compact-input"></label>';
+        $html .= '<label class="bsp-quote-admin__compact-field"><span>' . esc_html__('Externe referentie', 'sbdp') . '</span><input type="text" name="lines[' . $indexAttr . '][external_label]" value="' . esc_attr((string) ($line['external_label'] ?? '')) . '" class="bsp-quote-admin__compact-input"></label>';
+        $html .= '</div></details>';
+
         $html .= '<div class="bsp-quote-admin__builder-row-footer">';
         $html .= '<div class="bsp-quote-admin__status-badges">';
         $html .= self::renderInlineBadge($lineTypeLabel, $productId > 0 ? 'is-neutral' : 'is-warn');
+        $html .= self::renderInlineBadge($availabilityText, $availabilityControlStatus === 'confirmed' ? 'is-good' : 'is-warn');
         $html .= '</div>';
         $html .= self::renderLineControlButtons($quoteId, $line, $pricingControlStatus, $availabilityControlStatus);
         $supplierMode = self::quoteLineBookingMode($line);
@@ -855,7 +863,7 @@ final class QuoteBuilderRenderer
             'confirmed' => __('Beschikbaar', 'sbdp'),
             'under_reservation' => __('N.v.t.', 'sbdp'),
             'unavailable' => __('Niet beschikbaar', 'sbdp'),
-            default => __('Controleren', 'sbdp'),
+            default => __('Beschikbaarheid nog niet bevestigd', 'sbdp'),
         };
     }
 
@@ -873,8 +881,8 @@ final class QuoteBuilderRenderer
     {
         return match ($confidence) {
             'confirmed' => __('Beschikbaar', 'sbdp'),
-            'snapshot', 'projected' => __('Controleren', 'sbdp'),
-            default => __('Controleren', 'sbdp'),
+            'snapshot', 'projected' => __('Beschikbaarheid nog niet bevestigd', 'sbdp'),
+            default => __('Beschikbaarheid nog niet bevestigd', 'sbdp'),
         };
     }
 
@@ -3023,8 +3031,6 @@ final class QuoteBuilderRenderer
                 .sbdp-qcd-status-summary,
                 .sbdp-qcd-status-summary__body { grid-template-columns: 1fr; }
                 .sbdp-qcd-chain { grid-template-columns: repeat(4, minmax(88px, 1fr)); }
-                .sbdp-qcd-line-row { grid-template-columns: 22px minmax(180px, 1fr) minmax(150px, .8fr) minmax(180px, 1fr) 40px; }
-                .sbdp-qcd-line-price { display: none; }
             }
 
             /* ── Context Grid: KLANT | PRIJS & PROGRAMMA | NOG NODIG ── */
@@ -3295,10 +3301,6 @@ final class QuoteBuilderRenderer
             .sbdp-qcd-line-actions-menu{top:25px}
             .bsp-quote-admin__builder-row-headline strong{font-size:12px}
             .bsp-quote-admin__builder-row-headline small{font-size:10px}
-            .bsp-quote-admin__builder-availability-summary{display:flex;align-items:center;justify-content:center;color:#adbac7;font-size:10px}
-            .bsp-quote-admin__builder-availability-summary small{display:none}
-            .bsp-quote-admin__builder-availability-summary span{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:6px;background:#161b22;border:1px solid #30363d;font-weight:700;color:#e3b341}
-            .bsp-quote-admin__builder-row.has-blocker .bsp-quote-admin__builder-availability-summary span{background:#2d1117;color:#f85149}
             .bsp-quote-admin__builder-row-actions{gap:5px}
             .bsp-quote-admin__builder-row-actions .button-link{min-width:22px;height:22px}
             .bsp-quote-admin__builder-edit-panel{display:none;border-top:1px solid #151515;background:#0b0d10}

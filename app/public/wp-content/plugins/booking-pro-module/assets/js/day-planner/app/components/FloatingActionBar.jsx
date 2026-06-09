@@ -47,6 +47,16 @@ const Icons = {
   ),
 };
 
+function firstPositiveParticipant(...values) {
+  for (const value of values) {
+    const parsed = Number.parseInt(value, 10);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return parsed;
+    }
+  }
+  return null;
+}
+
 function formatPrice(amount, currency = "EUR") {
   return new Intl.NumberFormat("nl-NL", {
     style: "currency",
@@ -75,8 +85,6 @@ function isAvailabilityErrorMessage(message) {
     normalized.includes("availability")
   );
 }
-
-const FALLBACK_PARTICIPANTS = 10;
 
 export default function FloatingActionBar() {
   const {
@@ -113,11 +121,11 @@ export default function FloatingActionBar() {
     return planItems.reduce((sum, item) => sum + (item.totalCost || item.price || 0), 0);
   }, [summary?.grandTotal, summary?.subtotal, planItems]);
   
-  const participants =
-    Number.parseInt(form?.participants, 10) ||
-    plan?.participants ||
-    config?.participants ||
-    FALLBACK_PARTICIPANTS;
+  const participants = firstPositiveParticipant(
+    form?.participants,
+    plan?.participants,
+    config?.participants
+  );
   const perPerson = participants > 0 && totalPrice > 0 ? totalPrice / participants : 0;
   const availabilityMessage = availabilityIssue?.message || "";
   const plannerCtaModel = buildPlannerCtaModel({

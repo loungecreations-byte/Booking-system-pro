@@ -67,6 +67,12 @@ final class EliioAvailabilityServiceTest extends TestCase
             115 => (object) array('ID' => 115, 'post_type' => 'product'),
         );
         $GLOBALS['__eliio_test_meta'] = array();
+        $GLOBALS['__booking_truth_meta'] = array();
+        $GLOBALS['__test_post_meta'] = array();
+        $GLOBALS['__ddb_supplier_confirmation_meta'] = array();
+        $GLOBALS['__ddb_supplier_request_draft_meta'] = array();
+        $GLOBALS['__ddb_booking_mode_meta'] = array();
+        $GLOBALS['__public_read_meta'] = array();
         $GLOBALS['__eliio_test_transients'] = array();
         $GLOBALS['__eliio_test_transient_ttl'] = array();
     }
@@ -249,7 +255,7 @@ final class EliioAvailabilityServiceTest extends TestCase
 
     private function setEliioMapping(): void
     {
-        $GLOBALS['__eliio_test_meta'][115] = array(
+        $meta = array(
             '_ddb_supplier_provider' => 'eliio',
             '_ddb_eliio_company_id' => 'company-1',
             '_ddb_eliio_product_id' => 'product-1',
@@ -260,6 +266,20 @@ final class EliioAvailabilityServiceTest extends TestCase
             '_ddb_supplier_confirmation_required' => 'yes',
             '_ddb_supplier_availability_mode' => 'widget',
         );
+
+        foreach (
+            array(
+                '__eliio_test_meta',
+                '__booking_truth_meta',
+                '__test_post_meta',
+                '__ddb_supplier_confirmation_meta',
+                '__ddb_supplier_request_draft_meta',
+                '__ddb_booking_mode_meta',
+                '__public_read_meta',
+            ) as $globalKey
+        ) {
+            $GLOBALS[$globalKey][115] = $meta;
+        }
     }
 
     private function request(array $params): WP_REST_Request

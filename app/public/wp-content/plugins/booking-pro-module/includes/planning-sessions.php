@@ -237,21 +237,23 @@ final class Controller
 }
 .sbdp-count-btn, .ui-planner-widget__count-btn {
     border-radius: 999px;
-    border: 1px solid var(--chip-hover-border, var(--ui-color-primary));
+    border: 1px solid var(--ui-color-primary);
     width: 38px;
     height: 38px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: var(--chip-bg, var(--ui-color-surface-2));
-    color: var(--fg, var(--ui-color-text));
+    text-align: center;
+    line-height: 1;
+    background: var(--ui-color-primary);
+    color: var(--ui-color-primary-contrast);
     transition: all 140ms ease;
     box-shadow: 0 8px 18px color-mix(in srgb, var(--ui-color-primary) 18%, transparent);
 }
 .sbdp-count-btn:hover, .ui-planner-widget__count-btn:hover {
-    background: var(--chip-hover-border, var(--ui-color-primary));
+    background: var(--ui-color-primary-hover);
     color: var(--ui-color-primary-contrast);
-    border-color: var(--chip-hover-border, var(--ui-color-primary));
+    border-color: var(--ui-color-primary-hover);
 }
 .sbdp-button--primary, .ui-planner-widget__btn {
     border-radius: 12px;
@@ -302,14 +304,14 @@ CSS;
     background: var(--bg);
     color: var(--fg);
     border-radius: 18px;
-    padding: 22px;
+    padding: 16px;
     border: 1px solid var(--border);
     box-shadow: var(--shadow);
     position: relative;
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    gap: 16px;
+    gap: 10px;
 }
 .ui-planner-widget--light {
     --sbdp-color-primary: var(--ui-color-primary);
@@ -441,17 +443,17 @@ body.sbdp-theme-dark .ui-planner-widget {
 }
 .ui-planner-widget__steps {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 8px;
 }
 .ui-planner-widget__step {
     background: var(--card);
     border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 12px;
+    border-radius: 12px;
+    padding: 10px;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
     opacity: 1;
     transform: translateY(0);
     transition: opacity 200ms ease, transform 200ms ease;
@@ -463,27 +465,27 @@ body.sbdp-theme-dark .ui-planner-widget {
 .ui-planner-widget__label {
     margin: 0;
     font-weight: 700;
-    font-size: 14px;
+    font-size: 13px;
 }
 .ui-planner-widget__chipset {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
+    gap: 6px;
 }
 .ui-planner-widget .ui-chip {
     border: 1px solid var(--chip-border) ;
     background: var(--chip-bg) ;
     color: var(--fg) ;
     border-radius: 999px;
-    padding: 9px 13px;
-    margin: 0 10px 10px 0;
-    font-size: 14px;
+    padding: 7px 10px;
+    margin: 0;
+    font-size: 13px;
     cursor: pointer;
     transition: all 140ms ease;
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    min-height: 36px;
+    min-height: 32px;
     box-shadow: none ;
     background-clip: padding-box ;
 }
@@ -510,7 +512,7 @@ body.sbdp-theme-dark .ui-planner-widget {
 .ui-planner-widget__inline {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
     flex-wrap: wrap;
 }
 .ui-planner-widget__count-control {
@@ -519,24 +521,27 @@ body.sbdp-theme-dark .ui-planner-widget {
     gap: 8px;
 }
 .ui-planner-widget__count-btn {
-    width: 38px;
-    height: 38px;
+    width: 34px;
+    height: 34px;
     border-radius: 999px ;
-    border: 2px solid var(--chip-hover-border) ;
-    background: var(--chip-bg) ;
-    color: var(--chip-hover-border) ;
+    border: 1px solid var(--ui-color-primary) ;
+    background: var(--ui-color-primary) ;
+    color: var(--ui-color-primary-contrast) ;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 18px;
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
     cursor: pointer;
     transition: all 140ms ease;
     box-shadow: 0 8px 18px color-mix(in srgb, var(--ui-color-primary) 18%, transparent);
 }
 .ui-planner-widget__count-btn:hover {
-    border-color: var(--chip-hover-border) ;
-    background: var(--chip-hover-border) ;
-    color: #fff ;
+    border-color: var(--ui-color-primary-hover) ;
+    background: var(--ui-color-primary-hover) ;
+    color: var(--ui-color-primary-contrast) ;
 }
 .ui-planner-widget__count-btn:focus-visible {
     outline: 2px solid var(--accent-strong);
@@ -563,24 +568,21 @@ body.sbdp-theme-dark .ui-planner-widget {
     border: 1px solid var(--border);
     color: var(--fg);
     border-radius: 10px;
-    padding: 10px 12px;
-    font-size: 15px;
+    padding: 8px 10px;
+    font-size: 14px;
     outline: none;
 }
 .ui-planner-widget__footer {
     display: flex;
     flex-direction: row;
     justify-content: space-between;
-    gap: 12px;
+    gap: 8px;
     align-items: center;
 }
 .ui-planner-widget__footer .ui-planner-widget__btn {
     flex: 0 0 auto;
     width: auto;
     max-width: none;
-}
-.ui-planner-widget__footnote {
-    flex: 1 1 100%;
 }
 .ui-planner-widget__btn-icon {
     display: inline-flex;
@@ -605,14 +607,14 @@ body.sbdp-theme-dark .ui-planner-widget {
     border: 1px solid var(--chip-hover-border) ;
     cursor: pointer;
     border-radius: 12px;
-    padding: 13px 16px;
-    font-size: 15px;
+    padding: 10px 13px;
+    font-size: 14px;
     font-weight: 700;
     transition: all 140ms ease;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    gap: 10px;
+    gap: 8px;
     text-decoration: none;
     background: var(--chip-active-bg) ;
     color: var(--chip-active-fg) ;
@@ -655,11 +657,6 @@ body.sbdp-theme-dark .ui-planner-widget {
     margin: 0;
     min-height: 16px;
 }
-.ui-planner-widget__footnote {
-    margin: 0;
-    color: var(--muted);
-    font-size: 12px;
-}
 .ui-planner-widget__loader {
     width: 14px;
     height: 14px;
@@ -684,11 +681,11 @@ body.sbdp-theme-dark .ui-planner-widget {
     background: var(--modal-card-bg);
     border: 1px solid var(--modal-card-border);
     border-radius: 18px;
-    padding: 18px;
+    padding: 16px;
     box-shadow: var(--modal-card-shadow);
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
     position: relative;
     max-height: 90vh;
     overflow-y: auto;
@@ -698,7 +695,7 @@ body.sbdp-theme-dark .ui-planner-widget {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    padding: 6px 10px;
+    padding: 5px 9px;
     background: var(--pill);
     border-radius: 10px;
     font-weight: 700;
@@ -723,15 +720,15 @@ body.sbdp-theme-dark .ui-planner-widget {
     background: var(--ghost);
     border: 1px solid var(--border);
     border-radius: 12px;
-    padding: 12px;
+    padding: 10px;
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
 }
 .ui-planner-widget__question-label {
     margin: 0;
     font-weight: 700;
-    font-size: 15px;
+    font-size: 14px;
 }
 .ui-planner-widget__hint {
     margin: 0;
@@ -741,7 +738,7 @@ body.sbdp-theme-dark .ui-planner-widget {
 .ui-planner-widget__modal-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 10px;
+    gap: 8px;
     flex-wrap: wrap;
 }
 .ui-planner-widget__modal-actions .ui-planner-widget__btn {
@@ -751,14 +748,14 @@ body.sbdp-theme-dark .ui-planner-widget {
 .ui-planner-widget__discovery {
     display: flex;
     flex-direction: column;
-    gap: 14px;
+    gap: 10px;
     padding-top: 8px;
     border-top: 1px solid var(--border);
 }
 .ui-planner-widget__discovery-group {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
 }
 .ui-planner-widget__discovery-title {
     margin: 0;
@@ -772,7 +769,7 @@ body.sbdp-theme-dark .ui-planner-widget {
 }
 .ui-planner-widget__results {
     display: grid;
-    gap: 10px;
+    gap: 8px;
 }
 .ui-planner-widget__result {
     border: 1px solid var(--border);
@@ -820,7 +817,7 @@ body.sbdp-theme-dark .ui-planner-widget {
 }
 @media (max-width: 720px) {
     .ui-planner-widget {
-        padding: 18px;
+        padding: 14px;
     }
     .ui-planner-widget__title {
         font-size: 20px;
@@ -944,6 +941,16 @@ CSS;
         }
     }
 
+    function firstPositiveCount() {
+        for (var index = 0; index < arguments.length; index += 1) {
+            const parsed = parseInt(arguments[index], 10);
+            if (Number.isFinite(parsed) && parsed > 0) {
+                return parsed;
+            }
+        }
+        return null;
+    }
+
     function persistPrefill(payload) {
         const manager = window.PreferenceManager;
         const normalized = manager && typeof manager.normalize === 'function'
@@ -962,10 +969,11 @@ CSS;
         }
 
         if (normalized && (normalized.visitDate || normalized.date || normalized.count || normalized.participants)) {
+            const participants = firstPositiveCount(normalized.count, normalized.participants);
             const entry = {
                 date: normalized.visitDate || normalized.date || null,
-                participants: normalized.count || normalized.participants || null,
-                people: normalized.count || normalized.participants || null,
+                participants: participants,
+                people: participants,
                 audience: normalized.audience || null,
                 vibe: normalized.vibe || null,
                 duration: normalized.duration || null,
@@ -1373,10 +1381,11 @@ CSS;
                     summaryDateEl.textContent = formatDateLabel(state.date);
                 }
                 if (summaryPeopleEl) {
-                    summaryPeopleEl.textContent = `${state.count || 1} pers`;
+                    summaryPeopleEl.textContent = state.count ? `${state.count} pers` : 'Aantal nog niet gekozen';
                 }
                 if (footnote) {
-                    footnote.textContent = `We houden rekening met ${state.count || 1} personen en beschikbaarheid.`;
+                    footnote.textContent = '';
+                    footnote.hidden = true;
                 }
                 syncActivitiesOverviewLinks(buildOverviewContextPayload(state.date, state.count));
             }
@@ -1535,7 +1544,7 @@ CSS;
 
             function applyCountDelta(delta) {
                 state.count = clampCount((countInput ? countInput.value : state.count) || state.count);
-                const next = clampCount((state.count || 0) + delta);
+                const next = clampCount((state.count ?? 0) + delta);
                 if (next > 0) {
                     state.count = next;
                     if (countInput) {
@@ -2153,7 +2162,6 @@ JS;
             </span>
             <span>Bekijk activiteiten</span>
         </a>
-        <p class="ui-planner-widget__footnote" data-ui-footnote>We houden rekening met <?php echo esc_html($count_attr); ?> personen en beschikbaarheid.</p>
     </div>
     <div class="ui-planner-widget__modal" hidden data-ui-modal>
         <div class="ui-planner-widget__modal-card" role="dialog" aria-modal="true" aria-label="Plan je dag">

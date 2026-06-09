@@ -99,9 +99,11 @@ namespace BSP\Tests\Quotes {
 use BSP\Quotes\Admin\Controller;
 use BSP\Quotes\Admin\QuoteWorkspaceRenderer;
 use BSP\Quotes\Repository\QuoteRepository;
+use BSP\Quotes\Service\QuoteProposalSendDecisionService;
 use PHPUnit\Framework\TestCase;
 
 require_once __DIR__ . '/InMemoryQuoteRepository.php';
+require_once dirname(__DIR__, 2) . '/modules/quotes/Service/QuoteProposalSendDecisionService.php';
 require_once dirname(__DIR__, 2) . '/modules/quotes/Admin/Controller.php';
 require_once dirname(__DIR__, 2) . '/modules/quotes/Admin/QuoteWorkspaceRenderer.php';
 
@@ -233,6 +235,8 @@ final class QuoteCommunicationReadinessUiTest extends TestCase
             'version_number' => 1,
             'pricing_confidence' => 'execution_verified',
             'availability_confidence' => 'confirmed',
+            'proposal_title' => 'Voorstel voor jullie dag',
+            'proposal_summary' => 'Een klantgericht voorstel met programma en prijs.',
         ));
         $quote = $repository->createQuote(array(
             'quote_reference' => 'Q-COMM-3',
@@ -271,6 +275,8 @@ final class QuoteCommunicationReadinessUiTest extends TestCase
             'version_number' => 2,
             'pricing_confidence' => 'snapshot',
             'availability_confidence' => 'projected',
+            'proposal_title' => 'Voorstel voor jullie dag',
+            'proposal_summary' => 'Een klantgericht voorstel met programma en prijs.',
         ));
         $quote = $repository->createQuote(array(
             'quote_reference' => 'Q-COMM-SENT',
@@ -410,6 +416,7 @@ final class QuoteCommunicationReadinessUiTest extends TestCase
         $inspectMethod = new \ReflectionMethod(Controller::class, 'inspectQuoteSendReadiness');
         $inspectMethod->setAccessible(true);
         $sendReadiness = $inspectMethod->invoke(null, (int) $quote['id'], $quote, $version, $repository);
+        $sendDecision = (new QuoteProposalSendDecisionService($repository))->decide((int) $quote['id']);
 
         $method = new \ReflectionMethod(Controller::class, 'buildQuoteCommunicationState');
         $method->setAccessible(true);
@@ -420,7 +427,8 @@ final class QuoteCommunicationReadinessUiTest extends TestCase
             $version,
             $repository->listQuoteMessages((int) $quote['id']),
             $repository->listQuoteAssumptions((int) $quote['id']),
-            $sendReadiness
+            $sendReadiness,
+            $sendDecision
         );
     }
 

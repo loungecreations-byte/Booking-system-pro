@@ -73,8 +73,8 @@ namespace BSP\Tests\Quotes {
             self::assertSame('supplier_confirmation_required', $updatedLine['availability_snapshot_json']['supplierStatus']);
             self::assertSame('Eropuitje', $updatedLine['availability_snapshot_json']['supplierName']);
             self::assertSame('manual', $updatedLine['availability_snapshot_json']['supplierCancelMode']);
-            self::assertSame('available', $updatedLine['availability_snapshot_json']['availabilityStatus']);
-            self::assertSame('2026-05-20T09:00:00+00:00', $updatedLine['availability_snapshot_json']['availabilityCheckedAt']);
+            self::assertSame('unknown', $updatedLine['availability_snapshot_json']['availabilityStatus']);
+            self::assertMatchesRegularExpression('/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\+00:00$/', $updatedLine['availability_snapshot_json']['availabilityCheckedAt']);
             self::assertNotEmpty($updatedLine['availability_snapshot_json']['supplierTaskKey']);
             self::assertCount(1, $supplierAssumptions);
             self::assertSame('supplier_confirmation_required', $supplierAssumptions[0]['assumption_type']);

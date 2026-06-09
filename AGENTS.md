@@ -98,10 +98,10 @@ If the user explicitly asks to implement:
 Use or replace the commands below with the real project commands.
 Keep this block updated.
 
-- Build planner: `[REPLACE_WITH_REAL_BUILD_COMMAND]`
-- Run JS tests: `[REPLACE_WITH_REAL_JS_TEST_COMMAND]`
-- Run PHP tests: `[REPLACE_WITH_REAL_PHP_TEST_COMMAND]`
-- Run smoke flow checks: `[REPLACE_WITH_REAL_SMOKE_COMMAND]`
+- Build planner: `cd app/public/wp-content/plugins/booking-pro-module && npm run build`
+- Run JS tests: `cd app/public/wp-content/plugins/booking-pro-module && node --test tests/js/planner-state.test.mjs`
+- Run PHP tests: `cd app/public/wp-content/plugins/booking-pro-module && php vendor/bin/phpunit --configuration tests/phpunit.xml.dist`
+- Run smoke flow checks: `cd app/public/wp-content/plugins/booking-pro-module && npm run test:e2e:mvp`
 
 Done means:
 - relevant build passes

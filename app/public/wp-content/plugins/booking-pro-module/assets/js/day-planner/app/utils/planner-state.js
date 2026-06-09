@@ -28,8 +28,8 @@ export function hasManualParticipantsOverride(item) {
   );
 }
 
-export function resolveParticipantsForItem(item, planParticipants, fallbackParticipants = 10) {
-  const fallback = toPlannerPositiveInt(fallbackParticipants) ?? 10;
+export function resolveParticipantsForItem(item, planParticipants, fallbackParticipants = null) {
+  const fallback = toPlannerPositiveInt(fallbackParticipants);
   const canonical = toPlannerPositiveInt(planParticipants) ?? fallback;
 
   if (hasManualParticipantsOverride(item)) {
@@ -39,23 +39,23 @@ export function resolveParticipantsForItem(item, planParticipants, fallbackParti
   return canonical;
 }
 
-export function buildInheritedParticipants(planParticipants, fallbackParticipants = 10) {
+export function buildInheritedParticipants(planParticipants, fallbackParticipants = null) {
   return {
-    participants: toPlannerPositiveInt(planParticipants) ?? toPlannerPositiveInt(fallbackParticipants) ?? 10,
+    participants: toPlannerPositiveInt(planParticipants) ?? toPlannerPositiveInt(fallbackParticipants),
     participants_override: false,
     participants_source: PARTICIPANTS_SOURCE_INHERITED,
   };
 }
 
-export function buildManualParticipants(participants, fallbackParticipants = 10) {
+export function buildManualParticipants(participants, fallbackParticipants = null) {
   return {
-    participants: toPlannerPositiveInt(participants) ?? toPlannerPositiveInt(fallbackParticipants) ?? 10,
+    participants: toPlannerPositiveInt(participants) ?? toPlannerPositiveInt(fallbackParticipants),
     participants_override: true,
     participants_source: PARTICIPANTS_SOURCE_MANUAL_OVERRIDE,
   };
 }
 
-export function applyParticipantsTruthToItem(item, planParticipants, fallbackParticipants = 10) {
+export function applyParticipantsTruthToItem(item, planParticipants, fallbackParticipants = null) {
   if (hasManualParticipantsOverride(item)) {
     return {
       ...item,

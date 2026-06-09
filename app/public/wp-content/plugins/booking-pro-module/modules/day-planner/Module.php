@@ -471,21 +471,23 @@ JS;
 }
 .sbdp-count-btn, .ui-planner-widget__count-btn {
     border-radius: 999px;
-    border: 1px solid var(--chip-hover-border, var(--ui-color-primary));
+    border: 1px solid var(--ui-color-primary);
     width: 38px;
     height: 38px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: var(--chip-bg, var(--ui-color-surface-2));
-    color: var(--fg, var(--ui-color-text));
+    text-align: center;
+    line-height: 1;
+    background: var(--ui-color-primary);
+    color: var(--ui-color-primary-contrast);
     transition: all 140ms ease;
     box-shadow: 0 8px 18px color-mix(in srgb, var(--ui-color-primary) 18%, transparent);
 }
 .sbdp-count-btn:hover, .ui-planner-widget__count-btn:hover {
-    background: var(--chip-hover-border, var(--ui-color-primary));
+    background: var(--ui-color-primary-hover);
     color: var(--ui-color-primary-contrast);
-    border-color: var(--chip-hover-border, var(--ui-color-primary));
+    border-color: var(--ui-color-primary-hover);
 }
 .sbdp-button--primary, .ui-planner-widget__btn {
     border-radius: 12px;

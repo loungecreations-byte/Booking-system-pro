@@ -8,6 +8,11 @@ function canAddProductToPlanner(product) {
   return product?.can_add_to_planner !== false;
 }
 
+function toPositiveParticipant(value) {
+  const parsed = Number.parseInt(value, 10);
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+}
+
 export default function ActivityLibrary({
   products,
   allProducts,
@@ -24,12 +29,7 @@ export default function ActivityLibrary({
   const [selectedDay, setSelectedDay] = useState(0);
   const [startTime, setStartTime] = useState("");
 
-  const totalParticipants = Math.max(
-    1,
-    parseInt(plan?.participants || plan?.participants === 0 ? plan.participants : 0, 10) ||
-      parseInt(plan?.participants, 10) ||
-      1
-  );
+  const totalParticipants = toPositiveParticipant(plan?.participants) ?? 1;
 
   const handleDragStart = (event, product) => {
     if (!event.dataTransfer) {

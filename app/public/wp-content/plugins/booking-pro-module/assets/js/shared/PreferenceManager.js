@@ -63,6 +63,16 @@ const VALID_AUDIENCES = Object.values(AUDIENCE_MAP);
 const VALID_DURATIONS = Object.keys(DURATION_MAP);
 
 class PreferenceManager {
+  static firstValidCount(...values) {
+    for (const value of values) {
+      const normalized = this.normalizeCount(value);
+      if (normalized) {
+        return normalized;
+      }
+    }
+    return null;
+  }
+
   /**
    * Normalize preferences from any source (widget, product page, URL)
    * @param {Object} raw - Raw preference data
@@ -75,7 +85,7 @@ class PreferenceManager {
 
     const normalized = {
       visitDate: this.normalizeDate(raw.visitDate || raw.date),
-      count: this.normalizeCount(raw.count || raw.participants || raw.people),
+      count: this.firstValidCount(raw.count, raw.participants, raw.people),
       duration: this.normalizeDuration(raw.duration),
       audience: this.normalizeAudience(raw.audience),
       vibe: this.normalizeVibe(raw.vibe || raw.style),

@@ -135,6 +135,21 @@ test("manual participants mark only the edited item as override", () => {
   assert.equal(overridden.participants_source, "manual_override");
 });
 
+test("participants helpers do not invent a fallback without canonical input", () => {
+  const inherited = buildInheritedParticipants(null);
+  const manual = buildManualParticipants("", null);
+  const resolved = resolveParticipantsForItem(
+    { id: "missing", participants_source: "inherited" },
+    null
+  );
+  const applied = applyParticipantsTruthToItem({ id: "missing" }, null);
+
+  assert.equal(inherited.participants, null);
+  assert.equal(manual.participants, null);
+  assert.equal(resolved, null);
+  assert.equal(applied.participants, null);
+});
+
 test("real item overlap is counted as direct checkout blocker input", () => {
   const timeToMinutes = (value) => {
     const [hours, minutes] = value.split(":").map((part) => Number.parseInt(part, 10));

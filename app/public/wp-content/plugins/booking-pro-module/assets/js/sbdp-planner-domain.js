@@ -32,6 +32,16 @@
     return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
   }
 
+  function firstPositiveInt() {
+    for (var index = 0; index < arguments.length; index += 1) {
+      var parsed = toPositiveInt(arguments[index]);
+      if (parsed !== null) {
+        return parsed;
+      }
+    }
+    return null;
+  }
+
   function sanitizeDate(value) {
     if (typeof value !== "string") {
       return "";
@@ -82,7 +92,7 @@
     var date = sanitizeDate(item && item.date) || "";
     var startTime = sanitizeTime(item && item.startTime) || "";
     var resourceId = toPositiveInt(item && (item.resourceId || item.resource_id)) || 0;
-    var participants = toPositiveInt(item && item.participants) || 1;
+    var participants = toPositiveInt(item && item.participants) || 0;
     var combiItems = item && item.options && Array.isArray(item.options.combiItems) ? item.options.combiItems : [];
     var combiIds = combiItems
       .map(function (entry) {
@@ -98,7 +108,7 @@
     raw = raw && typeof raw === "object" ? raw : {};
 
     var productId = toPositiveInt(raw.productId || raw.product_id) || 0;
-    var participants = toPositiveInt(raw.participants || raw.people) || 1;
+    var participants = firstPositiveInt(raw.participants, raw.people);
     var date = sanitizeDate(raw.date || raw.start_date);
     var time = sanitizeTime(raw.time || raw.start_time || (raw.timeslot && raw.timeslot.start));
     var resourceId = toPositiveInt(raw.resourceId || raw.resource_id) || 0;
@@ -139,7 +149,7 @@
     normalized.date = sanitizeDate(normalized.date || (normalized.plannerInput && normalized.plannerInput.date));
     normalized.startTime = sanitizeTime(normalized.startTime || normalized.start || (normalized.plannerInput && normalized.plannerInput.timeslot && normalized.plannerInput.timeslot.start));
     normalized.endTime = sanitizeTime(normalized.endTime || normalized.end || (normalized.plannerInput && normalized.plannerInput.timeslot && normalized.plannerInput.timeslot.end));
-    normalized.participants = toPositiveInt(normalized.participants) || 1;
+    normalized.participants = toPositiveInt(normalized.participants) || null;
     normalized.resourceId = toPositiveInt(normalized.resourceId || normalized.resource_id) || 0;
     normalized.resource_id = normalized.resourceId;
     normalized.durationMinutes = toPositiveInt(normalized.durationMinutes) || Math.max(0, timeToMinutes(normalized.endTime) - timeToMinutes(normalized.startTime));
@@ -177,7 +187,7 @@
     normalized.cartMapping = normalized.cartMapping && typeof normalized.cartMapping === "object" ? normalized.cartMapping : {};
     normalized.cartMapping.line_hash = normalized.plannerKey;
     normalized.cartMapping.product_id = normalized.productId;
-    normalized.cartMapping.quantity = normalized.participants;
+    normalized.cartMapping.quantity = normalized.participants !== null ? normalized.participants : 0;
 
     return normalized;
   }
@@ -241,8 +251,10 @@
     var safeItems = items.map(normalizePlanItem);
     var sortedDates = Array.from(new Set(safeItems.map(function (item) { return item.date; }).filter(Boolean))).sort();
     var days = sortedDates.map(function (date) { return { date: date }; });
-    var participants = toPositiveInt(context && context.participants) ||
-      toPositiveInt(safeItems[0] && safeItems[0].participants) || 1;
+    var participants = firstPositiveInt(
+      context && context.participants,
+      safeItems[0] && safeItems[0].participants
+    );
     var date = sanitizeDate(context && context.date) || sortedDates[0] || "";
     var summaryTotal = safeItems.reduce(function (total, item) {
       return total + roundCurrency(item.totalCost);
@@ -265,7 +277,7 @@
       },
       form: {
         date: date,
-        participants: String(participants),
+        participants: participants !== null ? String(participants) : "",
       },
       summary: {
         currency: currency,

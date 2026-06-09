@@ -156,10 +156,10 @@ function sbdp_legacy_product_planner_get_quote_url() {
 function sbdp_legacy_product_planner_get_booking_profile($product_id, $date, $time, $duration, $participants) {
     if (!class_exists('\BSPModule\Core\Services\BookingTruthRuntimeService')) {
         return array(
-            'status' => 'DIRECT',
-            'route_intent' => 'checkout',
-            'reason_code' => null,
-            'legacy_status' => 'DIRECT',
+            'status' => 'REQUEST',
+            'route_intent' => 'quote',
+            'reason_code' => 'booking_runtime_unavailable',
+            'legacy_status' => 'REQUEST',
         );
     }
 
@@ -317,16 +317,16 @@ function sbdp_render_product_planner_form($atts = array()) {
     $supplier_provider = strtolower(trim((string) get_post_meta($product_id, '_ddb_supplier_provider', true)));
     $booking_mode_profile = class_exists('\BSPModule\Core\Services\BookingModeService')
         ? (new \BSPModule\Core\Services\BookingModeService())->resolve((int) $product_id)
-        : array('bookingMode' => 'direct', 'routeIntent' => 'checkout', 'directBookable' => true);
-    $booking_mode = isset($booking_mode_profile['bookingMode']) ? (string) $booking_mode_profile['bookingMode'] : 'direct';
-    $booking_mode_route = isset($booking_mode_profile['routeIntent']) ? (string) $booking_mode_profile['routeIntent'] : 'checkout';
+        : array('bookingMode' => 'supplier_confirmation', 'routeIntent' => 'quote', 'directBookable' => false);
+    $booking_mode = isset($booking_mode_profile['bookingMode']) ? (string) $booking_mode_profile['bookingMode'] : 'supplier_confirmation';
+    $booking_mode_route = isset($booking_mode_profile['routeIntent']) ? (string) $booking_mode_profile['routeIntent'] : 'quote';
     $is_booking_mode_request_only = in_array($booking_mode, array('quote', 'supplier_confirmation'), true) || $booking_mode_route === 'quote';
     $is_booking_mode_blocked = $booking_mode === 'blocked' || $booking_mode_route === 'blocked';
     $is_eliio_request_only = $supplier_provider === 'eliio' || (int) $product_id === 115;
     $is_request_only = $is_booking_mode_request_only || $is_eliio_request_only || $is_booking_mode_blocked;
     $eliio_availability_url = function_exists('rest_url') ? rest_url('ddb/v1/supplier/eliio/availability') : '';
     $booking_profile = sbdp_legacy_product_planner_get_booking_profile($product_id, $today, '10:00', $main_duration, 10);
-    $route_intent = isset($booking_profile['route_intent']) ? (string) $booking_profile['route_intent'] : 'checkout';
+    $route_intent = isset($booking_profile['route_intent']) ? (string) $booking_profile['route_intent'] : 'blocked';
     if ($is_request_only) {
         $route_intent = $is_booking_mode_blocked ? 'blocked' : 'quote';
     }
@@ -765,7 +765,10 @@ function sbdp_render_product_planner_form($atts = array()) {
 
             function buildPlannerEntry() {
                 const plannerDomain = window.SBDPPlannerDomain || null;
-                const participants = parseInt(countInput.value, 10) || 1;
+                const parsedParticipants = parseInt(countInput.value, 10);
+                const participants = Number.isFinite(parsedParticipants) && parsedParticipants > 0
+                    ? parsedParticipants
+                    : null;
                 const resolvedCombis = activeCombisInput && activeCombisInput.value
                     ? JSON.parse(activeCombisInput.value)
                     : [];
@@ -811,9 +814,16 @@ function sbdp_render_product_planner_form($atts = array()) {
                 target.searchParams.set('sbdp_product', String(plannerEntry.productId || 0));
                 target.searchParams.set('sbdp_date', plannerEntry.date || '');
                 target.searchParams.set('sbdp_time', plannerEntry.time || '');
-                target.searchParams.set('sbdp_participants', String(plannerEntry.participants || 1));
+                if (plannerEntry.participants) {
+                    target.searchParams.set('sbdp_participants', String(plannerEntry.participants));
+                }
                 target.searchParams.set('sbdp_prefill', JSON.stringify(plannerEntry));
                 return target.toString();
+            }
+
+            function hasValidPlannerParticipants(plannerEntry) {
+                const participants = parseInt(plannerEntry && plannerEntry.participants, 10);
+                return Number.isFinite(participants) && participants > 0;
             }
 
             function buildIsoDateTime(dateValue, timeValue) {
@@ -872,7 +882,10 @@ function sbdp_render_product_planner_form($atts = array()) {
 
             function buildQuotePlanPayload(plannerEntry) {
                 const combiItems = Array.isArray(plannerEntry.combiItems) ? plannerEntry.combiItems : [];
-                const participantCount = parseInt(plannerEntry.participants, 10) || 1;
+                const participantCount = parseInt(plannerEntry.participants, 10);
+                if (!Number.isFinite(participantCount) || participantCount < 1) {
+                    throw new Error('participants_missing');
+                }
                 const endTime = addMinutes(plannerEntry.time || '', mainDuration);
                 const plannerItem = {
                     id: plannerEntry.traceId || ('product-' + String(plannerEntry.productId || productId || '')),
@@ -1013,6 +1026,10 @@ function sbdp_render_product_planner_form($atts = array()) {
                     alert('Kies eerst een datum en tijdslot.');
                     return;
                 }
+                if (!hasValidPlannerParticipants(plannerEntry)) {
+                    alert('Vul het aantal deelnemers in.');
+                    return;
+                }
 
                 if (!composeUrl || !composeNonce) {
                     window.location.href = buildPlannerRedirectUrl(getPlannerUrl(), plannerEntry);
@@ -1061,6 +1078,10 @@ function sbdp_render_product_planner_form($atts = array()) {
                     alert('Kies eerst een datum en tijdslot.');
                     return;
                 }
+                if (!hasValidPlannerParticipants(plannerEntry)) {
+                    alert('Vul het aantal deelnemers in.');
+                    return;
+                }
 
                 if (quoteButton) {
                     quoteButton.disabled = true;
@@ -1103,7 +1124,17 @@ function sbdp_render_product_planner_form($atts = array()) {
                     return;
                 }
 
-                const pax = parseInt(countInput.value, 10) || 1;
+                const parsedPax = parseInt(countInput.value, 10);
+                const pax = Number.isFinite(parsedPax) && parsedPax > 0 ? parsedPax : null;
+                if (!pax) {
+                    summaryPax.textContent = '0';
+                    summaryBasePrice.textContent = formatEuro(0);
+                    summaryTotal.textContent = '€ ' + formatEuro(0);
+                    if (summaryContext) {
+                        summaryContext.textContent = 'Vul het aantal deelnemers in.';
+                    }
+                    return;
+                }
                 const baseTime = timeInput.value;
                 let total = pax * productBasePrice;
                 forceEliioRequestOnly();
@@ -1246,6 +1277,10 @@ function sbdp_render_product_planner_form($atts = array()) {
 
                     if (!plannerEntry.productId || !plannerEntry.date || !plannerEntry.time) {
                         alert('Kies eerst een datum en tijdslot.');
+                        return;
+                    }
+                    if (!hasValidPlannerParticipants(plannerEntry)) {
+                        alert('Vul het aantal deelnemers in.');
                         return;
                     }
 

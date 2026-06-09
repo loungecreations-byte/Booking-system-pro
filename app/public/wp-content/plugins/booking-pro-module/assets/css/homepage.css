@@ -1323,4 +1323,34 @@ body.home .ddb-hp-step__icon {
   background: color-mix(in srgb, var(--ui-color-primary) 10%, var(--ui-color-surface));
 }
 
+body.home .ui-planner-widget .ui-planner-widget__count-btn,
+body.front-page .ui-planner-widget .ui-planner-widget__count-btn {
+  width: 34px;
+  height: 34px;
+  border: 1px solid var(--ui-color-primary);
+  border-radius: 999px;
+  background: var(--ui-color-primary);
+  color: var(--ui-color-primary-contrast);
+  box-shadow: 0 8px 18px color-mix(in srgb, var(--ui-color-primary) 18%, transparent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+}
+
+body.home .ui-planner-widget .ui-planner-widget__count-btn:hover,
+body.front-page .ui-planner-widget .ui-planner-widget__count-btn:hover {
+  border-color: var(--ui-color-primary-hover);
+  background: var(--ui-color-primary-hover);
+  color: var(--ui-color-primary-contrast);
+}
+
+@media (max-width: 767px) {
+  body.home #ddb-agent-widget-v3.ddb-widget,
+  body.front-page #ddb-agent-widget-v3.ddb-widget {
+    display: none;
+  }
+}
 
