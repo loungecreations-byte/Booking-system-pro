@@ -108,6 +108,8 @@ final class QuoteLineControlStatusServiceTest extends TestCase
             'version_number' => 1,
             'pricing_confidence' => 'unknown',
             'availability_confidence' => 'unknown',
+            'proposal_title' => 'Voorstel voor jullie dag',
+            'proposal_summary' => 'Een klantgericht voorstel met programma en prijs.',
         ));
         $quote = $repository->updateQuote((int) $quote['id'], array('current_version_id' => (int) $version['id']));
         $lines = $repository->replaceQuoteLines((int) $version['id'], array(

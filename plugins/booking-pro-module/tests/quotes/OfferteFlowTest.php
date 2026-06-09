@@ -90,6 +90,12 @@ final class OfferteFlowTest extends TestCase
         parent::setUp();
         $GLOBALS['__test_wc_products'] = array();
         $GLOBALS['__test_post_meta'] = array();
+        $GLOBALS['__booking_truth_meta'] = array();
+        $GLOBALS['__eliio_test_meta'] = array();
+        $GLOBALS['__ddb_supplier_confirmation_meta'] = array();
+        $GLOBALS['__ddb_supplier_request_draft_meta'] = array();
+        $GLOBALS['__ddb_booking_mode_meta'] = array();
+        $GLOBALS['__public_read_meta'] = array();
     }
 
     public function testSummaryCalculatesPerPersonLineTotalsAndGrandTotal(): void
@@ -457,7 +463,7 @@ final class OfferteFlowTest extends TestCase
     public function testSummaryFallsBackToWooTaxedPriceWhenResnapshotIsUnavailable(): void
     {
         $GLOBALS['__test_wc_products'][501] = new \WC_Product(12.5);
-        $GLOBALS['__test_post_meta'][501]['_sbdp_enable_people'] = 'yes';
+        $this->setProductMeta(501, '_sbdp_enable_people', 'yes');
 
         $service = new PlannerQuoteSummaryService();
         $summary = $service->buildViewModel(array(
@@ -491,7 +497,7 @@ final class OfferteFlowTest extends TestCase
     public function testSummaryFallsBackToWooTaxedGroupPriceWithoutParticipantScaling(): void
     {
         $GLOBALS['__test_wc_products'][502] = new \WC_Product(250.0);
-        $GLOBALS['__test_post_meta'][502]['_sbdp_enable_people'] = 'no';
+        $this->setProductMeta(502, '_sbdp_enable_people', 'no');
 
         $service = new PlannerQuoteSummaryService();
         $summary = $service->buildViewModel(array(
@@ -524,7 +530,7 @@ final class OfferteFlowTest extends TestCase
     public function testSummaryFallsBackToWooTaxedPriceWhenOnlyMaxPersonsMetaExists(): void
     {
         $GLOBALS['__test_wc_products'][503] = new \WC_Product(18.0);
-        $GLOBALS['__test_post_meta'][503]['_wc_booking_max_persons'] = '12';
+        $this->setProductMeta(503, '_wc_booking_max_persons', '12');
 
         $service = new PlannerQuoteSummaryService();
         $summary = $service->buildViewModel(array(
@@ -551,6 +557,23 @@ final class OfferteFlowTest extends TestCase
         $this->assertSame(18.0, $summary['items'][0]['unit_price']);
         $this->assertSame(144.0, $summary['items'][0]['line_total']);
         $this->assertSame(144.0, $summary['total']);
+    }
+
+    private function setProductMeta(int $productId, string $key, string $value): void
+    {
+        foreach (
+            array(
+                '__test_post_meta',
+                '__booking_truth_meta',
+                '__eliio_test_meta',
+                '__ddb_supplier_confirmation_meta',
+                '__ddb_supplier_request_draft_meta',
+                '__ddb_booking_mode_meta',
+                '__public_read_meta',
+            ) as $globalKey
+        ) {
+            $GLOBALS[$globalKey][$productId][$key] = $value;
+        }
     }
 
     public function testSummaryBackfillsScheduleFromDaySlotsAndSortsChronologically(): void

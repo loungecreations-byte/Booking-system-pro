@@ -9,7 +9,6 @@ import {
 import { emitPlannerEvent } from "../utils/telemetry.js";
 import { getLocalDateIso } from "../utils/time.js";
 
-const FALLBACK_PARTICIPANTS = 10;
 const FEATURED_PRESETS = getFeaturedPlannerPresets();
 const MIN_PARTICIPANTS = 1;
 
@@ -27,6 +26,16 @@ const DURATION_OPTIONS = [
   { value: "avond", label: "Avond" },
   { value: "hele-dag", label: "Hele dag" },
 ];
+
+function firstPositiveParticipant(...values) {
+  for (const value of values) {
+    const parsed = Number.parseInt(value, 10);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return parsed;
+    }
+  }
+  return null;
+}
 
 function findBestPreset(audience, duration) {
   const exact = PLANNER_PRESETS.find((p) => p.audience === audience && p.duration === duration);
@@ -53,7 +62,7 @@ export default function InfoStep() {
   const [selectedAudience, setSelectedAudience] = useState("vrienden");
   const [selectedDuration, setSelectedDuration] = useState("hele-dag");
   const [selectedPreset, setSelectedPreset] = useState(() => findBestPreset("vrienden", "hele-dag"));
-  const [participantInput, setParticipantInput] = useState(String(FALLBACK_PARTICIPANTS));
+  const [participantInput, setParticipantInput] = useState("");
   const [isParticipantEditing, setIsParticipantEditing] = useState(false);
   const participantInteractionRef = useRef(false);
   const pendingThemeRef = useRef(null);
@@ -63,10 +72,10 @@ export default function InfoStep() {
 
   const firstPlanDate = plan?.days?.[0]?.date;
   const initialDate = form.date || firstPlanDate || today;
-  const initialParticipants =
-    form.participants ||
-    config?.default_participants ||
-    FALLBACK_PARTICIPANTS;
+  const initialParticipants = firstPositiveParticipant(
+    form.participants,
+    config?.default_participants
+  );
 
   useEffect(() => {
     if (!form.date && firstPlanDate) {
@@ -80,10 +89,9 @@ export default function InfoStep() {
     }
   }, [form.participants, initialParticipants, setFormField]);
 
-  const participantValue = Math.max(
-    MIN_PARTICIPANTS,
-    Number.parseInt(form.participants || initialParticipants, 10) || MIN_PARTICIPANTS
-  );
+  const participantValue =
+    firstPositiveParticipant(form.participants, initialParticipants, participantInput) ||
+    MIN_PARTICIPANTS;
 
   useEffect(() => {
     if (!isParticipantEditing) {

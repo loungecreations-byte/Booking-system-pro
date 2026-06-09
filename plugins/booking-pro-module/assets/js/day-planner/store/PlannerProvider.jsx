@@ -89,7 +89,7 @@ const ACTIONS = {
 
 const PREFILL_LOCK_DEFAULT = false;
 const DEFAULT_START_TIME = "09:00";
-const DEFAULT_PARTICIPANTS = 10;
+const DEFAULT_PARTICIPANTS = null;
 const BOOKING_CAPABILITY_DIRECT = "DIRECT_ELIGIBLE";
 const BOOKING_CAPABILITY_REQUEST = "REQUEST_ONLY";
 const PLAN_CHECKOUT_DIRECT = "DIRECT_ELIGIBLE";
@@ -1192,7 +1192,7 @@ const initialState = {
   timeOptions: [],
   form: {
     date: "",
-    participants: String(DEFAULT_PARTICIPANTS),
+    participants: "",
   },
   filters: { ...DEFAULT_FILTERS },
   planRange: DEFAULT_PLAN_RANGE,
@@ -3297,7 +3297,7 @@ function normalisePlanResponse(planPayload, existingState = initialState) {
     },
     form: {
       date: formDate,
-      participants: String(participants ?? DEFAULT_PARTICIPANTS),
+      participants: participants ? String(participants) : "",
     },
     summary,
   };
@@ -3522,7 +3522,11 @@ export function PlannerProvider({ bootConfig, children }) {
         return null;
       }
 
-      const normalizedParticipants = Math.max(1, parseInt(participants, 10) || DEFAULT_PARTICIPANTS);
+      const normalizedParticipants = toPositiveInt(participants);
+      if (normalizedParticipants === null) {
+        setAvailabilityIssue("Aantal deelnemers ontbreekt voor de beschikbaarheidscontrole.");
+        return null;
+      }
       const normalizedResourceId = toPositiveInt(resourceId ?? product?.resource_id ?? product?.resourceId) ?? 0;
       const cacheKey = [
         productId,
@@ -4204,7 +4208,7 @@ export function PlannerProvider({ bootConfig, children }) {
 
     if (
       explicitParticipants !== null &&
-      String(state.form.participants || "") !== String(explicitParticipants)
+      String(state.form.participants ?? "") !== String(explicitParticipants)
     ) {
       dispatch({
         type: ACTIONS.SET_FORM_FIELD,
@@ -4255,7 +4259,7 @@ export function PlannerProvider({ bootConfig, children }) {
     const currentParticipants = selectCanonicalParticipants(stateRef.current, { allowFormFallback: true });
     const currentValue = Number.isFinite(currentParticipants) && currentParticipants > 0
       ? currentParticipants
-      : DEFAULT_PARTICIPANTS;
+      : 1;
 
     let rawValue = typeof value === "string" ? value.trim() : "";
 
@@ -4817,8 +4821,14 @@ export function PlannerProvider({ bootConfig, children }) {
       const hasParticipantChange = participants != null;
       let nextParticipants =
         hasParticipantChange
-          ? Math.max(1, parseInt(participants, 10) || DEFAULT_PARTICIPANTS)
-          : item.participants ?? DEFAULT_PARTICIPANTS;
+          ? toPositiveInt(participants)
+          : toPositiveInt(item.participants);
+
+      if (nextParticipants === null) {
+        showToast("Aantal deelnemers ontbreekt.");
+        emitUpdateEvent("error", { reason: "participants_missing" });
+        return false;
+      }
 
       if (hasStartTimeChange) {
         nextStart = timeToMinutes(startTime);
@@ -4996,7 +5006,7 @@ export function PlannerProvider({ bootConfig, children }) {
     }
 
     const planSignature = state.plan.items
-      .map((item) => `${item.id}:${item.startTime || ""}:${item.participants || ""}`)
+      .map((item) => `${item.id}:${item.startTime || ""}:${item.participants ?? ""}`)
       .join("|");
 
     if (!planSignature || availabilityReconciledRef.current.has(planSignature)) {

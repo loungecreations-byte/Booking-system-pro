@@ -103,6 +103,8 @@ final class QuoteSendReadinessValidatorTest extends TestCase
             'version_number' => 1,
             'pricing_confidence' => 'snapshot',
             'availability_confidence' => 'projected',
+            'proposal_title' => 'Voorstel voor jullie dag',
+            'proposal_summary' => 'Een klantgericht voorstel met programma en prijs.',
         ));
         $quote = $repository->createQuote(array(
             'quote_reference' => 'Q-WOO-1',
@@ -260,6 +262,8 @@ final class QuoteSendReadinessValidatorTest extends TestCase
                     'currency' => 'EUR',
                 ),
             ),
+            'proposal_title' => 'Voorstel voor jullie dag',
+            'proposal_summary' => 'Een klantgericht voorstel met programma en prijs.',
         ));
         $quote = $repository->createQuote(array(
             'quote_reference' => 'Q-DISCOUNT-1',
@@ -300,6 +304,8 @@ final class QuoteSendReadinessValidatorTest extends TestCase
             'version_number' => 1,
             'pricing_confidence' => 'snapshot',
             'availability_confidence' => 'projected',
+            'proposal_title' => 'Voorstel voor jullie dag',
+            'proposal_summary' => 'Een klantgericht voorstel met programma en prijs.',
         ));
         $quote = $repository->createQuote(array_merge(array(
             'quote_reference' => 'Q-SEND-GUARD',

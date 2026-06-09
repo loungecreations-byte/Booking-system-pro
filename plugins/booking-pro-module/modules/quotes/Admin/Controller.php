@@ -1097,7 +1097,7 @@ final class Controller
     private static function summarizeQuoteLines(array $lines, ?array $currentVersion): array { return QuoteWorkspaceRenderer::summarizeQuoteLines($lines, $currentVersion); }
     private static function inspectQuoteSendReadiness(int $quoteId, array $quote, ?array $currentVersion, QuoteRepositoryInterface $repository): array { return QuoteWorkspaceRenderer::inspectQuoteSendReadiness($quoteId, $quote, $currentVersion, $repository); }
     private static function buildQuoteOverviewRows(QuoteRepositoryInterface $repository, array $quotes): array { return QuoteWorkspaceRenderer::buildQuoteOverviewRows($repository, $quotes); }
-    private static function buildQuoteCommunicationState(array $quote, ?array $currentVersion, array $messages, array $assumptions, array $sendReadiness): array { return QuoteWorkspaceRenderer::buildQuoteCommunicationState($quote, $currentVersion, $messages, $assumptions, $sendReadiness); }
+    private static function buildQuoteCommunicationState(array $quote, ?array $currentVersion, array $messages, array $assumptions, array $sendReadiness, array $sendDecision = array()): array { return QuoteWorkspaceRenderer::buildQuoteCommunicationState($quote, $currentVersion, $messages, $assumptions, $sendReadiness, $sendDecision); }
     private static function buildCommercialIntakeNoticeState(array $lines, array $followups, array $assumptions): array { return QuoteWorkspaceRenderer::buildCommercialIntakeNoticeState($lines, $followups, $assumptions); }
     private static function normalizeWorkspaceTab(string $tab, string $default = 'dashboard'): string {
         $tab = sanitize_key($tab);

@@ -90,6 +90,8 @@ final class QuoteOverviewDashboardTest extends TestCase
             'version_number' => 1,
             'pricing_confidence' => 'execution_verified',
             'availability_confidence' => 'confirmed',
+            'proposal_title' => 'Voorstel voor jullie dag',
+            'proposal_summary' => 'Een klantgericht voorstel met programma en prijs.',
         ));
         $assumptionQuote = $repository->createQuote(array(
             'quote_reference' => 'Q-ASSUMPTION',
@@ -132,6 +134,8 @@ final class QuoteOverviewDashboardTest extends TestCase
             'version_number' => 1,
             'pricing_confidence' => 'execution_verified',
             'availability_confidence' => 'confirmed',
+            'proposal_title' => 'Voorstel voor jullie dag',
+            'proposal_summary' => 'Een klantgericht voorstel met programma en prijs.',
         ));
         $repository->createQuote(array(
             'quote_reference' => 'Q-READY',
@@ -246,7 +250,7 @@ final class QuoteOverviewDashboardTest extends TestCase
 
         $this->assertStringContainsString('Prijs: richtprijs', $text);
         $this->assertStringContainsString('Beschikbaarheid: nog bevestigen', $text);
-        $this->assertStringContainsString('Versturen geblokkeerd', $text);
+        $this->assertStringContainsString('Nog nodig', $text);
         $this->assertStringContainsString('4 punten open', $text);
         $this->assertStringNotContainsString('Verzendklaar', $text);
         $this->assertStringNotContainsString('Prijzen bevestigd', $text);
@@ -277,9 +281,9 @@ final class QuoteOverviewDashboardTest extends TestCase
         );
 
         $this->assertSame('tab_link', $action['cta']);
-        $this->assertSame('dashboard', $action['tab']);
+        $this->assertSame('build', $action['tab']);
         $this->assertSame('quote-blockers-card', $action['anchor']);
-        $this->assertSame('Blockers oplossen', $action['title']);
+        $this->assertSame('Los blockers op', $action['title']);
     }
 
     public function testHandoffActionOnlyAppearsForAcceptedQuoteWithApprovedVersion(): void

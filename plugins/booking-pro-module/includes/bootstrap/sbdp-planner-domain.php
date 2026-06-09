@@ -415,11 +415,12 @@ if (! class_exists('SBDP_Planner_Domain_Service')) {
                 : [];
 
             $availability = [
-                'available'             => true,
-                'selectedSlotAvailable' => true,
+                'available'             => false,
+                'selectedSlotAvailable' => false,
                 'slots'                 => [],
                 'resourceId'            => (int) ($summary['resource_id'] ?? 0),
                 'capacity'              => max(1, (int) ($summary['participants'] ?? 1)),
+                'reason'                => 'cart_restore_unverified',
             ];
 
             $plan_item = self::build_plan_item($planner_input, $product, $pricing, $availability, self::build_constraints($product_id));

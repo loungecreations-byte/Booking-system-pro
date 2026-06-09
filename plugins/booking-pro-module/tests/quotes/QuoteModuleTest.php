@@ -692,9 +692,9 @@ final class QuoteModuleTest extends TestCase
         $draft = $communication->generateProposalDraft((int) $quote['id'], 61);
         $body = (string) ($draft['body'] ?? '');
 
-        $this->assertStringContainsString('Referentie voor uw reactie: ' . (string) ($quote['quote_reference'] ?? ''), $body);
-        $this->assertStringContainsString('Prijs in deze versie blijft onder voorbehoud', $body);
-        $this->assertStringContainsString('Beschikbaarheid blijft expliciet onder voorbehoud', $body);
+        $this->assertStringContainsString('Referentie: ' . (string) ($quote['quote_reference'] ?? ''), $body);
+        $this->assertStringContainsString('Totaal voorstelbedrag: op aanvraag', $body);
+        $this->assertStringContainsString('De beschikbaarheid en definitieve bevestiging blijven onder voorbehoud', $body);
         $this->assertStringNotContainsString('Quote token', $body);
         $this->assertStringNotContainsString('snapshot', $body);
         $this->assertStringNotContainsString('execution-laag', $body);
@@ -750,7 +750,11 @@ final class QuoteModuleTest extends TestCase
 
         $draft = $communication->generateProposalDraft((int) $quote['id'], 73);
 
-        $this->assertStringContainsString('- Stadswandeling - 2026-07-03 13:00-14:30 - Gids Engels | Borrel na afloop - 6 deelnemers', (string) ($draft['body'] ?? ''));
+        $body = (string) ($draft['body'] ?? '');
+        $this->assertStringContainsString('- Stadswandeling', $body);
+        $this->assertStringContainsString('Tijd: 2026-07-03 13:00-14:30', $body);
+        $this->assertStringContainsString('Optie: Gids Engels | Borrel na afloop', $body);
+        $this->assertStringContainsString('Aantal personen: 6', $body);
     }
 
     public function testProposalEmailCannotBeSentBeforeApprovedReviewAndReadyToSend(): void
@@ -1735,6 +1739,10 @@ final class QuoteModuleTest extends TestCase
             ),
         ));
         $quote = $conversion->convertRequestToQuote((int) $request['id'], 4);
+        $repository->updateQuoteVersion((int) ($quote['current_version_id'] ?? 0), array(
+            'proposal_title' => 'Voorstel voor jullie kookworkshop',
+            'proposal_summary' => 'Een klantgericht voorstel met programma, tijd en prijs.',
+        ));
         $reviews->approve((int) $quote['id'], 4);
         $ready = $conversion->markReadyForResnapshot((int) $quote['id'], 4);
         $result = $handoff->prepareResnapshot((int) $ready['id'], 4);
@@ -1802,6 +1810,10 @@ final class QuoteModuleTest extends TestCase
             ),
         ));
         $quote = $conversion->convertRequestToQuote((int) $request['id'], 4);
+        $repository->updateQuoteVersion((int) ($quote['current_version_id'] ?? 0), array(
+            'proposal_title' => 'Voorstel voor jullie kookworkshop',
+            'proposal_summary' => 'Een klantgericht voorstel met programma, tijd en prijs.',
+        ));
         $reviews->approve((int) $quote['id'], 4);
         $ready = $conversion->markReadyForResnapshot((int) $quote['id'], 4);
         $result = $handoff->prepareResnapshot((int) $ready['id'], 4);

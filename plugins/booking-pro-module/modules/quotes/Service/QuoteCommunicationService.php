@@ -821,6 +821,14 @@ final class QuoteCommunicationService
 
     private function assertProposalSendAllowed(int $quoteId, array $quote): void
     {
+        if ((string) ($quote['review_status'] ?? 'not_started') !== 'approved') {
+            throw new InvalidArgumentException($this->t('Een voorstelmail kan pas worden verstuurd na goedgekeurde review.'));
+        }
+
+        if ((string) ($quote['send_status'] ?? 'not_ready') !== 'ready_to_send') {
+            throw new InvalidArgumentException($this->t('Een voorstelmail kan pas worden verstuurd wanneer de offerte klaarstaat voor verzending.'));
+        }
+
         (new QuoteSendReadinessValidator($this->repository))->assertReadyToSend($quoteId);
 
         foreach ($this->repository->listQuoteAssumptions($quoteId) as $assumption) {

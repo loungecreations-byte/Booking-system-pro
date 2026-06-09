@@ -15,8 +15,11 @@ use BSP\Quotes\Service\QuoteRequestService;
 use Throwable;
 
 use function absint;
+use function checked;
 use function esc_attr;
+use function esc_attr_e;
 use function esc_html;
+use function esc_textarea;
 use function esc_url;
 use function get_bloginfo;
 use function get_current_user_id;
@@ -31,6 +34,7 @@ use function maybe_unserialize;
 use function number_format;
 use function sanitize_email;
 use function sanitize_text_field;
+use function sanitize_textarea_field;
 use function shortcode_atts;
 use function wp_create_nonce;
 use function wp_mail;
@@ -123,9 +127,15 @@ final class OfferteForm
         $formUrl = isset($_SERVER['REQUEST_URI'])
             ? esc_url(home_url(wp_unslash((string) $_SERVER['REQUEST_URI'])))
             : '';
-        $nameValue  = self::postedField('name');
-        $emailValue = self::postedField('email');
-        $phoneValue = self::postedField('phone');
+        $voornaamValue    = self::postedField('voornaam');
+        $achternaamValue = self::postedField('achternaam');
+        $emailValue      = self::postedField('email');
+        $phoneValue      = self::postedField('phone');
+        $woonplaatsValue = self::postedField('woonplaats');
+        $opmerkingValue  = self::postedField('opmerking');
+        $isCompany       = self::postedField('is_company') === '1';
+        $bedrijfValue    = self::postedField('bedrijfsnaam');
+        $referentieValue = self::postedField('referentiecode');
 
         ob_start();
         ?>
@@ -231,49 +241,160 @@ final class OfferteForm
 
                             <?php wp_nonce_field(self::NONCE_ACTION, self::NONCE_KEY); ?>
 
+                            <!-- Bedrijf toggle -->
+                            <div class="sbdp-offerte-form__toggle-row">
+                                <input
+                                    class="sbdp-offerte-form__toggle-input"
+                                    type="checkbox"
+                                    id="sbdp-offerte-is-company"
+                                    name="sbdp_offerte[is_company]"
+                                    value="1"
+                                    <?php checked($isCompany); ?>
+                                />
+                                <label class="sbdp-offerte-form__toggle-track" for="sbdp-offerte-is-company"></label>
+                                <label class="sbdp-offerte-form__toggle-label" for="sbdp-offerte-is-company">
+                                    <?php esc_html_e('Bedrijf', 'sbdp'); ?>
+                                </label>
+                            </div>
+
+                            <!-- Bedrijfsvelden (alleen zichtbaar als Bedrijf aan staat) -->
+                            <div class="sbdp-offerte-form__row-grid sbdp-offerte-company-only" style="<?php echo $isCompany ? '' : 'display:none'; ?>">
+                                <div class="sbdp-offerte-form__row ddb-field">
+                                    <label class="sbdp-offerte-form__label ddb-field__label" for="sbdp-offerte-bedrijfsnaam">
+                                        <?php esc_html_e('Bedrijfsnaam', 'sbdp'); ?> <abbr title="verplicht">*</abbr>
+                                    </label>
+                                    <input
+                                        class="sbdp-offerte-form__input ddb-input"
+                                        type="text"
+                                        id="sbdp-offerte-bedrijfsnaam"
+                                        name="sbdp_offerte[bedrijfsnaam]"
+                                        value="<?php echo esc_attr($bedrijfValue); ?>"
+                                        autocomplete="organization"
+                                    />
+                                </div>
+                                <div class="sbdp-offerte-form__row ddb-field">
+                                    <label class="sbdp-offerte-form__label ddb-field__label" for="sbdp-offerte-referentiecode">
+                                        <?php esc_html_e('Referentiecode', 'sbdp'); ?>
+                                    </label>
+                                    <input
+                                        class="sbdp-offerte-form__input ddb-input"
+                                        type="text"
+                                        id="sbdp-offerte-referentiecode"
+                                        name="sbdp_offerte[referentiecode]"
+                                        value="<?php echo esc_attr($referentieValue); ?>"
+                                        placeholder="bijv. REF-2025-001"
+                                    />
+                                </div>
+                            </div>
+
+                            <!-- Naam (2-col) -->
+                            <div class="sbdp-offerte-form__row-grid">
+                                <div class="sbdp-offerte-form__row ddb-field">
+                                    <label class="sbdp-offerte-form__label ddb-field__label" for="sbdp-offerte-voornaam">
+                                        <?php esc_html_e('Voornaam', 'sbdp'); ?> <abbr title="verplicht">*</abbr>
+                                    </label>
+                                    <input
+                                        class="sbdp-offerte-form__input ddb-input"
+                                        type="text"
+                                        id="sbdp-offerte-voornaam"
+                                        name="sbdp_offerte[voornaam]"
+                                        value="<?php echo esc_attr($voornaamValue); ?>"
+                                        required
+                                        autocomplete="given-name"
+                                    />
+                                </div>
+                                <div class="sbdp-offerte-form__row ddb-field">
+                                    <label class="sbdp-offerte-form__label ddb-field__label" for="sbdp-offerte-achternaam">
+                                        <?php esc_html_e('Achternaam', 'sbdp'); ?> <abbr title="verplicht">*</abbr>
+                                    </label>
+                                    <input
+                                        class="sbdp-offerte-form__input ddb-input"
+                                        type="text"
+                                        id="sbdp-offerte-achternaam"
+                                        name="sbdp_offerte[achternaam]"
+                                        value="<?php echo esc_attr($achternaamValue); ?>"
+                                        required
+                                        autocomplete="family-name"
+                                    />
+                                </div>
+                            </div>
+
+                            <!-- E-mail + Telefoon (2-col) -->
+                            <div class="sbdp-offerte-form__row-grid">
+                                <div class="sbdp-offerte-form__row ddb-field">
+                                    <label class="sbdp-offerte-form__label ddb-field__label" for="sbdp-offerte-email">
+                                        <?php esc_html_e('E-mail', 'sbdp'); ?> <abbr title="verplicht">*</abbr>
+                                    </label>
+                                    <input
+                                        class="sbdp-offerte-form__input ddb-input"
+                                        type="email"
+                                        id="sbdp-offerte-email"
+                                        name="sbdp_offerte[email]"
+                                        value="<?php echo esc_attr($emailValue); ?>"
+                                        required
+                                        autocomplete="email"
+                                    />
+                                </div>
+                                <div class="sbdp-offerte-form__row ddb-field">
+                                    <label class="sbdp-offerte-form__label ddb-field__label" for="sbdp-offerte-phone">
+                                        <?php esc_html_e('Telefoonnummer', 'sbdp'); ?> <abbr title="verplicht">*</abbr>
+                                    </label>
+                                    <input
+                                        class="sbdp-offerte-form__input ddb-input"
+                                        type="tel"
+                                        id="sbdp-offerte-phone"
+                                        name="sbdp_offerte[phone]"
+                                        value="<?php echo esc_attr($phoneValue); ?>"
+                                        required
+                                        autocomplete="tel"
+                                    />
+                                </div>
+                            </div>
+
+                            <!-- Woonplaats -->
                             <div class="sbdp-offerte-form__row ddb-field">
-                                <label class="sbdp-offerte-form__label ddb-field__label" for="sbdp-offerte-name">
-                                    <?php esc_html_e('Naam', 'sbdp'); ?> <abbr title="verplicht">*</abbr>
+                                <label class="sbdp-offerte-form__label ddb-field__label" for="sbdp-offerte-woonplaats">
+                                    <?php esc_html_e('Woonplaats', 'sbdp'); ?>
                                 </label>
                                 <input
                                     class="sbdp-offerte-form__input ddb-input"
                                     type="text"
-                                    id="sbdp-offerte-name"
-                                    name="sbdp_offerte[name]"
-                                    value="<?php echo esc_attr($nameValue); ?>"
-                                    required
-                                    autocomplete="name"
+                                    id="sbdp-offerte-woonplaats"
+                                    name="sbdp_offerte[woonplaats]"
+                                    value="<?php echo esc_attr($woonplaatsValue); ?>"
+                                    autocomplete="address-level2"
                                 />
                             </div>
 
+                            <!-- Opmerking -->
                             <div class="sbdp-offerte-form__row ddb-field">
-                                <label class="sbdp-offerte-form__label ddb-field__label" for="sbdp-offerte-email">
-                                    <?php esc_html_e('E-mailadres', 'sbdp'); ?> <abbr title="verplicht">*</abbr>
+                                <label class="sbdp-offerte-form__label ddb-field__label" for="sbdp-offerte-opmerking">
+                                    <?php esc_html_e('Opmerking', 'sbdp'); ?>
                                 </label>
-                                <input
+                                <textarea
                                     class="sbdp-offerte-form__input ddb-input"
-                                    type="email"
-                                    id="sbdp-offerte-email"
-                                    name="sbdp_offerte[email]"
-                                    value="<?php echo esc_attr($emailValue); ?>"
-                                    required
-                                    autocomplete="email"
-                                />
+                                    id="sbdp-offerte-opmerking"
+                                    name="sbdp_offerte[opmerking]"
+                                    rows="4"
+                                    placeholder="<?php esc_attr_e('Heb je speciale wensen of details die je ons wilt laten weten?', 'sbdp'); ?>"
+                                ><?php echo esc_textarea($opmerkingValue); ?></textarea>
                             </div>
 
-                            <div class="sbdp-offerte-form__row ddb-field">
-                                <label class="sbdp-offerte-form__label ddb-field__label" for="sbdp-offerte-phone">
-                                    <?php esc_html_e('Telefoonnummer', 'sbdp'); ?>
-                                </label>
-                                <input
-                                    class="sbdp-offerte-form__input ddb-input"
-                                    type="tel"
-                                    id="sbdp-offerte-phone"
-                                    name="sbdp_offerte[phone]"
-                                    value="<?php echo esc_attr($phoneValue); ?>"
-                                    autocomplete="tel"
-                                />
-                            </div>
+                            <script>
+                            (function(){
+                                var toggle = document.getElementById('sbdp-offerte-is-company');
+                                var companyFields = document.querySelectorAll('.sbdp-offerte-company-only');
+                                function updateVisibility(){
+                                    companyFields.forEach(function(el){ el.hidden = !toggle.checked; });
+                                }
+                                toggle.addEventListener('change', updateVisibility);
+                                function updateVisibility(){
+                                    companyFields.forEach(function(el){
+                                        el.style.display = toggle.checked ? '' : 'none';
+                                    });
+                                }
+                            })();
+                            </script>
 
                             <div class="sbdp-offerte-form__submit">
                                 <button type="submit" class="button wp-element-button sbdp-offerte-form__btn ddb-button ddb-button--primary">
@@ -407,6 +528,13 @@ final class OfferteForm
             if (! empty($contact['phone'])) {
                 $adminMessage .= "\n" . sprintf(__('Telefoon: %s', 'sbdp'), (string) $contact['phone']);
             }
+            if (! empty($contact['company'])) {
+                $adminMessage .= "\n" . sprintf(__('Bedrijf: %s', 'sbdp'), (string) $contact['company']);
+            }
+            $address = isset($contact['address']) && is_array($contact['address']) ? $contact['address'] : array();
+            if (! empty($address['city'])) {
+                $adminMessage .= "\n" . sprintf(__('Woonplaats: %s', 'sbdp'), (string) $address['city']);
+            }
             if ($requestReference !== '') {
                 $adminMessage .= "\n" . sprintf(__('Aanvraagreferentie: %s', 'sbdp'), $requestReference);
             }
@@ -456,28 +584,65 @@ final class OfferteForm
 
     /**
      * @param array<string, mixed> $raw
-     * @return array<string, string>
+     * @return array<string, mixed>
      */
     private static function sanitizeContactInput(array $raw): array
     {
+        $voornaam     = sanitize_text_field(wp_unslash((string) ($raw['voornaam'] ?? '')));
+        $achternaam   = sanitize_text_field(wp_unslash((string) ($raw['achternaam'] ?? '')));
+        $bedrijfsnaam = sanitize_text_field(wp_unslash((string) ($raw['bedrijfsnaam'] ?? '')));
+        $referentie   = sanitize_text_field(wp_unslash((string) ($raw['referentiecode'] ?? '')));
+        $woonplaats   = sanitize_text_field(wp_unslash((string) ($raw['woonplaats'] ?? '')));
+        $opmerking    = sanitize_textarea_field(wp_unslash((string) ($raw['opmerking'] ?? '')));
+        $isCompany    = ! empty($raw['is_company']);
+
+        $messageParts = array();
+        if ($referentie !== '') {
+            $messageParts[] = 'Referentiecode: ' . $referentie;
+        }
+        if ($opmerking !== '') {
+            $messageParts[] = $opmerking;
+        }
+
         return array(
-            'name'  => sanitize_text_field(wp_unslash((string) ($raw['name'] ?? ''))),
-            'email' => sanitize_email(wp_unslash((string) ($raw['email'] ?? ''))),
-            'phone' => sanitize_text_field(wp_unslash((string) ($raw['phone'] ?? ''))),
+            'name'       => trim($voornaam . ' ' . $achternaam),
+            'voornaam'   => $voornaam,
+            'achternaam' => $achternaam,
+            'email'      => sanitize_email(wp_unslash((string) ($raw['email'] ?? ''))),
+            'phone'      => sanitize_text_field(wp_unslash((string) ($raw['phone'] ?? ''))),
+            'company'    => $isCompany ? $bedrijfsnaam : '',
+            'address'    => $woonplaats !== '' ? array('city' => $woonplaats) : array(),
+            'message'    => implode("\n", $messageParts),
+            'is_company' => $isCompany,
+            'woonplaats' => $woonplaats,
         );
     }
 
     /**
-     * @param array<string, string> $contact
+     * @param array<string, mixed> $contact
      */
     private static function validateContactInput(array $contact): ?string
     {
-        if (trim((string) ($contact['name'] ?? '')) === '') {
-            return __('Vul jullie naam in.', 'sbdp');
+        $name = trim((string) ($contact['name'] ?? ''));
+        if ($name === '') {
+            $voornaam = trim((string) ($contact['voornaam'] ?? ''));
+            $achternaam = trim((string) ($contact['achternaam'] ?? ''));
+
+            if ($voornaam === '') {
+                return __('Vul jullie naam in.', 'sbdp');
+            }
+
+            if ($achternaam === '') {
+                return __('Vul je achternaam in.', 'sbdp');
+            }
         }
 
         if (! is_email((string) ($contact['email'] ?? ''))) {
             return __('Vul een geldig e-mailadres in.', 'sbdp');
+        }
+
+        if (! empty($contact['is_company']) && trim((string) ($contact['company'] ?? '')) === '') {
+            return __('Vul de bedrijfsnaam in.', 'sbdp');
         }
 
         return null;
@@ -485,7 +650,7 @@ final class OfferteForm
 
     private static function postedField(string $key): string
     {
-        $raw = is_array($_POST['sbdp_offerte'] ?? null) ? $_POST['sbdp_offerte'] : array();
+        $raw = is_array($_POST['sbdp_offerte'] ?? null) ? $_POST['sbdp_offerte'] : array(); // phpcs:ignore WordPress.Security.NonceVerification.Missing
         return isset($raw[$key]) ? (string) $raw[$key] : '';
     }
 

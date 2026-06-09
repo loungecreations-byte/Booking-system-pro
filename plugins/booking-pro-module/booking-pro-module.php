@@ -5,7 +5,7 @@
  * Plugin URI:        https://owncreations.com
  * Description:       WooCommerce plannings- en boekingsmodule met resources, capaciteiten,
  *                    prijsregels en verbeterde e-mailflows.
- * Version:           4.23.19
+ * Version:           4.23.20
  * Author:            Own Creations
  * Text Domain:       sbdp
  * License: GPLv2 or later
@@ -130,7 +130,7 @@ if ($missingFiles !== array()) {
 define('SBDP_FILE', __FILE__);
 define('SBDP_DIR', rtrim($pluginDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR);
 define('SBDP_URL', plugin_dir_url(__FILE__));
-define('SBDP_VER', '4.23.19');
+define('SBDP_VER', '4.23.22');
 if (! defined('SBDP_DISABLE_DEMO_SEEDS')) {
     define('SBDP_DISABLE_DEMO_SEEDS', true);
 }

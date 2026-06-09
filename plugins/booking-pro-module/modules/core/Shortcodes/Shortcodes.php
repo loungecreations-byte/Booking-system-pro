@@ -415,8 +415,8 @@ final class Shortcodes
 						}
 
 						const routeIntent = runtime.route_intent || runtime.routeIntent || null;
-						if (routeIntent === 'checkout') {
-							return runtime.checkout_url || runtime.checkoutUrl || null;
+						if (routeIntent === 'planner') {
+							return runtime.planner_url || runtime.plannerUrl || null;
 						}
 						if (routeIntent === 'quote') {
 							return runtime.quote_url || runtime.quoteUrl || null;
@@ -665,8 +665,8 @@ final class Shortcodes
             }
         } elseif ($plannerUrl !== '') {
             $runtime = array(
-                'route_intent' => 'checkout',
-                'checkout_url' => $plannerUrl,
+                'route_intent' => 'planner',
+                'planner_url'  => $plannerUrl,
             );
         }
 

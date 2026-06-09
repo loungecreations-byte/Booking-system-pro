@@ -2957,13 +2957,13 @@ final class Module implements ModuleInterface
         $bookingMode = class_exists(BookingModeService::class)
             ? (new BookingModeService())->resolve((int) $product->get_id())
             : array(
-                'bookingMode' => 'direct',
-                'routeIntent' => 'checkout',
-                'directBookable' => true,
-                'supplierConfirmationRequired' => false,
+                'bookingMode' => 'supplier_confirmation',
+                'routeIntent' => 'quote',
+                'directBookable' => false,
+                'supplierConfirmationRequired' => true,
             );
         $isEliio = $supplierProvider === 'eliio' || (int) $product->get_id() === 115;
-        $routeIntent = (string) ($bookingMode['routeIntent'] ?? 'checkout');
+        $routeIntent = (string) ($bookingMode['routeIntent'] ?? 'quote');
 
         return [
             'productId'  => $product->get_id(),
@@ -2990,7 +2990,7 @@ final class Module implements ModuleInterface
                 'routeIntent' => $routeIntent,
                 'directBookable' => ! empty($bookingMode['directBookable']),
                 'supplierConfirmationRequired' => ! empty($bookingMode['supplierConfirmationRequired']),
-                'requestOnly' => $routeIntent === 'quote' || $isEliio,
+                'requestOnly' => in_array($routeIntent, array('quote', 'blocked'), true) || $isEliio,
             ],
         ];
     }

@@ -101,11 +101,11 @@ function PlannerShell() {
   const defaultParticipants =
     Number.parseInt(form?.participants, 10) ||
     Number.parseInt(config?.default_participants, 10) ||
-    10;
+    null;
 
   const bootstrapPlanning = (scrollToResults = false) => {
     const nextDate = form?.date || getLocalDateIso();
-    const nextParticipants = Math.max(1, defaultParticipants);
+    const nextParticipants = defaultParticipants ?? 1;
 
     if (!form?.date) {
       setFormField("date", nextDate);

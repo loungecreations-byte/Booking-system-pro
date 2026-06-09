@@ -124,14 +124,15 @@ final class ArrangementAvailabilityService
             || ! function_exists('wc_get_product')
         ) {
             return array(
-                'available' => true,
-                'reason' => 'derived',
+                'available' => false,
+                'reason' => 'availability_unverified',
             );
         }
 
         $request = new WP_REST_Request('GET');
         $request->set_param('product_id', $productId);
         $request->set_param('date', $date);
+        $request->set_param('participants', $participants);
         $resourceId = absint((int) ($segment['linked_resource_id'] ?? 0));
         if ($resourceId > 0) {
             $request->set_param('resource_id', $resourceId);
@@ -151,7 +152,7 @@ final class ArrangementAvailabilityService
 
         $slots = is_array($response['slots'] ?? null) ? $response['slots'] : array();
         if ($slots === array()) {
-            return array('available' => true, 'reason' => 'no_slot_constraints');
+            return array('available' => false, 'reason' => 'availability_unverified');
         }
 
         foreach ($slots as $slot) {
