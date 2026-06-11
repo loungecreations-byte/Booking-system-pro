@@ -13,6 +13,9 @@ add_action('wp_enqueue_scripts', function() {
         return;
     }
 
+    $coreUiActive = defined('DDB_CORE_UI_FILE') || class_exists('DDB_Core_UI', false);
+    $designSystemDependency = $coreUiActive ? 'ddb-core-ui' : 'sbdp-design-system';
+
     $is_elementor_context =
         isset($_GET['elementor-preview'])
         || isset($_GET['elementor_library'])
@@ -28,27 +31,21 @@ add_action('wp_enqueue_scripts', function() {
         }
     }
 
-    // Global design system tokens - load on all public pages
-    wp_enqueue_style(
-        'sbdp-design-system',
-        SBDP_URL . 'assets/css/design-system.css',
-        [],
-        SBDP_VER
-    );
+    if (! $coreUiActive) {
+        // Fallback tokens only. In normal production, ddb-core-ui owns design-system truth.
+        wp_enqueue_style(
+            'sbdp-design-system',
+            SBDP_URL . 'assets/css/design-system.css',
+            [],
+            SBDP_VER
+        );
+    }
 
     // Unified flow system — commercial + discovery module classes. Load site-wide.
     wp_enqueue_style(
         'sbdp-flow-system',
         SBDP_URL . 'assets/css/ddb-flow-system.css',
-        ['sbdp-design-system'],
-        SBDP_VER
-    );
-
-    // Day planner surface styles - load when planner is present
-    wp_enqueue_style(
-        'sbdp-day-planner',
-        SBDP_URL . 'assets/css/day-planner.css',
-        ['sbdp-design-system'],
+        [$designSystemDependency],
         SBDP_VER
     );
 
@@ -57,7 +54,7 @@ add_action('wp_enqueue_scripts', function() {
         wp_enqueue_style(
             'sbdp-homepage',
             SBDP_URL . 'assets/css/homepage.css',
-            ['sbdp-design-system', 'sbdp-flow-system'],
+            [$designSystemDependency, 'sbdp-flow-system'],
             SBDP_VER
         );
     }
@@ -71,7 +68,7 @@ add_action('wp_enqueue_scripts', function() {
         wp_enqueue_style(
             'sbdp-cart-checkout',
             SBDP_URL . 'assets/css/sbdp-cart-checkout.css',
-            ['sbdp-design-system', 'sbdp-flow-system'],
+            [$designSystemDependency, 'sbdp-flow-system'],
             SBDP_VER
         );
     }

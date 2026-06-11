@@ -7,7 +7,7 @@
 if (!defined('ABSPATH')) exit;
 
 add_action('wp_enqueue_scripts', function() {
-    wp_enqueue_style('sbdp-planner-css', plugin_dir_url(__FILE__) . '../../assets/css/sbdp-single-product-planner.css', array(), '1.2.7');
+    wp_register_style('sbdp-planner-css', plugin_dir_url(__FILE__) . '../../assets/css/sbdp-single-product-planner.css', array(), '1.2.7');
 });
 
 add_shortcode('sbdp_product_planner', 'sbdp_render_product_planner_form');

@@ -55,6 +55,8 @@ final class PartnerPortal
 
     public static function renderDashboard(array $atts = []): string
     {
+        \BSP\PartnerProgram\Module::enqueuePortalStyle();
+
         if (! is_user_logged_in()) {
             return '<div class="bsp-portal-login"><p>' .
                 sprintf(
@@ -131,6 +133,8 @@ final class PartnerPortal
 
     public static function renderClaimForm(array $atts = []): string
     {
+        \BSP\PartnerProgram\Module::enqueuePortalStyle();
+
         if (! is_user_logged_in()) {
             return '<p><a href="' . esc_url(wp_login_url()) . '">' . esc_html__('Inloggen om een locatie te claimen.', 'sbdp') . '</a></p>';
         }
@@ -159,6 +163,8 @@ final class PartnerPortal
 
     public static function renderVerify(array $atts = []): string
     {
+        \BSP\PartnerProgram\Module::enqueuePortalStyle();
+
         $token = sanitize_text_field($_GET['token'] ?? '');
 
         if (! $token) {
@@ -193,6 +199,8 @@ final class PartnerPortal
 
     public static function renderPricing(array $atts = []): string
     {
+        \BSP\PartnerProgram\Module::enqueuePortalStyle();
+
         unset($atts);
 
         global $wpdb;

@@ -1,5 +1,5 @@
 param(
-    [string]$BaseUrl = 'http://dagjedenboschnl.local',
+    [string]$BaseUrl = 'http://dagjedenbosch.local',
     [switch]$Strict
 )
 
@@ -42,19 +42,25 @@ foreach ($route in $routes) {
         $links += $m.Groups[1].Value
     }
 
-    $ddbLinks = @($links | Where-Object { $_ -match 'ddb-ui\.css' })
-    if ($ddbLinks.Count -lt 1) {
-        $failures += "$url missing required ddb-ui.css"
+    $coreDesignSystemLinks = @($links | Where-Object { $_ -match 'ddb-core-ui/assets/css/design-system\.css' })
+    if ($coreDesignSystemLinks.Count -lt 1) {
+        $failures += "$url missing required ddb-core-ui design-system.css"
         continue
     }
 
-    if ($Strict -and $links.Count -ne 1) {
-        $failures += "$url strict mode expected exactly 1 stylesheet, got $($links.Count)"
+    if ($Strict -and $coreDesignSystemLinks.Count -ne 1) {
+        $failures += "$url strict mode expected exactly 1 ddb-core-ui design-system.css, got $($coreDesignSystemLinks.Count)"
         continue
     }
 
-    if ($Strict -and $links[0] -notmatch 'ddb-ui\.css') {
-        $failures += "$url strict mode expected ddb-ui.css only, got $($links[0])"
+    $legacyDdbUiLinks = @($links | Where-Object { $_ -match 'booking-pro-module/assets/css/ddb-ui\.css' })
+    if ($Strict -and $legacyDdbUiLinks.Count -gt 0) {
+        $failures += "$url strict mode found legacy ddb-ui.css"
+    }
+
+    $pluginFallbackDesignSystemLinks = @($links | Where-Object { $_ -match 'booking-pro-module/assets/css/design-system\.css' })
+    if ($Strict -and $pluginFallbackDesignSystemLinks.Count -gt 0) {
+        $failures += "$url strict mode found plugin fallback design-system.css while ddb-core-ui is active"
     }
 }
 
@@ -67,7 +73,7 @@ if ($failures.Count -gt 0) {
 }
 
 if ($Strict) {
-    Write-Host 'App stylesheet check passed (strict: exactly one ddb-ui.css per app route).' -ForegroundColor Green
+    Write-Host 'App stylesheet check passed (strict: exactly one ddb-core-ui design-system.css per app route; no legacy ddb-ui.css or plugin fallback design-system.css).' -ForegroundColor Green
 } else {
-    Write-Host 'App stylesheet check passed (migration mode: ddb-ui.css present on every app route).' -ForegroundColor Green
+    Write-Host 'App stylesheet check passed (migration mode: ddb-core-ui design-system.css present on every app route).' -ForegroundColor Green
 }
