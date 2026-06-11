@@ -29,14 +29,6 @@ add_filter('sbdp_day_planner_enqueue_assets', function($should_enqueue, $post) {
 }, 1, 2);
 
 add_action('wp_enqueue_scripts', function() {
-    if (!is_page('plan-je-dag')) {
-        return;
-    }
-
-    // Intentionally empty placeholder: historical planner CSS injections were retired.
-}, 99999);
-
-add_action('wp_enqueue_scripts', function() {
     if (!is_page('bossche-wiel') && !is_page('activiteiten')) {
         return;
     }

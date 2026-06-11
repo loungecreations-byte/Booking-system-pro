@@ -12,7 +12,8 @@
     "lint:css": "stylelint \"assets/css/ddb-ui.css\"",
     "check:no-important": "pwsh -File ./scripts/check-no-important.ps1",
     "check:app-stylesheets": "pwsh -File ./scripts/check-app-stylesheets.ps1",
-    "check:app-stylesheets:strict": "pwsh -File ./scripts/check-app-stylesheets.ps1 -Strict"
+    "check:app-stylesheets:strict": "pwsh -File ./scripts/check-app-stylesheets.ps1 -Strict",
+    "audit:cleanup": "pwsh -File ./scripts/system-cleanup-audit.ps1"
   },
   "devDependencies": {
     "@playwright/test": "^1.56.1",

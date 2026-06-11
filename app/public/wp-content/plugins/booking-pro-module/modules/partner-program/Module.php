@@ -93,12 +93,60 @@ final class Module implements ModuleInterface
 
     public static function enqueueFrontendAssets(): void
     {
-        wp_enqueue_style(
+        wp_register_style(
             'bsp-partner-portal',
             plugins_url('assets/partner-portal.css', __FILE__),
             [],
             '1.0.0'
         );
+
+        if (self::isPartnerProgramPage()) {
+            wp_enqueue_style('bsp-partner-portal');
+        }
+    }
+
+    public static function enqueuePortalStyle(): void
+    {
+        if (! function_exists('wp_enqueue_style')) {
+            return;
+        }
+
+        wp_enqueue_style('bsp-partner-portal');
+    }
+
+    private static function isPartnerProgramPage(): bool
+    {
+        if (! function_exists('is_page')) {
+            return false;
+        }
+
+        if (is_page(array(
+            'partner-profile',
+            'premium-members',
+            'partner-portal',
+            'partner-claim',
+            'partner-verify',
+            'partner-uitbetaling',
+        ))) {
+            return true;
+        }
+
+        if (! function_exists('is_singular') || ! is_singular() || ! function_exists('has_shortcode')) {
+            return false;
+        }
+
+        $post = get_post();
+        if (! $post instanceof \WP_Post) {
+            return false;
+        }
+
+        foreach (array('bsp_partner_dashboard', 'bsp_partner_claim_form', 'bsp_partner_verify', 'bsp_partner_pricing', 'bsp_payout_profile') as $shortcode) {
+            if (has_shortcode((string) $post->post_content, $shortcode)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
 
