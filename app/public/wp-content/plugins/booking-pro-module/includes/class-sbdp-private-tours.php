@@ -518,9 +518,12 @@ class SBDP_Private_Tours
                 'googleMapsEmbedRegion' => $google_maps_embed_region,
                 'googleMapsEmbedUnits' => $google_maps_embed_units,
             ));
-// Leaflet for maps (local)
-        wp_register_style('leaflet', SBDP_URL . 'assets/css/vendor/leaflet.css', array(), SBDP_VER);
-        wp_register_script('leaflet', SBDP_URL . 'assets/js/vendor/leaflet.min.js', array(), SBDP_VER, true);
+        $leaflet_css = SBDP_DIR . 'assets/css/vendor/leaflet.css';
+        $leaflet_js  = SBDP_DIR . 'assets/js/vendor/leaflet.min.js';
+        if (is_readable($leaflet_css) && is_readable($leaflet_js)) {
+            wp_register_style('leaflet', SBDP_URL . 'assets/css/vendor/leaflet.css', array(), (string) filemtime($leaflet_css));
+            wp_register_script('leaflet', SBDP_URL . 'assets/js/vendor/leaflet.min.js', array(), (string) filemtime($leaflet_js), true);
+        }
     }
     /**
      * Render the secure tour portal shortcode wrapper.

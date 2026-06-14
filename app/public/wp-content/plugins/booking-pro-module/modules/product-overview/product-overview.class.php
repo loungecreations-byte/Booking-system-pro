@@ -65,7 +65,7 @@ final class ProductOverviewComponent
 
         $version = defined('SBDP_VER') ? SBDP_VER : '1.0.0';
 
-        $this->registerLeafletAssets();
+        $hasLeafletAssets = $this->registerLeafletAssets();
 
         wp_register_style(
             'sbdp-product-overview',
@@ -77,7 +77,7 @@ final class ProductOverviewComponent
         wp_register_style(
             'sbdp-product-map',
             $this->assetUrl('assets/css/product-map.css'),
-            array('sbdp-product-overview', 'leaflet'),
+            $hasLeafletAssets ? array('sbdp-product-overview', 'leaflet') : array('sbdp-product-overview'),
             $version
         );
 
@@ -107,13 +107,15 @@ final class ProductOverviewComponent
                 $this->activityStyleHandles[] = $handle;
             }
 
-            wp_register_script(
-                'sbdp-product-map',
-                $this->assetUrl('assets/js/product-map.js'),
-                array('sbdp-product-overview', 'leaflet'),
-                $version,
-                true
-            );
+            if ($hasLeafletAssets) {
+                wp_register_script(
+                    'sbdp-product-map',
+                    $this->assetUrl('assets/js/product-map.js'),
+                    array('sbdp-product-overview', 'leaflet'),
+                    $version,
+                    true
+                );
+            }
         }
     }
 
@@ -287,10 +289,11 @@ final class ProductOverviewComponent
                     SBDP_VER
                 );
             }
-            if ($mapEnabled && $view === 'map') {
+            $hasLeafletAssets = $this->hasLeafletAssets();
+            if ($mapEnabled && $view === 'map' && $hasLeafletAssets) {
                 wp_enqueue_style('sbdp-product-map');
             }
-            if ($mapEnabled) {
+            if ($mapEnabled && $hasLeafletAssets) {
                 wp_enqueue_style('leaflet');
             }
         }
@@ -301,19 +304,20 @@ final class ProductOverviewComponent
             } else {
                 wp_enqueue_script('sbdp-activity-overview');
             }
-            if ($mapEnabled) {
+            $hasLeafletAssets = $this->hasLeafletAssets();
+            if ($mapEnabled && $hasLeafletAssets) {
                 wp_enqueue_script('leaflet');
             }
-            if ($mapEnabled && $view === 'map') {
+            if ($mapEnabled && $view === 'map' && $hasLeafletAssets && wp_script_is('sbdp-product-map', 'registered')) {
                 wp_enqueue_script('sbdp-product-map');
             }
         }
     }
 
-    private function registerLeafletAssets(): void
+    private function registerLeafletAssets(): bool
     {
         if (! function_exists('wp_register_script')) {
-            return;
+            return false;
         }
 
         $localJsPath = SBDP_DIR . 'assets/js/vendor/leaflet.min.js';
@@ -321,7 +325,13 @@ final class ProductOverviewComponent
         $localCssPath = SBDP_DIR . 'assets/css/vendor/leaflet.css';
         $localCssUrl  = SBDP_URL . 'assets/css/vendor/leaflet.css';
 
-        if (is_readable($localJsPath) && ! wp_script_is('leaflet', 'registered')) {
+        $hasLocalAssets = is_readable($localJsPath) && is_readable($localCssPath);
+
+        if (! $hasLocalAssets) {
+            return false;
+        }
+
+        if (! wp_script_is('leaflet', 'registered')) {
             wp_register_script(
                 'leaflet',
                 $localJsUrl,
@@ -331,7 +341,7 @@ final class ProductOverviewComponent
             );
         }
 
-        if (function_exists('wp_register_style') && is_readable($localCssPath) && ! wp_style_is('leaflet', 'registered')) {
+        if (function_exists('wp_register_style') && ! wp_style_is('leaflet', 'registered')) {
             wp_register_style(
                 'leaflet',
                 $localCssUrl,
@@ -340,9 +350,17 @@ final class ProductOverviewComponent
             );
         }
 
-        if (! wp_script_is('leaflet', 'registered') || ! wp_style_is('leaflet', 'registered')) {
-            error_log('[DDB] Leaflet local assets ontbreken; map-assets niet geregistreerd.');
-        }
+        return true;
+    }
+
+    private function hasLeafletAssets(): bool
+    {
+        return is_readable(SBDP_DIR . 'assets/js/vendor/leaflet.min.js')
+            && is_readable(SBDP_DIR . 'assets/css/vendor/leaflet.css')
+            && function_exists('wp_script_is')
+            && function_exists('wp_style_is')
+            && wp_script_is('leaflet', 'registered')
+            && wp_style_is('leaflet', 'registered');
     }
 
     /**

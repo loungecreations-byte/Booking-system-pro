@@ -162,7 +162,7 @@ class SBDP_Elementor_Tour_Navigation_Widget extends Widget_Base
         wp_enqueue_style('sbdp-tour-navigation');
         wp_enqueue_script('sbdp-tour-navigation');
 
-        if ('yes' === $settings['show_map']) {
+        if ('yes' === $settings['show_map'] && wp_style_is('leaflet', 'registered') && wp_script_is('leaflet', 'registered')) {
             wp_enqueue_style('leaflet');
             wp_enqueue_script('leaflet');
         }

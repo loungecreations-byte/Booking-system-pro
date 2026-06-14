@@ -30,9 +30,12 @@ foreach ($pattern in $artifactPatterns) {
 }
 
 $cssIssues = @()
+$assetIssues = @()
 $stylesheetSummary = @()
 $patSingle = "<link[^>]+rel='stylesheet'[^>]*href='([^']+)'"
 $patDouble = '<link[^>]+rel="stylesheet"[^>]*href="([^"]+)"'
+$scriptPatSingle = "<script[^>]+src='([^']+)'"
+$scriptPatDouble = '<script[^>]+src="([^"]+)"'
 
 foreach ($route in $routes) {
     $url = "$BaseUrl/$route/"
@@ -51,7 +54,16 @@ foreach ($route in $routes) {
         $links += $m.Groups[1].Value
     }
 
+    $scripts = @()
+    foreach ($m in [regex]::Matches($resp.Content, $scriptPatSingle, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)) {
+        $scripts += $m.Groups[1].Value
+    }
+    foreach ($m in [regex]::Matches($resp.Content, $scriptPatDouble, [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)) {
+        $scripts += $m.Groups[1].Value
+    }
+
     $ddbLinks = @($links | Where-Object { $_ -match 'booking-pro-module|ddb-core-ui|ddb-mega-menu|ddb-spots' })
+    $ddbAssets = @($links + $scripts | Where-Object { $_ -match 'booking-pro-module|ddb-core-ui|ddb-mega-menu|ddb-spots|angie-snippets' })
     $stylesheetSummary += [pscustomobject]@{
         Route = $route
         DdbStylesheets = $ddbLinks.Count
@@ -65,6 +77,28 @@ foreach ($route in $routes) {
     }
     if (@($links | Where-Object { $_ -match 'booking-pro-module/assets/css/ddb-ui\.css' }).Count -gt 0) {
         $cssIssues += "$url loads legacy ddb-ui.css"
+    }
+
+    foreach ($asset in $ddbAssets) {
+        $assetUrl = $asset
+        if ($assetUrl -match '^//') {
+            $assetUrl = 'http:' + $assetUrl
+        } elseif ($assetUrl -match '^/') {
+            $assetUrl = $BaseUrl.TrimEnd('/') + $assetUrl
+        }
+
+        if ($assetUrl -notmatch '^https?://') {
+            continue
+        }
+
+        try {
+            $assetResp = Invoke-WebRequest -Uri $assetUrl -UseBasicParsing -Method Head -TimeoutSec 20
+            if ([int]$assetResp.StatusCode -ge 400) {
+                $assetIssues += "$url references missing DDB asset ($($assetResp.StatusCode)): $assetUrl"
+            }
+        } catch {
+            $assetIssues += "$url references unavailable DDB asset: $assetUrl"
+        }
     }
 }
 
@@ -105,6 +139,14 @@ if ($cssIssues.Count -eq 0) {
 }
 
 Write-Host ''
+Write-Host '== Public DDB asset availability =='
+if ($assetIssues.Count -eq 0) {
+    Write-Host 'No missing public DDB CSS/JS assets found.'
+} else {
+    $assetIssues | ForEach-Object { Write-Host "- $_" }
+}
+
+Write-Host ''
 Write-Host '== Governance risk pattern hits =='
 if ($riskHits.Count -eq 0) {
     Write-Host 'No configured risk pattern hits found.'
@@ -112,6 +154,6 @@ if ($riskHits.Count -eq 0) {
     $riskHits | Select-Object Path, LineNumber, Line | Format-Table -AutoSize
 }
 
-if ($cssIssues.Count -gt 0) {
+if ($cssIssues.Count -gt 0 -or $assetIssues.Count -gt 0) {
     exit 1
 }
