@@ -271,9 +271,22 @@
             variantsContainer.classList.add('is-loading');
         }
 
+        const currentParticipants = Number.parseInt(planner.state.participants, 10);
+        if (!Number.isFinite(currentParticipants) || currentParticipants <= 0) {
+            if (metaElement) {
+                metaElement.textContent = 'Kies eerst het aantal personen.';
+            }
+            button.disabled = false;
+            button.removeAttribute('aria-busy');
+            if (variantsContainer) {
+                variantsContainer.classList.remove('is-loading');
+            }
+            return;
+        }
+
         const payload = {
             date: planner.state.date || null,
-            participants: planner.state.participants || 1,
+            participants: currentParticipants,
             filters: {
                 query: planner.state.filter ? (planner.state.filter.query || '') : '',
                 duration: planner.state.filter ? planner.state.filter.duration || '' : '',

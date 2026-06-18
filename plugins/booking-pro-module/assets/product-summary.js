@@ -1202,7 +1202,7 @@
             entry.plannerInput = Object.assign({}, entry.plannerInput, {
                 date: entry.date || entry.plannerInput.date || null,
                 time: normalizedPlannerTime || entry.plannerInput.time || null,
-                participants: normalizedParticipants || entry.plannerInput.participants || null,
+                participants: normalizedParticipants || null,
                 resource_id: entry.resource_id || entry.plannerInput.resource_id || null,
                 resourceId: entry.resource_id || entry.plannerInput.resourceId || null,
                 source: 'product-summary',
@@ -1222,7 +1222,7 @@
                 startTime: normalizedPlannerTime || entry.planItem.startTime || entry.planItem.time || null,
                 resourceId: entry.resource_id || entry.planItem.resourceId || entry.planItem.resource_id || null,
                 resource_id: entry.resource_id || entry.planItem.resource_id || entry.planItem.resourceId || null,
-                participants: normalizedParticipants || entry.planItem.participants || null,
+                participants: normalizedParticipants || null,
                 options: Object.assign(
                     {},
                     entry.planItem.options && typeof entry.planItem.options === 'object'
