@@ -1825,7 +1825,7 @@
       prefill.time = entry.time;
     }
 
-    var participants = parseInt(entry.people || entry.participants || 0, 10);
+    var participants = parseInt(entry.people ?? entry.participants ?? 0, 10);
     if (Number.isFinite(participants) && participants > 0) {
       prefill.people = participants;
       prefill.participants = participants;

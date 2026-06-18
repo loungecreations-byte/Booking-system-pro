@@ -397,7 +397,10 @@ this.state.planId = plan.plan_id || null;
 this.state.sessionId = plan.session_id || sessionId;
 this.applySessionId(this.state.sessionId);
 this.state.date = plan.date || this.state.date;
-this.state.participants = plan.participants || this.state.participants;
+const loadedParticipants = Number.parseInt(plan.participants, 10);
+if (Number.isFinite(loadedParticipants) && loadedParticipants > 0) {
+this.state.participants = loadedParticipants;
+}
 this.state.items = Array.isArray(plan.items) ? plan.items.map((item) => ({
 product_id: item.product_id,                        start: item.start,                        end: item.end,                        duration: item.duration || 0,                        title: this.getProductTitle(item.product_id),                        price_pp: typeof item.price_pp === 'number' ? item.price_pp : this.getProductPrice(item.product_id),                    })) : [];
 if (plan.totals) {
