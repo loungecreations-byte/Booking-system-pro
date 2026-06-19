@@ -89,7 +89,10 @@
         planner.state.planId = plan.plan_id ?? null;
         planner.state.sessionId = plan.session_id ?? planner.state.sessionId ?? null;
         planner.state.date = plan.date ?? planner.state.date ?? '';
-        planner.state.participants = plan.participants ?? planner.state.participants ?? 1;
+        const planParticipants = Number(plan.participants);
+        if (Number.isFinite(planParticipants) && planParticipants > 0) {
+            planner.state.participants = planParticipants;
+        }
         planner.state.items = Array.isArray(plan.items) ? plan.items : [];
         planner.state.totals = result.totals ?? planner.state.totals;
 
