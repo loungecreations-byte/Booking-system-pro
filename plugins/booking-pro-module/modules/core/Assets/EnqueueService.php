@@ -6,7 +6,6 @@ namespace BSPModule\Core\Assets;
 
 use BSPModule\Core\Admin\AdminMenu;
 use BSPModule\Core\Rest\RestService as PlannerRestService;
-use BSPModule\Core\Services\BookingTruthRuntimeService;
 use BSPModule\Core\WooCommerce\Display\ProductForm;
 use BSPModule\Core\WooCommerce\ProductPageContext;
 use BSPModule\Core\WooCommerce\ProductType\BookableServiceProductType;
@@ -38,9 +37,6 @@ final class EnqueueService
         add_action('elementor/editor/before_enqueue_scripts', [__CLASS__, 'enqueue_for_elementor']);
         add_action('elementor/preview/enqueue_styles', [__CLASS__, 'enqueue_for_elementor']);
         add_action('admin_enqueue_scripts', [__CLASS__, 'enqueue_admin_assets']);
-        add_action('admin_head', [__CLASS__, 'inline_admin_theme_script'], 1);
-        add_action('admin_bar_menu', [__CLASS__, 'register_admin_bar_dark_mode_toggle'], 999);
-        add_filter('mce_css', [__CLASS__, 'add_tinymce_theme_css']);
     }
 
     public static function register_front_assets(): void
@@ -278,8 +274,6 @@ final class EnqueueService
             }
         }
 
-        $booking_profile = self::build_initial_booking_profile($product, $duration);
-
         return [
             'compose'           => esc_url_raw(rest_url('sbdp/v1/compose_booking')),
             'availability'      => esc_url_raw(rest_url('sbdp/v1/availability/plan')),
@@ -287,15 +281,12 @@ final class EnqueueService
             'nonce'             => wp_create_nonce(PlannerRestService::PUBLIC_NONCE_ACTION),
             'fallback_redirect' => function_exists('wc_get_checkout_url') ? wc_get_checkout_url() : home_url('/checkout'),
             'planner_url'       => self::get_planner_url(),
-            'quote_url'         => self::get_quote_url(),
             'planner_route'     => '/planner/start',
-            'bookingCapability' => $booking_profile,
             'messages'          => [
                 'generic_error'   => __('Er ging iets mis. Probeer het opnieuw.', 'sbdp'),
                 'missing_fields'  => __('Vul datum, starttijd en aantal personen in.', 'sbdp'),
                 'planner_missing' => __('Plannerpagina niet gevonden.', 'sbdp'),
                 'redirecting'     => __('Bezig met doorsturen.', 'sbdp'),
-                'request_redirecting' => __('We openen de offerte-aanvraag. Prijs en beschikbaarheid worden eerst bevestigd.', 'sbdp'),
                 'no_slots'        => __('Geen tijdsloten beschikbaar voor deze datum.', 'sbdp'),
                 'no_capacity'     => __('De geselecteerde capaciteit is niet beschikbaar.', 'sbdp'),
                 'select_time'     => __('Selecteer een starttijd', 'sbdp'),
@@ -370,108 +361,6 @@ final class EnqueueService
         return '';
     }
 
-    /**
-     * @return array{status:string,route_intent:string,reason_code:?string,legacy_status:string}
-     */
-    private static function build_initial_booking_profile(\WC_Product $product, int $duration): array
-    {
-        $product_id = (int) $product->get_id();
-        $date = (string) get_post_meta($product_id, '_sbdp_default_start_date', true);
-        if ($date === '') {
-            $date = function_exists('wp_date') ? wp_date('Y-m-d') : gmdate('Y-m-d');
-        }
-
-        $time = self::normalize_time((string) get_post_meta($product_id, '_sbdp_default_start_time', true));
-        if ($time === '') {
-            $time = '10:00';
-        }
-
-        if ($duration <= 0) {
-            $duration = 60;
-        }
-
-        $start = sprintf('%sT%s:00', $date, $time);
-        $end_timestamp = strtotime($start) + ($duration * MINUTE_IN_SECONDS);
-        $end = $end_timestamp > 0 ? gmdate('Y-m-d\TH:i:s', $end_timestamp) : sprintf('%sT%s:00', $date, $time);
-
-        $participants = (int) get_post_meta($product_id, '_sbdp_min_people', true);
-        if ($participants <= 0) {
-            $participants = 1;
-        }
-
-        $resource_id = (int) get_post_meta($product_id, '_sbdp_resource_id', true);
-        if ($resource_id <= 0) {
-            $resources = \BSPModule\Core\Product\ProductMeta::get_resource_ids($product_id);
-            if ($resources !== array()) {
-                $resource_id = (int) $resources[0];
-            }
-        }
-
-        $runtime = new BookingTruthRuntimeService();
-        $item = array(
-                'product_id' => $product_id,
-                'resource_id' => $resource_id,
-                'date' => $date,
-                'start' => $start,
-                'end' => $end,
-                'participants' => $participants,
-        );
-        $profile = $runtime->resolveBookingCapabilityProfile($item);
-        if (($profile['route_intent'] ?? '') !== BookingTruthRuntimeService::ROUTE_INTENT_CHECKOUT && in_array((string) ($profile['reason_code'] ?? ''), array('selected_time_invalid', 'time_unavailable'), true)) {
-            for ($offset = 1; $offset <= 14; $offset++) {
-                $candidate_date = function_exists('wp_date')
-                    ? wp_date('Y-m-d', strtotime('+' . $offset . ' days'))
-                    : gmdate('Y-m-d', strtotime('+' . $offset . ' days'));
-                $candidate_start = sprintf('%sT%s:00', $candidate_date, $time);
-                $candidate_end_timestamp = strtotime($candidate_start) + ($duration * MINUTE_IN_SECONDS);
-                $candidate_end = $candidate_end_timestamp > 0 ? gmdate('Y-m-d\TH:i:s', $candidate_end_timestamp) : $candidate_start;
-                $candidate = $runtime->resolveBookingCapabilityProfile(array_merge($item, array(
-                    'date' => $candidate_date,
-                    'start' => $candidate_start,
-                    'end' => $candidate_end,
-                )));
-                if (($candidate['route_intent'] ?? '') === BookingTruthRuntimeService::ROUTE_INTENT_CHECKOUT) {
-                    return $candidate;
-                }
-            }
-        }
-
-        return $profile;
-    }
-
-    private static function normalize_time(string $time): string
-    {
-        $time = trim($time);
-        if ($time === '') {
-            return '';
-        }
-
-        if (preg_match('/^(\d{1,2}):(\d{2})/', $time, $matches) !== 1) {
-            return '';
-        }
-
-        $hours = (int) $matches[1];
-        $minutes = (int) $matches[2];
-        if ($hours < 0 || $hours > 23 || $minutes < 0 || $minutes > 59) {
-            return '';
-        }
-
-        return sprintf('%02d:%02d', $hours, $minutes);
-    }
-
-    private static function get_quote_url(): string
-    {
-        $page = get_page_by_path('offerte');
-        if ($page instanceof \WP_Post) {
-            $link = get_permalink($page);
-            if ($link) {
-                return $link;
-            }
-        }
-
-        return home_url('/offerte/');
-    }
-
     public static function enqueue_for_elementor(): void
     {
         self::register_front_assets();
@@ -528,83 +417,8 @@ final class EnqueueService
         self::add_defer(self::THEME_TOGGLE_HANDLE);
     }
 
-    /**
-     * Wave 2 — Anti-flash: set data-adm-theme on <html> before first paint.
-     * Must run in admin_head (priority 1) to beat any CSS.
-     */
-    public static function inline_admin_theme_script(): void
-    {
-        echo '<script id="ddb-admin-theme-init">' .
-            '(function(){' .
-            'var t="";' .
-            'try{t=localStorage.getItem("ddb-admin-theme")||""}catch(e){}' .
-            'if(t!=="dark"&&t!=="light"){' .
-            'try{t=window.matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light"}catch(e){t="light"}' .
-            '}' .
-            'document.documentElement.setAttribute("data-adm-theme",t);' .
-            '}());' .
-            '</script>' . "\n";
-    }
-
-    /**
-     * Wave 2 — Admin bar: add dark/light toggle button to the WP top bar.
-     */
-    public static function register_admin_bar_dark_mode_toggle(\WP_Admin_Bar $bar): void
-    {
-        if (! function_exists('is_admin_bar_showing') || ! is_admin_bar_showing()) {
-            return;
-        }
-        $bar->add_node([
-            'id'     => 'ddb-dark-mode',
-            'title'  => '<span class="ddb-theme-toggle-icon ddb-theme-icon-moon" aria-hidden="true">&#9790;</span>' .
-                        '<span class="ddb-theme-toggle-icon ddb-theme-icon-sun" aria-hidden="true">&#9728;</span>',
-            'href'   => '#',
-            'parent' => 'top-secondary',
-            'meta'   => [
-                'class' => 'ddb-theme-toggle',
-                'title' => 'Schakel donker/lichtmodus (Ctrl+Shift+D)',
-            ],
-        ]);
-    }
-
-    /**
-     * Wave 2 — Inject admin-tinymce.css into the TinyMCE editor iframe.
-     * CSS custom properties don't cross iframe boundaries, so dark mode
-     * uses the .ddb-dark body class toggled by admin-dark-mode-toggle.js.
-     */
-    public static function add_tinymce_theme_css(string $mce_css): string
-    {
-        if (! defined('SBDP_URL') || ! defined('SBDP_DIR')) {
-            return $mce_css;
-        }
-        $version = (string) @filemtime(SBDP_DIR . 'assets/admin-tinymce.css');
-        $url     = SBDP_URL . 'assets/admin-tinymce.css?' . $version;
-        return $mce_css !== '' ? $mce_css . ',' . $url : $url;
-    }
-
     public static function enqueue_admin_assets(string $hook): void
     {
-        // Wave 1 + 2: global design tokens + dark mode toggle on every admin page.
-        $tokenVersion  = defined('SBDP_DIR') && function_exists('filemtime')
-            ? (string) @filemtime(SBDP_DIR . 'assets/admin-design-tokens.css')
-            : (defined('SBDP_VER') ? SBDP_VER : null);
-        $toggleVersion = defined('SBDP_DIR') && function_exists('filemtime')
-            ? (string) @filemtime(SBDP_DIR . 'assets/js/admin/admin-dark-mode-toggle.js')
-            : (defined('SBDP_VER') ? SBDP_VER : null);
-        wp_enqueue_style(
-            'ddb-admin-design-tokens',
-            SBDP_URL . 'assets/admin-design-tokens.css',
-            [],
-            $tokenVersion
-        );
-        wp_enqueue_script(
-            'ddb-admin-dark-mode-toggle',
-            SBDP_URL . 'assets/js/admin/admin-dark-mode-toggle.js',
-            [],
-            $toggleVersion,
-            false  // load in <head> so theme applies before body renders
-        );
-
         if ('sbdp_bookings_page_sbdp_governance' === $hook || 'sbdp_bookings_page_sbdp_design_backend' === $hook) {
             wp_enqueue_style('sbdp-admin-governance', SBDP_URL . 'assets/admin-governance.css', array(), SBDP_VER);
             return;
