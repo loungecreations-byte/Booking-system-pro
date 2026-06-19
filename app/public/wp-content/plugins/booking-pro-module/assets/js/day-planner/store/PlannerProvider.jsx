@@ -1893,7 +1893,7 @@ function resolveExplicitBookingCapability(source) {
     return BOOKING_CAPABILITY_REQUEST;
   }
 
-  if (source.directBookable === true || source.canCheckoutDirect === true) {
+  if (source.directBookable === true) {
     return BOOKING_CAPABILITY_DIRECT;
   }
 
