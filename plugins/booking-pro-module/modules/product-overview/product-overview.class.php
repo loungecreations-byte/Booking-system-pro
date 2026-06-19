@@ -286,7 +286,7 @@ final class ProductOverviewComponent
                     'ddb-shared-listing-card',
                     SBDP_URL . 'assets/css/ddb-shared-listing-card.css',
                     $this->activityStyleHandles,
-                    SBDP_VER
+                    $this->determineAssetVersion(SBDP_URL . 'assets/css/ddb-shared-listing-card.css')
                 );
             }
             $hasLeafletAssets = $this->hasLeafletAssets();

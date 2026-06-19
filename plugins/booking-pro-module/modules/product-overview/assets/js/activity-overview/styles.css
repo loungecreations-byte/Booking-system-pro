@@ -2026,3 +2026,251 @@ html[data-theme="light"] .ao-card__overlay {
     min-width: 0;
   }
 }
+
+/* Light mode cleanup: overview family must not render as a black app island. */
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview {
+  --ao-light-bg: var(--ui-color-bg, #f8f6f2);
+  --ao-light-surface: var(--ui-color-surface, #ffffff);
+  --ao-light-surface-soft: var(--ui-color-surface-2, #f0ece5);
+  --ao-light-border: color-mix(in srgb, var(--ui-color-border, #ded6c9) 86%, transparent);
+  --ao-light-text: var(--ui-color-text, #1a1714);
+  --ao-light-muted: var(--ui-color-text-muted, #6b635c);
+  --ao-light-accent-soft: color-mix(in srgb, var(--ui-color-primary, #e4b97f) 12%, var(--ui-color-surface, #ffffff));
+
+  background: transparent;
+  color: var(--ao-light-text);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ao-shell,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ao-main {
+  background: transparent;
+  color: var(--ao-light-text);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ao-banner,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ao-filter-panel,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ao-top-picks,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ao-rail-card,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ao-card,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ao-endcap {
+  background: var(--ao-light-surface);
+  border: 1px solid var(--ao-light-border);
+  box-shadow: 0 16px 34px rgba(52, 38, 22, 0.08);
+  color: var(--ao-light-text);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ao-filter-bar,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ao-filter-bar__summary {
+  background: var(--ao-light-surface);
+  border-color: var(--ao-light-border);
+  color: var(--ao-light-text);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ao-chip,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ao-chip--filter,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ao-toggle {
+  background: #ffffff;
+  border-color: var(--ao-light-border);
+  color: var(--ao-light-text);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ao-chip--filter.is-active,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ao-toggle.is-active {
+  background: var(--ao-light-accent-soft);
+  border-color: color-mix(in srgb, var(--ui-color-primary, #e4b97f) 34%, var(--ao-light-border));
+  color: var(--ao-light-text);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ao-banner__title,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ao-top-picks__title,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ao-filter-bar__title,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ao-endcap__title {
+  color: var(--ao-light-text);
+  text-shadow: none;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ao-banner__copy,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ao-top-picks__hint,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ao-filter-bar__hint,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ao-chip__hint,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ao-endcap__copy {
+  color: var(--ao-light-muted);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ao-endcap {
+  padding: 26px 28px;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ao-endcap__eyebrow {
+  color: var(--ui-color-primary-hover, #cf9f5e);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .sbdp-pb {
+  background: #ffffff;
+  border: 1px solid var(--ao-light-border);
+  box-shadow: 0 16px 34px rgba(52, 38, 22, 0.1);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .sbdp-pb-field {
+  background: #ffffff;
+  color: var(--ao-light-text);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .sbdp-pb-field:hover,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .sbdp-pb-field:focus-within {
+  background: var(--ao-light-accent-soft);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .sbdp-pb-label,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .sbdp-pb-value,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .sbdp-pb-stepper,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .sbdp-pb-stepper-val,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .sbdp-pb-chevron {
+  color: var(--ao-light-text);
+  opacity: 1;
+  text-shadow: none;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .sbdp-pb-badge,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .sbdp-pb-stepper-btn {
+  background: var(--ao-light-surface-soft);
+  border: 1px solid var(--ao-light-border);
+  color: var(--ao-light-text);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ui-btn--primary,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ui-listing-card__cta--primary {
+  background: var(--ui-color-primary, #e4b97f);
+  border-color: color-mix(in srgb, var(--ui-color-primary, #e4b97f) 72%, var(--ao-light-border));
+  color: var(--ui-color-primary-contrast, #100b02);
+  box-shadow: 0 10px 22px rgba(180, 128, 54, 0.16);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ui-btn--primary:hover,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ui-listing-card__cta--primary:hover {
+  background: var(--ui-color-primary-hover, #cf9f5e);
+  border-color: var(--ui-color-primary-hover, #cf9f5e);
+  color: var(--ui-color-primary-contrast, #100b02);
+}
+
+/* Dark mode cleanup: same calmer overview structure, translated to dark surfaces. */
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview {
+  --ao-dark-bg: #000000;
+  --ao-dark-surface: #0f0f0f;
+  --ao-dark-surface-soft: #171717;
+  --ao-dark-border: rgba(255, 255, 255, 0.12);
+  --ao-dark-text: #f6f1e9;
+  --ao-dark-muted: rgba(246, 241, 233, 0.68);
+  --ao-dark-accent-soft: color-mix(in srgb, var(--ui-color-primary, #e4b97f) 16%, #0f0f0f);
+
+  background: transparent;
+  color: var(--ao-dark-text);
+}
+
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .ao-shell,
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .ao-main {
+  background: transparent;
+  color: var(--ao-dark-text);
+}
+
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .ao-banner,
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .ao-filter-panel,
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .ao-top-picks,
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .ao-rail-card,
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .ao-card,
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .ao-endcap {
+  background: var(--ao-dark-surface);
+  border: 1px solid var(--ao-dark-border);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.36);
+  color: var(--ao-dark-text);
+}
+
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .ao-filter-bar,
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .ao-filter-bar__summary {
+  background: var(--ao-dark-surface);
+  border-color: var(--ao-dark-border);
+  color: var(--ao-dark-text);
+}
+
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .ao-chip,
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .ao-chip--filter,
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .ao-toggle {
+  background: var(--ao-dark-surface-soft);
+  border-color: var(--ao-dark-border);
+  color: var(--ao-dark-text);
+}
+
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .ao-chip--filter.is-active,
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .ao-toggle.is-active {
+  background: var(--ao-dark-accent-soft);
+  border-color: color-mix(in srgb, var(--ui-color-primary, #e4b97f) 42%, var(--ao-dark-border));
+  color: var(--ao-dark-text);
+}
+
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .ao-banner__title,
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .ao-top-picks__title,
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .ao-filter-bar__title,
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .ao-endcap__title {
+  color: var(--ao-dark-text);
+  text-shadow: none;
+}
+
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .ao-banner__copy,
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .ao-top-picks__hint,
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .ao-filter-bar__hint,
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .ao-chip__hint,
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .ao-endcap__copy {
+  color: var(--ao-dark-muted);
+}
+
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .ao-endcap {
+  padding: 26px 28px;
+}
+
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .sbdp-pb {
+  background: var(--ao-dark-surface);
+  border: 1px solid var(--ao-dark-border);
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.38);
+}
+
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .sbdp-pb-field {
+  background: var(--ao-dark-surface);
+  color: var(--ao-dark-text);
+}
+
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .sbdp-pb-field:hover,
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .sbdp-pb-field:focus-within {
+  background: var(--ao-dark-accent-soft);
+}
+
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .sbdp-pb-label,
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .sbdp-pb-value,
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .sbdp-pb-stepper,
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .sbdp-pb-stepper-val,
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .sbdp-pb-chevron {
+  color: var(--ao-dark-text);
+  opacity: 1;
+  text-shadow: none;
+}
+
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .sbdp-pb-badge,
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .sbdp-pb-stepper-btn {
+  background: var(--ao-dark-surface-soft);
+  border: 1px solid var(--ao-dark-border);
+  color: var(--ao-dark-text);
+}
+
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .ui-btn--primary,
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .ui-listing-card__cta--primary {
+  background: var(--ui-color-primary, #e4b97f);
+  border-color: color-mix(in srgb, var(--ui-color-primary, #e4b97f) 72%, var(--ao-dark-border));
+  color: var(--ui-color-primary-contrast, #100b02);
+  box-shadow: 0 12px 24px rgba(228, 185, 127, 0.16);
+}
+
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .ui-btn--primary:hover,
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .ui-listing-card__cta--primary:hover {
+  background: var(--ui-color-primary-hover, #cf9f5e);
+  border-color: var(--ui-color-primary-hover, #cf9f5e);
+  color: var(--ui-color-primary-contrast, #100b02);
+}
