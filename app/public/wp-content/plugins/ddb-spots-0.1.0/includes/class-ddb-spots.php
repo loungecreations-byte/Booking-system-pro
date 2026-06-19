@@ -622,7 +622,14 @@ class DDB_Spots {
 
 	public function render_listing_shortcode(array $atts = array()): string {
 		$this->ensure_frontend_assets();
-		$atts = shortcode_atts(array('type' => '', 'area' => '', 'tag' => '', 'category' => '', 'per_page' => 12, 'page' => 0, 'lat' => '', 'lng' => ''), $atts, 'ddb_spots');
+		$atts = shortcode_atts(array('type' => '', 'area' => '', 'tag' => '', 'category' => '', 'per_page' => 12, 'page' => 0, 'lat' => '', 'lng' => '', 'variant' => 'overview'), $atts, 'ddb_spots');
+		$variant = sanitize_key((string) $atts['variant']);
+		if (in_array($variant, array('map', 'map-first', 'plattegrond'), true)) {
+			$variant = 'map-first';
+		} else {
+			$variant = 'overview';
+		}
+		$show_map = 'map-first' === $variant;
 		$selected_type = isset($_GET['ddb_type']) ? sanitize_title(wp_unslash((string) $_GET['ddb_type'])) : sanitize_title((string) $atts['type']);
 		$selected_area = isset($_GET['ddb_area']) ? sanitize_title(wp_unslash((string) $_GET['ddb_area'])) : sanitize_title((string) $atts['area']);
 		$selected_category = isset($_GET['ddb_category']) ? sanitize_title(wp_unslash((string) $_GET['ddb_category'])) : sanitize_title((string) $atts['category']);
@@ -734,7 +741,7 @@ class DDB_Spots {
 
 		ob_start();
 		?>
-		<div class="ddb-spots-listing ddb-listing-shell" data-ddb-component="listing-shell">
+		<div class="ddb-spots-listing ddb-spots-listing--<?php echo esc_attr($variant); ?> ddb-listing-shell" data-ddb-component="listing-shell">
 			<form method="get" class="ddb-listing-toolbar ui-summary ui-summary--compact" aria-label="<?php esc_attr_e('Spot filters', 'ddb-spots'); ?>">
 				<input type="hidden" name="ddb_page" value="1" />
 				<div class="ddb-listing-toolbar__row">
@@ -776,7 +783,9 @@ class DDB_Spots {
 					<?php if ((bool) apply_filters('ddb_spots_show_legacy_theme_button', false, 0, 'listing')) : ?>
 						<button type="button" class="ui-btn ui-btn--ghost ddb-listing-btn ddb-listing-btn--theme" data-ddb-theme-toggle data-light-label="<?php echo esc_attr__('Lichte modus', 'ddb-spots'); ?>" data-dark-label="<?php echo esc_attr__('Donkere modus', 'ddb-spots'); ?>"><?php esc_html_e('Thema', 'ddb-spots'); ?></button>
 					<?php endif; ?>
-					<button type="button" class="ui-btn ui-btn--secondary ddb-listing-btn ddb-listing-btn--map" data-ddb-map-toggle><?php esc_html_e('Kaart tonen', 'ddb-spots'); ?></button>
+					<?php if ($show_map) : ?>
+						<button type="button" class="ui-btn ui-btn--secondary ddb-listing-btn ddb-listing-btn--map" data-ddb-map-toggle><?php esc_html_e('Kaart tonen', 'ddb-spots'); ?></button>
+					<?php endif; ?>
 				</div>
 			</form>
 
@@ -834,42 +843,44 @@ class DDB_Spots {
 					<?php endif; ?>
 				</section>
 
-				<aside class="ddb-listing-map<?php echo ! empty($map_points) ? ' is-ready' : ''; ?>" data-ddb-map-pane>
-					<div class="ddb-listing-map__sticky ui-summary ui-summary--compact">
-						<h3><?php esc_html_e('Kaart & selectie', 'ddb-spots'); ?></h3>
-						<?php if (! empty($map_points) && null !== $active_map) : ?>
-							<iframe
-								class="ddb-listing-map__frame"
-								data-ddb-map-frame
-								title="<?php esc_attr_e('Kaart van spots', 'ddb-spots'); ?>"
-								src="<?php echo esc_url((string) $active_map['embed_url']); ?>"
-								loading="lazy"
-								referrerpolicy="no-referrer-when-downgrade"></iframe>
-							<p class="ddb-listing-map__focus" data-ddb-map-focus>
-								<strong data-ddb-map-title><?php echo esc_html((string) $active_map['title']); ?></strong>
-								<span data-ddb-map-address><?php echo esc_html((string) $active_map['address']); ?></span>
-								<a data-ddb-map-link href="<?php echo esc_url((string) $active_map['maps_url']); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e('Open route', 'ddb-spots'); ?></a>
-							</p>
-							<div class="ddb-listing-map__points" role="group" aria-label="<?php esc_attr_e('Kies een spot op de kaart', 'ddb-spots'); ?>">
-								<?php foreach ($map_points as $index => $point) : ?>
-									<button
-										type="button"
-										class="ddb-listing-map__item<?php echo 0 === $index ? ' is-active' : ''; ?>"
-										data-ddb-map-item
-										data-spot-id="<?php echo esc_attr((string) $point['id']); ?>"
-										data-embed-url="<?php echo esc_attr((string) $point['embed_url']); ?>"
-										data-map-url="<?php echo esc_attr((string) $point['maps_url']); ?>"
-										data-title="<?php echo esc_attr((string) $point['title']); ?>"
-										data-address="<?php echo esc_attr((string) $point['address']); ?>">
-										<span><?php echo esc_html((string) $point['title']); ?></span>
-									</button>
-								<?php endforeach; ?>
-							</div>
-						<?php else : ?>
-							<p class="ddb-listing-map__empty"><?php esc_html_e('Voor deze selectie zijn nog geen kaartcoördinaten beschikbaar.', 'ddb-spots'); ?></p>
-						<?php endif; ?>
-					</div>
-				</aside>
+				<?php if ($show_map) : ?>
+					<aside class="ddb-listing-map<?php echo ! empty($map_points) ? ' is-ready' : ''; ?>" data-ddb-map-pane>
+						<div class="ddb-listing-map__sticky ui-summary ui-summary--compact">
+							<h3><?php esc_html_e('Plattegrond', 'ddb-spots'); ?></h3>
+							<?php if (! empty($map_points) && null !== $active_map) : ?>
+								<iframe
+									class="ddb-listing-map__frame"
+									data-ddb-map-frame
+									title="<?php esc_attr_e('Kaart van spots', 'ddb-spots'); ?>"
+									src="<?php echo esc_url((string) $active_map['embed_url']); ?>"
+									loading="lazy"
+									referrerpolicy="no-referrer-when-downgrade"></iframe>
+								<p class="ddb-listing-map__focus" data-ddb-map-focus>
+									<strong data-ddb-map-title><?php echo esc_html((string) $active_map['title']); ?></strong>
+									<span data-ddb-map-address><?php echo esc_html((string) $active_map['address']); ?></span>
+									<a data-ddb-map-link href="<?php echo esc_url((string) $active_map['maps_url']); ?>" target="_blank" rel="noopener noreferrer"><?php esc_html_e('Open route', 'ddb-spots'); ?></a>
+								</p>
+								<div class="ddb-listing-map__points" role="group" aria-label="<?php esc_attr_e('Kies een spot op de kaart', 'ddb-spots'); ?>">
+									<?php foreach ($map_points as $index => $point) : ?>
+										<button
+											type="button"
+											class="ddb-listing-map__item<?php echo 0 === $index ? ' is-active' : ''; ?>"
+											data-ddb-map-item
+											data-spot-id="<?php echo esc_attr((string) $point['id']); ?>"
+											data-embed-url="<?php echo esc_attr((string) $point['embed_url']); ?>"
+											data-map-url="<?php echo esc_attr((string) $point['maps_url']); ?>"
+											data-title="<?php echo esc_attr((string) $point['title']); ?>"
+											data-address="<?php echo esc_attr((string) $point['address']); ?>">
+											<span><?php echo esc_html((string) $point['title']); ?></span>
+										</button>
+									<?php endforeach; ?>
+								</div>
+							<?php else : ?>
+								<p class="ddb-listing-map__empty"><?php esc_html_e('Voor deze selectie zijn nog geen kaartcoördinaten beschikbaar.', 'ddb-spots'); ?></p>
+							<?php endif; ?>
+						</div>
+					</aside>
+				<?php endif; ?>
 			</div>
 		</div>
 		<?php
@@ -1576,8 +1587,15 @@ class DDB_Spots {
 		}
 
 		if ($is_archive || is_singular(DDB_Spots_Core_Schema::POST_TYPE) || $has_shortcode_spots || $has_shortcode_cta || $has_shortcode_widget) {
+			$spots_css_path = DDB_SPOTS_PATH . 'assets/css/ddb-spots.css';
+			$spots_css_version = file_exists($spots_css_path) ? (string) filemtime($spots_css_path) : DDB_SPOTS_VERSION;
+
+			// Ensure design-system listing card CSS loads (oled-card.php uses ui-listing-card__* BEM classes)
+			if ($has_shortcode_spots || $is_archive) {
+				wp_enqueue_style('ddb-core-ui-listing-cards');
+			}
 			// Base core styles
-			wp_enqueue_style('ddb-spots-core', DDB_SPOTS_URL . 'assets/css/ddb-spots.css', array(), DDB_SPOTS_VERSION);
+			wp_enqueue_style('ddb-spots-core', DDB_SPOTS_URL . 'assets/css/ddb-spots.css', array('ddb-core-ui', 'ddb-core-ui-listing-cards'), $spots_css_version);
 			wp_enqueue_script('ddb-spots-core', DDB_SPOTS_URL . 'assets/js/ddb-spots.js', array(), DDB_SPOTS_VERSION, true);
 			
 			// Component specific styles (if files existed or were split)
@@ -1956,6 +1974,3 @@ class DDB_Spots {
 		return trim(ob_get_clean());
 	}
 }
-
-
-

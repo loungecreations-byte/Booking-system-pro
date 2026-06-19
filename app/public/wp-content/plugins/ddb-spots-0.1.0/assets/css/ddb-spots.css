@@ -2883,3 +2883,1408 @@ html[data-theme="system"] .ddb-spots-listing.ddb-listing-shell,
 }
 
 /* ── End premium city guide override ─────────────────────────────── */
+
+/* =================================================================
+   Light-warm listing card redesign
+   Replaces the dark cinema defaults on the Ontdek plekken page.
+   Selectors use ui-listing-card__* BEM classes as rendered by oled-card.php.
+   ================================================================= */
+
+/* Card container: warm surface, reset dark defaults, restore grid layout */
+.ddb-spot-card {
+  display: grid;
+  height: auto;
+  min-height: 0;
+  background: var(--ddb-surface);
+  border-color: var(--ddb-border);
+  box-shadow: var(--ddb-shadow-card);
+}
+
+.ddb-spot-card:hover,
+.ddb-spot-card:focus-within {
+  transform: translateY(-2px);
+  border-color: #c9b99a;
+  box-shadow: 0 14px 36px rgba(24, 38, 57, 0.14);
+}
+
+.ddb-spot-card--featured {
+  border-color: rgba(217, 119, 69, 0.52);
+}
+
+/* Image hover effect */
+.ddb-spot-card .ui-listing-card__image {
+  transition: transform 0.24s ease;
+}
+
+.ddb-spot-card:hover .ui-listing-card__image,
+.ddb-spot-card:focus-within .ui-listing-card__image {
+  transform: scale(1.04);
+}
+
+/* Media: warm placeholder gradient */
+.ddb-spot-card .ui-listing-card__media {
+  background: linear-gradient(145deg, #ece5d8 0%, #f4ede0 100%);
+}
+
+.ddb-spot-card .ui-listing-card__placeholder {
+  background: linear-gradient(145deg, #e6ddd0 0%, #f0e6d8 100%);
+}
+
+/* Overlay / body: warm surface, dark text */
+.ddb-spot-card .ui-listing-card__overlay {
+  background: var(--ddb-surface);
+}
+
+.ddb-spot-card .ui-listing-card__title {
+  color: var(--ddb-ink);
+}
+
+.ddb-spot-card .ui-listing-card__eyebrow,
+.ddb-spot-card .ui-listing-card__meta {
+  color: var(--ddb-muted);
+}
+
+/* Price badge: warm surface */
+.ddb-spot-card .ui-listing-card__price {
+  color: var(--ddb-ink);
+  border-color: var(--ddb-border);
+  background: var(--ddb-surface-soft);
+}
+
+/* CTA primary: accent orange */
+.ddb-spot-card .ui-listing-card__cta--primary {
+  background: linear-gradient(180deg, #e28550 0%, #cc6f3d 100%);
+  border-color: #be6333;
+  color: #fff;
+}
+
+.ddb-spot-card .ui-listing-card__cta--primary:hover,
+.ddb-spot-card .ui-listing-card__cta--primary:focus-visible {
+  background: var(--ddb-accent-strong);
+  border-color: var(--ddb-accent-strong);
+  color: #fff;
+}
+
+/* CTA secondary: warm secondary surface */
+.ddb-spot-card .ui-listing-card__cta--secondary {
+  background: var(--ddb-surface-soft);
+  border-color: var(--ddb-border);
+  color: var(--ddb-ink);
+}
+
+.ddb-spot-card .ui-listing-card__cta--secondary:hover,
+.ddb-spot-card .ui-listing-card__cta--secondary:focus-visible {
+  background: #f0e6d8;
+  border-color: var(--ddb-accent);
+  color: var(--ddb-accent-strong);
+}
+
+/* =================================================================
+   OLED overview unification
+   Final scoped skin for /spots/ and /plattegrond/. Keeps [ddb_spots]
+   data and behavior intact while aligning with Activities overview.
+   ================================================================= */
+
+.ddb-spots-listing.ddb-listing-shell {
+  --ddb-spots-oled-bg: #000;
+  --ddb-spots-oled-panel: color-mix(in srgb, var(--ui-color-surface) 86%, #000);
+  --ddb-spots-oled-panel-strong: color-mix(in srgb, var(--ui-color-surface-2) 82%, #000);
+  --ddb-spots-oled-line: color-mix(in srgb, var(--ui-color-border) 62%, transparent);
+  --ddb-spots-oled-muted: color-mix(in srgb, var(--ui-color-text-muted) 84%, transparent);
+  width: min(100%, 1216px);
+  margin: clamp(24px, 4vw, 44px) auto clamp(48px, 6vw, 76px);
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--ui-color-text);
+}
+
+.ddb-spots-listing.ddb-listing-shell::before {
+  content: "";
+  display: block;
+  height: 1px;
+  margin-bottom: 18px;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--ui-color-primary) 34%, transparent), transparent);
+  opacity: 0.7;
+}
+
+.ddb-spots-listing .ddb-listing-toolbar {
+  margin: 0 0 18px;
+  border: 1px solid var(--ddb-spots-oled-line);
+  border-radius: 8px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ddb-spots-oled-panel) 94%, transparent), color-mix(in srgb, #050505 88%, transparent));
+  box-shadow: 0 18px 54px rgba(0, 0, 0, 0.34);
+  backdrop-filter: blur(18px);
+}
+
+.ddb-spots-listing .ddb-listing-toolbar__row,
+.ddb-spots-listing .ddb-spots-controls__grid {
+  display: grid;
+  grid-template-columns: minmax(240px, 1.55fr) repeat(3, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.ddb-spots-listing .ddb-listing-toolbar__actions,
+.ddb-spots-listing .ddb-spots-controls__actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.ddb-spots-listing .ddb-listing-field > span,
+.ddb-spots-listing .ddb-listing-field > .ddb-field__label {
+  color: var(--ddb-spots-oled-muted);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ddb-spots-listing .ddb-listing-field .ui-input,
+.ddb-spots-listing .ddb-listing-field .ddb-input,
+.ddb-spots-listing .ddb-listing-field .ui-select,
+.ddb-spots-listing .ddb-listing-field .ddb-select {
+  min-height: 42px;
+  border: 1px solid color-mix(in srgb, var(--ui-color-border) 52%, transparent);
+  border-radius: 7px;
+  background: color-mix(in srgb, #111827 76%, #000);
+  color: var(--ui-color-text);
+  box-shadow: none;
+}
+
+.ddb-spots-listing .ddb-listing-btn--primary,
+.ddb-spots-listing .ddb-spots-controls__actions > .ui-btn.ui-btn--primary {
+  border-color: transparent;
+  background: var(--ui-color-primary);
+  color: var(--ui-color-primary-contrast);
+}
+
+.ddb-spots-listing .ddb-listing-btn--ghost,
+.ddb-spots-listing .ddb-listing-btn--map,
+.ddb-spots-listing .ddb-spots-controls__actions > .ui-btn.ui-btn--ghost,
+.ddb-spots-listing .ddb-spots-controls__actions > .ui-btn.ui-btn--secondary {
+  border: 1px solid color-mix(in srgb, var(--ui-color-border) 48%, transparent);
+  background: color-mix(in srgb, #111827 64%, transparent);
+  color: var(--ui-color-text);
+}
+
+.ddb-spots-listing .ddb-listing-btn--map {
+  margin-left: auto;
+}
+
+.ddb-spots-listing .ddb-listing-main {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 360px);
+  gap: 14px;
+  align-items: start;
+}
+
+.ddb-spots-listing .ddb-listing-results__head {
+  margin: 0 0 12px;
+}
+
+.ddb-spots-listing .ddb-listing-results__head h2 {
+  margin: 0;
+  color: var(--ui-color-text);
+  font-family: var(--ui-font-display);
+  font-size: clamp(1.12rem, 1.8vw, 1.45rem);
+  line-height: 1.1;
+}
+
+.ddb-spots-listing .ddb-spots-grid,
+.ddb-spots-listing .ddb-spots-grid--top-picks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.ddb-spots-listing .ddb-spot-card {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  overflow: hidden;
+  border: 1px solid var(--ddb-spots-oled-line);
+  border-radius: 8px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ddb-spots-oled-panel) 96%, transparent), #050505);
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+  color: var(--ui-color-text);
+}
+
+.ddb-spots-listing .ddb-spot-card:hover,
+.ddb-spots-listing .ddb-spot-card:focus-within {
+  transform: translateY(-2px);
+  border-color: color-mix(in srgb, var(--ui-color-primary) 34%, var(--ddb-spots-oled-line));
+  box-shadow: 0 24px 58px rgba(0, 0, 0, 0.44);
+}
+
+.ddb-spots-listing .ddb-spot-card__link {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  color: inherit;
+  text-decoration: none;
+}
+
+.ddb-spots-listing .ddb-spot-card__link::before {
+  content: none;
+}
+
+.ddb-spots-listing .ddb-spot-card__media,
+.ddb-spots-listing .ddb-spot-card .ui-listing-card__media {
+  aspect-ratio: 16 / 10;
+  margin: 0;
+  background: color-mix(in srgb, #182230 82%, #000);
+}
+
+.ddb-spots-listing .ddb-spot-card__image,
+.ddb-spots-listing .ddb-spot-card .ui-listing-card__image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ddb-spots-listing .ddb-spot-card__media--empty,
+.ddb-spots-listing .ddb-spot-card .ui-listing-card__placeholder {
+  width: 100%;
+  height: 100%;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, #253244 82%, #000), color-mix(in srgb, #111827 92%, #000));
+}
+
+.ddb-spots-listing .ddb-spot-card__media--empty::after,
+.ddb-spots-listing .ddb-spot-card .ui-listing-card__placeholder::after {
+  content: "Beeld volgt";
+  display: grid;
+  height: 100%;
+  place-items: center;
+  color: color-mix(in srgb, var(--ui-color-text-muted) 80%, transparent);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.ddb-spots-listing .ddb-spot-card__body,
+.ddb-spots-listing .ddb-spot-card .ui-listing-card__overlay {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  background: transparent;
+}
+
+.ddb-spots-listing .ddb-spot-card__labels {
+  min-height: 0;
+}
+
+.ddb-spots-listing .ddb-spot-card__featured,
+.ddb-spots-listing .ddb-spot-label {
+  min-height: 22px;
+  border-color: color-mix(in srgb, var(--ui-color-primary) 34%, transparent);
+  background: color-mix(in srgb, var(--ui-color-primary) 12%, transparent);
+  color: var(--ui-color-primary);
+}
+
+.ddb-spots-listing .ddb-spot-card__title,
+.ddb-spots-listing .ddb-spot-card .ui-listing-card__title {
+  color: var(--ui-color-text);
+  font-family: var(--ui-font-display);
+  font-size: 1rem;
+  line-height: 1.14;
+}
+
+.ddb-spots-listing .ddb-spot-card__meta,
+.ddb-spots-listing .ddb-spot-card__excerpt,
+.ddb-spots-listing .ddb-spot-card .ui-listing-card__eyebrow,
+.ddb-spots-listing .ddb-spot-card .ui-listing-card__meta {
+  color: var(--ddb-spots-oled-muted);
+}
+
+.ddb-spots-listing .ddb-spot-card__price,
+.ddb-spots-listing .ddb-spot-card .ui-listing-card__price {
+  border-color: color-mix(in srgb, var(--ui-color-border) 48%, transparent);
+  background: color-mix(in srgb, #111827 68%, transparent);
+  color: var(--ui-color-text);
+}
+
+.ddb-spots-listing .ddb-spot-card__cta,
+.ddb-spots-listing .ui-listing-card__actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: auto;
+  padding: 0 12px 12px;
+}
+
+.ddb-spots-listing .ui-listing-card__cta,
+.ddb-spots-listing .ddb-spot-cta-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 0 12px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.ddb-spots-listing .ui-listing-card__cta--primary,
+.ddb-spots-listing .ddb-spot-cta-button--detail {
+  border: 1px solid color-mix(in srgb, var(--ui-color-border) 46%, transparent);
+  background: color-mix(in srgb, #111827 72%, #000);
+  color: var(--ui-color-text);
+}
+
+.ddb-spots-listing .ui-listing-card__cta--secondary,
+.ddb-spots-listing .ddb-spot-cta-button--restaurant {
+  border: 1px solid color-mix(in srgb, var(--ui-color-border) 46%, transparent);
+  background: color-mix(in srgb, #111827 58%, transparent);
+  color: var(--ui-color-text);
+}
+
+.ddb-spots-listing .ddb-listing-map__sticky {
+  position: sticky;
+  top: 88px;
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--ddb-spots-oled-line);
+  border-radius: 8px;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ddb-spots-oled-panel) 94%, transparent), #050505);
+  box-shadow: 0 18px 54px rgba(0, 0, 0, 0.34);
+}
+
+.ddb-spots-listing .ddb-listing-map__sticky h3 {
+  margin: 0;
+  color: var(--ui-color-text);
+  font-family: var(--ui-font-display);
+  font-size: 1.1rem;
+}
+
+.ddb-spots-listing .ddb-listing-map__frame {
+  width: 100%;
+  min-height: 260px;
+  border: 0;
+  border-radius: 7px;
+  background: color-mix(in srgb, #111827 84%, #000);
+}
+
+.ddb-spots-listing .ddb-listing-map__focus {
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, var(--ui-color-border) 42%, transparent);
+  border-radius: 7px;
+  background: color-mix(in srgb, #111827 58%, transparent);
+}
+
+.ddb-spots-listing .ddb-listing-map__focus strong {
+  color: var(--ui-color-text);
+}
+
+.ddb-spots-listing .ddb-listing-map__focus span {
+  color: var(--ddb-spots-oled-muted);
+  font-size: 12px;
+}
+
+.ddb-spots-listing .ddb-listing-map__focus a {
+  color: var(--ui-color-primary);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.ddb-spots-listing .ddb-listing-map__points {
+  display: grid;
+  gap: 6px;
+  max-height: 330px;
+  overflow: auto;
+  padding-right: 2px;
+}
+
+.ddb-spots-listing .ddb-listing-map__item {
+  justify-content: flex-start;
+  min-height: 34px;
+  padding: 6px 9px;
+  border: 1px solid color-mix(in srgb, var(--ui-color-border) 42%, transparent);
+  border-radius: 7px;
+  background: color-mix(in srgb, #111827 52%, transparent);
+  color: var(--ui-color-text);
+  text-align: left;
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.ddb-spots-listing .ddb-listing-map__item.is-active {
+  border-color: color-mix(in srgb, var(--ui-color-primary) 38%, transparent);
+  background: color-mix(in srgb, var(--ui-color-primary) 12%, #111827);
+  color: var(--ui-color-text);
+  box-shadow: none;
+}
+
+.ddb-spots-listing.ddb-spots-listing--map-first {
+  max-width: 1216px;
+}
+
+.ddb-spots-listing.ddb-spots-listing--map-first .ddb-listing-toolbar {
+  margin-bottom: 14px;
+}
+
+.ddb-spots-listing.ddb-spots-listing--map-first .ddb-listing-main {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.ddb-spots-listing.ddb-spots-listing--map-first .ddb-listing-map {
+  order: -1;
+}
+
+.ddb-spots-listing.ddb-spots-listing--map-first .ddb-listing-map__sticky {
+  position: relative;
+  top: auto;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 340px);
+  align-items: start;
+}
+
+.ddb-spots-listing.ddb-spots-listing--map-first .ddb-listing-map__sticky h3 {
+  grid-column: 1 / -1;
+}
+
+.ddb-spots-listing.ddb-spots-listing--map-first .ddb-listing-map__frame {
+  min-height: clamp(360px, 48vw, 560px);
+}
+
+.ddb-spots-listing.ddb-spots-listing--map-first .ddb-listing-map__points {
+  max-height: clamp(360px, 48vw, 560px);
+}
+
+.ddb-spots-listing.ddb-spots-listing--map-first .ddb-listing-results__head h2 {
+  font-size: 1rem;
+  color: var(--ddb-spots-oled-muted);
+}
+
+@media (max-width: 1080px) {
+  .ddb-spots-listing .ddb-listing-main,
+  .ddb-spots-listing.ddb-spots-listing--map-first .ddb-listing-map__sticky {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ddb-spots-listing .ddb-listing-map__sticky {
+    position: relative;
+    top: auto;
+  }
+}
+
+@media (max-width: 820px) {
+  .ddb-spots-listing .ddb-listing-toolbar__row,
+  .ddb-spots-listing .ddb-spots-controls__grid,
+  .ddb-spots-listing .ddb-spots-grid,
+  .ddb-spots-listing .ddb-spots-grid--top-picks {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ddb-spots-listing .ddb-listing-toolbar__actions,
+  .ddb-spots-listing .ddb-spots-controls__actions,
+  .ddb-spots-listing .ddb-spot-card__cta,
+  .ddb-spots-listing .ui-listing-card__actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ddb-spots-listing .ddb-listing-btn--map {
+    margin-left: 0;
+  }
+}
+
+/* =================================================================
+   Spots overview correction
+   /spots/ is an overview page like Activities: filters + full-width
+   discovery grid. The map belongs to /plattegrond/ only.
+   ================================================================= */
+
+.ddb-spots-listing.ddb-spots-listing--overview {
+  width: min(100% - 32px, 1180px);
+  max-width: 1180px;
+}
+
+.ddb-spots-listing.ddb-spots-listing--overview .ddb-listing-main {
+  display: block;
+  background: transparent;
+}
+
+.ddb-spots-listing.ddb-spots-listing--overview .ddb-listing-results {
+  width: 100%;
+}
+
+.ddb-spots-listing.ddb-spots-listing--overview .ddb-listing-map,
+.ddb-spots-listing.ddb-spots-listing--overview .ddb-listing-btn--map {
+  display: none;
+}
+
+.ddb-spots-listing.ddb-spots-listing--overview .ddb-listing-toolbar {
+  margin-bottom: 18px;
+}
+
+.ddb-spots-listing.ddb-spots-listing--overview .ddb-listing-results__head {
+  margin: 0 0 14px;
+}
+
+.ddb-spots-listing.ddb-spots-listing--overview .ddb-listing-results__head h2 {
+  color: var(--ui-color-text-muted);
+  font-family: var(--ui-font-body);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.ddb-spots-listing.ddb-spots-listing--overview .ddb-spots-grid,
+.ddb-spots-listing.ddb-spots-listing--overview .ddb-spots-grid--top-picks {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.ddb-spots-listing.ddb-spots-listing--overview .ddb-spot-card {
+  min-height: 100%;
+  border-radius: 8px;
+  background: #050505;
+}
+
+.ddb-spots-listing.ddb-spots-listing--overview .ddb-spot-card__media,
+.ddb-spots-listing.ddb-spots-listing--overview .ddb-spot-card .ui-listing-card__media {
+  aspect-ratio: 16 / 10;
+}
+
+.ddb-spots-listing.ddb-spots-listing--overview .ddb-spot-card__body,
+.ddb-spots-listing.ddb-spots-listing--overview .ddb-spot-card .ui-listing-card__overlay {
+  padding: 13px 13px 10px;
+}
+
+.ddb-spots-listing.ddb-spots-listing--overview .ddb-spot-card__title,
+.ddb-spots-listing.ddb-spots-listing--overview .ddb-spot-card .ui-listing-card__title {
+  font-size: 1.02rem;
+}
+
+.ddb-spots-listing.ddb-spots-listing--overview .ddb-spot-card__excerpt {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.ddb-spots-listing.ddb-spots-listing--overview .ddb-spot-card__cta,
+.ddb-spots-listing.ddb-spots-listing--overview .ui-listing-card__actions {
+  padding: 0 13px 13px;
+}
+
+@media (max-width: 1080px) {
+  .ddb-spots-listing.ddb-spots-listing--overview .ddb-spots-grid,
+  .ddb-spots-listing.ddb-spots-listing--overview .ddb-spots-grid--top-picks {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .ddb-spots-listing.ddb-spots-listing--overview {
+    width: min(100% - 24px, 1180px);
+  }
+
+  .ddb-spots-listing.ddb-spots-listing--overview .ddb-spots-grid,
+  .ddb-spots-listing.ddb-spots-listing--overview .ddb-spots-grid--top-picks {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Spots and map pages are part of the OLED discover family. */
+body.page-id-1992,
+body.page-id-1300,
+body.page-id-1992 .elementor,
+body.page-id-1300 .elementor,
+body.page-id-1992 .elementor-section,
+body.page-id-1300 .elementor-section,
+body.page-id-1992 .elementor-widget-wrap,
+body.page-id-1300 .elementor-widget-wrap,
+body.page-id-1992 .e-con,
+body.page-id-1300 .e-con {
+  background-color: #000;
+  color: #f8f4ea;
+}
+
+body.page-id-1992 .elementor-heading-title,
+body.page-id-1300 .elementor-heading-title,
+body.page-id-1992 .elementor-widget-heading,
+body.page-id-1300 .elementor-widget-heading {
+  color: #f8f4ea;
+}
+
+body.page-id-1992 .elementor-widget-text-editor,
+body.page-id-1300 .elementor-widget-text-editor,
+body.page-id-1992 .elementor-widget-container,
+body.page-id-1300 .elementor-widget-container {
+  color: #c8beb0;
+}
+
+.ddb-spots-listing.ddb-listing-shell {
+  --ui-color-text: #f8f4ea;
+  --ui-color-text-muted: #a99f91;
+  --ui-color-surface: #080808;
+  --ui-color-surface-2: #111827;
+  --ui-color-border: rgba(248, 244, 234, 0.16);
+  --ui-color-primary: #e4b97f;
+  --ui-color-primary-hover: #cf9f5e;
+  --ui-color-primary-contrast: #120d05;
+  color: #f8f4ea;
+}
+
+.ddb-spots-listing .ddb-listing-field .ui-input,
+.ddb-spots-listing .ddb-listing-field .ui-select {
+  color: #f8f4ea;
+}
+
+.ddb-spots-listing .ddb-listing-field .ui-input::placeholder {
+  color: rgba(248, 244, 234, 0.46);
+}
+
+.ddb-spots-listing .ddb-spot-card__title,
+.ddb-spots-listing .ddb-spot-card .ui-listing-card__title,
+.ddb-spots-listing .ddb-spot-card__meta,
+.ddb-spots-listing .ddb-spot-card__excerpt,
+.ddb-spots-listing .ddb-spot-card .ui-listing-card__eyebrow,
+.ddb-spots-listing .ddb-spot-card .ui-listing-card__meta,
+.ddb-spots-listing .ddb-spot-card__price,
+.ddb-spots-listing .ddb-spot-card .ui-listing-card__price,
+.ddb-spots-listing .ui-listing-card__cta,
+.ddb-spots-listing .ddb-spot-cta-button {
+  color: inherit;
+}
+
+/* Final Spots polish: no brown filter glow, equal filters, equal card buttons. */
+.ddb-spots-listing.ddb-listing-shell::before {
+  background: rgba(248, 244, 234, 0.1);
+  opacity: 1;
+}
+
+.ddb-spots-listing .ddb-listing-toolbar,
+.ddb-spots-listing .ddb-listing-toolbar.ui-summary {
+  border: 1px solid rgba(248, 244, 234, 0.14);
+  background: #070707;
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.5);
+}
+
+.ddb-spots-listing .ddb-listing-toolbar__row {
+  align-items: end;
+}
+
+.ddb-spots-listing .ddb-listing-field {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+
+.ddb-spots-listing .ddb-listing-field > span,
+.ddb-spots-listing .ddb-listing-field > .ddb-field__label {
+  color: rgba(248, 244, 234, 0.62);
+}
+
+.ddb-spots-listing .ddb-listing-field .ui-input,
+.ddb-spots-listing .ddb-listing-field .ddb-input,
+.ddb-spots-listing .ddb-listing-field .ui-select,
+.ddb-spots-listing .ddb-listing-field .ddb-select {
+  width: 100%;
+  height: 44px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid rgba(248, 244, 234, 0.14);
+  border-radius: 7px;
+  background: #101722;
+  color: #f8f4ea;
+  font-size: 14px;
+  line-height: 44px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.035);
+}
+
+.ddb-spots-listing .ddb-listing-field .ui-select,
+.ddb-spots-listing .ddb-listing-field .ddb-select {
+  appearance: auto;
+}
+
+.ddb-spots-listing .ddb-listing-field .ui-input:focus,
+.ddb-spots-listing .ddb-listing-field .ddb-input:focus,
+.ddb-spots-listing .ddb-listing-field .ui-select:focus,
+.ddb-spots-listing .ddb-listing-field .ddb-select:focus {
+  border-color: rgba(228, 185, 127, 0.58);
+  outline: 2px solid rgba(228, 185, 127, 0.14);
+  outline-offset: 1px;
+}
+
+.ddb-spots-listing .ddb-listing-toolbar__actions .ui-btn,
+.ddb-spots-listing .ddb-listing-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  height: 42px;
+  min-height: 42px;
+  padding: 0 16px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 800;
+  line-height: 1;
+  text-decoration: none;
+}
+
+.ddb-spots-listing .ddb-listing-btn--primary {
+  border: 1px solid #e4b97f;
+  background: #e4b97f;
+  color: #120d05;
+}
+
+.ddb-spots-listing .ddb-listing-btn--ghost,
+.ddb-spots-listing .ddb-listing-btn--map {
+  border: 1px solid rgba(248, 244, 234, 0.16);
+  background: #101722;
+  color: #f8f4ea;
+}
+
+.ddb-spots-listing .ddb-spot-card__cta,
+.ddb-spots-listing .ui-listing-card__actions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.ddb-spots-listing .ui-listing-card__cta,
+.ddb-spots-listing .ui-listing-card__cta--primary,
+.ddb-spots-listing .ui-listing-card__cta--secondary,
+.ddb-spots-listing .ddb-spot-cta-button,
+.ddb-spots-listing .ddb-spot-cta-button--detail,
+.ddb-spots-listing .ddb-spot-cta-button--restaurant {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-width: 0;
+  height: 38px;
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid rgba(248, 244, 234, 0.16);
+  border-radius: 7px;
+  background: #101722;
+  color: #f8f4ea;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1;
+  text-align: center;
+  text-decoration: none;
+  box-shadow: none;
+}
+
+.ddb-spots-listing .ui-listing-card__cta:hover,
+.ddb-spots-listing .ui-listing-card__cta:focus-visible,
+.ddb-spots-listing .ddb-spot-cta-button:hover,
+.ddb-spots-listing .ddb-spot-cta-button:focus-visible {
+  border-color: rgba(228, 185, 127, 0.48);
+  background: #151f2e;
+  color: #f8f4ea;
+}
+
+/* Critical final pass: force the Spots page out of the half-dimmed/brown state. */
+body.page-id-1992,
+body.page-id-1300 {
+  background: #000;
+}
+
+body.page-id-1992 .ddb-spots-listing,
+body.page-id-1300 .ddb-spots-listing,
+body.page-id-1992 .ddb-spots-listing *,
+body.page-id-1300 .ddb-spots-listing * {
+  opacity: 1;
+  filter: none;
+}
+
+body.page-id-1992 .ddb-spots-listing.ddb-listing-shell::before,
+body.page-id-1300 .ddb-spots-listing.ddb-listing-shell::before,
+body.page-id-1992 .ddb-spots-listing .ddb-listing-toolbar::before,
+body.page-id-1300 .ddb-spots-listing .ddb-listing-toolbar::before,
+body.page-id-1992 .ddb-spots-listing .ddb-listing-toolbar::after,
+body.page-id-1300 .ddb-spots-listing .ddb-listing-toolbar::after {
+  content: none;
+  display: none;
+}
+
+body.page-id-1992 .ddb-spots-listing .ddb-listing-toolbar,
+body.page-id-1300 .ddb-spots-listing .ddb-listing-toolbar,
+body.page-id-1992 .ddb-spots-listing .ddb-listing-toolbar.ui-summary,
+body.page-id-1300 .ddb-spots-listing .ddb-listing-toolbar.ui-summary {
+  padding: 18px;
+  border: 1px solid rgba(248, 244, 234, 0.12);
+  border-radius: 8px;
+  background: #050505;
+  background-image: none;
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.44);
+}
+
+body.page-id-1992 .ddb-spots-listing .ddb-listing-toolbar__row,
+body.page-id-1300 .ddb-spots-listing .ddb-listing-toolbar__row {
+  grid-template-columns: minmax(260px, 1.4fr) repeat(3, minmax(180px, 1fr));
+  gap: 12px;
+}
+
+body.page-id-1992 .ddb-spots-listing .ddb-listing-field > span,
+body.page-id-1300 .ddb-spots-listing .ddb-listing-field > span {
+  color: #bcb3a6;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+body.page-id-1992 .ddb-spots-listing .ddb-listing-field .ui-input,
+body.page-id-1992 .ddb-spots-listing .ddb-listing-field .ui-select,
+body.page-id-1300 .ddb-spots-listing .ddb-listing-field .ui-input,
+body.page-id-1300 .ddb-spots-listing .ddb-listing-field .ui-select {
+  height: 46px;
+  min-height: 46px;
+  border-color: rgba(248, 244, 234, 0.16);
+  background: #111827;
+  background-image: none;
+  color: #f8f4ea;
+}
+
+body.page-id-1992 .ddb-spots-listing .ddb-listing-field .ui-select option,
+body.page-id-1300 .ddb-spots-listing .ddb-listing-field .ui-select option {
+  background: #111827;
+  color: #f8f4ea;
+}
+
+body.page-id-1992 .ddb-spots-listing .ddb-listing-toolbar__actions,
+body.page-id-1300 .ddb-spots-listing .ddb-listing-toolbar__actions {
+  gap: 10px;
+  margin-top: 14px;
+}
+
+body.page-id-1992 .ddb-spots-listing .ddb-listing-toolbar__actions .ui-btn,
+body.page-id-1992 .ddb-spots-listing .ddb-listing-btn,
+body.page-id-1300 .ddb-spots-listing .ddb-listing-toolbar__actions .ui-btn,
+body.page-id-1300 .ddb-spots-listing .ddb-listing-btn {
+  height: 42px;
+  min-height: 42px;
+  border: 1px solid rgba(248, 244, 234, 0.16);
+  border-radius: 7px;
+  background: #111827;
+  background-image: none;
+  color: #f8f4ea;
+  box-shadow: none;
+}
+
+body.page-id-1992 .ddb-spots-listing .ddb-listing-toolbar__actions .ui-btn:hover,
+body.page-id-1992 .ddb-spots-listing .ddb-listing-btn:hover,
+body.page-id-1992 .ddb-spots-listing .ddb-listing-toolbar__actions .ui-btn:focus-visible,
+body.page-id-1992 .ddb-spots-listing .ddb-listing-btn:focus-visible,
+body.page-id-1300 .ddb-spots-listing .ddb-listing-toolbar__actions .ui-btn:hover,
+body.page-id-1300 .ddb-spots-listing .ddb-listing-btn:hover,
+body.page-id-1300 .ddb-spots-listing .ddb-listing-toolbar__actions .ui-btn:focus-visible,
+body.page-id-1300 .ddb-spots-listing .ddb-listing-btn:focus-visible {
+  border-color: rgba(228, 185, 127, 0.54);
+  background: #162033;
+  color: #f8f4ea;
+}
+
+body.page-id-1992 .ddb-spots-listing .ddb-listing-results__head h2,
+body.page-id-1300 .ddb-spots-listing .ddb-listing-results__head h2 {
+  color: #d8cfc2;
+}
+
+body.page-id-1992 .ddb-spots-listing .ddb-spot-card,
+body.page-id-1300 .ddb-spots-listing .ddb-spot-card {
+  border-color: rgba(248, 244, 234, 0.13);
+  background: #020202;
+  background-image: none;
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.42);
+}
+
+body.page-id-1992 .ddb-spots-listing .ddb-spot-card__image,
+body.page-id-1300 .ddb-spots-listing .ddb-spot-card__image {
+  opacity: 1;
+  filter: none;
+}
+
+body.page-id-1992 .ddb-spots-listing .ddb-spot-card__media,
+body.page-id-1300 .ddb-spots-listing .ddb-spot-card__media {
+  border-bottom: 1px solid rgba(248, 244, 234, 0.11);
+}
+
+body.page-id-1992 .ddb-spots-listing .ddb-spot-card__title,
+body.page-id-1300 .ddb-spots-listing .ddb-spot-card__title {
+  color: #fffaf0;
+  font-weight: 800;
+}
+
+body.page-id-1992 .ddb-spots-listing .ddb-spot-card__meta,
+body.page-id-1992 .ddb-spots-listing .ddb-spot-card__excerpt,
+body.page-id-1992 .ddb-spots-listing .ddb-spot-card .ui-listing-card__meta,
+body.page-id-1300 .ddb-spots-listing .ddb-spot-card__meta,
+body.page-id-1300 .ddb-spots-listing .ddb-spot-card__excerpt,
+body.page-id-1300 .ddb-spots-listing .ddb-spot-card .ui-listing-card__meta {
+  color: #d0c7ba;
+}
+
+body.page-id-1992 .ddb-spots-listing .ddb-spot-card .ui-listing-card__eyebrow,
+body.page-id-1300 .ddb-spots-listing .ddb-spot-card .ui-listing-card__eyebrow {
+  color: #cabda9;
+}
+
+body.page-id-1992 .ddb-spots-listing .ui-listing-card__cta,
+body.page-id-1992 .ddb-spots-listing .ui-listing-card__cta--primary,
+body.page-id-1992 .ddb-spots-listing .ui-listing-card__cta--secondary,
+body.page-id-1992 .ddb-spots-listing .ddb-spot-cta-button,
+body.page-id-1992 .ddb-spots-listing .ddb-spot-cta-button--detail,
+body.page-id-1992 .ddb-spots-listing .ddb-spot-cta-button--restaurant,
+body.page-id-1300 .ddb-spots-listing .ui-listing-card__cta,
+body.page-id-1300 .ddb-spots-listing .ui-listing-card__cta--primary,
+body.page-id-1300 .ddb-spots-listing .ui-listing-card__cta--secondary,
+body.page-id-1300 .ddb-spots-listing .ddb-spot-cta-button,
+body.page-id-1300 .ddb-spots-listing .ddb-spot-cta-button--detail,
+body.page-id-1300 .ddb-spots-listing .ddb-spot-cta-button--restaurant {
+  height: 40px;
+  min-height: 40px;
+  border-color: rgba(248, 244, 234, 0.18);
+  background: #111827;
+  background-image: none;
+  color: #f8f4ea;
+  box-shadow: none;
+}
+
+@media (max-width: 900px) {
+  body.page-id-1992 .ddb-spots-listing .ddb-listing-toolbar__row,
+  body.page-id-1300 .ddb-spots-listing .ddb-listing-toolbar__row {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* No-gradient guarantee for Spots surfaces. Keep real <img> media untouched. */
+body.page-id-1992 .ddb-spots-listing,
+body.page-id-1300 .ddb-spots-listing,
+body.page-id-1992 .ddb-spots-listing .ui-summary,
+body.page-id-1300 .ddb-spots-listing .ui-summary,
+body.page-id-1992 .ddb-spots-listing .ddb-listing-toolbar,
+body.page-id-1300 .ddb-spots-listing .ddb-listing-toolbar,
+body.page-id-1992 .ddb-spots-listing .ddb-listing-main,
+body.page-id-1300 .ddb-spots-listing .ddb-listing-main,
+body.page-id-1992 .ddb-spots-listing .ddb-listing-results,
+body.page-id-1300 .ddb-spots-listing .ddb-listing-results,
+body.page-id-1992 .ddb-spots-listing .ddb-spot-card,
+body.page-id-1300 .ddb-spots-listing .ddb-spot-card,
+body.page-id-1992 .ddb-spots-listing .ddb-spot-card__body,
+body.page-id-1300 .ddb-spots-listing .ddb-spot-card__body,
+body.page-id-1992 .ddb-spots-listing .ui-listing-card__overlay,
+body.page-id-1300 .ddb-spots-listing .ui-listing-card__overlay,
+body.page-id-1992 .ddb-spots-listing .ddb-listing-map__sticky,
+body.page-id-1300 .ddb-spots-listing .ddb-listing-map__sticky,
+body.page-id-1992 .ddb-spots-listing .ddb-listing-map__focus,
+body.page-id-1300 .ddb-spots-listing .ddb-listing-map__focus,
+body.page-id-1992 .ddb-spots-listing .ddb-listing-map__item,
+body.page-id-1300 .ddb-spots-listing .ddb-listing-map__item,
+body.page-id-1992 .ddb-spots-listing .ddb-listing-field .ui-input,
+body.page-id-1300 .ddb-spots-listing .ddb-listing-field .ui-input,
+body.page-id-1992 .ddb-spots-listing .ddb-listing-field .ui-select,
+body.page-id-1300 .ddb-spots-listing .ddb-listing-field .ui-select,
+body.page-id-1992 .ddb-spots-listing .ui-btn,
+body.page-id-1300 .ddb-spots-listing .ui-btn,
+body.page-id-1992 .ddb-spots-listing .ui-listing-card__cta,
+body.page-id-1300 .ddb-spots-listing .ui-listing-card__cta,
+body.page-id-1992 .ddb-spots-listing .ddb-spot-cta-button,
+body.page-id-1300 .ddb-spots-listing .ddb-spot-cta-button,
+body.page-id-1992 .ddb-spots-listing .ddb-spot-label,
+body.page-id-1300 .ddb-spots-listing .ddb-spot-label,
+body.page-id-1992 .ddb-spots-listing .ddb-spot-card__featured,
+body.page-id-1300 .ddb-spots-listing .ddb-spot-card__featured,
+body.page-id-1992 .ddb-spots-listing .ddb-spot-card__price,
+body.page-id-1300 .ddb-spots-listing .ddb-spot-card__price {
+  background-image: none;
+}
+
+body.page-id-1992 .ddb-spots-listing .ddb-spot-card__media,
+body.page-id-1300 .ddb-spots-listing .ddb-spot-card__media,
+body.page-id-1992 .ddb-spots-listing .ui-listing-card__media,
+body.page-id-1300 .ddb-spots-listing .ui-listing-card__media,
+body.page-id-1992 .ddb-spots-listing .ddb-spot-card__media--empty,
+body.page-id-1300 .ddb-spots-listing .ddb-spot-card__media--empty,
+body.page-id-1992 .ddb-spots-listing .ui-listing-card__placeholder,
+body.page-id-1300 .ddb-spots-listing .ui-listing-card__placeholder {
+  background: #111827;
+  background-image: none;
+}
+
+body.page-id-1992 .ddb-spots-listing .ddb-spot-card__media:has(img),
+body.page-id-1300 .ddb-spots-listing .ddb-spot-card__media:has(img),
+body.page-id-1992 .ddb-spots-listing .ui-listing-card__media:has(img),
+body.page-id-1300 .ddb-spots-listing .ui-listing-card__media:has(img) {
+  background: #050505;
+  background-image: none;
+}
+
+body.page-id-1992 .ddb-spots-listing.ddb-listing-shell,
+body.page-id-1300 .ddb-spots-listing.ddb-listing-shell {
+  background: #000;
+  background-image: none;
+  box-shadow: none;
+}
+
+body.page-id-1992 .ddb-spots-listing .ddb-spot-card__link::before,
+body.page-id-1300 .ddb-spots-listing .ddb-spot-card__link::before,
+body.page-id-1992 .ddb-spots-listing .ddb-spot-card__link::after,
+body.page-id-1300 .ddb-spots-listing .ddb-spot-card__link::after {
+  content: none;
+  display: none;
+  background: none;
+  background-image: none;
+}
+
+body.page-id-1992 #ddb-runtime-footer,
+body.page-id-1300 #ddb-runtime-footer,
+body.page-id-1992 .site-footer,
+body.page-id-1300 .site-footer {
+  background: #000;
+  background-image: none;
+}
+
+/* Spots light mode cleanup: override the legacy page-id dark pass above. */
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 {
+  background: var(--ui-color-bg, #f8f6f2);
+  color: var(--ui-color-text, #1a1714);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing.ddb-listing-shell,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing.ddb-listing-shell {
+  --ui-color-text: #1a1714;
+  --ui-color-text-muted: #6b635c;
+  --ui-color-surface: #ffffff;
+  --ui-color-surface-2: #f0ece5;
+  --ui-color-border: #ded6c9;
+  --ui-color-primary: #e4b97f;
+  --ui-color-primary-hover: #cf9f5e;
+  --ui-color-primary-contrast: #100b02;
+  --ui-color-cta: #e4b97f;
+  --ui-color-cta-hover: #cf9f5e;
+  --ui-color-cta-contrast: #100b02;
+  background: transparent;
+  background-image: none;
+  border-color: transparent;
+  box-shadow: none;
+  color: var(--ui-color-text, #1a1714);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-archive,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-archive,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .site-main,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .site-main,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .entry-content,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .entry-content {
+  background: var(--ui-color-bg, #f8f6f2);
+  color: var(--ui-color-text, #1a1714);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing h1,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing h2,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing h3,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing h1,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing h2,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing h3 {
+  color: var(--ui-color-text, #1a1714);
+  text-shadow: none;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing p,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing p {
+  color: var(--ui-color-text-muted, #6b635c);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing .ddb-listing-toolbar,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing .ddb-listing-toolbar.ui-summary,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing .ddb-listing-toolbar,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing .ddb-listing-toolbar.ui-summary {
+  background: #ffffff;
+  background-image: none;
+  border-color: color-mix(in srgb, var(--ui-color-border, #ded6c9) 86%, transparent);
+  box-shadow: 0 14px 32px rgba(52, 38, 22, 0.08);
+  color: var(--ui-color-text, #1a1714);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing .ddb-listing-field > span,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing .ddb-listing-field > span {
+  color: var(--ui-color-text-muted, #6b635c);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing .ddb-listing-field .ui-input,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing .ddb-listing-field .ddb-input,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing .ddb-listing-field .ui-select,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing .ddb-listing-field .ddb-select,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing .ddb-listing-field .ui-input,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing .ddb-listing-field .ddb-input,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing .ddb-listing-field .ui-select,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing .ddb-listing-field .ddb-select {
+  background: #ffffff;
+  background-image: none;
+  border-color: color-mix(in srgb, var(--ui-color-border, #ded6c9) 90%, transparent);
+  color: var(--ui-color-text, #1a1714);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing .ddb-listing-field .ui-input::placeholder,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing .ddb-listing-field .ui-input::placeholder {
+  color: color-mix(in srgb, var(--ui-color-text-muted, #6b635c) 72%, transparent);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing .ddb-listing-field .ui-select option,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing .ddb-listing-field .ui-select option {
+  background: #ffffff;
+  color: var(--ui-color-text, #1a1714);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing .ddb-listing-toolbar__actions .ui-btn,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing .ddb-listing-btn,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing .ddb-listing-toolbar__actions .ui-btn,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing .ddb-listing-btn {
+  background: var(--ui-color-surface-2, #f0ece5);
+  background-image: none;
+  border-color: color-mix(in srgb, var(--ui-color-border, #ded6c9) 90%, transparent);
+  color: var(--ui-color-text, #1a1714);
+  box-shadow: none;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing .ddb-listing-toolbar__actions .ui-btn--primary,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing .ddb-listing-toolbar__actions .ui-btn--primary {
+  background: var(--ui-color-primary, #e4b97f);
+  border-color: var(--ui-color-primary, #e4b97f);
+  color: var(--ui-color-primary-contrast, #100b02);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing .ddb-spot-card,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing .ddb-spot-card {
+  min-height: 0;
+  height: auto;
+  overflow: hidden;
+  background: #ffffff;
+  background-image: none;
+  border-color: color-mix(in srgb, var(--ui-color-border, #ded6c9) 86%, transparent);
+  box-shadow: 0 12px 28px rgba(52, 38, 22, 0.1);
+  color: var(--ui-color-text, #1a1714);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing .ddb-spot-card:hover,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing .ddb-spot-card:hover {
+  border-color: color-mix(in srgb, var(--ui-color-primary, #e4b97f) 38%, var(--ui-color-border, #ded6c9));
+  box-shadow: 0 18px 38px rgba(52, 38, 22, 0.14);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing .ddb-spot-card .ui-listing-card__media,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing .ddb-spot-card .ddb-spot-card__media,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing .ddb-spot-card .ddb-card__media,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing .ddb-spot-card .ui-listing-card__media,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing .ddb-spot-card .ddb-spot-card__media,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing .ddb-spot-card .ddb-card__media {
+  position: relative;
+  inset: auto;
+  height: 178px;
+  min-height: 178px;
+  background: linear-gradient(145deg, #f1ece3, #ddd4c5);
+  border-bottom: 1px solid color-mix(in srgb, var(--ui-color-border, #ded6c9) 82%, transparent);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing .ddb-spot-card .ui-listing-card__placeholder,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing .ddb-spot-card .ui-listing-card__placeholder {
+  min-height: 178px;
+  background: #ebe5da;
+  background-image: none;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing .ddb-spot-card .ui-listing-card__image,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing .ddb-spot-card .ddb-spot-card__image,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing .ddb-spot-card .ui-listing-card__image,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing .ddb-spot-card .ddb-spot-card__image {
+  height: 178px;
+  min-height: 178px;
+  opacity: 1;
+  filter: none;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing .ddb-spot-card .ui-listing-card__overlay,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing .ddb-spot-card .ddb-spot-card__body,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing .ddb-spot-card .ddb-card__body,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing .ddb-spot-card .ui-listing-card__overlay,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing .ddb-spot-card .ddb-spot-card__body,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing .ddb-spot-card .ddb-card__body {
+  position: static;
+  inset: auto;
+  min-height: 0;
+  padding: 12px 14px 14px;
+  background: #ffffff;
+  background-image: none;
+  color: var(--ui-color-text, #1a1714);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing .ddb-spot-card .ui-listing-card__overlay::before,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing .ddb-spot-card .ui-listing-card__overlay::after,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing .ddb-spot-card .ui-listing-card__overlay::before,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing .ddb-spot-card .ui-listing-card__overlay::after {
+  content: none;
+  display: none;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing .ddb-spot-card .ui-listing-card__eyebrow,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing .ddb-spot-card .ui-listing-card__eyebrow {
+  color: var(--ui-color-text-muted, #6b635c);
+  text-shadow: none;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing .ddb-spot-card .ui-listing-card__title,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing .ddb-spot-card .ddb-spot-card__title,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing .ddb-spot-card .ddb-card__title,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing .ddb-spot-card .ui-listing-card__title,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing .ddb-spot-card .ddb-spot-card__title,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing .ddb-spot-card .ddb-card__title {
+  color: var(--ui-color-text, #1a1714);
+  font-size: clamp(1.02rem, 1.05vw, 1.16rem);
+  line-height: 1.22;
+  text-shadow: none;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing .ddb-spot-card .ui-listing-card__meta,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing .ddb-spot-card .ddb-spot-card__meta,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing .ddb-spot-card .ddb-card__meta,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing .ddb-spot-card .ui-listing-card__meta,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing .ddb-spot-card .ddb-spot-card__meta,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing .ddb-spot-card .ddb-card__meta {
+  color: var(--ui-color-text, #1a1714);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing .ddb-spot-card .ui-listing-card__meta-item,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing .ddb-spot-card .ui-listing-card__meta-item {
+  background: var(--ui-color-surface-2, #f0ece5);
+  border-color: color-mix(in srgb, var(--ui-color-border, #ded6c9) 86%, transparent);
+  color: var(--ui-color-text, #1a1714);
+  text-shadow: none;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing .ddb-spot-card .ui-listing-card__actions,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing .ddb-spot-card .ddb-spot-card__cta,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing .ddb-spot-card .ui-listing-card__actions,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing .ddb-spot-card .ddb-spot-card__cta {
+  position: static;
+  inset: auto;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+  padding: 0 10px 10px;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing .ui-listing-card__cta,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing .ui-listing-card__cta {
+  height: 36px;
+  min-height: 36px;
+  border-radius: 8px;
+  border-color: color-mix(in srgb, var(--ui-color-border, #ded6c9) 86%, transparent);
+  background: var(--ui-color-surface-2, #f0ece5);
+  background-image: none;
+  color: var(--ui-color-text, #1a1714);
+  box-shadow: none;
+  text-shadow: none;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing .ui-listing-card__cta--primary,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing .ui-listing-card__cta--primary {
+  background: var(--ui-color-primary, #e4b97f);
+  border-color: var(--ui-color-primary, #e4b97f);
+  color: var(--ui-color-primary-contrast, #100b02);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing .ui-listing-card__price,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing .ui-listing-card__price,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing .ddb-spot-card__price,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing .ddb-spot-card__price {
+  background: var(--ui-color-surface-2, #f0ece5);
+  border-color: color-mix(in srgb, var(--ui-color-border, #ded6c9) 86%, transparent);
+  color: var(--ui-color-text, #1a1714);
+  text-shadow: none;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 #ddb-runtime-footer,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .site-footer,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 #ddb-runtime-footer,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .site-footer {
+  background: var(--ui-color-surface, #ffffff);
+  background-image: none;
+  color: var(--ui-color-text, #1a1714);
+  border-top: 1px solid color-mix(in srgb, var(--ui-color-border, #ded6c9) 86%, transparent);
+}
+
+/* Spots light mode page shell: Elementor containers must not keep the OLED black canvas. */
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .elementor,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .elementor-section,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .elementor-widget-wrap,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .elementor-widget-container,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .e-con,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .elementor,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .elementor-section,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .elementor-widget-wrap,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .elementor-widget-container,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .e-con {
+  background-color: var(--ui-color-bg, #f8f6f2);
+  background-image: none;
+  color: var(--ui-color-text, #1a1714);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .elementor-heading-title,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .elementor-widget-heading,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .elementor-heading-title,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .elementor-widget-heading {
+  color: var(--ui-color-text, #1a1714);
+  text-shadow: none;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .elementor-widget-text-editor,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .elementor-widget-text-editor {
+  color: var(--ui-color-text-muted, #6b635c);
+}
+
+/* Spots light mode contrast pass: keep the clean layout, remove washed-out copy. */
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing .ddb-listing-results__head h2,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing .ddb-listing-results__head h2 {
+  color: #5f574f;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing .ddb-spot-card__meta,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing .ddb-spot-card__excerpt,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing .ddb-spot-card .ui-listing-card__eyebrow,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing .ddb-spot-card .ui-listing-card__meta,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing .ddb-spot-card__meta,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing .ddb-spot-card__excerpt,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing .ddb-spot-card .ui-listing-card__eyebrow,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing .ddb-spot-card .ui-listing-card__meta {
+  color: #6b635c;
+  opacity: 1;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing .ddb-spot-card__media--empty,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing .ddb-spot-card .ui-listing-card__placeholder,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing .ddb-spot-card__media--empty,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing .ddb-spot-card .ui-listing-card__placeholder {
+  display: grid;
+  place-items: center;
+  color: #6b635c;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing .ddb-spot-card__media--empty::before,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1992 .ddb-spots-listing .ddb-spot-card .ui-listing-card__placeholder::before,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing .ddb-spot-card__media--empty::before,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) body.page-id-1300 .ddb-spots-listing .ddb-spot-card .ui-listing-card__placeholder::before {
+  content: none;
+}
