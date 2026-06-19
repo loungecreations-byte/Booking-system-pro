@@ -13,6 +13,7 @@
     "check:no-important": "pwsh -File ./scripts/check-no-important.ps1",
     "check:app-stylesheets": "pwsh -File ./scripts/check-app-stylesheets.ps1",
     "check:app-stylesheets:strict": "pwsh -File ./scripts/check-app-stylesheets.ps1 -Strict",
+    "check:theme-mode": "pwsh -File ./scripts/check-theme-mode-guards.ps1",
     "audit:cleanup": "pwsh -File ./scripts/system-cleanup-audit.ps1"
   },
   "devDependencies": {
