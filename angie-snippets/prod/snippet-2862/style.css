@@ -1,0 +1,672 @@
+/* DagjeDenBosch Mega Navigation — scoped under .ddb-mega-nav */
+
+/* === Variables === */
+.ddb-mega-nav {
+    --ddb-bg: var(--ui-color-bg, #f8f6f2);
+    --ddb-bg-panel: var(--ui-color-surface, #ffffff);
+    --ddb-bg-card: var(--ui-color-surface-2, #f0ece5);
+    --ddb-accent: var(--ui-color-primary, #E4B97F);
+    --ddb-accent-hover: var(--ui-color-primary-hover, #CF9F5E);
+    --ddb-text: var(--ui-color-text, #1a1714);
+    --ddb-text-muted: var(--ui-color-text-muted, #6b635c);
+    --ddb-border: var(--ui-color-border-subtle, rgba(26, 23, 20, 0.1));
+    --ddb-radius: 12px;
+    --ddb-radius-sm: 8px;
+    --ddb-transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    --ddb-nav-height: 64px;
+    --ddb-font: var(--ui-font-sans, 'Quattrocento Sans', 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif);
+}
+
+html[data-theme="dark"] .ddb-mega-nav {
+    --ddb-bg: #0f0f0f;
+    --ddb-bg-panel: #1a1a1a;
+    --ddb-bg-card: #242424;
+    --ddb-text: #ffffff;
+    --ddb-text-muted: #a0a0a0;
+    --ddb-border: rgba(255,255,255,0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+    html[data-theme="system"] .ddb-mega-nav {
+        --ddb-bg: #0f0f0f;
+        --ddb-bg-panel: #1a1a1a;
+        --ddb-bg-card: #242424;
+        --ddb-text: #ffffff;
+        --ddb-text-muted: #a0a0a0;
+        --ddb-border: rgba(255,255,255,0.08);
+    }
+}
+
+/* === Reset scoped === */
+.ddb-mega-nav *,
+.ddb-mega-nav *::before,
+.ddb-mega-nav *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+/* === Header bar === */
+.ddb-mega-nav {
+    position: sticky;
+    top: 0;
+    z-index: 99999;
+    background: color-mix(in srgb, var(--ddb-bg) 86%, #ffffff 14%);
+    border-bottom: 1px solid color-mix(in srgb, var(--ddb-border) 78%, transparent);
+    box-shadow: 0 8px 24px rgba(26, 22, 18, 0.07);
+    backdrop-filter: blur(18px);
+    font-family: var(--ddb-font);
+}
+
+.ddb-mega-nav__bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 1240px;
+    margin: 0 auto;
+    padding: 0 28px;
+    height: var(--ddb-nav-height);
+}
+
+/* === Logo === */
+.ddb-mega-nav__logo {
+    text-decoration: none;
+    color: var(--ddb-text);
+    flex-shrink: 0;
+    margin-right: 34px;
+    display: flex;
+    align-items: center;
+}
+
+.ddb-mega-nav__logo-img {
+    height: 42px;
+    width: auto;
+    max-width: 180px;
+    object-fit: contain;
+    display: block;
+    filter: drop-shadow(0 4px 10px rgba(26, 22, 18, 0.12));
+}
+
+.ddb-mega-nav__logo-text {
+    font-size: 18px;
+    font-weight: 400;
+    letter-spacing: 0.02em;
+    color: var(--ddb-text);
+}
+
+.ddb-mega-nav__logo-text strong {
+    font-weight: 700;
+    color: var(--ddb-accent);
+}
+
+/* === Nav list === */
+.ddb-mega-nav__list {
+    display: flex;
+    align-items: center;
+    list-style: none;
+    gap: 4px;
+    flex: 1;
+    margin: 0;
+    padding: 0;
+}
+
+.ddb-mega-nav__item {
+    position: relative;
+}
+
+/* === Triggers & links === */
+.ddb-mega-nav__trigger,
+.ddb-mega-nav__link {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    min-height: 34px;
+    padding: 7px 9px;
+    font-size: 12px;
+    font-weight: 650;
+    color: var(--ddb-text-muted);
+    background: none;
+    border: none;
+    border-radius: 999px;
+    cursor: pointer;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: color var(--ddb-transition), background var(--ddb-transition);
+    font-family: var(--ddb-font);
+    line-height: 1.2;
+}
+
+.ddb-mega-nav__trigger:hover,
+.ddb-mega-nav__trigger:focus-visible,
+.ddb-mega-nav__link:hover,
+.ddb-mega-nav__link:focus-visible {
+    color: var(--ddb-text);
+    background: color-mix(in srgb, var(--ddb-accent) 12%, var(--ddb-bg-panel));
+}
+
+.ddb-mega-nav__trigger[aria-expanded="true"] {
+    color: var(--ddb-accent);
+    background: color-mix(in srgb, var(--ddb-accent) 14%, var(--ddb-bg-panel));
+}
+
+.ddb-mega-nav__item--active > .ddb-mega-nav__trigger,
+.ddb-mega-nav__item--active > .ddb-mega-nav__link {
+    color: var(--ddb-accent);
+}
+
+/* === Chevron === */
+.ddb-mega-nav__chevron {
+    transition: transform var(--ddb-transition);
+    flex-shrink: 0;
+}
+
+.ddb-mega-nav__trigger[aria-expanded="true"] .ddb-mega-nav__chevron {
+    transform: rotate(180deg);
+}
+
+/* === Panel === */
+.ddb-mega-nav__panel {
+    display: none;
+    position: fixed;
+    top: calc(var(--ddb-nav-height) + 12px);
+    left: 50vw;
+    transform: translateX(-50%) translateY(-8px);
+    width: min(1120px, calc(100vw - 48px));
+    min-width: 0;
+    background: var(--ddb-bg-panel);
+    border: 1px solid var(--ddb-border);
+    border-radius: var(--ddb-radius);
+    padding: 0;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity var(--ddb-transition), transform var(--ddb-transition), visibility var(--ddb-transition);
+    box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+}
+
+.ddb-mega-nav__panel[aria-hidden="false"] {
+    display: block;
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateX(-50%) translateY(0);
+}
+
+.ddb-mega-nav__panel-inner {
+    padding: 32px;
+}
+
+/* === Columns === */
+.ddb-mega-nav__columns {
+    display: grid;
+    gap: 32px;
+}
+
+.ddb-mega-nav__columns--1 {
+    grid-template-columns: 1fr;
+    min-width: 400px;
+}
+
+.ddb-mega-nav__columns--2 {
+    grid-template-columns: 1fr 1fr;
+    min-width: 540px;
+}
+
+.ddb-mega-nav__columns--3 {
+    grid-template-columns: 1fr 1fr 1fr;
+    min-width: 780px;
+}
+
+/* === Section === */
+.ddb-mega-nav__section-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ddb-accent);
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--ddb-border);
+}
+
+/* === Links list === */
+.ddb-mega-nav__links {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.ddb-mega-nav__links li a {
+    display: block;
+    padding: 8px 12px;
+    font-size: 14px;
+    font-weight: 450;
+    color: var(--ddb-text);
+    text-decoration: none;
+    border-radius: var(--ddb-radius-sm);
+    transition: background var(--ddb-transition), color var(--ddb-transition);
+}
+
+.ddb-mega-nav__links li a:hover,
+.ddb-mega-nav__links li a:focus-visible {
+    background: color-mix(in srgb, var(--ddb-accent) 12%, var(--ddb-bg-panel));
+    color: var(--ddb-accent);
+}
+
+.ddb-mega-nav__links--grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+}
+
+/* === View all link === */
+.ddb-mega-nav__view-all {
+    display: inline-block;
+    margin-top: 12px;
+    padding: 6px 12px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ddb-accent);
+    text-decoration: none;
+    border-radius: var(--ddb-radius-sm);
+    transition: background var(--ddb-transition);
+}
+
+.ddb-mega-nav__view-all:hover {
+    background: color-mix(in srgb, var(--ddb-accent) 12%, var(--ddb-bg-panel));
+}
+
+/* === Chips === */
+.ddb-mega-nav__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.ddb-mega-nav__chip {
+    display: inline-block;
+    padding: 6px 14px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--ddb-text-muted);
+    background: var(--ddb-bg-card);
+    border: 1px solid var(--ddb-border);
+    border-radius: 20px;
+    cursor: default;
+    transition: border-color var(--ddb-transition), color var(--ddb-transition);
+}
+
+.ddb-mega-nav__chip:hover {
+    border-color: var(--ddb-accent);
+    color: var(--ddb-accent);
+}
+
+/* === Benefits list === */
+.ddb-mega-nav__benefits {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.ddb-mega-nav__benefits li {
+    position: relative;
+    padding-left: 20px;
+    font-size: 13px;
+    color: var(--ddb-text-muted);
+    line-height: 1.5;
+}
+
+.ddb-mega-nav__benefits li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 6px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--ddb-accent);
+    opacity: 0.7;
+}
+
+/* === CTA Card === */
+.ddb-mega-nav__cta-card {
+    background: var(--ddb-bg-card);
+    border: 1px solid var(--ddb-border);
+    border-radius: var(--ddb-radius);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    height: 100%;
+}
+
+.ddb-mega-nav__cta-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--ddb-text);
+    line-height: 1.3;
+}
+
+.ddb-mega-nav__cta-text {
+    font-size: 13px;
+    color: var(--ddb-text-muted);
+    line-height: 1.6;
+    flex: 1;
+}
+
+.ddb-mega-nav__cta-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 20px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ddb-bg);
+    background: var(--ddb-accent);
+    border-radius: var(--ddb-radius-sm);
+    text-decoration: none;
+    transition: background var(--ddb-transition), transform var(--ddb-transition);
+    text-align: center;
+}
+
+.ddb-mega-nav__cta-button:hover {
+    background: var(--ddb-accent-hover);
+    transform: translateY(-1px);
+}
+
+/* === CTA icon inside buttons === */
+.ddb-mega-nav__cta-icon {
+    flex-shrink: 0;
+    display: inline-block;
+    vertical-align: middle;
+}
+
+/* === Header CTA button === */
+.ddb-mega-nav__planner-controls {
+    display: inline-flex;
+    align-items: center;
+    gap: 9px;
+    flex-shrink: 0;
+    margin-left: 22px;
+}
+
+.ddb-mega-nav__theme-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    min-width: 40px;
+    padding: 0;
+    border: 1px solid color-mix(in srgb, var(--ddb-border) 86%, transparent);
+    border-radius: var(--ddb-radius-sm);
+    background: color-mix(in srgb, var(--ddb-bg-panel) 92%, var(--ddb-bg-card) 8%);
+    color: var(--ddb-text);
+    cursor: pointer;
+    font: inherit;
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: .02em;
+    text-transform: uppercase;
+    line-height: 1;
+    box-shadow: 0 5px 15px rgba(26, 22, 18, 0.06);
+    transition: background var(--ddb-transition), border-color var(--ddb-transition), color var(--ddb-transition), transform var(--ddb-transition), box-shadow var(--ddb-transition);
+}
+
+.ddb-mega-nav__theme-toggle:hover {
+    background: var(--ddb-bg-card);
+    border-color: color-mix(in srgb, var(--ddb-accent) 45%, var(--ddb-border));
+    transform: translateY(-1px);
+}
+
+.ddb-mega-nav__cta-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 40px;
+    padding: 10px 20px;
+    font-size: 13px;
+    font-weight: 800;
+    color: #120d05;
+    background: var(--ddb-accent);
+    border-radius: 9px;
+    text-decoration: none;
+    white-space: nowrap;
+    flex-shrink: 0;
+    box-shadow: 0 8px 20px rgba(207, 159, 94, 0.22);
+    transition: background var(--ddb-transition), transform var(--ddb-transition), box-shadow var(--ddb-transition);
+}
+
+.ddb-mega-nav__cta-btn:hover {
+    background: var(--ddb-accent-hover);
+    transform: translateY(-1px);
+}
+
+/* === Overlay === */
+.ddb-mega-nav__overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.28);
+    z-index: 99998;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition: opacity var(--ddb-transition), visibility var(--ddb-transition);
+}
+
+.ddb-mega-nav__overlay--active {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+}
+
+/* === Burger === */
+.ddb-mega-nav__burger {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    width: 40px;
+    height: 40px;
+    padding: 8px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    border-radius: var(--ddb-radius-sm);
+    transition: background var(--ddb-transition);
+}
+
+.ddb-mega-nav__burger:hover {
+    background: color-mix(in srgb, var(--ddb-accent) 12%, var(--ddb-bg-panel));
+}
+
+.ddb-mega-nav__burger-line {
+    display: block;
+    width: 100%;
+    height: 2px;
+    background: var(--ddb-text);
+    border-radius: 2px;
+    transition: transform var(--ddb-transition), opacity var(--ddb-transition);
+}
+
+.ddb-mega-nav__burger[aria-expanded="true"] .ddb-mega-nav__burger-line:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+}
+
+.ddb-mega-nav__burger[aria-expanded="true"] .ddb-mega-nav__burger-line:nth-child(2) {
+    opacity: 0;
+}
+
+.ddb-mega-nav__burger[aria-expanded="true"] .ddb-mega-nav__burger-line:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+}
+
+/* === WP Admin bar offset === */
+.admin-bar .ddb-mega-nav {
+    top: 32px;
+}
+
+.admin-bar .ddb-mega-nav__panel {
+    top: calc(var(--ddb-nav-height) + 44px);
+}
+
+@media (max-width: 782px) {
+    .admin-bar .ddb-mega-nav {
+        top: 46px;
+    }
+
+    .admin-bar .ddb-mega-nav__panel {
+        top: calc(var(--ddb-nav-height) + 58px);
+    }
+}
+
+/* ========================================
+   MOBILE — max-width: 1024px
+   ======================================== */
+@media (max-width: 1024px) {
+    .ddb-mega-nav__burger {
+        display: flex;
+    }
+
+    .ddb-mega-nav__planner-controls {
+        margin-left: auto;
+    }
+
+    .ddb-mega-nav__cta-btn {
+        display: none;
+    }
+
+    .ddb-mega-nav__list {
+        position: fixed;
+        top: var(--ddb-nav-height);
+        left: 0;
+        right: 0;
+        bottom: 0;
+        flex-direction: column;
+        align-items: stretch;
+        background: var(--ddb-bg);
+        padding: 16px;
+        gap: 2px;
+        overflow-y: auto;
+        transform: translateX(-100%);
+        transition: transform var(--ddb-transition);
+        z-index: 99999;
+    }
+
+    .admin-bar .ddb-mega-nav__list {
+        top: calc(var(--ddb-nav-height) + 32px);
+    }
+
+    @media (max-width: 782px) {
+        .admin-bar .ddb-mega-nav__list {
+            top: calc(var(--ddb-nav-height) + 46px);
+        }
+    }
+
+    .ddb-mega-nav__list--open {
+        transform: translateX(0);
+    }
+
+    .ddb-mega-nav__item {
+        border-bottom: 1px solid var(--ddb-border);
+    }
+
+    .ddb-mega-nav__trigger,
+    .ddb-mega-nav__link {
+        width: 100%;
+        justify-content: space-between;
+        padding: 16px 12px;
+        font-size: 16px;
+    }
+
+    /* Panel as accordion */
+    .ddb-mega-nav__panel {
+        position: static;
+        transform: none;
+        min-width: 0;
+        width: 100%;
+        background: var(--ddb-bg-panel);
+        border: none;
+        border-radius: 0;
+        box-shadow: none;
+        max-height: 0;
+        overflow: hidden;
+        opacity: 1;
+        visibility: visible;
+        pointer-events: auto;
+        transition: max-height 0.35s ease;
+        padding: 0;
+    }
+
+    .ddb-mega-nav__panel[aria-hidden="false"] {
+        max-height: 2000px;
+        transform: none;
+    }
+
+    .ddb-mega-nav__panel-inner {
+        padding: 16px;
+    }
+
+    .ddb-mega-nav__item:nth-child(n+5) .ddb-mega-nav__panel {
+        left: auto;
+        right: auto;
+        transform: none;
+    }
+
+    .ddb-mega-nav__item:nth-child(n+5) .ddb-mega-nav__panel[aria-hidden="false"] {
+        transform: none;
+    }
+
+    .ddb-mega-nav__columns {
+        grid-template-columns: 1fr !important;
+        min-width: 0 !important;
+        gap: 24px;
+    }
+
+    .ddb-mega-nav__links--grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    /* Mobile CTA at bottom */
+    .ddb-mega-nav__list::after {
+        content: '';
+        display: block;
+        padding-top: 8px;
+    }
+}
+
+/* ========================================
+   DESKTOP — min-width: 1025px
+   ======================================== */
+@media (min-width: 1025px) {
+    .ddb-mega-nav__list--open {
+        transform: none;
+    }
+}
+
+/* === Focus visible === */
+.ddb-mega-nav__trigger:focus-visible,
+.ddb-mega-nav__link:focus-visible,
+.ddb-mega-nav__cta-button:focus-visible,
+.ddb-mega-nav__cta-btn:focus-visible,
+.ddb-mega-nav__theme-toggle:focus-visible,
+.ddb-mega-nav__burger:focus-visible {
+    outline: 2px solid var(--ddb-accent);
+    outline-offset: 2px;
+}
+
+/* === Reduced motion === */
+@media (prefers-reduced-motion: reduce) {
+    .ddb-mega-nav *,
+    .ddb-mega-nav *::before,
+    .ddb-mega-nav *::after {
+        transition-duration: 0.01ms !important;
+    }
+}
