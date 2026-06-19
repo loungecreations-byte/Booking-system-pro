@@ -370,10 +370,13 @@
       const applyFallbackToggleUi = () => {
         const htmlTheme = (document.documentElement.getAttribute("data-theme") || "system").toLowerCase();
         const dark = htmlTheme === "dark";
+        const label = dark ? "Schakel naar licht thema" : "Schakel naar donker thema";
         themeToggles.forEach((button) => {
           button.textContent = dark ? "☀" : "☾";
+          button.setAttribute("aria-label", label);
           button.setAttribute("aria-pressed", dark ? "true" : "false");
           button.setAttribute("title", dark ? "Licht thema" : "Donker thema");
+          button.setAttribute("data-theme-display", dark ? "dark" : "light");
         });
       };
 

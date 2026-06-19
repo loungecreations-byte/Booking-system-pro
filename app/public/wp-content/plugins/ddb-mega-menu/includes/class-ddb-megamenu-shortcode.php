@@ -127,10 +127,12 @@ final class DDB_MegaMenu_Shortcode
                                 <span class="ddb-header__action-text"><?php echo esc_html((string) $action['label']); ?></span>
                             </a>
                         <?php endforeach; ?>
-                        <button type="button" class="ddb-header__theme-toggle" data-ddb-theme-toggle aria-label="Schakel thema" title="Schakel thema">☾</button>
                     </div>
 
-                    <a class="ddb-btn ddb-btn--primary ui-btn ddb-header__cta" href="<?php echo esc_url($cta_url); ?>"><?php echo esc_html($cta_label); ?></a>
+                    <div class="ddb-header__planner-controls" aria-label="Thema en planner">
+                        <button type="button" class="ddb-header__theme-toggle" data-ddb-theme-toggle aria-label="Schakel thema" title="Schakel thema">☾</button>
+                        <a class="ddb-btn ddb-btn--primary ui-btn ddb-header__cta" href="<?php echo esc_url($cta_url); ?>"><?php echo esc_html($cta_label); ?></a>
+                    </div>
 
                     <button
                         type="button"

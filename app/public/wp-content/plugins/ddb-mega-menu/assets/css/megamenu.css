@@ -33,10 +33,10 @@
   --ddb-text: #171412;
   --ddb-text-muted: #5f5852;
   --ddb-border: #ddd2c4;
-  --ddb-primary: #9a6433;
-  --ddb-primary-hover: #805126;
+  --ddb-primary: #E4B97F;
+  --ddb-primary-hover: #CF9F5E;
   --ddb-shadow: 0 14px 36px rgba(32, 23, 15, 0.12);
-  --ddb-focus: #c58a53;
+  --ddb-focus: #CF9F5E;
 }
 
 .ddb-mega-menu[data-theme="dark"] {
@@ -46,10 +46,10 @@
   --ddb-text: #f1efeb;
   --ddb-text-muted: #b6aea3;
   --ddb-border: #333a46;
-  --ddb-primary: #d1a06a;
-  --ddb-primary-hover: #e0b582;
+  --ddb-primary: #E4B97F;
+  --ddb-primary-hover: #F2CA90;
   --ddb-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
-  --ddb-focus: #e0b582;
+  --ddb-focus: #F2CA90;
 }
 
 .ddb-mega-menu[data-theme-resolved="dark"] {
@@ -59,10 +59,10 @@
   --ddb-text: #f1efeb;
   --ddb-text-muted: #b6aea3;
   --ddb-border: #333a46;
-  --ddb-primary: #d1a06a;
-  --ddb-primary-hover: #e0b582;
+  --ddb-primary: #E4B97F;
+  --ddb-primary-hover: #F2CA90;
   --ddb-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
-  --ddb-focus: #e0b582;
+  --ddb-focus: #F2CA90;
 }
 
 /* [data-theme="auto"] blocks removed — the default .ddb-mega-menu baseline
@@ -241,6 +241,14 @@
   gap: 4px;
 }
 
+.ddb-header__planner-controls {
+  justify-self: end;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: max-content;
+}
+
 .ddb-header__action {
   min-height: 40px;
   padding: 8px;
@@ -259,8 +267,10 @@
 }
 
 .ddb-header__theme-toggle {
+  height: 40px;
   min-height: 40px;
   min-width: 40px;
+  width: 40px;
   padding: 8px;
   border: 1px solid var(--ddb-border);
   border-radius: var(--ddb-radius-sm);
@@ -697,7 +707,11 @@
 }
 
 .ddb-mobile-drawer__theme-toggle {
+  height: 40px;
   min-height: 40px;
+  min-width: 40px;
+  width: 40px;
+  padding: 0;
   border: 1px solid var(--ddb-border);
   border-radius: var(--ddb-radius-sm);
   background: var(--ddb-surface);
@@ -706,6 +720,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  justify-self: start;
   font-size: 0.95rem;
   line-height: 1;
 }
@@ -814,6 +829,7 @@ body.ddb-mega-lock {
 
   .ddb-header__nav,
   .ddb-header__actions,
+  .ddb-header__planner-controls,
   .ddb-header__cta,
   .ddb-mega {
     display: none;

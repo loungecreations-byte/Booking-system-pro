@@ -55,10 +55,14 @@
 
   function updateThemeButtons(mode) {
     document.querySelectorAll('[data-ddb-theme-toggle]').forEach(function (button) {
-      var lightLabel = button.getAttribute('data-light-label') || 'Lichte modus';
-      var darkLabel = button.getAttribute('data-dark-label') || 'Donkere modus';
-      button.textContent = mode === 'dark' ? lightLabel : darkLabel;
-      button.setAttribute('aria-label', mode === 'dark' ? lightLabel : darkLabel);
+      var isDark = mode === 'dark';
+      var icon = isDark ? '☀' : '☾';
+      var label = isDark ? 'Schakel naar lichte modus' : 'Schakel naar donkere modus';
+      button.textContent = icon;
+      button.setAttribute('aria-label', label);
+      button.setAttribute('aria-pressed', isDark ? 'true' : 'false');
+      button.setAttribute('title', isDark ? 'Lichte modus' : 'Donkere modus');
+      button.setAttribute('data-theme-display', isDark ? 'dark' : 'light');
     });
   }
 
