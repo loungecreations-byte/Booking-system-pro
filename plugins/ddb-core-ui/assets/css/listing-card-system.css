@@ -23,8 +23,7 @@
   --ui-listing-card-media-brightness: 0.88;
 }
 
-html[data-theme="dark"],
-html[data-theme="system"] {
+html[data-theme="dark"] {
   --ui-listing-card-border: color-mix(in srgb, var(--ui-color-border) 80%, transparent);
   --ui-listing-card-border-strong: color-mix(in srgb, var(--ui-color-primary) 26%, var(--ui-color-border));
   --ui-listing-card-bg: linear-gradient(180deg, color-mix(in srgb, var(--ui-color-surface) 96%, black), color-mix(in srgb, var(--ui-color-surface-2) 94%, black));

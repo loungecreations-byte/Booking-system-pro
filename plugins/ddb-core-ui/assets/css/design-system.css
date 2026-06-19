@@ -1,6 +1,6 @@
 /* DagjeDenBosch Design System (mobile-first, pagespeed-first, token-first) */
 :root {
-  /* Typography — canonical DDB: Quattrocento (headlines) + Quattrocento Sans (body/UI) */
+  /* Typography — canonical DDB: Quattrocento Sans (H1/H2/body/UI) + Quattrocento for lower display accents */
   --ui-font-display: var(--ddb-font-display, "Quattrocento", serif);
   --ui-font-serif: var(--ddb-font-serif, "Quattrocento", serif);
   --ui-font-sans: var(--ddb-font-sans, "Quattrocento Sans", sans-serif);
@@ -59,10 +59,10 @@
   --ui-color-border: #e2dacd;
   --ui-color-border-subtle: rgba(26, 23, 20, 0.08);
 
-  --ui-color-primary: #d4af37;
-  --ui-color-primary-hover: #bc992a;
+  --ui-color-primary: #E4B97F;
+  --ui-color-primary-hover: #CF9F5E;
   --ui-color-primary-contrast: #100b02;
-  --ui-color-accent: #d4af37;
+  --ui-color-accent: #E4B97F;
   --ui-color-accent-contrast: #17120a;
   --ui-color-cta: #1a1714;
   --ui-color-cta-hover: #2e2823;
@@ -71,7 +71,7 @@
   --ui-color-success: #15803d;
   --ui-color-warning: #b45309;
   --ui-color-danger: #b91c1c;
-  --ui-color-focus: #c58a53;
+  --ui-color-focus: #CF9F5E;
 }
 
 /* ──────────────────────────────────────────────────────────────────
@@ -140,10 +140,10 @@
   --ui-nav-toggle-border: var(--ui-color-border);
   --ui-nav-toggle-shadow: 0 6px 18px rgba(26, 22, 18, 0.16);
   /* Gold accent — DagjeDenBosch primary CTA color */
-  --ddb-gold:        #d4af37;
-  --ddb-gold-light:  #edd48b;
-  --ddb-gold-dark:   #c9932a;
-  --ddb-gold-rgb:    212, 175, 55;
+  --ddb-gold:        #E4B97F;
+  --ddb-gold-light:  #F2D4AB;
+  --ddb-gold-dark:   #CF9F5E;
+  --ddb-gold-rgb:    228, 185, 127;
   --ddb-gold-contrast: #17120a;
 
   --ui-motion-fast: 140ms;
@@ -435,6 +435,14 @@ body {
   font-family: dashicons, sans-serif;
 }
 
+body.admin-bar #wpadminbar {
+  z-index: 100000;
+}
+
+body.admin-bar #wpadminbar .ab-sub-wrapper {
+  z-index: 100001;
+}
+
 .ui-scope *,
 .ddb-app *,
 .ddb-admin *,
@@ -453,20 +461,34 @@ body.ddb-app-route :where(a, button, input, select, textarea, [tabindex]):focus-
 /* Typography */
 .ui-h1,
 .ui-h2,
+.ui-scope :where(h1, h2),
+.ddb-app :where(h1, h2),
+.ddb-admin :where(h1, h2),
+body.ddb-app-route :where(h1, h2),
+body :where(h1, h2) {
+  font-family: var(--ui-font-sans);
+}
+
 .ui-h3,
 .ui-h4 {
   font-family: var(--ui-font-display);
+}
+
+.ui-h1,
+.ui-h2,
+.ui-h3,
+.ui-h4 {
   color: var(--ui-color-text);
   font-weight: var(--ui-weight-bold);
   letter-spacing: -0.01em;
   margin: 0;
 }
 
-.ui-scope :where(h1, h2, h3, h4, h5, h6),
-.ddb-app :where(h1, h2, h3, h4, h5, h6),
-.ddb-admin :where(h1, h2, h3, h4, h5, h6),
-body.ddb-app-route :where(h1, h2, h3, h4, h5, h6),
-body :where(h1, h2, h3, h4, h5, h6) {
+.ui-scope :where(h3, h4, h5, h6),
+.ddb-app :where(h3, h4, h5, h6),
+.ddb-admin :where(h3, h4, h5, h6),
+body.ddb-app-route :where(h3, h4, h5, h6),
+body :where(h3, h4, h5, h6) {
   font-family: var(--ui-font-display);
 }
 
@@ -1658,7 +1680,7 @@ html[data-theme="system"] .ddb-theme-toggle .ddb-icon-moon {
 
 html.ddb-has-mega-menu,
 html.ddb-has-mega-menu body.theme-hello-biz {
-  background: #000000;
+  background: var(--ui-color-bg);
   color: var(--ui-color-text);
 }
 
@@ -1668,7 +1690,7 @@ html.ddb-has-mega-menu body.theme-hello-biz a {
 
 html.ddb-has-mega-menu body.theme-hello-biz .elementor-location-header,
 html.ddb-has-mega-menu body.theme-hello-biz .elementor-292 {
-  background: #050505;
+  background: var(--ui-color-surface);
   color: var(--ui-color-text);
 }
 
@@ -1723,7 +1745,7 @@ html.ddb-has-mega-menu body.theme-hello-biz .elementor-location-header .ui-btn--
 }
 
 .ui-summary__title {
-  font-family: var(--ui-font-display);
+  font-family: var(--ui-font-sans);
   font-size: var(--ui-text-2xl);
   line-height: var(--ui-leading-tight);
   margin: 0;
@@ -2145,7 +2167,7 @@ body:not(.ddb-app-route) .woocommerce ul.products li.product img {
 body:not(.ddb-app-route) ul.products li.product .woocommerce-loop-product__title,
 body:not(.ddb-app-route) .woocommerce ul.products li.product .woocommerce-loop-product__title {
   color: var(--ui-color-text);
-  font-family: var(--ui-font-display);
+  font-family: var(--ui-font-sans);
   font-size: var(--ui-text-lg);
   font-weight: var(--ui-weight-bold);
   line-height: 1.28;

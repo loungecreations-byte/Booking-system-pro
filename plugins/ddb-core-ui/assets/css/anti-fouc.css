@@ -11,3 +11,11 @@ html[data-theme="system"] body {
   background-color: var(--ddb-light-bg, #fafafa);
   color: var(--ddb-light-text, #09090b);
 }
+
+@media (prefers-color-scheme: dark) {
+  html[data-theme="system"],
+  html[data-theme="system"] body {
+    background-color: var(--ddb-dark-bg, #000000);
+    color: var(--ddb-dark-text, #ffffff);
+  }
+}

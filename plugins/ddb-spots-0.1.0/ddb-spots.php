@@ -2,7 +2,7 @@
 /**
  * Plugin Name: DDB Spots
  * Description: Unified spots model for DagjeDenBosch.nl with CPT, taxonomies, shortcodes, and REST API.
- * Version: 0.2.3
+ * Version: 0.3.3
  * Requires at least: 6.0
  * Requires PHP: 8.1
  * Author: DagjeDenBosch
@@ -13,7 +13,7 @@ if (! defined('ABSPATH')) {
 	exit;
 }
 
-define('DDB_SPOTS_VERSION', '0.2.3');
+define('DDB_SPOTS_VERSION', '0.3.3');
 define('DDB_SPOTS_FILE', __FILE__);
 define('DDB_SPOTS_PATH', plugin_dir_path(__FILE__));
 define('DDB_SPOTS_URL', plugin_dir_url(__FILE__));

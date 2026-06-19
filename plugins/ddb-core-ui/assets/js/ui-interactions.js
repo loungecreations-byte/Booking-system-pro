@@ -5,6 +5,7 @@
   const cookieName = cfg.themeCookie || "ddb_theme";
   const defaultTheme = cfg.defaultTheme || "system";
   const validModes = new Set(["system", "light", "dark"]);
+  const themeToggleSelector = "[data-ui-theme-toggle], .ddb-mega-nav__theme-toggle[data-ddb-theme-toggle]";
 
   const readCookie = (name) => {
     const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -17,14 +18,49 @@
     document.cookie = `${encodeURIComponent(name)}=${encodeURIComponent(value)}; path=/; max-age=${oneYear}; SameSite=Lax`;
   };
 
-  const setTheme = (mode) => {
+  const resolveMode = (mode) => {
     const normalized = validModes.has(mode) ? mode : defaultTheme;
+    if (normalized === "system") {
+      return window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? "dark"
+        : "light";
+    }
+
+    return normalized;
+  };
+
+  const updateThemeToggles = () => {
+    const resolved = resolveMode(document.documentElement.getAttribute("data-theme") || defaultTheme);
+    const isDark = resolved === "dark";
+    const icon = isDark ? "☀" : "☾";
+    const label = isDark ? "Schakel naar licht thema" : "Schakel naar donker thema";
+    const title = isDark ? "Licht thema" : "Donker thema";
+
+    document.querySelectorAll(themeToggleSelector).forEach((button) => {
+      button.textContent = icon;
+      button.setAttribute("aria-label", label);
+      button.setAttribute("aria-pressed", isDark ? "true" : "false");
+      button.setAttribute("title", title);
+      button.setAttribute("data-theme-display", resolved);
+    });
+  };
+
+  const setTheme = (mode) => {
+    const normalized = resolveMode(mode);
     document.documentElement.setAttribute("data-theme", normalized);
     window.localStorage.setItem(cookieName, normalized);
     writeCookie(cookieName, normalized);
     document.querySelectorAll("[data-ui-theme-value]").forEach((node) => {
       node.textContent = normalized;
     });
+    updateThemeToggles();
+    window.dispatchEvent(
+      new CustomEvent("ddb:theme-change", {
+        detail: { theme: normalized, effectiveTheme: normalized },
+      })
+    );
+    window.setTimeout(updateThemeToggles, 0);
+    window.setTimeout(updateThemeToggles, 100);
   };
 
   const initTheme = () => {
@@ -39,13 +75,74 @@
   };
 
   const initThemeToggles = () => {
-    document.querySelectorAll("[data-ui-theme-toggle]").forEach((button) => {
-      button.addEventListener("click", () => {
-        const current = document.documentElement.getAttribute("data-theme") || defaultTheme;
-        const next = current === "system" ? "dark" : current === "dark" ? "light" : "system";
+    document.querySelectorAll(themeToggleSelector).forEach((button) => {
+      if (button.dataset.ddbCoreThemeBound === "1") {
+        return;
+      }
+
+      button.dataset.ddbCoreThemeBound = "1";
+      const isLegacyMegaToggle = button.classList.contains("ddb-mega-nav__theme-toggle");
+      button.addEventListener("click", (event) => {
+        if (
+          button.hasAttribute("data-ddb-theme-toggle") &&
+          window.DDBTheme &&
+          typeof window.DDBTheme.toggle === "function"
+        ) {
+          return;
+        }
+
+        if (isLegacyMegaToggle) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+        }
+
+        const current = resolveMode(document.documentElement.getAttribute("data-theme") || defaultTheme);
+        const next = current === "dark" ? "light" : "dark";
         setTheme(next);
-      });
+      }, isLegacyMegaToggle ? { capture: true } : undefined);
     });
+    updateThemeToggles();
+  };
+
+  const initThemeToggleObserver = () => {
+    if (typeof MutationObserver !== "function" || !(document.body instanceof HTMLElement)) {
+      return;
+    }
+
+    let rafId = null;
+    const schedule = () => {
+      if (rafId !== null) {
+        return;
+      }
+
+      rafId = window.requestAnimationFrame(() => {
+        rafId = null;
+        initThemeToggles();
+      });
+    };
+
+    const observer = new MutationObserver((mutations) => {
+      for (const mutation of mutations) {
+        for (const node of mutation.addedNodes || []) {
+          if (!(node instanceof HTMLElement)) {
+            continue;
+          }
+
+          if (node.matches(themeToggleSelector) || node.querySelector(themeToggleSelector)) {
+            schedule();
+            return;
+          }
+        }
+      }
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true });
+  };
+
+  const initThemeRuntime = () => {
+    initTheme();
+    initThemeToggles();
+    initThemeToggleObserver();
   };
 
   const initAccordion = () => {
@@ -167,8 +264,14 @@
     }
   };
 
-  initTheme();
-  initThemeToggles();
+  initThemeRuntime();
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", initThemeToggles, { once: true });
+  } else {
+    window.setTimeout(initThemeToggles, 0);
+  }
+  window.setTimeout(initThemeToggles, 250);
+  window.setTimeout(initThemeToggles, 1000);
   initAccordion();
   initNavToggle();
   initListingCardToggles();
