@@ -2350,7 +2350,7 @@ final class QuoteWorkspaceRenderer
         }
 
         if ($sendAllowed) {
-            return array('cta' => 'tab_link', 'tab' => 'communication', 'title' => __('Voorstel versturen', 'sbdp'), 'label' => __('Voorstel versturen', 'sbdp'), 'description' => __('Alle verplichte controles zijn afgerond.', 'sbdp'));
+            return array('cta' => 'tab_link', 'tab' => 'communication', 'anchor' => 'quote-proposal-send-form', 'title' => __('Voorstel versturen', 'sbdp'), 'label' => __('Voorstel versturen', 'sbdp'), 'description' => __('Alle verplichte controles zijn afgerond.', 'sbdp'));
         }
 
         if ($sendStatus === 'ready_to_send' || $status === 'ready_to_send') {
@@ -3499,8 +3499,9 @@ final class QuoteWorkspaceRenderer
             \wp_nonce_field('sbdp_quote_generate_proposal_draft');
             echo '<input type="hidden" name="action" value="sbdp_quote_generate_proposal_draft"><input type="hidden" name="quote_id" value="' . esc_attr((string) $quoteId) . '"><input type="hidden" name="workspace_tab" value="communication"><button class="button button-secondary" type="submit">' . esc_html__('Maak voorstelmail', 'sbdp') . '</button></form>';
             echo '</div>';
-            echo '<details class="bsp-quote-admin__advanced-panel"><summary>' . esc_html__('Voorstelmail handmatig bekijken', 'sbdp') . '</summary>';
-            echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" class="bsp-quote-admin__stack-form">';
+            $proposalSendFormOpen = $communicationState['proposal_send_ready'] === true ? ' open' : '';
+            echo '<details class="bsp-quote-admin__advanced-panel"' . $proposalSendFormOpen . '><summary>' . esc_html__('Voorstelmail handmatig bekijken', 'sbdp') . '</summary>';
+            echo '<form id="quote-proposal-send-form" method="post" action="' . esc_url(admin_url('admin-post.php')) . '" class="bsp-quote-admin__stack-form">';
             \wp_nonce_field('sbdp_quote_send_message');
             echo '<input type="hidden" name="action" value="sbdp_quote_send_message"><input type="hidden" name="quote_id" value="' . esc_attr((string) $quoteId) . '"><input type="hidden" name="message_type" value="proposal"><input type="hidden" name="draft_id" value="' . esc_attr((string) ($messageDrafts['proposal']['id'] ?? '')) . '"><input type="hidden" name="workspace_tab" value="communication">';
             echo '<label>' . esc_html__('Aan', 'sbdp') . '<input class="regular-text" type="text" name="to_name" value="' . esc_attr((string) ($requester['name'] ?? '')) . '"></label>';
@@ -3842,7 +3843,7 @@ final class QuoteWorkspaceRenderer
             case 'review_approve':
                 return '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">' . wp_nonce_field('sbdp_quote_review_approve', '_wpnonce', true, false) . '<input type="hidden" name="action" value="sbdp_quote_review_approve"><input type="hidden" name="quote_id" value="' . esc_attr((string) $quoteId) . '"><button class="button button-primary" type="submit">' . esc_html($labelOverride !== '' ? $labelOverride : __('Keur review goed', 'sbdp')) . '</button></form>';
             case 'send_mark_sent':
-                return '<a class="button button-primary" href="' . esc_url(self::workspaceTabUrl($quoteId, 'communication')) . '">' . esc_html($labelOverride !== '' ? $labelOverride : __('Voorstel versturen', 'sbdp')) . '</a>';
+                return '<a class="button button-primary" href="' . esc_url(self::workspaceTabUrl($quoteId, 'communication') . '#quote-proposal-send-form') . '">' . esc_html($labelOverride !== '' ? $labelOverride : __('Voorstel versturen', 'sbdp')) . '</a>';
             case 'proposal_readiness':
                 return '<a class="button button-primary" href="#quote-blockers-card">' . esc_html($labelOverride !== '' ? $labelOverride : __('Doorloop verzendcheck', 'sbdp')) . '</a>';
             case 'proposal_draft':
@@ -4863,7 +4864,7 @@ final class QuoteWorkspaceRenderer
         }
 
         if ($sendAllowed) {
-            echo '<a class="button button-primary button-small bsp-qcd__nodig-cta" href="' . esc_url(self::workspaceTabUrl($quoteId, 'communication')) . '">' . esc_html__('Voorstel versturen', 'sbdp') . '</a>';
+            echo '<a class="button button-primary button-small bsp-qcd__nodig-cta" href="' . esc_url(self::workspaceTabUrl($quoteId, 'communication') . '#quote-proposal-send-form') . '">' . esc_html__('Voorstel versturen', 'sbdp') . '</a>';
         }
 
         echo '</div>'; // .bsp-qcd__context-nodig
@@ -5212,7 +5213,7 @@ final class QuoteWorkspaceRenderer
                 echo '<button type="button" class="button button-secondary button-small" disabled title="' . esc_attr($sendBlockReason !== '' ? $sendBlockReason : __('Rond eerst alle verzendchecks af.', 'sbdp')) . '">' . esc_html__('Controle afgerond', 'sbdp') . '</button>';
         }
         if ($sendAllowed) {
-            echo ' <a class="button button-primary button-small" href="' . esc_url(self::workspaceTabUrl($quoteId, 'communication')) . '">' . esc_html__('Voorstel versturen', 'sbdp') . '</a>';
+            echo ' <a class="button button-primary button-small" href="' . esc_url(self::workspaceTabUrl($quoteId, 'communication') . '#quote-proposal-send-form') . '">' . esc_html__('Voorstel versturen', 'sbdp') . '</a>';
         } else {
             echo '<button type="button" class="button button-secondary button-small" disabled title="' . esc_attr($sendBlockReason !== '' ? $sendBlockReason : __('Nog niet verzendklaar.', 'sbdp')) . '">' . esc_html__('Voorstel versturen', 'sbdp') . '</button>';
             echo '<span class="bsp-qcd__send-disabled-reason">' . esc_html($sendBlockReason !== '' ? sprintf(__('Nog nodig: %s', 'sbdp'), $sendBlockReason) : __('Nog nodig: controleer open punten.', 'sbdp')) . '</span>';

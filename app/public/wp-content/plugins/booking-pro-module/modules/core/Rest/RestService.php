@@ -1192,13 +1192,35 @@ private static function extract_public_nonce( WP_REST_Request $request ): ?strin
 		return false;
 	}
 
+	/**
+	 * @param array<string, mixed> $payload
+	 * @return int|WP_Error
+	 */
+	private static function resolve_compose_participants( array $payload ) {
+		$raw = $payload['participants'] ?? null;
+		if ( ! is_numeric( $raw ) ) {
+			return new WP_Error( 'sbdp_missing_participants', __( 'Aantal personen ontbreekt.', 'sbdp' ), array( 'status' => 400 ) );
+		}
+
+		$participants = (int) $raw;
+		if ( $participants <= 0 ) {
+			return new WP_Error( 'sbdp_invalid_participants', __( 'Aantal personen is ongeldig.', 'sbdp' ), array( 'status' => 400 ) );
+		}
+
+		return $participants;
+	}
+
 	public static function compose_booking( WP_REST_Request $request ) {
 		$payload      = $request->get_json_params();
 		$mode         = sanitize_text_field( $payload['mode'] ?? 'pay' );
-		$participants = max( 1, intval( $payload['participants'] ?? 1 ) );
 		$items        = self::sanitize_items( $payload['items'] ?? array() );
 		$combi_id     = intval( $payload['combi'] ?? 0 );
 		$customer     = self::normalize_compose_customer_payload( is_array( $payload ) ? $payload : array() );
+		$participants = self::resolve_compose_participants( is_array( $payload ) ? $payload : array() );
+
+		if ( is_wp_error( $participants ) ) {
+			return $participants;
+		}
 
 		if ( empty( $items ) ) {
 			return new WP_Error( 'sbdp_no_items', __( 'Geen geldige items ontvangen.', 'sbdp' ), array( 'status' => 400 ) );
@@ -2042,6 +2064,21 @@ private static function extract_public_nonce( WP_REST_Request $request ): ?strin
 	}
 
 	private static function check_item_rules( $product_id, $resource_id, $start, $end, $participants ) {
+		$filtered = apply_filters(
+			'sbdp_planservice_execution_check',
+			null,
+			array(
+				'product_id'   => (int) $product_id,
+				'resource_id'  => (int) $resource_id,
+				'start'        => (string) $start,
+				'end'          => (string) $end,
+				'participants' => (int) $participants,
+			)
+		);
+		if ( null !== $filtered ) {
+			return $filtered;
+		}
+
 		return AvailabilityExecutionService::checkItemRules( (int) $product_id, (int) $resource_id, (string) $start, (string) $end, (int) $participants );
 	}
 	private static function find_overlapping_bookings( $product_id, $resource_id, $start, $end ) {

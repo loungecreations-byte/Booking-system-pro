@@ -10,6 +10,7 @@ use BSP\Quotes\PublicProposalController;
 use BSP\Quotes\Rest\Controller as RestController;
 use BSP\Quotes\Rest\InboundMailWebhookController;
 use BSP\Quotes\Service\OpenAiQuoteDraftAdapter;
+use BSP\Quotes\Service\QuoteConfirmationService;
 use BSP\Quotes\Service\QuotePaymentSyncService;
 use BSP\Quotes\Service\WooCartLaunchGateway;
 use BSP\Quotes\Support\Installer;
@@ -21,6 +22,7 @@ final class Module implements ModuleInterface
         Installer::maybeInstall();
         WooCartLaunchGateway::registerHooks();
         QuotePaymentSyncService::registerHooks();
+        QuoteConfirmationService::registerHooks();
         PublicProposalController::register();
 
         if (\function_exists('add_action')) {

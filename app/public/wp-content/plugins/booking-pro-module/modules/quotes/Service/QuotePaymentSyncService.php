@@ -243,7 +243,7 @@ final class QuotePaymentSyncService
      */
     private function logRuntimeGuard(string $code, int $quoteId, int $orderId, array $payload): void
     {
-        if (! \function_exists('error_log')) {
+        if (! \defined('WP_DEBUG') || ! \WP_DEBUG || ! \function_exists('error_log')) {
             return;
         }
 

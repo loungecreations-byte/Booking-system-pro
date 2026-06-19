@@ -9,6 +9,7 @@ if (! function_exists('add_action')) {
 
 use BSP\Quotes\Repository\QuoteRepository;
 use BSP\Quotes\Service\QuoteEventLogger;
+use BSP\Quotes\Service\QuoteConfirmationService;
 use BSP\Quotes\Service\QuotePaymentSyncService;
 
 function sbdp_quote_payment_smoke_fail(string $message): void
@@ -28,7 +29,7 @@ function sbdp_quote_payment_smoke_ok(bool $condition, string $message): void
     }
 }
 
-if (! class_exists(QuoteRepository::class) || ! class_exists(QuotePaymentSyncService::class)) {
+if (! class_exists(QuoteRepository::class) || ! class_exists(QuotePaymentSyncService::class) || ! class_exists(QuoteConfirmationService::class)) {
     sbdp_quote_payment_smoke_fail('Quote payment services are not loaded.');
 }
 if (! function_exists('wc_create_order') || ! function_exists('wc_get_order')) {
@@ -137,7 +138,7 @@ try {
 
     $updatedQuote = $repository->findQuote($created['quote_id']);
     sbdp_quote_payment_smoke_ok(is_array($updatedQuote), 'Updated quote was not found.');
-    sbdp_quote_payment_smoke_ok((string) ($updatedQuote['status'] ?? '') === 'accepted', 'Quote status changed away from accepted.');
+    sbdp_quote_payment_smoke_ok((string) ($updatedQuote['status'] ?? '') === 'confirmed', 'Quote status was not confirmed.');
     sbdp_quote_payment_smoke_ok((string) ($updatedQuote['handoff_status'] ?? '') === QuotePaymentSyncService::COMPLETED_STATUS, 'Quote handoff_status was not updated.');
     sbdp_quote_payment_smoke_ok((int) ($updatedQuote['approved_version_id'] ?? 0) === $created['approved_version_id'], 'Quote approved_version_id changed.');
     sbdp_quote_payment_smoke_ok((int) ($updatedQuote['woo_order_id'] ?? 0) === $created['order_id'], 'Quote woo_order_id does not match order.');
@@ -147,6 +148,11 @@ try {
         static fn (array $event): bool => (string) ($event['event_type'] ?? '') === QuotePaymentSyncService::COMPLETED_EVENT
     ));
     sbdp_quote_payment_smoke_ok(count($paymentEvents) === 1, 'Payment complete event should be logged exactly once.');
+    $confirmationEvents = array_values(array_filter(
+        $repository->listQuoteEvents($created['quote_id']),
+        static fn (array $event): bool => (string) ($event['event_type'] ?? '') === QuoteConfirmationService::CONFIRMED_EVENT
+    ));
+    sbdp_quote_payment_smoke_ok(count($confirmationEvents) === 1, 'Quote confirmation event should be logged exactly once.');
 
     $payload = is_array($paymentEvents[0]['payload_json'] ?? null) ? $paymentEvents[0]['payload_json'] : array();
     sbdp_quote_payment_smoke_ok((int) ($payload['quote_id'] ?? 0) === $created['quote_id'], 'Event payload is missing quote_id.');
@@ -162,6 +168,7 @@ try {
         'handoff_status' => (string) ($updatedQuote['handoff_status'] ?? ''),
         'quote_status' => (string) ($updatedQuote['status'] ?? ''),
         'payment_event_count' => count($paymentEvents),
+        'confirmation_event_count' => count($confirmationEvents),
         'invoice_available' => (bool) ($payload['invoice_available'] ?? false),
         'invoice_number' => (string) ($payload['invoice_number'] ?? ''),
         'invoice_generated_at' => (string) ($payload['invoice_generated_at'] ?? ''),

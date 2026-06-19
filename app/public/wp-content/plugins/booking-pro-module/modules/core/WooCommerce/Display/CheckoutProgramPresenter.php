@@ -254,12 +254,15 @@ final class CheckoutProgramPresenter {
 	 * @return array<int,string>
 	 */
 	public static function filter_hidden_order_itemmeta( array $hidden ): array {
-		if ( self::is_admin_order_screen_context() ) {
-			return array_values( array_unique( $hidden ) );
-		}
+		$admin_only_hidden_keys = self::is_admin_order_screen_context()
+			? array( 'sbdp_route_intent', 'sbdp_booking_capability' )
+			: array();
+		$merged = array_merge( $hidden, self::INTERNAL_META_KEYS, $admin_only_hidden_keys );
+		$visible_admin_keys = self::is_admin_order_screen_context()
+			? array( 'sbdp_date', 'sbdp_time', 'sbdp_start', 'sbdp_end', 'sbdp_participants', 'sbdp_resource_label' )
+			: array();
 
-		$merged = array_merge( $hidden, self::INTERNAL_META_KEYS );
-		return array_values( array_unique( array_map( 'strval', $merged ) ) );
+		return array_values( array_diff( array_unique( array_map( 'strval', $merged ) ), $visible_admin_keys ) );
 	}
 
 	/**

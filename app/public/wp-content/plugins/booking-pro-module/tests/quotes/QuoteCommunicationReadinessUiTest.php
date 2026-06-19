@@ -406,6 +406,41 @@ final class QuoteCommunicationReadinessUiTest extends TestCase
         $this->assertStringContainsString('Prijs moet nog bevestigd worden.', $html);
     }
 
+    public function testReadyProposalSendFormIsVisibleAndAnchorable(): void
+    {
+        $html = $this->renderCommunicationWorkflow(
+            array(),
+            array(
+                'proposal_label' => 'Nothing sent',
+                'proposal_badge_class' => 'is-neutral',
+                'thread_label' => 'No thread yet',
+                'thread_badge_class' => 'is-neutral',
+                'latest_inbound_message_id' => null,
+                'operator_action_title' => 'Voorstel versturen',
+                'operator_action_description' => 'Alle controles zijn groen.',
+                'proposal_send_ready' => true,
+                'proposal_already_sent' => false,
+                'proposal_send_blockers' => array(),
+                'reply_ready' => false,
+                'reply_block_reason' => 'Verstuur eerst een voorstelmail.',
+                'latest_outbound_version_label' => '',
+            ),
+            array(
+                'proposal' => array(
+                    'id' => 20,
+                    'subject' => 'Voorstel voor jullie dag',
+                    'body' => 'Klantgerichte voorsteltekst.',
+                ),
+                'reply' => array(),
+            )
+        );
+
+        $this->assertStringContainsString('<details class="bsp-quote-admin__advanced-panel" open>', $html);
+        $this->assertStringContainsString('id="quote-proposal-send-form"', $html);
+        $this->assertStringContainsString('name="action" value="sbdp_quote_send_message"', $html);
+        $this->assertStringContainsString('Verstuur voorstelmail', $html);
+    }
+
     /**
      * @param array<string, mixed> $quote
      * @param array<string, mixed> $version
