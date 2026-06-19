@@ -283,14 +283,14 @@ final class QuoteRequestOrderBridgeService
                     continue;
                 }
 
-                $participants = (int) ($item['participants'] ?? $item['quantity'] ?? 0);
+                $participants = (int) ($item['participants'] ?? 0);
                 if ($participants > 0) {
                     return $participants;
                 }
             }
         }
 
-        return 1;
+        return 0;
     }
 
     /**

@@ -20,8 +20,6 @@ Je bent de digitale Sales Assistent van Dagje Den Bosch.
 - Schrijf altijd in foutloos Nederlands (tenzij de klant in het Engels schrijft).
 - Toon: Brabants gastvrij, direct, geen overbodige formuleringen.
 - Gebruik ALTIJD de quote_reference in het onderwerp: bijv. [Q-ABC123].
-- Gebruik klanttaal. Schrijf nooit interne systeemtermen zoals: Nieuwe aanvraag zonder bestaande quote, inbound bridge, readiness, blockers, snapshot, execution-laag, Quote token voor replies, Nog niet versturen zolang, interne review ontbreekt.
-- Gebruik in plaats daarvan: referentie, voorlopig voorstel, richtprijs, definitieve bevestiging, beschikbaarheid onder voorbehoud.
 
 ## TOEGESTANE MAIL-ADRESSEN
 Antwoorden gaan altijd VAN een van deze adressen:
@@ -53,13 +51,8 @@ PROMPT;
      */
     public function draftProposal(array $draft, array $context): array
     {
-        $task = trim((string) ($context['operator_instruction'] ?? ''));
-        if ($task === '') {
-            $task = 'Schrijf een aantrekkelijke voorstelmail op basis van de offerte-context.';
-        }
-
         $result = $this->requestJson(
-            $task,
+            'Schrijf een aantrekkelijke voorstelmail op basis van de offerte-context.',
             $context
         );
 
@@ -135,7 +128,7 @@ PROMPT;
             $service = new QuoteCommunicationService($repository, $events);
             $service->generateResponseDraft($quoteId, $messageId, null);
         } catch (\Throwable $throwable) {
-            error_log('[BSP Quotes] Failed to auto-draft inbound response: ' . $throwable->getMessage()); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+            $this->logDebug('Failed to auto-draft inbound response: ' . $throwable->getMessage());
         }
     }
 
@@ -182,14 +175,14 @@ PROMPT;
 
         if (is_wp_error($response)) {
             $this->recordStatus('error', null, 'OpenAI request failed before response.');
-            error_log('[BSP Quotes] OpenAI request failed.'); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+            $this->logDebug('OpenAI request failed.');
             return null;
         }
 
         $statusCode = (int) wp_remote_retrieve_response_code($response);
         if ($statusCode !== 200) {
             $this->recordStatus('error', $statusCode, 'OpenAI request failed with status ' . $statusCode . '.');
-            error_log('[BSP Quotes] OpenAI request failed with status ' . $statusCode); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
+            $this->logDebug('OpenAI request failed with status ' . $statusCode);
             return null;
         }
 
@@ -230,5 +223,14 @@ PROMPT;
             'model'       => (string) get_option('bsp_openai_model', 'gpt-4o'),
             'updated_at'  => function_exists('current_time') ? (string) current_time('mysql', true) : gmdate('Y-m-d H:i:s'),
         ), false);
+    }
+
+    private function logDebug(string $message): void
+    {
+        if (! defined('WP_DEBUG') || ! WP_DEBUG || ! function_exists('error_log')) {
+            return;
+        }
+
+        error_log('[BSP Quotes] ' . $message); // phpcs:ignore WordPress.PHP.DevelopmentFunctions.error_log_error_log
     }
 }
