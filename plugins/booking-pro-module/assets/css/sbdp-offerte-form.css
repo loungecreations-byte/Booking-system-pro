@@ -249,6 +249,19 @@
   width: 100%;
 }
 
+.sbdp-offerte-form__btn.sbdp-offerte-form__btn {
+  background-color: #d1a06a;
+  border-color: #d1a06a;
+  color: #fff;
+}
+
+.sbdp-offerte-form__btn.sbdp-offerte-form__btn:hover,
+.sbdp-offerte-form__btn.sbdp-offerte-form__btn:focus {
+  background-color: #bb8a56;
+  border-color: #bb8a56;
+  color: #fff;
+}
+
 .sbdp-offerte-notice {
   margin-bottom: var(--ui-space-lg);
   padding: var(--ui-space-md);
@@ -328,5 +341,74 @@
 
   .sbdp-offerte-hero__intro {
     font-size: var(--ui-text-sm);
+  }
+}
+
+/* ── Bedrijf/Particulier toggle ──────────────────────────────── */
+.sbdp-offerte-form__toggle-row {
+  display: flex;
+  align-items: center;
+  gap: var(--ui-space-sm);
+  padding: var(--ui-space-xs) 0;
+}
+
+.sbdp-offerte-form__toggle-input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.sbdp-offerte-form__toggle-track {
+  position: relative;
+  display: inline-block;
+  width: 2.75rem;
+  height: 1.5rem;
+  border-radius: 999px;
+  background: var(--ui-color-border, #ccc);
+  transition: background .18s;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.sbdp-offerte-form__toggle-track::after {
+  content: '';
+  position: absolute;
+  top: .2rem;
+  left: .2rem;
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0,0,0,.2);
+  transition: transform .18s;
+}
+
+.sbdp-offerte-form__toggle-input:checked + .sbdp-offerte-form__toggle-track {
+  background: var(--ui-color-primary, #E07020);
+}
+
+.sbdp-offerte-form__toggle-input:checked + .sbdp-offerte-form__toggle-track::after {
+  transform: translateX(1.25rem);
+}
+
+.sbdp-offerte-form__toggle-label {
+  font-size: var(--ui-text-md);
+  font-weight: var(--ui-weight-semibold);
+  color: var(--sbdp-offerte-text);
+  cursor: pointer;
+  user-select: none;
+}
+
+/* ── 2-koloms rij ────────────────────────────────────────────── */
+.sbdp-offerte-form__row-grid {
+  display: grid;
+  gap: var(--ui-space-md);
+  grid-template-columns: 1fr 1fr;
+}
+
+@media (max-width: 600px) {
+  .sbdp-offerte-form__row-grid {
+    grid-template-columns: 1fr;
   }
 }

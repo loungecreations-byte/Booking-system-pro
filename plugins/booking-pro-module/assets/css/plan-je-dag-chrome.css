@@ -2186,7 +2186,7 @@ html[data-theme="dark"] .sbdp-day-planner .sbdp-button {
 /* Premium canon override — planner / execution family */
 html,
 body {
-  background: #000000;
+  background: var(--ui-color-bg);
   color: var(--ui-color-text);
 }
 
@@ -2198,7 +2198,7 @@ body.page-id-17 .elementor-292 {
 
 .sbdp-day-planner,
 .sbdp-day-planner--single-view {
-  background: #000000;
+  background: var(--ui-color-bg);
   max-width: 1320px;
   color: var(--ui-color-text);
 }
@@ -2214,7 +2214,7 @@ body.page-id-17 .elementor-292 {
 .sbdp-program-card,
 .sbdp-product-card,
 .sbdp-optimization-card {
-  background: #0a0a0a;
+  background: var(--ui-color-surface);
   border: 1px solid color-mix(in srgb, var(--ui-color-border) 92%, transparent);
   border-radius: var(--ui-radius-section);
   box-shadow: var(--ui-shadow-sm);
@@ -2222,7 +2222,7 @@ body.page-id-17 .elementor-292 {
 
 .sbdp-day-planner__hero,
 .sbdp-hero-bar {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--ui-color-primary) 5%, #0a0a0a) 0%, #0a0a0a 100%);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--ui-color-primary) 5%, var(--ui-color-surface)) 0%, var(--ui-color-surface) 100%);
 }
 
 .sbdp-hero-bar .sbdp-field,
@@ -2230,7 +2230,7 @@ body.page-id-17 .elementor-292 {
 .sbdp-day-planner input,
 .sbdp-day-planner select,
 .sbdp-day-planner textarea {
-  background: #101010;
+  background: var(--ui-color-surface-2);
   border-color: color-mix(in srgb, var(--ui-color-border) 92%, transparent);
   border-radius: var(--ui-radius-lg);
   color: var(--ui-color-text);
