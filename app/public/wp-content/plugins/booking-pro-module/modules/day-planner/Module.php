@@ -234,25 +234,28 @@ final class Module implements ModuleInterface
             }
         }
 
+        $baseStyleUrl = SBDP_URL . 'assets/css/day-planner.css';
         \wp_enqueue_style(
             'sbdp-day-planner-base',
-            SBDP_URL . 'assets/css/day-planner.css',
+            $baseStyleUrl,
             array(),
-            SBDP_VER
+            $this->determineAssetVersion($baseStyleUrl)
         );
 
+        $refreshStyleUrl = SBDP_URL . 'assets/css/day-planner-refresh.css';
         \wp_enqueue_style(
             'sbdp-day-planner-refresh',
-            SBDP_URL . 'assets/css/day-planner-refresh.css',
+            $refreshStyleUrl,
             array('sbdp-day-planner-base'),
-            SBDP_VER
+            $this->determineAssetVersion($refreshStyleUrl)
         );
 
+        $listingCardStyleUrl = SBDP_URL . 'assets/css/ddb-shared-listing-card.css';
         \wp_enqueue_style(
             'ddb-shared-listing-card',
-            SBDP_URL . 'assets/css/ddb-shared-listing-card.css',
+            $listingCardStyleUrl,
             array('sbdp-day-planner-refresh'),
-            SBDP_VER
+            $this->determineAssetVersion($listingCardStyleUrl)
         );
 
         $planner_service = class_exists('\SBDP\Modules\Planner\Services\PlannerService')

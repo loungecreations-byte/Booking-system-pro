@@ -6146,3 +6146,337 @@ body.page-id-17 .elementor-element.elementor-element-d862670 {
   min-width: 200px !important;
   border: none !important;
 }
+
+/* Light mode planner cleanup: keep booking/domain truth untouched, translate only surfaces. */
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner {
+  --sbdp-light-page: var(--ui-color-bg, #f8f6f2);
+  --sbdp-light-surface: var(--ui-color-surface, #ffffff);
+  --sbdp-light-surface-soft: var(--ui-color-surface-2, #f0ece5);
+  --sbdp-light-border: color-mix(in srgb, var(--ui-color-border, #ded6c9) 86%, transparent);
+  --sbdp-light-text: var(--ui-color-text, #1a1714);
+  --sbdp-light-muted: var(--ui-color-text-muted, #6b635c);
+  --sbdp-light-gold-soft: color-mix(in srgb, var(--ui-color-primary, #e4b97f) 14%, var(--ui-color-surface, #ffffff));
+
+  background: transparent;
+  color: var(--sbdp-light-text);
+  box-shadow: none;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner__columns--premium {
+  gap: clamp(18px, 2vw, 28px);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner__primary,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner__secondary,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner__panel,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-carousel,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-calendar-board,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-summary-bar,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-summary-dock {
+  background: color-mix(in srgb, var(--sbdp-light-surface) 96%, var(--sbdp-light-gold-soft));
+  border: 1px solid var(--sbdp-light-border);
+  box-shadow: 0 18px 42px rgba(52, 38, 22, 0.08);
+  color: var(--sbdp-light-text);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-ribbon,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-carousel__viewport,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-calendar-board__header,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-summary-bar__body {
+  background: transparent;
+  color: var(--sbdp-light-text);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-activity-carousel__title h3,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-calendar-board__title,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-summary-bar__toggle-total,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-planner-checkout__total {
+  color: var(--sbdp-light-text);
+  text-shadow: none;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-activity-carousel__subtitle,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-activity-carousel__result-meta,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-summary-bar__toggle-title,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-planner-checkout__message,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-calendar-event__meta,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-calendar-event__time,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-calendar-event__subline {
+  color: var(--sbdp-light-muted);
+  opacity: 1;
+  text-shadow: none;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-hero--compact-active .sbdp-hero-compact--one-line .sbdp-hero-compact__fields {
+  background: color-mix(in srgb, var(--sbdp-light-surface) 94%, var(--ui-color-primary, #e4b97f)) !important;
+  border: 1px solid color-mix(in srgb, var(--ui-color-primary, #e4b97f) 26%, var(--sbdp-light-border)) !important;
+  box-shadow: 0 18px 38px rgba(52, 38, 22, 0.1) !important;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-hero--compact-active .sbdp-hero-compact--one-line .sbdp-field--interactive {
+  background: transparent !important;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-hero--compact-active .sbdp-hero-compact--one-line .sbdp-field--interactive:hover,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-hero--compact-active .sbdp-hero-compact--one-line .sbdp-field--interactive:focus-within {
+  background: color-mix(in srgb, var(--ui-color-primary, #e4b97f) 12%, transparent) !important;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-hero--compact-active .sbdp-hero-compact--one-line .sbdp-field__badge {
+  background: var(--sbdp-light-surface-soft) !important;
+  color: var(--sbdp-light-muted) !important;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-hero--compact-active .sbdp-hero-compact--one-line .sbdp-field__label {
+  color: var(--sbdp-light-muted) !important;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-hero--compact-active .sbdp-hero-compact--one-line .sbdp-fake-value,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-hero--compact-active .sbdp-hero-compact--one-line .sbdp-participants-stepper__value {
+  color: var(--sbdp-light-text) !important;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-hero--compact-active .sbdp-hero-compact--one-line .sbdp-participants-stepper__btn,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-calendar-event__participants-inline button,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-calendar-event__icon-btn,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-calendar-event__ghost-btn,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-button,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-summary-bar__btn {
+  background: var(--sbdp-light-surface);
+  border-color: var(--sbdp-light-border);
+  color: var(--sbdp-light-text);
+  box-shadow: none;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-hero--compact-active .sbdp-hero-compact--one-line .sbdp-participants-stepper__btn {
+  background: var(--sbdp-light-surface-soft) !important;
+  color: var(--sbdp-light-text) !important;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-calendar-event {
+  background: var(--sbdp-light-surface);
+  border: 1px solid var(--sbdp-light-border);
+  border-left: 3px solid color-mix(in srgb, var(--ui-color-primary, #e4b97f) 72%, var(--sbdp-light-border));
+  box-shadow: 0 10px 26px rgba(52, 38, 22, 0.07);
+  color: var(--sbdp-light-text);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-calendar-event:hover {
+  border-color: color-mix(in srgb, var(--ui-color-primary, #e4b97f) 42%, var(--sbdp-light-border));
+  box-shadow: 0 14px 34px rgba(52, 38, 22, 0.1);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-calendar-event header strong,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-calendar-event__headline strong {
+  color: var(--sbdp-light-text);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-calendar-board__hour,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-calendar-board__time,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-calendar-board__row {
+  border-color: color-mix(in srgb, var(--sbdp-light-border) 78%, transparent);
+  color: var(--sbdp-light-muted);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-summary-bar__toggle-chip,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-filter-chip,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-day-planner__primary-status,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-planner-notice {
+  background: var(--sbdp-light-surface-soft);
+  border-color: var(--sbdp-light-border);
+  color: var(--sbdp-light-muted);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner input,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner select,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner textarea,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-filter-select select {
+  background: var(--sbdp-light-surface);
+  border-color: var(--sbdp-light-border);
+  color: var(--sbdp-light-text);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-day-planner__primary,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-day-planner__secondary,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-day-planner__panel,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-activity-carousel,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-calendar-board,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-summary-bar,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-summary-dock {
+  background: color-mix(in srgb, var(--sbdp-light-surface) 97%, var(--sbdp-light-gold-soft));
+  border-color: var(--sbdp-light-border);
+  box-shadow: 0 18px 42px rgba(52, 38, 22, 0.08);
+  color: var(--sbdp-light-text);
+}
+
+/* Light mode hard cleanup: remove remaining black planner islands. */
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-hero--compact-active .sbdp-hero-compact--one-line .sbdp-hero-compact__fields,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-hero-compact--one-line .sbdp-hero-compact__fields {
+  background: #ffffff !important;
+  border: 1px solid var(--sbdp-light-border) !important;
+  box-shadow: 0 16px 34px rgba(52, 38, 22, 0.1) !important;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-hero--compact-active .sbdp-hero-compact--one-line .sbdp-field--interactive,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-hero-compact--one-line .sbdp-field {
+  background: #ffffff !important;
+  border-color: transparent !important;
+  color: var(--sbdp-light-text) !important;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-hero--compact-active .sbdp-hero-compact--one-line .sbdp-field--interactive:hover,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-hero-compact--one-line .sbdp-field:hover {
+  background: var(--sbdp-light-gold-soft) !important;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-field__label,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-label-text,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-fake-value,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-field__value,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-select-chevron {
+  color: var(--sbdp-light-text) !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-field__badge {
+  background: var(--sbdp-light-surface-soft) !important;
+  color: var(--sbdp-light-text) !important;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-participants-stepper__btn,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-hero-compact--one-line .sbdp-participants-stepper__btn {
+  background: var(--sbdp-light-surface-soft) !important;
+  border: 1px solid var(--sbdp-light-border) !important;
+  color: var(--sbdp-light-text) !important;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-participants-stepper__value,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-hero-compact--one-line .sbdp-participants-stepper__value {
+  color: var(--sbdp-light-text) !important;
+  background: transparent !important;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-activity-ribbon,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-activity-ribbon__filters,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-activity-ribbon__search,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-day-planner__results-heading {
+  background: #ffffff !important;
+  border-color: var(--sbdp-light-border) !important;
+  color: var(--sbdp-light-text) !important;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-activity-ribbon__search input,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-filter-select select,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-filter-chip {
+  background: #ffffff !important;
+  border: 1px solid var(--sbdp-light-border) !important;
+  color: var(--sbdp-light-text) !important;
+  box-shadow: 0 8px 18px rgba(52, 38, 22, 0.06) !important;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-day-planner__results-heading h3,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-day-planner__results-hint,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-filter-select,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-activity-ribbon label {
+  color: var(--sbdp-light-text) !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-summary-bar,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-summary-bar__toggle,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-summary-bar__body,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-planner-checkout {
+  background: #ffffff !important;
+  border-color: var(--sbdp-light-border) !important;
+  color: var(--sbdp-light-text) !important;
+  box-shadow: 0 16px 34px rgba(52, 38, 22, 0.1) !important;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-summary-bar *,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-planner-checkout * {
+  color: var(--sbdp-light-text);
+  text-shadow: none;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-summary-bar__toggle-chip,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-summary-bar__program-confidence,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-planner-checkout__message {
+  background: var(--sbdp-light-surface-soft) !important;
+  border-color: var(--sbdp-light-border) !important;
+  color: var(--sbdp-light-text) !important;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-summary-bar__btn--primary,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-button--primary {
+  background: var(--ui-color-cta, #1a1714) !important;
+  border-color: var(--ui-color-cta, #1a1714) !important;
+  color: var(--ui-color-cta-contrast, #ffffff) !important;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-pb {
+  background: #ffffff !important;
+  border: 1px solid var(--sbdp-light-border) !important;
+  box-shadow: 0 16px 34px rgba(52, 38, 22, 0.1) !important;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-pb-field {
+  background: #ffffff !important;
+  color: var(--sbdp-light-text) !important;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-pb-field:hover,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-pb-field:focus-within {
+  background: var(--sbdp-light-gold-soft) !important;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-pb-content,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-pb-label,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-pb-value,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-pb-chevron,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-pb-stepper,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-pb-stepper-val,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-pb-overlay {
+  color: var(--sbdp-light-text) !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-pb-badge,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-pb-stepper-btn {
+  background: var(--sbdp-light-surface-soft) !important;
+  border: 1px solid var(--sbdp-light-border) !important;
+  color: var(--sbdp-light-text) !important;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-planner-state-card,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-planner-state-card__body {
+  background: #ffffff !important;
+  border-color: var(--sbdp-light-border) !important;
+  color: var(--sbdp-light-text) !important;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-planner-state-card h1,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-planner-state-card h2,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-planner-state-card h3,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-planner-state-card p,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-planner-state-card__eyebrow {
+  color: var(--sbdp-light-text) !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-participants-stepper,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-participants-stepper input,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-participants-stepper__value,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-pb-stepper,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-pb-stepper input,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-pb-stepper-val,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-calendar-event__participants-inline,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .sbdp-calendar-event__participants-inline span {
+  color: #1a1714 !important;
+  -webkit-text-fill-color: #1a1714 !important;
+  opacity: 1 !important;
+  text-shadow: none !important;
+}

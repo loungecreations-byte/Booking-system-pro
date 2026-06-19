@@ -14,8 +14,93 @@
   transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
 }
 
+/* ao-layout: force single column — React app renders ao-main only, no ao-rail child */
 .sbdp-activity-overview .ao-layout {
   grid-template-columns: minmax(0, 1fr);
+}
+
+/* =================================================================
+   Activity-overview warm-tone overrides
+   Only scoped to .sbdp-activity-overview — day-planner is untouched.
+   Replaces cold navy/black tones with warm design tokens.
+   ================================================================= */
+
+.sbdp-activity-overview .ui-listing-card {
+  height: auto;
+  min-height: 0;
+  background: var(--ui-color-surface, var(--ddb-surface, #fff));
+  border-color: var(--ui-color-border, rgba(203, 188, 165, 0.5));
+  box-shadow: 0 6px 18px rgba(24, 38, 57, 0.09);
+}
+
+.sbdp-activity-overview .ui-listing-card:hover,
+.sbdp-activity-overview .ui-listing-card:focus-within {
+  border-color: rgba(217, 119, 69, 0.36);
+  box-shadow: 0 14px 36px rgba(24, 38, 57, 0.16);
+}
+
+.sbdp-activity-overview .ui-listing-card__media {
+  min-height: 0;
+  height: 180px;
+  background: linear-gradient(145deg, #ece5d8 0%, #f4ede0 100%);
+}
+
+.sbdp-activity-overview .ui-listing-card__media::after {
+  background:
+    linear-gradient(180deg, rgba(20, 12, 4, 0.32) 0%, rgba(20, 12, 4, 0.04) 32%, rgba(20, 12, 4, 0.72) 100%),
+    radial-gradient(circle at 50% 0%, rgba(217, 119, 69, 0.12), transparent 45%);
+}
+
+.sbdp-activity-overview .ui-listing-card__placeholder {
+  background: linear-gradient(145deg, #e8e0d0 0%, #d8cfbe 55%, #ece4d4 100%);
+}
+
+.sbdp-activity-overview .ui-listing-card__status-chip,
+.sbdp-activity-overview .ui-listing-card__duration-chip {
+  background: rgba(20, 12, 4, 0.68);
+  border-color: rgba(217, 119, 69, 0.38);
+}
+
+.sbdp-activity-overview .ui-listing-card__status-chip {
+  background: rgba(20, 12, 4, 0.56);
+  border-color: rgba(217, 119, 69, 0.52);
+}
+
+.sbdp-activity-overview .ui-listing-card__save-chip {
+  background: rgba(20, 12, 4, 0.52);
+  border-color: rgba(217, 119, 69, 0.28);
+}
+
+.sbdp-activity-overview .ui-listing-card__save-chip:hover,
+.sbdp-activity-overview .ui-listing-card__save-chip:focus-visible,
+.sbdp-activity-overview .ui-listing-card__save-chip.is-active {
+  background: rgba(20, 12, 4, 0.86);
+  border-color: rgba(217, 119, 69, 0.52);
+}
+
+.sbdp-activity-overview .ui-listing-card__cta {
+  background: var(--ui-color-primary, #d1a06a);
+  border-color: rgba(193, 140, 80, 0.5);
+  color: #fff;
+  box-shadow: 0 10px 22px rgba(217, 119, 69, 0.22);
+}
+
+.sbdp-activity-overview .ui-listing-card__cta:hover:not(:disabled),
+.sbdp-activity-overview .ui-listing-card__cta:focus-visible {
+  background: var(--ui-color-primary-dark, #bb8a56);
+  border-color: rgba(193, 140, 80, 0.65);
+}
+
+.sbdp-activity-overview .ui-listing-card__cta--secondary {
+  background: rgba(20, 12, 4, 0.44);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #f8f2e6;
+}
+
+.sbdp-activity-overview .ui-listing-card__cta--secondary:hover,
+.sbdp-activity-overview .ui-listing-card__cta--secondary:focus-visible,
+.sbdp-activity-overview .ui-listing-card__cta--secondary.is-active {
+  background: rgba(20, 12, 4, 0.82);
 }
 
 :where(.sbdp-day-planner, .sbdp-activity-overview) .ui-listing-card:hover,
@@ -266,6 +351,342 @@
 :where(.sbdp-day-planner, .sbdp-activity-overview) .ui-listing-card__cta:disabled {
   cursor: not-allowed;
   opacity: 0.52;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .ui-listing-card {
+  background: var(--ui-color-surface, #ffffff);
+  border-color: color-mix(in srgb, var(--ui-color-border, #ded6c9) 86%, transparent);
+  box-shadow: 0 12px 30px rgba(52, 38, 22, 0.1);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .ui-listing-card:hover,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .ui-listing-card:focus-within {
+  border-color: color-mix(in srgb, var(--ui-color-primary, #e4b97f) 46%, var(--ui-color-border, #ded6c9));
+  box-shadow: 0 18px 40px rgba(52, 38, 22, 0.14);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .ui-listing-card__media {
+  background: linear-gradient(145deg, #f1ece3, #ddd4c5);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .ui-listing-card__media::after {
+  background:
+    linear-gradient(180deg, rgba(26, 23, 20, 0.18), rgba(26, 23, 20, 0.03) 34%, rgba(26, 23, 20, 0.64) 100%),
+    radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--ui-color-primary, #e4b97f) 16%, transparent), transparent 48%);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .ui-listing-card__status-chip,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .ui-listing-card__duration-chip,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .ui-listing-card__save-chip {
+  background: rgba(26, 23, 20, 0.6);
+  border-color: rgba(255, 255, 255, 0.28);
+  color: #fff8ed;
+  box-shadow: 0 8px 18px rgba(52, 38, 22, 0.18);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .ui-listing-card__title,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .ui-listing-card__price {
+  color: #fff8ed;
+  text-shadow: 0 2px 5px rgba(26, 23, 20, 0.65);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .ui-listing-card__price-prefix {
+  color: rgba(255, 248, 237, 0.72);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .ui-listing-card__cta {
+  background: var(--ui-color-cta, #1a1714);
+  border-color: var(--ui-color-cta, #1a1714);
+  color: var(--ui-color-cta-contrast, #ffffff);
+  box-shadow: 0 10px 22px rgba(26, 23, 20, 0.18);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .ui-listing-card__cta:hover:not(:disabled),
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .ui-listing-card__cta:focus-visible {
+  background: var(--ui-color-cta-hover, #2e2823);
+  border-color: var(--ui-color-cta-hover, #2e2823);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .ui-listing-card__cta--secondary {
+  background: rgba(255, 248, 237, 0.9);
+  border-color: rgba(26, 23, 20, 0.16);
+  color: var(--ui-color-text, #1a1714);
+  box-shadow: none;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .ui-listing-card__cta--secondary:hover,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .ui-listing-card__cta--secondary:focus-visible,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .ui-listing-card__cta--secondary.is-active {
+  background: #ffffff;
+  color: var(--ui-color-text, #1a1714);
+}
+
+/* Planner light mode card cleanup: no black tile treatment in light mode. */
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .ui-listing-card {
+  height: auto;
+  min-height: 0;
+  overflow: hidden;
+  background: #ffffff;
+  color: var(--ui-color-text, #1a1714);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .ui-listing-card__media {
+  min-height: 148px;
+  height: 148px;
+  border-bottom: 1px solid color-mix(in srgb, var(--ui-color-border, #ded6c9) 80%, transparent);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .ui-listing-card__media img,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .ui-listing-card__image,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .ui-listing-card__placeholder {
+  min-height: 148px;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .ui-listing-card__media::after {
+  background: linear-gradient(180deg, rgba(26, 23, 20, 0.08), rgba(26, 23, 20, 0.04));
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .ui-listing-card__content,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .ui-listing-card__action-row {
+  position: static;
+  inset: auto;
+  color: var(--ui-color-text, #1a1714);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .ui-listing-card__content {
+  padding: 10px 12px 4px;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .ui-listing-card__action-row {
+  justify-content: space-between;
+  padding: 4px 12px 12px;
+  background: #ffffff;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .ui-listing-card__title,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .ui-listing-card__price {
+  color: var(--ui-color-text, #1a1714);
+  text-shadow: none;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .ui-listing-card__title {
+  min-height: 2.4em;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .ui-listing-card__price {
+  align-items: flex-start;
+  margin-right: 0;
+  text-align: left;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .ui-listing-card__price-prefix {
+  color: var(--ui-color-text-muted, #6b635c);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .ui-listing-card__status-chip,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .ui-listing-card__duration-chip,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-day-planner .ui-listing-card__save-chip {
+  background: rgba(255, 255, 255, 0.92);
+  border-color: color-mix(in srgb, var(--ui-color-border, #ded6c9) 86%, transparent);
+  color: var(--ui-color-text, #1a1714);
+  text-shadow: none;
+  box-shadow: 0 8px 18px rgba(52, 38, 22, 0.1);
+}
+
+/* Activities overview light mode: readable cards, smaller names, no black grid. */
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ui-listing-card {
+  height: auto;
+  min-height: 0;
+  overflow: hidden;
+  background: #ffffff;
+  border-color: color-mix(in srgb, var(--ui-color-border, #ded6c9) 86%, transparent);
+  box-shadow: 0 12px 28px rgba(52, 38, 22, 0.1);
+  color: var(--ui-color-text, #1a1714);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ui-listing-card:hover,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ui-listing-card:focus-within {
+  border-color: color-mix(in srgb, var(--ui-color-primary, #e4b97f) 38%, var(--ui-color-border, #ded6c9));
+  box-shadow: 0 18px 38px rgba(52, 38, 22, 0.14);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ui-listing-card__media {
+  height: 168px;
+  min-height: 168px;
+  background: linear-gradient(145deg, #f1ece3, #ddd4c5);
+  border-bottom: 1px solid color-mix(in srgb, var(--ui-color-border, #ded6c9) 82%, transparent);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ui-listing-card__media img,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ui-listing-card__image,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ui-listing-card__placeholder {
+  min-height: 168px;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ui-listing-card__media::after {
+  background: linear-gradient(180deg, rgba(26, 23, 20, 0.08), rgba(26, 23, 20, 0.03));
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ui-listing-card__content,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ui-listing-card__action-row {
+  position: static;
+  inset: auto;
+  color: var(--ui-color-text, #1a1714);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ui-listing-card__content {
+  padding: 12px 14px 4px;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ui-listing-card__title {
+  min-height: 2.45em;
+  color: var(--ui-color-text, #1a1714);
+  font-size: clamp(1.02rem, 1.05vw, 1.16rem);
+  font-weight: 720;
+  line-height: 1.22;
+  text-shadow: none;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ui-listing-card__action-row {
+  justify-content: space-between;
+  padding: 4px 14px 14px;
+  background: #ffffff;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ui-listing-card__price {
+  align-items: flex-start;
+  margin-right: 0;
+  color: var(--ui-color-text, #1a1714);
+  font-size: 0.82rem;
+  text-align: left;
+  text-shadow: none;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ui-listing-card__price-prefix {
+  color: var(--ui-color-text-muted, #6b635c);
+  text-shadow: none;
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ui-listing-card__status-chip,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ui-listing-card__duration-chip,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ui-listing-card__save-chip {
+  background: rgba(255, 255, 255, 0.94);
+  border-color: color-mix(in srgb, var(--ui-color-border, #ded6c9) 86%, transparent);
+  color: var(--ui-color-text, #1a1714);
+  text-shadow: none;
+  box-shadow: 0 8px 18px rgba(52, 38, 22, 0.12);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ui-listing-card__cta--primary {
+  background: var(--ui-color-primary, #e4b97f) !important;
+  border-color: color-mix(in srgb, var(--ui-color-primary, #e4b97f) 72%, var(--ui-color-border, #ded6c9)) !important;
+  color: var(--ui-color-primary-contrast, #100b02) !important;
+  box-shadow: 0 10px 22px rgba(180, 128, 54, 0.16);
+}
+
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ui-listing-card__cta--primary:hover,
+:where(html[data-theme="light"], html[data-theme="system"], html:not([data-theme]), body.sbdp-theme-light) .sbdp-activity-overview .ui-listing-card__cta--primary:focus-visible {
+  background: var(--ui-color-primary-hover, #cf9f5e) !important;
+  border-color: var(--ui-color-primary-hover, #cf9f5e) !important;
+  color: var(--ui-color-primary-contrast, #100b02) !important;
+}
+
+/* Activities overview dark mode: same layout as light mode, translated to dark surfaces. */
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .ui-listing-card {
+  height: auto;
+  min-height: 0;
+  overflow: hidden;
+  background: #0f0f0f;
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 14px 34px rgba(0, 0, 0, 0.28);
+  color: #f6f1e9;
+}
+
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .ui-listing-card:hover,
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .ui-listing-card:focus-within {
+  border-color: color-mix(in srgb, var(--ui-color-primary, #e4b97f) 42%, rgba(255, 255, 255, 0.12));
+  box-shadow: 0 18px 42px rgba(0, 0, 0, 0.36);
+}
+
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .ui-listing-card__media {
+  height: 168px;
+  min-height: 168px;
+  background: linear-gradient(145deg, #1b1b1b, #080808);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .ui-listing-card__media img,
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .ui-listing-card__image,
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .ui-listing-card__placeholder {
+  min-height: 168px;
+}
+
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .ui-listing-card__media::after {
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0.04));
+}
+
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .ui-listing-card__content,
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .ui-listing-card__action-row {
+  position: static;
+  inset: auto;
+  color: #f6f1e9;
+}
+
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .ui-listing-card__content {
+  padding: 12px 14px 4px;
+}
+
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .ui-listing-card__title {
+  min-height: 2.45em;
+  color: #f6f1e9;
+  font-size: clamp(1.02rem, 1.05vw, 1.16rem);
+  font-weight: 720;
+  line-height: 1.22;
+  text-shadow: none;
+}
+
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .ui-listing-card__action-row {
+  justify-content: space-between;
+  padding: 4px 14px 14px;
+  background: #0f0f0f;
+}
+
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .ui-listing-card__price {
+  align-items: flex-start;
+  margin-right: 0;
+  color: #f6f1e9;
+  font-size: 0.82rem;
+  text-align: left;
+  text-shadow: none;
+}
+
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .ui-listing-card__price-prefix {
+  color: rgba(246, 241, 233, 0.68);
+  text-shadow: none;
+}
+
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .ui-listing-card__status-chip,
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .ui-listing-card__duration-chip,
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .ui-listing-card__save-chip {
+  background: rgba(23, 23, 23, 0.92);
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #f6f1e9;
+  text-shadow: none;
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.24);
+}
+
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .ui-listing-card__cta--primary {
+  background: var(--ui-color-primary, #e4b97f) !important;
+  border-color: color-mix(in srgb, var(--ui-color-primary, #e4b97f) 72%, rgba(255, 255, 255, 0.14)) !important;
+  color: var(--ui-color-primary-contrast, #100b02) !important;
+  box-shadow: 0 10px 24px rgba(228, 185, 127, 0.2);
+}
+
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .ui-listing-card__cta--primary:hover,
+:where(html[data-theme="dark"], body.sbdp-theme-dark) .sbdp-activity-overview .ui-listing-card__cta--primary:focus-visible {
+  background: var(--ui-color-primary-hover, #cf9f5e) !important;
+  border-color: var(--ui-color-primary-hover, #cf9f5e) !important;
+  color: var(--ui-color-primary-contrast, #100b02) !important;
 }
 
 :where(.sbdp-day-planner, .sbdp-activity-overview) .sbdp-hero-compact {
