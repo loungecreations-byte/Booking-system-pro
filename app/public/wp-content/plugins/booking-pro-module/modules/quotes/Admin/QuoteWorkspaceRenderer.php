@@ -4648,7 +4648,7 @@ final class QuoteWorkspaceRenderer
         $qcdSendAllowed = $sendAllowed && self::qcdApprovalMatrixAllowsSend($matrix);
 
         echo '<div class="bsp-qcd">';
-        self::renderQcdDecisionBar($quoteId, $quote, $request, $requester, $currentVersion, $lineSummary, $matrix, $qcdSendAllowed, $sendReadiness, $pricingConfidence, $availabilityConfidence, $adminStatusSummary);
+        self::renderQcdDecisionBar($quoteId, $quote, $request, $requester, $currentVersion, $lineSummary, $matrix, $qcdSendAllowed, $sendReadiness, $pricingConfidence, $availabilityConfidence, $adminStatusSummary, $messageDrafts);
         self::renderQcdApprovalMatrix($matrix, $quoteId);
         echo '<div class="bsp-qcd__layout">';
         echo '<main class="bsp-qcd__main">';
@@ -4889,7 +4889,8 @@ final class QuoteWorkspaceRenderer
         array $sendReadiness,
         string $pricingConfidence = 'unknown',
         string $availabilityConfidence = 'unknown',
-        array $adminStatusSummary = array()
+        array $adminStatusSummary = array(),
+        array $messageDrafts = array()
     ): void {
         $reference   = trim((string) ($quote['quote_reference'] ?? ''));
         $customer    = trim((string) ($requester['name'] ?? ''));
@@ -4975,12 +4976,41 @@ final class QuoteWorkspaceRenderer
             echo '<input type="hidden" name="quote_id" value="' . esc_attr((string) $quoteId) . '">';
             echo '<button type="submit" class="button button-primary bsp-qcd__primary-btn">' . esc_html__('Bevestig quote', 'sbdp') . '</button>';
             echo '</form>';
+        } elseif ($sendAllowed) {
+            echo self::renderQcdProposalSendButton($quoteId, $requester, $messageDrafts, $ctaLabel);
         } else {
             echo '<a href="' . esc_url($ctaUrl) . '" class="button button-primary bsp-qcd__primary-btn">' . esc_html($ctaLabel) . '</a>';
         }
         echo '</div>';
         echo '</div>';
         self::renderQcdAdminStatusSummary($adminStatusSummary);
+    }
+
+    /**
+     * @param array<string, mixed> $requester
+     * @param array<string, mixed> $messageDrafts
+     */
+    private static function renderQcdProposalSendButton(int $quoteId, array $requester, array $messageDrafts, string $label): string
+    {
+        $proposalDraft = is_array($messageDrafts['proposal'] ?? null) ? $messageDrafts['proposal'] : array();
+        $toName = trim((string) ($proposalDraft['to_name'] ?? ($requester['name'] ?? '')));
+        $toEmail = trim((string) ($proposalDraft['to_email'] ?? ($requester['email'] ?? '')));
+        $subject = trim((string) ($proposalDraft['subject'] ?? ''));
+        $body = (string) ($proposalDraft['body'] ?? '');
+
+        return '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" class="bsp-qcd__primary-send-form">'
+            . wp_nonce_field('sbdp_quote_send_message', '_wpnonce', true, false)
+            . '<input type="hidden" name="action" value="sbdp_quote_send_message">'
+            . '<input type="hidden" name="quote_id" value="' . esc_attr((string) $quoteId) . '">'
+            . '<input type="hidden" name="message_type" value="proposal">'
+            . '<input type="hidden" name="draft_id" value="' . esc_attr((string) ((int) ($proposalDraft['id'] ?? 0))) . '">'
+            . '<input type="hidden" name="workspace_tab" value="communication">'
+            . '<input type="hidden" name="to_name" value="' . esc_attr($toName) . '">'
+            . '<input type="hidden" name="to_email" value="' . esc_attr($toEmail) . '">'
+            . '<input type="hidden" name="subject" value="' . esc_attr($subject) . '">'
+            . '<input type="hidden" name="body" value="' . esc_attr($body) . '">'
+            . '<button type="submit" class="button button-primary bsp-qcd__primary-btn">' . esc_html($label) . '</button>'
+            . '</form>';
     }
 
     /**
