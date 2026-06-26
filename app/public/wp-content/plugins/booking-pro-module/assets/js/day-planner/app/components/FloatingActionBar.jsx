@@ -47,16 +47,6 @@ const Icons = {
   ),
 };
 
-function firstPositiveParticipant(...values) {
-  for (const value of values) {
-    const parsed = Number.parseInt(value, 10);
-    if (Number.isFinite(parsed) && parsed > 0) {
-      return parsed;
-    }
-  }
-  return null;
-}
-
 function formatPrice(amount, currency = "EUR") {
   return new Intl.NumberFormat("nl-NL", {
     style: "currency",
@@ -86,6 +76,16 @@ function isAvailabilityErrorMessage(message) {
   );
 }
 
+function firstPositiveParticipant(...values) {
+  for (const value of values) {
+    const parsed = Number.parseInt(value, 10);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return parsed;
+    }
+  }
+  return null;
+}
+
 export default function FloatingActionBar() {
   const {
     state: { plan, config, form, summary, availabilityIssue, widgetPreferences },
@@ -104,12 +104,7 @@ export default function FloatingActionBar() {
 
   const currency = summary?.currency || config?.currency || "EUR";
   
-  // Get items from ALL possible sources
-  const planItems = useMemo(() => {
-    const items = plan?.items || [];
-    const dayActivities = plan?.days?.flatMap(d => d.activities || []) || [];
-    return [...items, ...dayActivities];
-  }, [plan?.items, plan?.days]);
+  const planItems = Array.isArray(plan?.items) ? plan.items : [];
   
   const hasItems = planItems.length > 0;
   const itemCount = planItems.length;
@@ -122,8 +117,8 @@ export default function FloatingActionBar() {
   }, [summary?.grandTotal, summary?.subtotal, planItems]);
   
   const participants = firstPositiveParticipant(
+    selectors?.canonicalParticipants,
     form?.participants,
-    plan?.participants,
     config?.participants
   );
   const perPerson = participants > 0 && totalPrice > 0 ? totalPrice / participants : 0;

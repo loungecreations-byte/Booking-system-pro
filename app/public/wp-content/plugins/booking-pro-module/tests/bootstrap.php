@@ -19,6 +19,11 @@ if (! class_exists('WP_Error')) {
             public array $data = array()
         ) {
         }
+
+        public function get_error_message(): string
+        {
+            return $this->message;
+        }
     }
 }
 
@@ -437,6 +442,11 @@ function wp_mail($to, string $subject, string $message, $headers = array()): boo
         'message' => $message,
         'headers' => $headers,
     );
+
+    if (isset($GLOBALS['__test_wp_mail_result']) && $GLOBALS['__test_wp_mail_result'] === false) {
+        do_action('wp_mail_failed', new WP_Error('wp_mail_failed', (string) ($GLOBALS['__test_wp_mail_error'] ?? 'Simulated mail failure')));
+        return false;
+    }
 
     return true;
 }

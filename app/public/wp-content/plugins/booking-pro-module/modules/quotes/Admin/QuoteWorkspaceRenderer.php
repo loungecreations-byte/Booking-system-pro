@@ -79,7 +79,7 @@ final class QuoteWorkspaceRenderer
         self::renderNotices();
 
         echo '<section class="postbox bsp-quote-admin__panel"><div class="bsp-quote-admin__panel-body">';
-        echo '<div class="bsp-quote-admin__actions" style="justify-content:space-between;">';
+        echo '<div class="bsp-quote-admin__actions bsp-quote-admin__actions--between">';
         echo '<details class="bsp-quote-admin__request-create">';
         echo '<summary class="button button-primary">' . esc_html__('+ Nieuwe aanvraag', 'sbdp') . '</summary>';
         self::renderCreateRequestForm(false);
@@ -134,6 +134,298 @@ final class QuoteWorkspaceRenderer
 
         echo '</tbody></table></div></div></section>';
         echo '</div>';
+    }
+
+    public static function renderQuoteOperationsPage(): void
+    {
+        self::assertAccess();
+
+        $repository = new QuoteRepository();
+        $quotes = $repository->listQuotes();
+        $buckets = array(
+            'new_requests' => array('label' => __('Nieuwe aanvragen', 'sbdp'), 'rows' => array()),
+            'waiting_supplier' => array('label' => __('Wachten op partner', 'sbdp'), 'rows' => array()),
+            'supplier_confirmed' => array('label' => __('Partner bevestigd', 'sbdp'), 'rows' => array()),
+            'ready_to_send' => array('label' => __('Offerte klaar voor verzending', 'sbdp'), 'rows' => array()),
+            'accepted_unpaid' => array('label' => __('Akkoord, nog geen betaling', 'sbdp'), 'rows' => array()),
+            'paid' => array('label' => __('Betaling ontvangen', 'sbdp'), 'rows' => array()),
+        );
+
+        foreach ($repository->listQuoteRequests() as $request) {
+            if (! is_array($request) || (string) ($request['status'] ?? 'new') !== 'new') {
+                continue;
+            }
+            $buckets['new_requests']['rows'][] = array(
+                'reference' => (string) ($request['request_reference'] ?? ('REQ-' . (int) ($request['id'] ?? 0))),
+                'customer' => (string) (($request['requester_name'] ?? '') ?: ($request['requester_email'] ?? __('Onbekende klant', 'sbdp'))),
+                'status' => __('Nieuwe aanvraag', 'sbdp'),
+                'date' => (string) ($request['preferred_date'] ?? ''),
+                'partner_status' => __('n.v.t.', 'sbdp'),
+                'last_update' => (string) ($request['updated_at'] ?? ($request['created_at'] ?? '')),
+                'action' => __('Converteer of wijs eigenaar toe', 'sbdp'),
+                'url' => add_query_arg(array('page' => 'sbdp_quote_requests'), admin_url('admin.php')),
+            );
+        }
+
+        foreach ($quotes as $quote) {
+            if (! is_array($quote)) {
+                continue;
+            }
+            $row = self::operationsRow($repository, $quote);
+            foreach (self::operationsBucketsForQuote($repository, $quote) as $bucket) {
+                $buckets[$bucket]['rows'][] = $row;
+            }
+        }
+
+        $active = isset($_GET['ops_view']) ? sanitize_key((string) $_GET['ops_view']) : 'all'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        if ($active !== 'all' && ! isset($buckets[$active])) {
+            $active = 'all';
+        }
+        $filters = array(
+            'partner' => isset($_GET['ops_partner']) ? sanitize_key((string) $_GET['ops_partner']) : 'all', // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            'date' => isset($_GET['ops_date']) ? sanitize_text_field((string) $_GET['ops_date']) : '', // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+            'q' => isset($_GET['ops_q']) ? sanitize_text_field((string) $_GET['ops_q']) : '', // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        );
+
+        echo '<div class="wrap"><h1>' . esc_html__('Operations Workspace', 'sbdp') . '</h1>';
+        echo '<p class="description">' . esc_html__('Decision-first cockpit bovenop bestaande Quote OS-data. Geen aparte CRM- of checkoutlaag.', 'sbdp') . '</p>';
+        QuoteBuilderRenderer::renderAdminStyles();
+        self::renderNotices();
+        self::renderOperationsFilters($active, $filters);
+        echo '<section class="postbox bsp-quote-admin__panel"><div class="bsp-quote-admin__panel-body"><div class="bsp-quote-admin__overview-stat-grid">';
+        foreach ($buckets as $key => $bucket) {
+            $url = add_query_arg(array('page' => 'sbdp_quote_operations', 'ops_view' => $key), admin_url('admin.php'));
+            echo '<a class="bsp-quote-admin__metric-card ' . esc_attr($active === $key ? 'is-active' : '') . '" href="' . esc_url($url) . '">';
+            echo '<span>' . esc_html((string) $bucket['label']) . '</span><strong>' . esc_html((string) count((array) $bucket['rows'])) . '</strong></a>';
+        }
+        echo '</div></div></section>';
+
+        $visibleBuckets = $active === 'all' ? $buckets : array($active => $buckets[$active]);
+        foreach ($visibleBuckets as $bucket) {
+            $rows = self::filterOperationsRows((array) $bucket['rows'], $filters);
+            echo '<section class="postbox bsp-quote-admin__panel"><div class="bsp-quote-admin__panel-header"><h3>' . esc_html((string) $bucket['label']) . '</h3></div><div class="bsp-quote-admin__panel-body">';
+            echo '<div class="bsp-quote-admin__table-wrap"><table class="widefat striped"><thead><tr><th>' . esc_html__('Referentie', 'sbdp') . '</th><th>' . esc_html__('Klant', 'sbdp') . '</th><th>' . esc_html__('Datum', 'sbdp') . '</th><th>' . esc_html__('Partner', 'sbdp') . '</th><th>' . esc_html__('Status', 'sbdp') . '</th><th>' . esc_html__('Volgende actie', 'sbdp') . '</th><th>' . esc_html__('Open', 'sbdp') . '</th></tr></thead><tbody>';
+            if ($rows === array()) {
+                echo '<tr><td colspan="7">' . esc_html__('Geen items in deze bucket.', 'sbdp') . '</td></tr>';
+            } else {
+                foreach ($rows as $row) {
+                    if (! is_array($row)) {
+                        continue;
+                    }
+                    echo '<tr><td><strong>' . esc_html((string) ($row['reference'] ?? '')) . '</strong><br><small class="bsp-quote-admin__muted">' . esc_html((string) ($row['last_update'] ?? '')) . '</small></td><td>' . esc_html((string) ($row['customer'] ?? '')) . '</td><td>' . esc_html((string) (($row['date'] ?? '') ?: __('In overleg', 'sbdp'))) . '</td><td>' . esc_html((string) ($row['partner_status'] ?? '')) . '</td><td>' . esc_html((string) ($row['status'] ?? '')) . '</td><td>' . esc_html((string) ($row['action'] ?? '')) . '</td><td><a class="button button-small" href="' . esc_url((string) ($row['url'] ?? '#')) . '">' . esc_html__('Open', 'sbdp') . '</a></td></tr>';
+                }
+            }
+            echo '</tbody></table></div></div></section>';
+        }
+        echo '</div>';
+    }
+
+    /**
+     * @param array<string,mixed> $quote
+     * @return array<int,string>
+     */
+    private static function renderOperationsFilters(string $active, array $filters): void
+    {
+        echo '<section class="postbox bsp-quote-admin__panel"><div class="bsp-quote-admin__panel-body">';
+        echo '<form method="get" class="bsp-quote-admin__actions bsp-quote-admin__actions--between">';
+        echo '<input type="hidden" name="page" value="sbdp_quote_operations">';
+        echo '<input type="hidden" name="ops_view" value="' . esc_attr($active) . '">';
+        echo '<label>' . esc_html__('Zoeken', 'sbdp') . '<input type="search" name="ops_q" value="' . esc_attr((string) ($filters['q'] ?? '')) . '" placeholder="' . esc_attr__('Referentie of klant', 'sbdp') . '"></label>';
+        echo '<label>' . esc_html__('Datum', 'sbdp') . '<input type="date" name="ops_date" value="' . esc_attr((string) ($filters['date'] ?? '')) . '"></label>';
+        echo '<label>' . esc_html__('Partnerstatus', 'sbdp') . '<select name="ops_partner">';
+        $options = array(
+            'all' => __('Alle statussen', 'sbdp'),
+            'waiting' => __('Wacht op partner', 'sbdp'),
+            'confirmed' => __('Bevestigd', 'sbdp'),
+            'declined' => __('Niet beschikbaar', 'sbdp'),
+            'alternative' => __('Alternatief', 'sbdp'),
+            'none' => __('Geen partneractie', 'sbdp'),
+        );
+        foreach ($options as $value => $label) {
+            $selected = (string) ($filters['partner'] ?? 'all') === $value ? ' selected' : '';
+            echo '<option value="' . esc_attr($value) . '"' . $selected . '>' . esc_html($label) . '</option>';
+        }
+        echo '</select></label>';
+        echo '<button type="submit" class="button button-primary">' . esc_html__('Filter', 'sbdp') . '</button>';
+        echo '<a class="button" href="' . esc_url(add_query_arg(array('page' => 'sbdp_quote_operations', 'ops_view' => $active), admin_url('admin.php'))) . '">' . esc_html__('Reset', 'sbdp') . '</a>';
+        echo '</form></div></section>';
+    }
+
+    /**
+     * @param array<int,array<string,mixed>> $rows
+     * @param array<string,string> $filters
+     * @return array<int,array<string,mixed>>
+     */
+    private static function filterOperationsRows(array $rows, array $filters): array
+    {
+        $partner = (string) ($filters['partner'] ?? 'all');
+        $date = trim((string) ($filters['date'] ?? ''));
+        $query = strtolower(trim((string) ($filters['q'] ?? '')));
+
+        return array_values(array_filter($rows, static function (array $row) use ($partner, $date, $query): bool {
+            if ($date !== '' && (string) ($row['date'] ?? '') !== $date) {
+                return false;
+            }
+            if ($partner !== 'all' && (string) ($row['partner_filter'] ?? 'none') !== $partner) {
+                return false;
+            }
+            if ($query !== '') {
+                $haystack = strtolower((string) ($row['reference'] ?? '') . ' ' . (string) ($row['customer'] ?? '') . ' ' . (string) ($row['status'] ?? '') . ' ' . (string) ($row['action'] ?? ''));
+                if (! str_contains($haystack, $query)) {
+                    return false;
+                }
+            }
+
+            return true;
+        }));
+    }
+
+    /**
+     * @param array<string,mixed> $quote
+     * @return array<int,string>
+     */
+    private static function operationsBucketsForQuote(QuoteRepositoryInterface $repository, array $quote): array
+    {
+        $buckets = array();
+        $status = (string) ($quote['status'] ?? '');
+        $sendStatus = (string) ($quote['send_status'] ?? '');
+        $handoffStatus = (string) ($quote['handoff_status'] ?? '');
+        $lines = self::operationsQuoteLines($repository, $quote);
+
+        $supplierWaiting = false;
+        $supplierConfirmed = false;
+        foreach ($lines as $line) {
+            $snapshot = is_array($line['availability_snapshot_json'] ?? null) ? $line['availability_snapshot_json'] : array();
+            $supplierStatus = (string) ($snapshot['supplierStatus'] ?? '');
+            if (in_array($supplierStatus, array('supplier_confirmation_required', 'supplier_option_requested', 'supplier_option_held', 'supplier_alternative_proposed', 'supplier_unavailable', 'supplier_declined'), true)) {
+                $supplierWaiting = true;
+            }
+            if ($supplierStatus === 'supplier_booking_confirmed') {
+                $supplierConfirmed = true;
+            }
+        }
+
+        if ($supplierWaiting) {
+            $buckets[] = 'waiting_supplier';
+        }
+        if ($supplierConfirmed) {
+            $buckets[] = 'supplier_confirmed';
+        }
+        if ($sendStatus === 'ready_to_send' || $status === 'reviewed') {
+            $buckets[] = 'ready_to_send';
+        }
+        if ($status === 'accepted' && $handoffStatus !== 'woo_payment_completed') {
+            $buckets[] = 'accepted_unpaid';
+        }
+        if ($handoffStatus === 'woo_payment_completed') {
+            $buckets[] = 'paid';
+        }
+
+        return array_values(array_unique($buckets));
+    }
+
+    /**
+     * @param array<string,mixed> $quote
+     * @return array<string,string>
+     */
+    private static function operationsRow(QuoteRepositoryInterface $repository, array $quote): array
+    {
+        $request = null;
+        $requestId = (int) ($quote['quote_request_id'] ?? 0);
+        if ($requestId > 0) {
+            $request = $repository->findQuoteRequest($requestId);
+        }
+        $customer = is_array($request)
+            ? (string) (($request['requester_name'] ?? '') ?: ($request['requester_email'] ?? __('Onbekende klant', 'sbdp')))
+            : __('Onbekende klant', 'sbdp');
+        $status = (string) ($quote['status'] ?? 'draft');
+        $handoff = (string) ($quote['handoff_status'] ?? 'not_ready');
+        $lines = self::operationsQuoteLines($repository, $quote);
+        $partner = self::operationsPartnerStatus($lines);
+        $tab = $partner['filter'] === 'waiting' || $partner['filter'] === 'alternative' || $partner['filter'] === 'declined'
+            ? 'build'
+            : (((string) ($quote['send_status'] ?? '') === 'ready_to_send') ? 'communication' : 'dashboard');
+
+        return array(
+            'reference' => (string) ($quote['quote_reference'] ?? ('Q-' . (int) ($quote['id'] ?? 0))),
+            'customer' => $customer,
+            'date' => is_array($request) ? (string) ($request['preferred_date'] ?? '') : '',
+            'partner_status' => $partner['label'],
+            'partner_filter' => $partner['filter'],
+            'last_update' => (string) ($quote['updated_at'] ?? ''),
+            'status' => $status . ' / ' . $handoff,
+            'action' => self::operationsNextAction($repository, $quote),
+            'url' => self::workspaceTabUrl((int) ($quote['id'] ?? 0), $tab),
+        );
+    }
+
+    /**
+     * @param array<int,array<string,mixed>> $lines
+     * @return array{label:string,filter:string}
+     */
+    private static function operationsPartnerStatus(array $lines): array
+    {
+        $hasWaiting = false;
+        $hasConfirmed = false;
+        foreach ($lines as $line) {
+            $snapshot = is_array($line['availability_snapshot_json'] ?? null) ? $line['availability_snapshot_json'] : array();
+            $status = (string) ($snapshot['supplierStatus'] ?? '');
+            if ($status === 'supplier_alternative_proposed') {
+                return array('label' => __('Alternatief voorgesteld', 'sbdp'), 'filter' => 'alternative');
+            }
+            if (in_array($status, array('supplier_unavailable', 'supplier_declined'), true)) {
+                return array('label' => __('Niet beschikbaar', 'sbdp'), 'filter' => 'declined');
+            }
+            if (in_array($status, array('supplier_confirmation_required', 'supplier_option_requested', 'supplier_option_held'), true)) {
+                $hasWaiting = true;
+            }
+            if ($status === 'supplier_booking_confirmed') {
+                $hasConfirmed = true;
+            }
+        }
+
+        if ($hasWaiting) {
+            return array('label' => __('Wacht op partner', 'sbdp'), 'filter' => 'waiting');
+        }
+        if ($hasConfirmed) {
+            return array('label' => __('Bevestigd', 'sbdp'), 'filter' => 'confirmed');
+        }
+
+        return array('label' => __('Geen partneractie', 'sbdp'), 'filter' => 'none');
+    }
+
+    /**
+     * @param array<string,mixed> $quote
+     */
+    private static function operationsNextAction(QuoteRepositoryInterface $repository, array $quote): string
+    {
+        $lines = self::operationsQuoteLines($repository, $quote);
+        foreach ($lines as $line) {
+            $snapshot = is_array($line['availability_snapshot_json'] ?? null) ? $line['availability_snapshot_json'] : array();
+            if (in_array((string) ($snapshot['supplierStatus'] ?? ''), array('supplier_confirmation_required', 'supplier_option_requested', 'supplier_alternative_proposed', 'supplier_unavailable', 'supplier_declined'), true)) {
+                return __('Volg partnerbevestiging op', 'sbdp');
+            }
+        }
+        if ((string) ($quote['send_status'] ?? '') === 'ready_to_send') {
+            return __('Verstuur offerte', 'sbdp');
+        }
+        if ((string) ($quote['status'] ?? '') === 'accepted' && (string) ($quote['handoff_status'] ?? '') !== 'woo_payment_completed') {
+            return __('Rond betaling/orderflow af', 'sbdp');
+        }
+        if ((string) ($quote['handoff_status'] ?? '') === 'woo_payment_completed') {
+            return __('Maak operationele opvolging af', 'sbdp');
+        }
+        return __('Controleer quote', 'sbdp');
+    }
+
+    /**
+     * @param array<string,mixed> $quote
+     * @return array<int,array<string,mixed>>
+     */
+    private static function operationsQuoteLines(QuoteRepositoryInterface $repository, array $quote): array
+    {
+        $versionId = (int) ($quote['current_version_id'] ?? 0);
+        return $versionId > 0 ? $repository->listQuoteLines($versionId) : array();
     }
 
     /**
@@ -748,7 +1040,7 @@ final class QuoteWorkspaceRenderer
             echo '</a>';
         }
         if ($overviewRows === array()) {
-            echo '<p style="padding:16px;color:rgba(255,255,255,0.5);font-size:12px;">' . esc_html__('Nog geen quotes.', 'sbdp') . '</p>';
+            echo '<p class="bsp-quote-admin__empty-state">' . esc_html__('Nog geen quotes.', 'sbdp') . '</p>';
         }
         echo '</nav>';
         echo '</aside>';
@@ -1445,6 +1737,7 @@ final class QuoteWorkspaceRenderer
                 echo self::renderInlineBadge((string) ($line['line_status'] ?? 'mapped'), self::statusBadgeClass((string) ($line['line_status'] ?? 'mapped')));
                 echo self::renderInlineBadge((string) ($line['pricing_confidence'] ?? 'unknown'), self::confidenceBadgeClass((string) ($line['pricing_confidence'] ?? 'unknown')));
                 echo self::renderInlineBadge((string) ($line['availability_confidence'] ?? 'unknown'), self::confidenceBadgeClass((string) ($line['availability_confidence'] ?? 'unknown')));
+                self::renderPartnerLineActions($quoteId, $line, $messages);
                 echo '</td></tr>';
             }
             echo '</tbody></table></div></div></details>';
@@ -1479,6 +1772,131 @@ final class QuoteWorkspaceRenderer
             echo '<p>' . esc_html__('Tab niet gevonden.', 'sbdp') . '</p>';
         }
         echo '</div></div>';
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $lines
+     * @param array<string, mixed>|null        $currentVersion
+     * @return array<string, mixed>
+     */
+    private static function renderPartnerLineActions(int $quoteId, array $line, array $messages): void
+    {
+        $lineId = (int) ($line['id'] ?? 0);
+        if ($quoteId <= 0 || $lineId <= 0) {
+            return;
+        }
+
+        $snapshot = is_array($line['availability_snapshot_json'] ?? null) ? $line['availability_snapshot_json'] : array();
+        $partner = is_array($snapshot['partnerConfirmation'] ?? null) ? $snapshot['partnerConfirmation'] : array();
+        $hasToken = ! empty($partner['tokenHash']) && ! empty($partner['tokenId']);
+        $revoked = ! empty($partner['revoked']);
+        $supplierStatus = (string) ($snapshot['supplierStatus'] ?? '');
+        $draft = self::findSupplierRequestMessageForLine($quoteId, $lineId, $messages);
+        $partnerUrl = is_array($draft) ? self::extractPartnerUrl((string) ($draft['body'] ?? '')) : '';
+        $sent = is_array($draft) && (string) ($draft['status'] ?? '') === 'sent';
+
+        echo '<div class="bsp-quote-admin__cell-stack bsp-quote-admin__partner-actions">';
+        echo '<span class="bsp-quote-admin__muted">' . esc_html__('Partnerflow', 'sbdp') . ': ' . esc_html(self::partnerFlowLabel($supplierStatus, $hasToken, $revoked, $sent)) . '</span>';
+        if ($hasToken) {
+            echo '<span class="bsp-quote-admin__muted">' . esc_html(sprintf(__('Token %s', 'sbdp'), (string) ($partner['tokenId'] ?? ''))) . '</span>';
+        }
+        if ((string) ($partner['sentAt'] ?? '') !== '') {
+            echo '<span class="bsp-quote-admin__muted">' . esc_html(sprintf(__('Verstuurd %s', 'sbdp'), (string) $partner['sentAt'])) . '</span>';
+        }
+        if ((string) ($partner['respondedAt'] ?? '') !== '') {
+            echo '<span class="bsp-quote-admin__muted">' . esc_html(sprintf(__('Reactie %s', 'sbdp'), (string) $partner['respondedAt'])) . '</span>';
+        }
+        if ($partnerUrl !== '') {
+            echo '<a class="button button-small" href="' . esc_url($partnerUrl) . '" target="_blank" rel="noopener noreferrer">' . esc_html__('Open partnerlink', 'sbdp') . '</a>';
+        }
+
+        echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
+        echo wp_nonce_field('sbdp_quote_line_supplier_request_draft', '_wpnonce', true, false);
+        echo '<input type="hidden" name="action" value="sbdp_quote_line_supplier_request_draft">';
+        echo '<input type="hidden" name="quote_id" value="' . esc_attr((string) $quoteId) . '">';
+        echo '<input type="hidden" name="line_id" value="' . esc_attr((string) $lineId) . '">';
+        echo '<button type="submit" class="button button-small">' . esc_html($hasToken && ! $revoked ? __('Nieuwe link + concept', 'sbdp') : __('Partnerlink + concept', 'sbdp')) . '</button>';
+        echo '</form>';
+
+        if ($hasToken && ! $revoked && is_array($draft) && (string) ($draft['status'] ?? '') === 'draft') {
+            echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
+            echo wp_nonce_field('sbdp_quote_line_supplier_request_send', '_wpnonce', true, false);
+            echo '<input type="hidden" name="action" value="sbdp_quote_line_supplier_request_send">';
+            echo '<input type="hidden" name="quote_id" value="' . esc_attr((string) $quoteId) . '">';
+            echo '<input type="hidden" name="line_id" value="' . esc_attr((string) $lineId) . '">';
+            echo '<button type="submit" class="button button-primary button-small">' . esc_html__('Verstuur partnerverzoek', 'sbdp') . '</button>';
+            echo '</form>';
+        }
+
+        if ($hasToken && ! $revoked) {
+            echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
+            echo wp_nonce_field('sbdp_quote_line_partner_token_revoke', '_wpnonce', true, false);
+            echo '<input type="hidden" name="action" value="sbdp_quote_line_partner_token_revoke">';
+            echo '<input type="hidden" name="quote_id" value="' . esc_attr((string) $quoteId) . '">';
+            echo '<input type="hidden" name="line_id" value="' . esc_attr((string) $lineId) . '">';
+            echo '<button type="submit" class="button button-small">' . esc_html__('Trek link in', 'sbdp') . '</button>';
+            echo '</form>';
+        }
+        echo '</div>';
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $messages
+     */
+    private static function findSupplierRequestMessageForLine(int $quoteId, int $lineId, array $messages): ?array
+    {
+        $threadSuffix = '-supplier-line-' . $lineId;
+        for ($index = count($messages) - 1; $index >= 0; $index--) {
+            $message = $messages[$index];
+            if ((int) ($message['quote_id'] ?? 0) !== $quoteId) {
+                continue;
+            }
+            if ((string) ($message['message_type'] ?? '') !== 'supplier_confirmation_request') {
+                continue;
+            }
+            if (! str_ends_with((string) ($message['thread_token'] ?? ''), $threadSuffix)) {
+                continue;
+            }
+            return $message;
+        }
+
+        return null;
+    }
+
+    private static function extractPartnerUrl(string $body): string
+    {
+        if (preg_match('/ddb_partner_confirmation=([A-Za-z0-9_.=-]+)/', $body, $matches) !== 1) {
+            return '';
+        }
+        if (preg_match('/https?:\/\/[^\s]+ddb_partner_confirmation=[^\s]+/', $body, $urlMatches) === 1) {
+            return rtrim((string) $urlMatches[0], ".,;)");
+        }
+
+        return '';
+    }
+
+    private static function partnerFlowLabel(string $supplierStatus, bool $hasToken, bool $revoked, bool $sent): string
+    {
+        if ($revoked) {
+            return __('link ingetrokken', 'sbdp');
+        }
+        if ($supplierStatus === 'supplier_booking_confirmed') {
+            return __('partner bevestigd', 'sbdp');
+        }
+        if (in_array($supplierStatus, array('supplier_unavailable', 'supplier_declined'), true)) {
+            return __('partner niet beschikbaar', 'sbdp');
+        }
+        if ($supplierStatus === 'supplier_alternative_proposed') {
+            return __('alternatief voorgesteld', 'sbdp');
+        }
+        if ($sent) {
+            return __('verzoek verstuurd', 'sbdp');
+        }
+        if ($hasToken) {
+            return __('link/concept klaar', 'sbdp');
+        }
+
+        return __('nog niet gestart', 'sbdp');
     }
 
     /**
@@ -3894,7 +4312,7 @@ final class QuoteWorkspaceRenderer
     private static function renderCreateRequestForm(bool $withWrapper = true): void
     {
         if ($withWrapper) {
-            echo '<div class="postbox" style="padding:16px; margin:16px 0;">';
+            echo '<div class="postbox bsp-quote-admin__panel">';
         }
 
         echo '<div class="bsp-quote-admin__request-form"><h2>' . esc_html__('Nieuwe aanvraag invoeren', 'sbdp') . '</h2><form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
@@ -3918,9 +4336,14 @@ final class QuoteWorkspaceRenderer
             'quote_send_reopened'   => __('Quote teruggezet naar ready_to_send.', 'sbdp'),
             'quote_operations_saved' => __('Operations draft opgeslagen in de actieve quote-versie.', 'sbdp'),
             'quote_line_control_updated' => __('Controlestatus voor programmaregel opgeslagen.', 'sbdp'),
+            'quote_line_supplier_updated' => __('Partnerstatus voor programmaregel opgeslagen.', 'sbdp'),
+            'quote_line_supplier_request_draft' => __('Partnerverzoek als draft opgeslagen.', 'sbdp'),
+            'quote_line_supplier_request_sent' => __('Partnerverzoek verstuurd en vastgelegd in de thread.', 'sbdp'),
+            'quote_line_partner_token_revoked' => __('Partnerlink ingetrokken.', 'sbdp'),
             'quote_message_draft_generated' => __('Berichtdraft opgeslagen in de quote-thread.', 'sbdp'),
             'quote_message_summarized' => __('Inbound klantreply samengevat.', 'sbdp'),
             'quote_message_sent'    => __('Quote-mail verstuurd en vastgelegd in de thread.', 'sbdp'),
+            'quote_message_send_failed' => __('Quote-mail kon niet worden verstuurd. Controleer de foutmelding en staging-mailconfiguratie.', 'sbdp'),
             'quote_inbound_logged'  => __('Inbound klantreply opgeslagen in de quote-thread.', 'sbdp'),
             'quote_intake_updated'  => __('Intakecontext bijgewerkt en intake-blockers opnieuw beoordeeld.', 'sbdp'),
             'quote_contact_updated' => __('Klantgegevens bijgewerkt.', 'sbdp'),

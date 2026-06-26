@@ -8,6 +8,8 @@ import PreferenceManager from "../assets/js/shared/PreferenceManager";
 declare global {
   interface Window {
     SBDP_HomeOnboardingRuntime?: {
+      planner_url?: string;
+      plannerUrl?: string;
       route_intent?: "checkout" | "quote" | "blocked" | string;
       routeIntent?: "checkout" | "quote" | "blocked" | string;
       checkout_url?: string;
@@ -68,7 +70,7 @@ const STEP_CONFIG: Array<{
   {
     key: "count",
     question: "Hoeveel personen zijn jullie?",
-    options: ["1", "25", "610", "1125", CUSTOM_COUNT_OPTION],
+    options: ["1", "2-5", "6-10", "11-25", CUSTOM_COUNT_OPTION],
   },
 ];
 
@@ -83,11 +85,10 @@ const deriveCountNumber = (value: string): number => {
   if (value === CUSTOM_COUNT_OPTION) {
     return 26;
   }
-  if (value === "610") {
-    return 10;
-  }
-  if (value === "1125") {
-    return 25;
+  const rangeMatch = value.match(/^(\d+)\s*-\s*(\d+)$/);
+  if (rangeMatch) {
+    const upperBound = Number.parseInt(rangeMatch[2], 10);
+    return Number.isNaN(upperBound) ? 0 : upperBound;
   }
   const parsed = Number.parseInt(value, 10);
   return Number.isNaN(parsed) ? 0 : parsed;
@@ -101,12 +102,13 @@ const resolveOnboardingTarget = (
   }
 
   const routeIntent = runtime.route_intent ?? runtime.routeIntent ?? null;
+  const plannerTarget = runtime.planner_url ?? runtime.plannerUrl ?? null;
   const checkoutTarget = runtime.checkout_url ?? runtime.checkoutUrl ?? null;
   const quoteTarget = runtime.quote_url ?? runtime.quoteUrl ?? null;
   const blockedTarget = runtime.blocked_url ?? runtime.blockedUrl ?? null;
 
   if (routeIntent === "checkout") {
-    return checkoutTarget;
+    return checkoutTarget ?? plannerTarget;
   }
 
   if (routeIntent === "quote") {
@@ -117,7 +119,11 @@ const resolveOnboardingTarget = (
     return blockedTarget;
   }
 
-  return null;
+  if (routeIntent === "planner") {
+    return plannerTarget;
+  }
+
+  return plannerTarget ?? checkoutTarget ?? quoteTarget ?? blockedTarget ?? null;
 };
 
 const HomeOnboardingWidget: FC = () => {
@@ -238,6 +244,11 @@ const HomeOnboardingWidget: FC = () => {
           : "",
       );
       updateAnswer("count", "", false);
+      return;
+    }
+    const rangeMatch = option.match(/^(\d+)\s*-\s*(\d+)$/);
+    if (rangeMatch) {
+      updateAnswer("count", rangeMatch[2]);
       return;
     }
     setCustomCountValue("");

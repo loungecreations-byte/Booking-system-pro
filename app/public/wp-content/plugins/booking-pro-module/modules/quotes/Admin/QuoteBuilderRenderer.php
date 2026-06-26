@@ -438,6 +438,7 @@ final class QuoteBuilderRenderer
             'supplier_option_requested' => __('Optie aangevraagd', 'sbdp'),
             'supplier_option_held' => __('Optie bevestigd', 'sbdp'),
             'supplier_declined' => __('Partner geweigerd', 'sbdp'),
+            'supplier_alternative_proposed' => __('Alternatief voorgesteld', 'sbdp'),
             'supplier_booking_confirmed' => __('Definitief bevestigd', 'sbdp'),
             'supplier_unavailable' => __('Niet beschikbaar', 'sbdp'),
             default => __('Partnerbevestiging nodig', 'sbdp'),
@@ -451,6 +452,7 @@ final class QuoteBuilderRenderer
             'supplier_option_requested' => __('Optie aangevraagd', 'sbdp'),
             'supplier_option_held' => __('Optie bevestigd', 'sbdp'),
             'supplier_declined' => __('Partner geweigerd', 'sbdp'),
+            'supplier_alternative_proposed' => __('Alternatief voorgesteld', 'sbdp'),
             'supplier_booking_confirmed' => __('Definitief bevestigd', 'sbdp'),
             'supplier_unavailable' => __('Niet beschikbaar', 'sbdp'),
         );

@@ -29,7 +29,10 @@ use BSP\Quotes\Service\QuoteReviewService;
 use BSP\Quotes\Service\QuoteSendService;
 use BSP\Quotes\Service\QuoteSendReadinessValidator;
 use BSP\Quotes\Service\QuoteSupplierConfirmationService;
+use BSP\Quotes\Service\QuoteTimelineService;
 use BSP\Quotes\Service\WooCartLaunchGateway;
+use BSP\Quotes\Service\PartnerConfirmationService;
+use BSP\Quotes\Service\PartnerConfirmationTokenService;
 use function add_query_arg;
 use function add_menu_page;
 use function add_submenu_page;
@@ -62,6 +65,7 @@ final class Controller
             57
         );
         add_submenu_page('sbdp_quotes', __('Quotes', 'sbdp'), __('Alle Quotes', 'sbdp'), $capability, 'sbdp_quotes', array(__CLASS__, 'renderQuotesPage'));
+        add_submenu_page('sbdp_quotes', __('Operations Workspace', 'sbdp'), __('Operations', 'sbdp'), $capability, 'sbdp_quote_operations', array(__CLASS__, 'renderQuoteOperationsPage'));
         add_submenu_page('sbdp_quotes', __('Quote Inbox', 'sbdp'), __('Quote Inbox', 'sbdp'), $capability, 'sbdp_quote_inbox', array(__CLASS__, 'renderQuoteInboxPage'));
         add_submenu_page('sbdp_quotes', __('Quote Requests', 'sbdp'), __('Quote Requests', 'sbdp'), $capability, 'sbdp_quote_requests', array(__CLASS__, 'renderQuoteRequestsPage'));
         add_submenu_page('sbdp_quotes', __('Quote AI & Mail', 'sbdp'), __('Quote AI & Mail', 'sbdp'), $capability, 'sbdp_quote_ai_mail', array(__CLASS__, 'renderQuoteAiMailSettingsPage'));
@@ -431,6 +435,124 @@ final class Controller
             'quote_line_control_updated' => '1',
         ));
     }
+    public static function handleUpdateLineSupplierStatus(): void {
+        self::assertAccess();
+        check_admin_referer('sbdp_quote_line_supplier_status');
+        $quoteId = isset($_POST['quote_id']) ? (int) $_POST['quote_id'] : 0;
+        $lineId = isset($_POST['line_id']) ? (int) $_POST['line_id'] : 0;
+        $status = sanitize_key((string) ($_POST['supplier_status'] ?? ''));
+        $payload = array(
+            'option_expires_at' => sanitize_text_field((string) ($_POST['option_expires_at'] ?? '')),
+            'supplier_booking_reference' => sanitize_text_field((string) ($_POST['supplier_booking_reference'] ?? '')),
+            'internal_note' => sanitize_textarea_field((string) ($_POST['internal_note'] ?? '')),
+        );
+        $repository = new QuoteRepository();
+        $events = new QuoteEventLogger($repository);
+        $service = new QuoteSupplierConfirmationService($repository, $events);
+        try {
+            $service->updateStatus(
+                $quoteId,
+                $lineId,
+                $status,
+                $payload,
+                function_exists('get_current_user_id') ? (int) get_current_user_id() : null
+            );
+        } catch (\Throwable $exception) {
+            self::redirect('sbdp_quotes', array(
+                'quote_id' => $quoteId,
+                'workspace_tab' => 'build',
+                'quote_error' => rawurlencode($exception->getMessage()),
+            ));
+        }
+        self::redirect('sbdp_quotes', array(
+            'quote_id' => $quoteId,
+            'workspace_tab' => 'build',
+            'quote_line_supplier_updated' => '1',
+        ));
+    }
+    public static function handleGenerateSupplierRequestDraft(): void {
+        self::assertAccess();
+        check_admin_referer('sbdp_quote_line_supplier_request_draft');
+        $quoteId = isset($_POST['quote_id']) ? (int) $_POST['quote_id'] : 0;
+        $lineId = isset($_POST['line_id']) ? (int) $_POST['line_id'] : 0;
+        $repository = new QuoteRepository();
+        try {
+            $result = self::createSupplierRequestDraftWithPartnerLink($repository, $quoteId, $lineId);
+        } catch (\Throwable $exception) {
+            self::redirect('sbdp_quotes', array(
+                'quote_id' => $quoteId,
+                'workspace_tab' => 'build',
+                'quote_error' => rawurlencode($exception->getMessage()),
+            ));
+        }
+        self::redirect('sbdp_quotes', array(
+            'quote_id' => $quoteId,
+            'workspace_tab' => 'build',
+            'quote_line_supplier_request_draft' => '1',
+            'supplier_email_missing' => ! empty($result['supplier_email_missing']) ? '1' : '0',
+        ));
+    }
+    public static function handleSendSupplierRequest(): void {
+        self::assertAccess();
+        check_admin_referer('sbdp_quote_line_supplier_request_send');
+        $quoteId = isset($_POST['quote_id']) ? (int) $_POST['quote_id'] : 0;
+        $lineId = isset($_POST['line_id']) ? (int) $_POST['line_id'] : 0;
+        $repository = new QuoteRepository();
+        $events = new QuoteEventLogger($repository);
+        try {
+            $result = self::createSupplierRequestDraftWithPartnerLink($repository, $quoteId, $lineId);
+            $message = is_array($result['message'] ?? null) ? $result['message'] : array();
+            $sent = (new QuoteCommunicationService($repository, $events))->sendEmail($quoteId, array(
+                'message_type' => 'supplier_confirmation_request',
+                'draft_id' => (int) ($message['id'] ?? 0),
+                'to_name' => sanitize_text_field((string) ($message['to_name'] ?? '')),
+                'to_email' => sanitize_email((string) ($message['to_email'] ?? '')),
+                'subject' => sanitize_text_field((string) ($message['subject'] ?? '')),
+                'body' => sanitize_textarea_field((string) ($message['body'] ?? '')),
+            ), function_exists('get_current_user_id') ? (int) get_current_user_id() : null);
+            (new PartnerConfirmationService(
+                $repository,
+                new QuoteTimelineService($repository),
+                new PartnerConfirmationTokenService()
+            ))->markSent($quoteId, $lineId, (int) ($sent['id'] ?? 0), function_exists('get_current_user_id') ? (int) get_current_user_id() : null);
+        } catch (\Throwable $exception) {
+            self::redirect('sbdp_quotes', array(
+                'quote_id' => $quoteId,
+                'workspace_tab' => 'build',
+                'quote_error' => rawurlencode($exception->getMessage()),
+            ));
+        }
+        self::redirect('sbdp_quotes', array(
+            'quote_id' => $quoteId,
+            'workspace_tab' => 'build',
+            'quote_line_supplier_request_sent' => '1',
+        ));
+    }
+    public static function handleRevokePartnerConfirmationToken(): void {
+        self::assertAccess();
+        check_admin_referer('sbdp_quote_line_partner_token_revoke');
+        $quoteId = isset($_POST['quote_id']) ? (int) $_POST['quote_id'] : 0;
+        $lineId = isset($_POST['line_id']) ? (int) $_POST['line_id'] : 0;
+        $repository = new QuoteRepository();
+        try {
+            (new PartnerConfirmationService(
+                $repository,
+                new QuoteTimelineService($repository),
+                new PartnerConfirmationTokenService()
+            ))->revoke($quoteId, $lineId, function_exists('get_current_user_id') ? (int) get_current_user_id() : null);
+        } catch (\Throwable $exception) {
+            self::redirect('sbdp_quotes', array(
+                'quote_id' => $quoteId,
+                'workspace_tab' => 'build',
+                'quote_error' => rawurlencode($exception->getMessage()),
+            ));
+        }
+        self::redirect('sbdp_quotes', array(
+            'quote_id' => $quoteId,
+            'workspace_tab' => 'build',
+            'quote_line_partner_token_revoked' => '1',
+        ));
+    }
     public static function handleGenerateProposalDraft(): void {
         self::assertAccess();
         check_admin_referer('sbdp_quote_generate_proposal_draft');
@@ -445,9 +567,42 @@ final class Controller
                 function_exists('get_current_user_id') ? (int) get_current_user_id() : null
             );
         } catch (\Throwable $exception) {
-            self::redirect('sbdp_quotes', array('quote_id' => $quoteId, 'workspace_tab' => $workspaceTab, 'quote_error' => rawurlencode($exception->getMessage())));
+            self::redirect('sbdp_quotes', array(
+                'quote_id' => $quoteId,
+                'workspace_tab' => $workspaceTab,
+                'quote_message_send_failed' => '1',
+                'quote_error' => rawurlencode($exception->getMessage()),
+            ));
         }
         self::redirect('sbdp_quotes', array('quote_id' => $quoteId, 'workspace_tab' => $workspaceTab, 'quote_message_draft_generated' => '1'));
+    }
+
+    /**
+     * @return array{message:array<string,mixed>,status_changed:bool,supplier_email_missing:bool,partner_url:string}
+     */
+    private static function createSupplierRequestDraftWithPartnerLink(QuoteRepositoryInterface $repository, int $quoteId, int $lineId): array {
+        $actorId = function_exists('get_current_user_id') ? (int) get_current_user_id() : null;
+        $events = new QuoteEventLogger($repository);
+        $supplierService = new QuoteSupplierConfirmationService($repository, $events);
+        $partnerInvite = (new PartnerConfirmationService(
+            $repository,
+            new QuoteTimelineService($repository),
+            new PartnerConfirmationTokenService()
+        ))->invite($quoteId, $lineId, $actorId);
+        $result = $supplierService->generateSupplierRequestDraft($quoteId, $lineId, $actorId);
+        $message = is_array($result['message'] ?? null) ? $result['message'] : array();
+        $url = (string) ($partnerInvite['url'] ?? '');
+
+        if (! empty($message['id']) && $url !== '') {
+            $body = rtrim((string) ($message['body'] ?? ''));
+            $body = (string) preg_replace('/\n\nBevestigen of alternatief doorgeven:\n\S+/m', '', $body);
+            $body .= "\n\nBevestigen of alternatief doorgeven:\n" . $url;
+            $message = $repository->updateQuoteMessage((int) $message['id'], array('body' => $body));
+            $result['message'] = $message;
+        }
+
+        $result['partner_url'] = $url;
+        return $result;
     }
 
     public static function handleUpdateProposalText(): void {
@@ -1086,6 +1241,9 @@ final class Controller
     }
     public static function renderQuotesPage(): void {
         QuoteWorkspaceRenderer::renderQuotesPage();
+    }
+    public static function renderQuoteOperationsPage(): void {
+        QuoteWorkspaceRenderer::renderQuoteOperationsPage();
     }
     public static function renderQuoteInboxPage(): void {
         QuoteWorkspaceRenderer::renderQuoteInboxPage();

@@ -314,14 +314,19 @@ final class QuoteCommunicationService
     {
         $reference = trim((string) ($quote['quote_reference'] ?? ''));
         $proposalUrl = $this->buildProposalOpenUrl((int) ($quote['id'] ?? 0), (int) ($version['id'] ?? 0), $reference);
+        $workspaceUrl = $this->buildCustomerWorkspaceUrl((int) ($quote['id'] ?? 0), (int) ($version['id'] ?? 0), $reference);
         $openProposalLine = $proposalUrl !== ''
             ? sprintf($this->t('Bekijk onze offerte hier: %s'), $proposalUrl)
             : $this->t('Bekijk onze offerte hier: [Open voorstel]');
+        $workspaceLine = $workspaceUrl !== ''
+            ? sprintf($this->t('Volg de actuele status hier: %s'), $workspaceUrl)
+            : '';
 
         $linesOut = array(
             $this->proposalAvailabilityCaveat($version, $lines),
             '',
             $openProposalLine,
+            $workspaceLine,
             $this->t('Als alles klopt, kunt u via het voorstel akkoord geven. Wilt u nog iets aanpassen, dan kunt u dat ook via het voorstel aangeven.'),
         );
         if ($reference !== '') {
@@ -498,7 +503,13 @@ final class QuoteCommunicationService
 
         if ($messageType === 'proposal') {
             $this->assertProposalSendAllowed($quoteId, $quote);
-        } elseif (! $this->hasSentProposal($context['messages'])) {
+            $body = $this->withCustomerWorkspaceLine(
+                $body,
+                (int) ($quote['id'] ?? 0),
+                (int) ($version['id'] ?? 0),
+                (string) ($quote['quote_reference'] ?? '')
+            );
+        } elseif ($messageType === 'reply' && ! $this->hasSentProposal($context['messages'])) {
             throw new InvalidArgumentException($this->t('Een reply kan pas worden verstuurd nadat eerst een voorstelmail is verzonden.'));
         }
 
@@ -521,11 +532,48 @@ final class QuoteCommunicationService
             }
         }
 
+        $mailFailure = null;
+        if (function_exists('add_action')) {
+            add_action('wp_mail_failed', static function ($error) use (&$mailFailure): void {
+                if ($error instanceof \WP_Error) {
+                    $mailFailure = $error->get_error_message();
+                    return;
+                }
+
+                if (is_object($error) && method_exists($error, 'get_error_message')) {
+                    $mailFailure = (string) $error->get_error_message();
+                    return;
+                }
+
+                $mailFailure = is_scalar($error) ? (string) $error : 'unknown_mail_failure';
+            }, 10, 1);
+        }
+
         $sent = function_exists('wp_mail')
             ? (bool) wp_mail($toEmail, $subject, $body, $headers)
             : false;
         if (! $sent) {
-            throw new InvalidArgumentException($this->t('De voorstelmail kon niet worden verstuurd.'));
+            $message = $this->t('De e-mail kon niet worden verstuurd.');
+            if (is_string($mailFailure) && trim($mailFailure) !== '') {
+                $message .= ' ' . sprintf($this->t('Mailservermelding: %s'), trim($mailFailure));
+            }
+
+            $this->events->log(
+                'quote_message_send_failed',
+                isset($quote['quote_request_id']) ? (int) $quote['quote_request_id'] : null,
+                (int) $quote['id'],
+                isset($version['id']) ? (int) $version['id'] : null,
+                $actorId,
+                $message,
+                array(
+                    'message_type' => $messageType,
+                    'to_email'     => $toEmail,
+                    'subject'      => $subject,
+                    'mail_failure' => $mailFailure,
+                )
+            );
+
+            throw new InvalidArgumentException($message);
         }
 
         $draftMessage = $this->resolveDraftForSend($quoteId, $draftId, $messageType);
@@ -545,7 +593,7 @@ final class QuoteCommunicationService
             'provider_message_id'    => $providerMessageId,
             'in_reply_to_message_id' => $replyReference !== '' ? $replyReference : null,
             'references_json'        => $references,
-            'thread_token'           => (string) ($quote['quote_reference'] ?? ''),
+            'thread_token'           => (string) ($draftMessage['thread_token'] ?? ($quote['quote_reference'] ?? '')),
             'sent_at'                => $this->now(),
             'created_by'             => $actorId,
         );
@@ -559,7 +607,7 @@ final class QuoteCommunicationService
             (int) $quote['id'],
             isset($version['id']) ? (int) $version['id'] : null,
             $actorId,
-            $messageType === 'proposal' ? 'Voorstelmail verstuurd.' : 'Quote-reply verstuurd.',
+            $this->sentEventMessage($messageType),
             array(
                 'message_id'         => $message['id'] ?? null,
                 'message_type'       => $messageType,
@@ -865,7 +913,16 @@ final class QuoteCommunicationService
     private function normalizeMessageType($value): string
     {
         $messageType = trim((string) $value);
-        return in_array($messageType, array('proposal', 'reply'), true) ? $messageType : 'proposal';
+        return in_array($messageType, array('proposal', 'reply', 'supplier_confirmation_request'), true) ? $messageType : 'proposal';
+    }
+
+    private function sentEventMessage(string $messageType): string
+    {
+        return match ($messageType) {
+            'supplier_confirmation_request' => 'Partnerverzoek verstuurd.',
+            'proposal' => 'Voorstelmail verstuurd.',
+            default => 'Quote-reply verstuurd.',
+        };
     }
 
     private function buildProviderMessageId(int $quoteId, int $versionId, string $messageType): string
@@ -1001,9 +1058,13 @@ final class QuoteCommunicationService
         array $lines
     ): string {
         $proposalUrl = $this->buildProposalOpenUrl((int) ($quote['id'] ?? 0), (int) ($version['id'] ?? 0), $quoteReference);
+        $workspaceUrl = $this->buildCustomerWorkspaceUrl((int) ($quote['id'] ?? 0), (int) ($version['id'] ?? 0), $quoteReference);
         $openProposalLine = $proposalUrl !== ''
             ? sprintf($this->t('Bekijk onze offerte hier: %s'), $proposalUrl)
             : $this->t('Bekijk onze offerte hier: [Open voorstel]');
+        $workspaceLine = $workspaceUrl !== ''
+            ? sprintf($this->t('Volg de actuele status hier: %s'), $workspaceUrl)
+            : '';
         $proposalAmount = $this->buildProposalTotalLabel($version, $lines);
         $priceUnderReservation = (string) ($version['pricing_confidence'] ?? 'unknown') !== 'execution_verified';
         $proposalPriceLine = $proposalAmount !== ''
@@ -1037,6 +1098,9 @@ final class QuoteCommunicationService
         $bodyLines[] = $this->proposalAvailabilityCaveat($version, $lines);
         $bodyLines[] = '';
         $bodyLines[] = $openProposalLine;
+        if ($workspaceLine !== '') {
+            $bodyLines[] = $workspaceLine;
+        }
         $bodyLines[] = $this->t('Als alles klopt, kunt u via het voorstel akkoord geven. Wilt u nog iets aanpassen, dan kunt u dat ook via het voorstel aangeven.');
         if ($quoteReference !== '') {
             $bodyLines[] = '';
@@ -1070,6 +1134,35 @@ final class QuoteCommunicationService
         $url = PublicProposalController::publicUrl($token);
 
         return is_string($url) ? trim($url) : '';
+    }
+
+    private function buildCustomerWorkspaceUrl(int $quoteId, int $versionId, string $quoteReference): string
+    {
+        if ($quoteId <= 0 || $versionId <= 0 || $quoteReference === '') {
+            return '';
+        }
+
+        $token = (new PublicQuoteProposalTokenService())->create($quoteId, $versionId, $quoteReference);
+        $base = function_exists('home_url') ? (string) home_url('/') : '/';
+        $url = function_exists('add_query_arg')
+            ? (string) add_query_arg(array('ddb_customer_workspace' => $token), $base)
+            : $base . (str_contains($base, '?') ? '&' : '?') . http_build_query(array('ddb_customer_workspace' => $token));
+
+        return trim($url);
+    }
+
+    private function withCustomerWorkspaceLine(string $body, int $quoteId, int $versionId, string $quoteReference): string
+    {
+        if (str_contains($body, 'ddb_customer_workspace=')) {
+            return $body;
+        }
+
+        $url = $this->buildCustomerWorkspaceUrl($quoteId, $versionId, $quoteReference);
+        if ($url === '') {
+            return $body;
+        }
+
+        return rtrim($body) . "\n\n" . sprintf($this->t('Volg de actuele status hier: %s'), $url);
     }
 
     /**

@@ -75,6 +75,16 @@ final class QuoteConversionService
             'Quote aangemaakt vanuit quote request.',
             array('quote_reference' => $quote['quote_reference'] ?? '')
         );
+        (new QuoteTimelineService($this->repository))->logOnce(
+            'quote_created',
+            'quote_created:quote:' . (int) $quote['id'],
+            $quoteRequestId,
+            (int) $quote['id'],
+            (int) $version['id'],
+            $actorId,
+            'Project/quote aangemaakt.',
+            array('quote_reference' => $quote['quote_reference'] ?? '')
+        );
 
         return $this->repository->findQuote((int) $quote['id']) ?? $quote;
     }

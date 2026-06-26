@@ -64,6 +64,16 @@ final class QuoteRequestService
             'Quote request aangemaakt.',
             array('source_type' => $request['source_type'])
         );
+        (new QuoteTimelineService($this->repository))->logOnce(
+            'customer_request_submitted',
+            'customer_request_submitted:request:' . (int) $request['id'],
+            (int) $request['id'],
+            null,
+            null,
+            $this->normalizeInt($input['actor_id'] ?? null),
+            'Klantaanvraag ontvangen.',
+            array('source_type' => $request['source_type'])
+        );
 
         return $request;
     }

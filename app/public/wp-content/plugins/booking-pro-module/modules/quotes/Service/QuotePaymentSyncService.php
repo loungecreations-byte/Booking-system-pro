@@ -139,6 +139,16 @@ final class QuotePaymentSyncService
                 $payload
             );
         }
+        (new QuoteTimelineService($this->repository))->logOnce(
+            'payment_completed',
+            'payment_completed:order:' . $orderId,
+            $requestId > 0 ? $requestId : null,
+            $quoteId,
+            $approvedVersionId,
+            null,
+            'Woo betaling voltooid.',
+            $payload
+        );
 
         return array(
             'ok' => true,

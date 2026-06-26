@@ -5,14 +5,14 @@ export default function BoschStartBanner() {
     <section className="ao-banner ui-panel ui-panel--soft">
       <div className="ao-banner__content">
         <p className="ao-banner__eyebrow">Ontdek plekken in Den Bosch</p>
-        <h2 className="ao-banner__title">Van lunch tot bijzondere stops die je dag echt sterker maken.</h2>
+        <h2 className="ao-banner__title">Kies plekken die je dag sterker maken.</h2>
         <p className="ao-banner__copy">
-          Verken, filter en kies plekken die passen bij je route, zodat je ze direct kunt toevoegen aan je dagplan.
+          Verken rustig, filter snel en open daarna meteen de planner voor een logische dagindeling.
         </p>
       </div>
       <div className="ao-banner__actions">
         <a className="ui-btn ui-btn--primary ui-btn--planner ao-button--wide" href="/plan-je-dag">
-          Plan je dag
+          Open planner
         </a>
       </div>
     </section>

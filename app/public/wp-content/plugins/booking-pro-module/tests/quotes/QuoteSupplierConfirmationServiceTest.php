@@ -188,6 +188,18 @@ namespace BSP\Tests\Quotes {
             self::assertStringNotContainsString('booking-widget', $builder);
         }
 
+        public function testSupplierAdminPostCallbacksAreImplemented(): void
+        {
+            $root = dirname(__DIR__, 2);
+            $module = (string) file_get_contents($root . '/modules/quotes/Module.php');
+            $controller = (string) file_get_contents($root . '/modules/quotes/Admin/Controller.php');
+
+            self::assertStringContainsString('admin_post_sbdp_quote_line_supplier_status', $module);
+            self::assertStringContainsString('handleUpdateLineSupplierStatus', $controller);
+            self::assertStringContainsString('admin_post_sbdp_quote_line_supplier_request_draft', $module);
+            self::assertStringContainsString('handleGenerateSupplierRequestDraft', $controller);
+        }
+
         /**
          * @param array<string, mixed>[] $assumptions
          * @return array<string, mixed>[]
