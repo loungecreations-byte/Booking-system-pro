@@ -60,6 +60,12 @@ coverage/
 test-results/
 playwright-report/
 
+# Runtime bundles required by WordPress enqueue fallbacks
+!app/public/wp-content/plugins/booking-pro-module/assets/js/day-planner/dist/
+!app/public/wp-content/plugins/booking-pro-module/assets/js/day-planner/dist/**
+!app/public/wp-content/plugins/booking-pro-module/modules/product-overview/assets/js/dist/
+!app/public/wp-content/plugins/booking-pro-module/modules/product-overview/assets/js/dist/**
+
 # Project scratch artifacts
 [ ]*
 .tmp-*

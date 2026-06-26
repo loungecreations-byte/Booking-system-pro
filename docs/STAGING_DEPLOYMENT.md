@@ -18,6 +18,13 @@ Do not deploy with Git:
 - `wp-config.php`
 - WooCommerce orders/users/settings
 
+Required runtime assets:
+
+- `wp-content/plugins/booking-pro-module/assets/js/day-planner/dist/`
+- `wp-content/plugins/booking-pro-module/modules/product-overview/assets/js/dist/`
+
+These bundles are loaded by WordPress enqueue fallbacks. If they are missing, the planner can fall back to source `.jsx` files and fail in the browser.
+
 ## Server paths
 
 SSH:
@@ -95,6 +102,14 @@ ddb-core-ui
 ddb-mega-menu
 ddb-spinwheel
 ddb-spots-0.1.0
+```
+
+After publishing planner or product-overview assets, clear cache:
+
+```bash
+cd /var/www/vhosts/dagjedenbosch.nl/site1
+php -d memory_limit=512M $(command -v wp) cache flush
+php -d memory_limit=512M $(command -v wp) rocket clean --confirm
 ```
 
 ## Cleanup history
