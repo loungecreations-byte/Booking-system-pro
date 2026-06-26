@@ -14,6 +14,14 @@ namespace {
         }
     }
 
+    if (! function_exists('_n')) {
+        function _n(string $single, string $plural, int $number, ?string $domain = null): string
+        {
+            unset($domain);
+            return $number === 1 ? $single : $plural;
+        }
+    }
+
     if (! function_exists('esc_html')) {
         function esc_html($text): string
         {
@@ -35,10 +43,24 @@ namespace {
         }
     }
 
+    if (! function_exists('sanitize_key')) {
+        function sanitize_key(string $key): string
+        {
+            return strtolower(preg_replace('/[^a-zA-Z0-9_\-]/', '', $key) ?? '');
+        }
+    }
+
     if (! function_exists('admin_url')) {
         function admin_url(string $path = ''): string
         {
             return '/wp-admin/' . ltrim($path, '/');
+        }
+    }
+
+    if (! function_exists('add_query_arg')) {
+        function add_query_arg(array $args, string $url): string
+        {
+            return $url . (str_contains($url, '?') ? '&' : '?') . http_build_query($args);
         }
     }
 
@@ -439,6 +461,67 @@ final class QuoteCommunicationReadinessUiTest extends TestCase
         $this->assertStringContainsString('id="quote-proposal-send-form"', $html);
         $this->assertStringContainsString('name="action" value="sbdp_quote_send_message"', $html);
         $this->assertStringContainsString('Verstuur voorstelmail', $html);
+    }
+
+    public function testReadyQcdPrimaryActionSubmitsProposalSendInsteadOfTabLink(): void
+    {
+        $method = new \ReflectionMethod(QuoteWorkspaceRenderer::class, 'renderQcdDecisionBar');
+        $method->setAccessible(true);
+
+        ob_start();
+        $method->invoke(
+            null,
+            42,
+            array(
+                'id' => 42,
+                'quote_reference' => 'Q-TEST',
+                'status' => 'draft',
+                'handoff_status' => 'not_ready',
+            ),
+            array(
+                'preferred_date' => '2026-07-01',
+                'group_size' => 10,
+            ),
+            array(
+                'name' => 'Jeroen Schalks',
+                'email' => 'js073@icloud.com',
+            ),
+            array(
+                'version_number' => 1,
+            ),
+            array(
+                'total_label' => 'EUR 125,00',
+            ),
+            array(
+                'customer' => array('icon' => 'ok', 'tab' => 'dashboard', 'status' => 'Complete'),
+                'program' => array('icon' => 'ok', 'tab' => 'build', 'status' => 'Complete'),
+                'availability' => array('icon' => 'ok', 'tab' => 'build', 'status' => 'Bevestigd'),
+                'proposal' => array('icon' => 'ok', 'tab' => 'communication', 'status' => 'Gereed'),
+                'communication' => array('icon' => 'ok', 'tab' => 'communication', 'status' => 'Verzenden klaar'),
+                'audit' => array('icon' => 'ok', 'tab' => 'history', 'status' => 'Gereed'),
+            ),
+            true,
+            array('ready' => true, 'blockers' => array()),
+            'execution_verified',
+            'confirmed',
+            array(),
+            array(
+                'proposal' => array(
+                    'id' => 20,
+                    'to_name' => 'Jeroen Schalks',
+                    'to_email' => 'js073@icloud.com',
+                    'subject' => 'Voorstel voor jullie dag',
+                    'body' => 'Klantgerichte voorsteltekst.',
+                ),
+            )
+        );
+        $html = (string) ob_get_clean();
+
+        $this->assertStringContainsString('name="action" value="sbdp_quote_send_message"', $html);
+        $this->assertStringContainsString('name="message_type" value="proposal"', $html);
+        $this->assertStringContainsString('name="draft_id" value="20"', $html);
+        $this->assertStringContainsString('<button type="submit" class="button button-primary bsp-qcd__primary-btn">Voorstel versturen</button>', $html);
+        $this->assertStringNotContainsString('href="/wp-admin/admin.php?page=sbdp_quotes&amp;quote_id=42&amp;workspace_tab=communication"', $html);
     }
 
     /**
