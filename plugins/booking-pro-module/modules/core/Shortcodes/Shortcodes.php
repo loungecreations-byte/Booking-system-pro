@@ -250,12 +250,12 @@ final class Shortcodes
 					<?php esc_html_e('Selecteer datum en gezelschap. Daarna zie je activiteiten, routes en tickets die logisch op elkaar aansluiten.', 'sbdp'); ?>
 				</p>
 				<p class="sbdp-home-widget__copy">
-					<?php esc_html_e('Beantwoord 3 korte vragen en start met een voorstel dat je daarna zelf verfijnt.', 'sbdp'); ?>
+					<?php esc_html_e('Beantwoord 3 korte vragen en krijg een rustig voorstel dat je daarna zelf verfijnt.', 'sbdp'); ?>
 				</p>
 				<ul class="sbdp-home-widget__usps">
 					<li><?php esc_html_e('Gratis planner', 'sbdp'); ?></li>
 					<li><?php esc_html_e('Lokale tips', 'sbdp'); ?></li>
-					<li><?php esc_html_e('Tickets direct geregeld', 'sbdp'); ?></li>
+					<li><?php esc_html_e('Heldere route naar boeking of aanvraag', 'sbdp'); ?></li>
 				</ul>
 			</div>
 
@@ -661,12 +661,18 @@ final class Shortcodes
                 $runtime = array(
                     'route_intent' => 'quote',
                     'quote_url'    => $quoteUrl,
+                    'planner_url'  => $plannerUrl,
                 );
             }
         } elseif ($plannerUrl !== '') {
             $runtime = array(
                 'route_intent' => 'planner',
                 'planner_url'  => $plannerUrl,
+            );
+        } elseif ($quoteUrl !== '') {
+            $runtime = array(
+                'route_intent' => 'quote',
+                'quote_url'    => $quoteUrl,
             );
         }
 

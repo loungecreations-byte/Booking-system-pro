@@ -6,6 +6,8 @@ namespace BSP\Quotes;
 
 use BSP\Core\Interfaces\ModuleInterface;
 use BSP\Quotes\Admin\Controller as AdminController;
+use BSP\Quotes\CustomerWorkspaceController;
+use BSP\Quotes\PartnerConfirmationController;
 use BSP\Quotes\PublicProposalController;
 use BSP\Quotes\Rest\Controller as RestController;
 use BSP\Quotes\Rest\InboundMailWebhookController;
@@ -24,6 +26,8 @@ final class Module implements ModuleInterface
         QuotePaymentSyncService::registerHooks();
         QuoteConfirmationService::registerHooks();
         PublicProposalController::register();
+        CustomerWorkspaceController::register();
+        PartnerConfirmationController::register();
 
         if (\function_exists('add_action')) {
             \add_action('admin_menu', array(AdminController::class, 'registerMenu'));
@@ -41,6 +45,8 @@ final class Module implements ModuleInterface
             \add_action('admin_post_sbdp_quote_line_control_status', array(AdminController::class, 'handleUpdateLineControlStatus'));
             \add_action('admin_post_sbdp_quote_line_supplier_status', array(AdminController::class, 'handleUpdateLineSupplierStatus'));
             \add_action('admin_post_sbdp_quote_line_supplier_request_draft', array(AdminController::class, 'handleGenerateSupplierRequestDraft'));
+            \add_action('admin_post_sbdp_quote_line_supplier_request_send', array(AdminController::class, 'handleSendSupplierRequest'));
+            \add_action('admin_post_sbdp_quote_line_partner_token_revoke', array(AdminController::class, 'handleRevokePartnerConfirmationToken'));
             \add_action('admin_post_sbdp_quote_generate_proposal_draft', array(AdminController::class, 'handleGenerateProposalDraft'));
             \add_action('wp_ajax_sbdp_quote_update_proposal_text', array(AdminController::class, 'handleUpdateProposalText'));
             \add_action('wp_ajax_sbdp_quote_suggest_proposal_text', array(AdminController::class, 'handleSuggestProposalText'));

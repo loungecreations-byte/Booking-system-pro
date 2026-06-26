@@ -71,6 +71,16 @@ final class QuoteSendService
                 'note' => $note,
             )
         );
+        (new QuoteTimelineService($this->repository))->logOnce(
+            'quote_sent',
+            'quote_sent:quote:' . $quoteId . ':version:' . (int) ($quote['current_version_id'] ?? 0),
+            isset($quote['quote_request_id']) ? (int) $quote['quote_request_id'] : null,
+            $quoteId,
+            isset($quote['current_version_id']) ? (int) $quote['current_version_id'] : null,
+            $actorId,
+            'Offerte verzonden naar klant.',
+            array('channel' => $channel)
+        );
 
         return $updated;
     }

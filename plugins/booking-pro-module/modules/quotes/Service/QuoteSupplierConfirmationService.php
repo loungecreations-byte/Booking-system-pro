@@ -17,6 +17,7 @@ final class QuoteSupplierConfirmationService
         'supplier_option_requested',
         'supplier_option_held',
         'supplier_declined',
+        'supplier_alternative_proposed',
         'supplier_booking_confirmed',
         'supplier_unavailable',
     );
@@ -589,6 +590,7 @@ final class QuoteSupplierConfirmationService
             'supplier_option_requested' => sprintf('Optie aangevraagd bij %s.', $supplierName),
             'supplier_option_held' => sprintf('Optie bevestigd tot %s.', $expiresAt !== '' ? $expiresAt : 'n.v.t.'),
             'supplier_declined' => sprintf('Partner heeft de aanvraag geweigerd voor %s.', $supplierName),
+            'supplier_alternative_proposed' => sprintf('Partner heeft een alternatief voorgesteld voor %s.', $supplierName),
             'supplier_booking_confirmed' => sprintf('Partnerbevestiging ontvangen van %s.', $supplierName),
             'supplier_unavailable' => sprintf('Partner geeft aan dat er geen capaciteit is bij %s.', $supplierName),
             default => sprintf('Partnerbevestiging vereist voor %s.', $supplierName),
@@ -614,6 +616,7 @@ final class QuoteSupplierConfirmationService
             'supplier_option_requested' => sprintf('Optie aanvragen bij %s', $supplierName),
             'supplier_option_held' => sprintf('Optie bewaken bij %s', $supplierName),
             'supplier_declined' => sprintf('Alternatief regelen voor %s', $supplierName),
+            'supplier_alternative_proposed' => sprintf('Alternatief beoordelen voor %s', $supplierName),
             'supplier_booking_confirmed' => sprintf('Bevestiging verwerken voor %s', $supplierName),
             'supplier_unavailable' => sprintf('Beschikbaarheid herplannen voor %s', $supplierName),
             default => sprintf('Vraag bevestiging aan bij %s', $supplierName),

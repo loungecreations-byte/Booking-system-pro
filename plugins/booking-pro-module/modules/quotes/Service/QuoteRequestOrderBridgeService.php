@@ -174,6 +174,20 @@ final class QuoteRequestOrderBridgeService
                 'force' => $force,
             )
         );
+        (new QuoteTimelineService($this->repository))->logOnce(
+            'woo_order_created',
+            'woo_order_created:order:' . $orderId,
+            $requestId,
+            $quoteId,
+            $versionId,
+            $actorId,
+            'Woo request-order aangemaakt.',
+            array(
+                'order_id' => $orderId,
+                'quote_version_id' => $versionId,
+                'force' => $force,
+            )
+        );
 
         return array(
             'quote_id' => $quoteId,

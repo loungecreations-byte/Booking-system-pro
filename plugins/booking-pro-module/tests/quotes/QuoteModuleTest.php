@@ -44,6 +44,7 @@ final class QuoteModuleTest extends TestCase
         $GLOBALS['__test_current_user_can'] = false;
         $GLOBALS['__test_current_user_id'] = 0;
         $GLOBALS['__test_wp_mail_calls'] = array();
+        unset($GLOBALS['__test_wp_mail_result'], $GLOBALS['__test_wp_mail_error']);
         $GLOBALS['__test_filters'] = array();
         $GLOBALS['__test_actions'] = array();
         $GLOBALS['__test_wp_remote_post'] = null;
@@ -184,12 +185,15 @@ final class QuoteModuleTest extends TestCase
         ));
 
         $loggedEvents = $repository->listQuoteEvents(0);
-        $this->assertCount(1, $loggedEvents);
-        $this->assertSame('quote_request_created', $loggedEvents[0]['event_type']);
-        $this->assertSame('user', $loggedEvents[0]['actor_type']);
-        $this->assertSame(44, $loggedEvents[0]['actor_id']);
-        $this->assertSame((int) $request['id'], $loggedEvents[0]['quote_request_id']);
-        $this->assertSame('planner_offerte_form', $loggedEvents[0]['payload_json']['source_type']);
+        $eventTypes = array_column($loggedEvents, 'event_type');
+        $this->assertContains('quote_request_created', $eventTypes);
+        $this->assertContains('customer_request_submitted', $eventTypes);
+
+        $requestCreated = $loggedEvents[array_search('quote_request_created', $eventTypes, true)];
+        $this->assertSame('user', $requestCreated['actor_type']);
+        $this->assertSame(44, $requestCreated['actor_id']);
+        $this->assertSame((int) $request['id'], $requestCreated['quote_request_id']);
+        $this->assertSame('planner_offerte_form', $requestCreated['payload_json']['source_type']);
     }
 
     public function testConvertQuoteRequestCreatesQuoteVersionAndEvents(): void
@@ -256,7 +260,9 @@ final class QuoteModuleTest extends TestCase
         $this->assertSame((int) $first['id'], (int) $second['id']);
         $this->assertCount(1, $repository->listQuotes());
         $this->assertCount(1, $repository->listQuoteVersions((int) $first['id']));
-        $this->assertCount(3, $repository->listQuoteEvents((int) $first['id']));
+        $eventTypes = array_column($repository->listQuoteEvents((int) $first['id']), 'event_type');
+        $this->assertContains('quote_created_from_request', $eventTypes);
+        $this->assertContains('quote_created', $eventTypes);
     }
 
     public function testMissingCriticalIntakeDataCreatesBlockingAssumptions(): void
@@ -472,7 +478,9 @@ final class QuoteModuleTest extends TestCase
             ),
             $types
         );
-        $this->assertCount(6, $repository->listQuoteEvents((int) $quote['id']));
+        $eventTypes = array_column($repository->listQuoteEvents((int) $quote['id']), 'event_type');
+        $this->assertContains('quote_created_from_request', $eventTypes);
+        $this->assertContains('quote_created', $eventTypes);
     }
 
     public function testQuoteAndVersionStateDefaultsAreCorrect(): void
@@ -551,6 +559,67 @@ final class QuoteModuleTest extends TestCase
         $this->assertCount(1, $GLOBALS['__test_wp_mail_calls']);
         $this->assertSame('mail@example.test', $GLOBALS['__test_wp_mail_calls'][0]['to']);
         $this->assertCount(1, $repository->listQuoteMessages((int) $quote['id']));
+    }
+
+    public function testProposalEmailSendFailureReportsMailerReasonAndLogsEvent(): void
+    {
+        $repository = new InMemoryQuoteRepository();
+        $events = new QuoteEventLogger($repository);
+        $requestService = new QuoteRequestService($repository, $events);
+        $assumptions = new QuoteAssumptionService($repository, $events);
+        $conversion = new QuoteConversionService($repository, $assumptions, $events);
+        $followups = new QuoteFollowupService($repository, $events);
+        $reviews = new QuoteReviewService($repository, $events, $followups);
+        $communication = new QuoteCommunicationService($repository, $events);
+
+        $request = $requestService->create(array(
+            'request_summary' => 'Voorstelmail failure test',
+            'requester_name'  => 'Mail Contact',
+            'requester_email' => 'mail@example.test',
+            'group_size'      => 6,
+            'preferred_date'  => '2026-06-10',
+            'items'           => array(
+                array(
+                    'product_id'              => 101,
+                    'title'                   => 'Boottocht',
+                    'participants'            => 6,
+                    'pricing_confidence'      => 'execution_verified',
+                    'availability_confidence' => 'confirmed',
+                ),
+            ),
+        ));
+
+        $quote = $conversion->convertRequestToQuote((int) $request['id'], 11);
+        $reviews->approve((int) $quote['id'], 11);
+        $draft = $communication->generateProposalDraft((int) $quote['id'], 11);
+
+        $GLOBALS['__test_wp_mail_result'] = false;
+        $GLOBALS['__test_wp_mail_error'] = 'SMTP connect() failed.';
+
+        try {
+            $communication->sendEmail((int) $quote['id'], array(
+                'message_type' => 'proposal',
+                'draft_id'     => (int) $draft['id'],
+                'to_name'      => 'Mail Contact',
+                'to_email'     => 'mail@example.test',
+                'subject'      => 'Voorstel [Q-20260413100000]',
+                'body'         => "Hallo Mail Contact,\nHierbij ons voorstel.",
+            ), 11);
+            $this->fail('Expected proposal mail failure.');
+        } catch (\InvalidArgumentException $exception) {
+            $this->assertStringContainsString('De e-mail kon niet worden verstuurd.', $exception->getMessage());
+            $this->assertStringContainsString('SMTP connect() failed.', $exception->getMessage());
+        }
+
+        $events = $repository->listQuoteEvents((int) $quote['id']);
+        $this->assertContains('quote_message_send_failed', array_column($events, 'event_type'));
+        $failure = end($events);
+        $this->assertSame('SMTP connect() failed.', $failure['payload_json']['mail_failure']);
+        $sentMessages = array_filter(
+            $repository->listQuoteMessages((int) $quote['id']),
+            static fn (array $message): bool => (string) ($message['status'] ?? '') === 'sent'
+        );
+        $this->assertCount(0, $sentMessages);
     }
 
     public function testInboundReplyMatchesQuoteByMessageReference(): void

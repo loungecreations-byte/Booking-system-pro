@@ -63,11 +63,11 @@ export default function ActivityDetailDrawer({ activity, onClose }: ActivityDeta
         <footer className="ao-drawer__actions">
           {activity.permalink ? (
             <a className="ui-btn ui-btn--secondary ao-button--full" href={activity.permalink}>
-              {activity.isRequestOnly ? "Bekijk aanvraag" : "Bekijk activiteit"}
+              {activity.isRequestOnly ? "Bekijk offerte" : "Bekijk activiteit"}
             </a>
           ) : null}
           <a className="ui-btn ui-btn--primary ui-btn--planner ao-button--full" href={activity.plannerHref}>
-            {activity.isRequestOnly ? "Voeg aanvraag toe aan planner" : "Voeg direct toe aan planner"}
+            {activity.isRequestOnly ? "Vraag offerte aan" : "Voeg toe aan mijn dag"}
           </a>
         </footer>
       </aside>

@@ -76,7 +76,7 @@ export default function ActivityCard({
           <span>{priceLabel} p.p.</span>
         </div>
         <a className="ui-listing-card__cta ui-listing-card__cta--primary" href={primaryHref}>
-          {activity.isRequestOnly ? "Bekijk aanvraag" : ctaLabel}
+          {activity.isRequestOnly ? "Bekijk offerte" : ctaLabel}
         </a>
       </div>
     </article>
