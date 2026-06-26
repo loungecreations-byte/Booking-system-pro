@@ -1,0 +1,40 @@
+.premium-footer-wrapper {
+    background-color: #0a0a0a;
+    border-top: 2px solid #d4af37;
+    padding: 60px 40px 30px;
+    text-align: center;
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+.premium-footer-content {
+    max-width: 800px;
+    margin: 0 auto 40px;
+}
+
+.premium-footer-title {
+    color: #d4af37;
+    font-size: 28px;
+    font-weight: 300;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    font-family: "Playfair Display", serif;
+}
+
+.premium-footer-desc {
+    color: #a0a0a0;
+    font-size: 16px;
+    line-height: 1.6;
+    font-weight: 300;
+}
+
+.premium-footer-bottom {
+    border-top: 1px solid rgba(255,255,255,0.05);
+    padding-top: 20px;
+}
+
+.premium-footer-copy {
+    color: #666;
+    font-size: 13px;
+    letter-spacing: 1px;
+}

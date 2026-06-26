@@ -1,0 +1,32 @@
+.theme-toggle-btn {
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #C5A059; /* Default premium gold */
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.theme-toggle-btn:hover {
+    opacity: 0.8;
+    transform: scale(1.05);
+}
+
+.theme-toggle-btn svg {
+    fill: currentColor;
+    width: 1em;
+    height: 1em;
+}
+
+/* Simple light mode overrides - you can extend this in Elementor global CSS */
+body.theme-light {
+    background-color: #f7f7f7 !important;
+    color: #1a1a1a !important;
+}
+
+body.theme-light .elementor-section {
+    background-color: #ffffff !important;
+}
