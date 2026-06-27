@@ -167,20 +167,22 @@ class SBDP_Private_Tours_Admin
         <div class="sbdp-private-tour-builder" data-private-tour-builder>
             <div class="sbdp-builder__header">
                 <div class="sbdp-builder__header-copy">
-                    <h3 class="sbdp-builder__title">Tourstops</h3>
-                    <p class="sbdp-builder__subtitle">Beheer per stop het verhaal, de missie, media en locatie. Verhaaltekst ondersteunt <code>h1</code>, <code>h2</code>, <code>h3</code>, paragrafen en sterke tekst.</p>
+                    <p class="sbdp-builder__eyebrow">Private tour builder</p>
+                    <h3 class="sbdp-builder__title"><?php echo esc_html(get_the_title($post)); ?></h3>
+                    <p class="sbdp-builder__subtitle">Beheer hoofdstukken, verhaal, missie, media en locatie vanuit een overzicht.</p>
                 </div>
                 <div class="sbdp-builder__actions">
                     <button type="button" class="button button-primary" data-private-tour-add-step>
-                        Nieuwe stop
+                        Hoofdstuk toevoegen
                     </button>
                 </div>
             </div>
 
             <div class="sbdp-builder__meta">
-                <span class="sbdp-builder__meta-pill"><?php echo esc_html(sprintf(_n('%d stop', '%d stops', $step_count, 'sbdp'), $step_count)); ?></span>
-                <span class="sbdp-builder__meta-pill">Klik op <strong>Bewerken</strong> voor tekst, headings en missie</span>
-                <span class="sbdp-builder__meta-pill">Kaart hieronder is alleen voor locatie en volgorde</span>
+                <span class="sbdp-builder__meta-pill" data-builder-step-count><?php echo esc_html(sprintf(_n('%d hoofdstuk', '%d hoofdstukken', $step_count, 'sbdp'), $step_count)); ?></span>
+                <span class="sbdp-builder__meta-pill" data-builder-media-count>Media wordt geladen</span>
+                <span class="sbdp-builder__meta-pill" data-builder-location-count>Locaties worden geladen</span>
+                <span class="sbdp-builder__meta-pill is-warning">Gebruik daarna de WordPress-knop Update om definitief op te slaan</span>
             </div>
             
             <!-- Hidden field to store JSON blueprint -->
@@ -453,16 +455,6 @@ class SBDP_Private_Tours_Admin
             true  // Load in footer
         );
 
-        // Add inline debug script to check if everything loads
-        wp_add_inline_script(
-            'sbdp-tour-builder',
-            'console.log("[Tour Builder PHP] Script enqueued successfully");
-			console.log("[Tour Builder PHP] jQuery:", typeof jQuery);
-			console.log("[Tour Builder PHP] Leaflet:", typeof L);
-			console.log("[Tour Builder PHP] wp.media:", typeof wp !== "undefined" ? typeof wp.media : "undefined");',
-            'after'
-        );
-
         // OLD admin script - DISABLED to prevent conflicts with new tour-builder.js
         // We keep this enqueued but empty to maintain compatibility
         // Uncomment if you need the old functionality back
@@ -492,6 +484,7 @@ class SBDP_Private_Tours_Admin
                 'blueprintField' => 'sbdp_tour_blueprint',
                 'blueprint'      => $post_id ? self::build_tour_blueprint($post_id) : array('steps' => array()),
                 'stepTypes'      => SBDP_Private_Tours::get_step_types(),
+                'debug'          => defined('WP_DEBUG') && WP_DEBUG,
                 'templateSearch' => array(
                     'ajaxUrl' => admin_url('admin-ajax.php'),
                     'nonce'   => wp_create_nonce('sbdp_private_tour_templates'),

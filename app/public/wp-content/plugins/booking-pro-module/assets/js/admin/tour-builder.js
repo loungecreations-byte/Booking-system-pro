@@ -8,6 +8,18 @@
 (function($) {
     'use strict';
 
+    const DEBUG = Boolean(window.sbdpPrivateTourAdmin && window.sbdpPrivateTourAdmin.debug);
+    const debugLog = (...args) => {
+        if (DEBUG && window.console) {
+            console.log(...args);
+        }
+    };
+    const debugWarn = (...args) => {
+        if (DEBUG && window.console) {
+            console.warn(...args);
+        }
+    };
+
     // Builder state
     const state = {
         steps: [],
@@ -139,7 +151,7 @@
         });
 
         try {
-            console.log('[Tour Builder] Geocoding search:', trimmed);
+            debugLog('[Tour Builder] Geocoding search:', trimmed);
             const response = await fetch(`${GEOCODE_SEARCH_ENDPOINT}?${params.toString()}`, {
                 method: 'GET',
                 mode: 'cors',
@@ -148,7 +160,7 @@
                 }
             });
 
-            console.log('[Tour Builder] Response status:', response.status);
+            debugLog('[Tour Builder] Response status:', response.status);
 
             if (!response.ok) {
                 const errorText = await response.text();
@@ -157,7 +169,7 @@
             }
 
             const data = await response.json();
-            console.log('[Tour Builder] Geocode data:', data);
+            debugLog('[Tour Builder] Geocode data:', data);
             
             const candidate = Array.isArray(data) && data.length > 0 ? data[0] : null;
             if (candidate && candidate.lat && candidate.lon) {
@@ -166,11 +178,11 @@
                     lng: parseFloat(candidate.lon),
                     label: candidate.display_name || trimmed,
                 };
-                console.log('[Tour Builder] Found location:', parsed);
+                debugLog('[Tour Builder] Found location:', parsed);
                 locationSearchCache.set(cacheKey, parsed);
                 return parsed;
             } else {
-                console.warn('[Tour Builder] No results found for:', trimmed);
+                debugWarn('[Tour Builder] No results found for:', trimmed);
             }
         } catch (error) {
             console.error('[Tour Builder] Forward geocode failed:', error);
@@ -182,7 +194,7 @@
 
     async function handleLocationLabelInput(value, index, $modal, updateFeedback = () => {}) {
         const trimmed = (value || '').trim();
-        console.log('[Tour Builder] handleLocationLabelInput called:', {trimmed, index, hasModal: $modal.length > 0});
+        debugLog('[Tour Builder] handleLocationLabelInput called:', {trimmed, index, hasModal: $modal.length > 0});
         
         if (!trimmed) {
             updateFeedback('', 'info');
@@ -193,11 +205,11 @@
 
         const latField = $modal.find('[name="location_lat"]');
         const lngField = $modal.find('[name="location_lng"]');
-        console.log('[Tour Builder] Found fields:', {latField: latField.length, lngField: lngField.length});
+        debugLog('[Tour Builder] Found fields:', {latField: latField.length, lngField: lngField.length});
 
         try {
             const result = await fetchCoordinatesForLabel(trimmed);
-            console.log('[Tour Builder] Geocode result:', result);
+            debugLog('[Tour Builder] Geocode result:', result);
             
             if (!result) {
                 updateFeedback(`❌ Geen resultaten gevonden voor "${trimmed}". Probeer een vollediger adres.`, 'error');
@@ -206,7 +218,7 @@
 
             latField.val(result.lat);
             lngField.val(result.lng);
-            console.log('[Tour Builder] Set field values:', {lat: result.lat, lng: result.lng});
+            debugLog('[Tour Builder] Set field values:', {lat: result.lat, lng: result.lng});
             
             const displayLabel = result.label || trimmed;
             const normalizedInput = trimmed.toLowerCase();
@@ -224,7 +236,7 @@
                 $modal.find('[name="location_label"]').val(displayLabel);
                 // Update location display in modal
                 const $locationDisplay = $modal.find('.sbdp-location-display');
-                console.log('[Tour Builder] Found location display:', $locationDisplay.length);
+                debugLog('[Tour Builder] Found location display:', $locationDisplay.length);
                 if ($locationDisplay.length) {
                     $locationDisplay.text(`📍 ${result.lat.toFixed(4)}, ${result.lng.toFixed(4)}`);
                 }
@@ -236,12 +248,12 @@
                 skipEnsure: true,
             });
 
-            console.log('[Tour Builder] Checking map:', {hasMap: !!state.map, hasLeaflet: typeof L !== 'undefined'});
+            debugLog('[Tour Builder] Checking map:', {hasMap: !!state.map, hasLeaflet: typeof L !== 'undefined'});
             if (state.map && typeof L !== 'undefined') {
-                console.log('[Tour Builder] Updating marker to:', result.lat, result.lng);
+                debugLog('[Tour Builder] Updating marker to:', result.lat, result.lng);
                 updateMarker(L.latLng(result.lat, result.lng));
             } else {
-                console.warn('[Tour Builder] Map not available:', {hasMap: !!state.map, hasLeaflet: typeof L !== 'undefined'});
+                debugWarn('[Tour Builder] Map not available:', {hasMap: !!state.map, hasLeaflet: typeof L !== 'undefined'});
             }
             
             return result;
@@ -337,7 +349,7 @@
             locationLabelCache.set(key, trimmed);
             return trimmed;
         } catch (error) {
-            console.warn('[Tour Builder] Reverse geocode failed', error);
+            debugWarn('[Tour Builder] Reverse geocode failed', error);
             locationLabelCache.set(key, '');
             return '';
         }
@@ -369,21 +381,21 @@
      * Initialize the tour builder
      */
     function init() {
-        console.log('[Tour Builder] Initializing...');
-        console.log('[Tour Builder] jQuery version:', $.fn.jquery);
+        debugLog('[Tour Builder] Initializing...');
+        debugLog('[Tour Builder] jQuery version:', $.fn.jquery);
         
         const $builder = $('[data-private-tour-builder]');
         
-        console.log('[Tour Builder] Builder element found:', $builder.length);
+        debugLog('[Tour Builder] Builder element found:', $builder.length);
         
         if ($builder.length === 0) {
-            console.warn('[Tour Builder] No builder element found with [data-private-tour-builder]');
+            debugWarn('[Tour Builder] No builder element found with [data-private-tour-builder]');
             return;
         }
 
         // Load existing steps from blueprint
         const blueprint = $('#sbdp_tour_blueprint').val();
-        console.log('[Tour Builder] Blueprint value:', blueprint);
+        debugLog('[Tour Builder] Blueprint value:', blueprint);
         
         if (blueprint) {
             try {
@@ -419,42 +431,43 @@
                         locationLabelAuto: locationLabel ? false : true,
                     };
                 });
-                console.log('[Tour Builder] Loaded and normalized steps from blueprint:', state.steps.length);
-                console.log('[Tour Builder] First step sample:', state.steps[0]);
+                debugLog('[Tour Builder] Loaded and normalized steps from blueprint:', state.steps.length);
+                debugLog('[Tour Builder] First step sample:', state.steps[0]);
             } catch (err) {
                 console.error('[Tour Builder] Failed to parse blueprint:', err);
                 state.steps = [];
             }
         } else {
-            console.log('[Tour Builder] No existing blueprint, starting fresh');
+            debugLog('[Tour Builder] No existing blueprint, starting fresh');
         }
 
         // Setup UI
-        console.log('[Tour Builder] Setting up event listeners...');
+        debugLog('[Tour Builder] Setting up event listeners...');
         setupEventListeners($builder);
         
-        console.log('[Tour Builder] Initializing map...');
+        debugLog('[Tour Builder] Initializing map...');
         initMap($builder);
         
-        console.log('[Tour Builder] Rendering step list...');
+        debugLog('[Tour Builder] Rendering step list...');
         renderStepList($builder);
         
         // Enable sortable
         makeSortable($builder);
 
-        console.log('[Tour Builder] Initialized with', state.steps.length, 'steps');
+        updateBuilderSummary($builder);
+        debugLog('[Tour Builder] Initialized with', state.steps.length, 'steps');
     }
 
     /**
      * Setup event listeners
      */
     function setupEventListeners($builder) {
-        console.log('[Tour Builder] Setting up event listeners on builder:', $builder);
+        debugLog('[Tour Builder] Setting up event listeners on builder:', $builder);
         
         // Add new step
         $builder.on('click', '[data-private-tour-add-step]', function(e) {
             e.preventDefault();
-            console.log('[Tour Builder] Add step button clicked!');
+            debugLog('[Tour Builder] Add step button clicked!');
             showTemplateSelector($builder);
         });
 
@@ -493,7 +506,16 @@
     function initMap($builder) {
         // Check if Leaflet is available
         if (typeof L === 'undefined') {
-            console.warn('[Tour Builder] Leaflet not loaded, map picker disabled');
+            debugWarn('[Tour Builder] Leaflet not loaded, map picker disabled');
+            const $mapContainer = $builder.find('[data-builder-map]');
+            $mapContainer
+                .addClass('sbdp-builder-map--disabled')
+                .html(`
+                    <div class="sbdp-builder-map__fallback">
+                        <strong>Kaartpicker niet actief</strong>
+                        <span>Hoofdstukken blijven bewerkbaar. Vul locatie-label en coordinaten in via Bewerken.</span>
+                    </div>
+                `);
             return;
         }
 
@@ -644,8 +666,39 @@
         if (labelAuto && !skipEnsure) {
             ensureLocationLabel(index, normalizedLat, normalizedLng);
         }
-        console.log(`[Tour Builder] Updated step ${index} location:`, normalizedLat, normalizedLng);
+        debugLog(`[Tour Builder] Updated step ${index} location:`, normalizedLat, normalizedLng);
         saveBlueprint();
+    }
+
+    function hasAnyMedia(step) {
+        return Boolean(step.video_url || step.audio_url || step.image_url || step.heygen_video_url);
+    }
+
+    function getMediaLabels(step) {
+        const labels = [];
+        if (step.heygen_video_url) {
+            labels.push('HeyGen');
+        }
+        if (step.video_url) {
+            labels.push('Video');
+        }
+        if (step.audio_url) {
+            labels.push('Audio');
+        }
+        if (step.image_url) {
+            labels.push('Beeld');
+        }
+        return labels;
+    }
+
+    function updateBuilderSummary($builder) {
+        const count = state.steps.length;
+        const mediaCount = state.steps.filter(hasAnyMedia).length;
+        const locationCount = state.steps.filter((step) => Number.isFinite(step.lat) && Number.isFinite(step.lng)).length;
+
+        $builder.find('[data-builder-step-count]').text(`${count} ${count === 1 ? 'hoofdstuk' : 'hoofdstukken'}`);
+        $builder.find('[data-builder-media-count]').text(`${mediaCount}/${count || 0} met media`);
+        $builder.find('[data-builder-location-count]').text(`${locationCount}/${count || 0} met locatie`);
     }
 
     /**
@@ -691,13 +744,13 @@
         $modal.append($content);
         $('body').append($modal);
 
-        console.log('[Tour Builder] Template selector modal opened');
+        debugLog('[Tour Builder] Template selector modal opened');
 
         // Template selection (must be first to prevent propagation issues)
         $modal.on('click', '[data-template]', function(e) {
             e.stopPropagation();
             const template = $(this).data('template');
-            console.log('[Tour Builder] Template selected:', template);
+            debugLog('[Tour Builder] Template selected:', template);
             addStepFromTemplate(template, $builder);
             $modal.remove();
         });
@@ -705,13 +758,13 @@
         // Close handlers
         $modal.on('click', '.sbdp-modal__close', function(e) {
             e.stopPropagation();
-            console.log('[Tour Builder] Close button clicked');
+            debugLog('[Tour Builder] Close button clicked');
             $modal.remove();
         });
 
         $modal.on('click', function(e) {
             if ($(e.target).is('.sbdp-modal-overlay')) {
-                console.log('[Tour Builder] Overlay clicked, closing modal');
+                debugLog('[Tour Builder] Overlay clicked, closing modal');
                 $modal.remove();
             }
         });
@@ -721,7 +774,7 @@
      * Add step from template
      */
     function addStepFromTemplate(templateKey, $builder) {
-        console.log('[Tour Builder] addStepFromTemplate called with:', templateKey);
+        debugLog('[Tour Builder] addStepFromTemplate called with:', templateKey);
         
         const template = STEP_TEMPLATES[templateKey] || {};
         const newStep = {
@@ -747,16 +800,16 @@
             locationLabelAuto: true
         };
 
-        console.log('[Tour Builder] Created new step:', newStep);
+        debugLog('[Tour Builder] Created new step:', newStep);
 
         state.steps.push(newStep);
         renderStepList($builder);
         
-        console.log('[Tour Builder] Step added, total steps:', state.steps.length);
+        debugLog('[Tour Builder] Step added, total steps:', state.steps.length);
         
         // Open editor immediately
         const newIndex = state.steps.length - 1;
-        console.log('[Tour Builder] Opening editor for step index:', newIndex);
+        debugLog('[Tour Builder] Opening editor for step index:', newIndex);
         openStepEditor(newIndex, $builder);
     }
 
@@ -764,7 +817,7 @@
      * Open step editor modal
      */
     function openStepEditor(index, $builder) {
-        console.log('[Tour Builder] openStepEditor called with index:', index);
+        debugLog('[Tour Builder] openStepEditor called with index:', index);
         
         const step = state.steps[index];
         if (!step) {
@@ -785,7 +838,7 @@
         const safeMissionClue = escapeHtml(step.missionClue || '');
         const safeMissionReveal = escapeHtml(step.missionReveal || '');
 
-        console.log('[Tour Builder] Opening editor for step:', step);
+        debugLog('[Tour Builder] Opening editor for step:', step);
 
         state.activeStepIndex = index;
 
@@ -945,7 +998,7 @@
         $modal.append($content);
         $('body').append($modal);
 
-        console.log('[Tour Builder] Step editor modal appended to body');
+        debugLog('[Tour Builder] Step editor modal appended to body');
 
         const $labelInput = $modal.find('[name="location_label"]');
         const $latInput = $modal.find('[name="location_lat"]');
@@ -1000,7 +1053,7 @@
 
         // Set marker if location exists
         if (step.lat && step.lng && state.map && typeof L !== 'undefined') {
-            console.log('[Tour Builder] Setting marker for existing location:', step.lat, step.lng);
+            debugLog('[Tour Builder] Setting marker for existing location:', step.lat, step.lng);
             updateMarker(L.latLng(step.lat, step.lng));
         }
 
@@ -1014,7 +1067,7 @@
 
         // Save handler
         $modal.on('click', '[data-save-step]', function() {
-            console.log('[Tour Builder] Save button clicked');
+            debugLog('[Tour Builder] Save button clicked');
 
             // Get values from form
             const videoUrl = $modal.find('[name="video_url"]').val();
@@ -1031,7 +1084,7 @@
             const missionClueValue = String($modal.find('[name="mission_clue"]').val() || '').trim();
             const missionRevealValue = String($modal.find('[name="mission_reveal"]').val() || '').trim();
 
-            console.log('[Tour Builder] Form values:', {
+            debugLog('[Tour Builder] Form values:', {
                 video_url: videoUrl,
                 audio_url: audioUrl,
                 image_url: imageUrl,
@@ -1092,7 +1145,7 @@
             }
             updateLocationDisplay(index);
 
-            console.log('[Tour Builder] Step saved to state:', state.steps[index]);
+            debugLog('[Tour Builder] Step saved to state:', state.steps[index]);
 
             // Save blueprint to hidden field immediately
             saveBlueprint();
@@ -1130,7 +1183,7 @@
         // Cancel/Close handlers
         $modal.on('click', '.sbdp-modal__close, [data-cancel]', function(e) {
             e.stopPropagation();
-            console.log('[Tour Builder] Cancel/Close clicked');
+            debugLog('[Tour Builder] Cancel/Close clicked');
             
             state.activeStepIndex = null;
             if (state.currentMarker && state.map) {
@@ -1142,7 +1195,7 @@
 
         $modal.on('click', function(e) {
             if ($(e.target).is('.sbdp-modal-overlay')) {
-                console.log('[Tour Builder] Overlay clicked, closing editor');
+                debugLog('[Tour Builder] Overlay clicked, closing editor');
                 
                 state.activeStepIndex = null;
                 if (state.currentMarker && state.map) {
@@ -1216,6 +1269,7 @@
         if (state.steps.length === 0) {
             $list.empty();
             $empty.show();
+            updateBuilderSummary($builder);
             return;
         }
 
@@ -1235,6 +1289,16 @@
             const missionLabel = step.missionChallenge || gamification.challenge ? 'Missie klaar' : 'Nog geen missie';
             const missionState = step.missionChallenge || gamification.challenge ? 'is-ready' : 'is-empty';
             const contentState = String(step.content || '').trim() !== '' ? 'Verhaal ingevuld' : 'Nog geen verhaal';
+            const locationState = Number.isFinite(step.lat) && Number.isFinite(step.lng) ? 'Locatie klaar' : 'Geen locatie';
+            const locationClass = Number.isFinite(step.lat) && Number.isFinite(step.lng) ? 'is-ready' : 'is-empty';
+            const mediaLabels = getMediaLabels(step);
+            const mediaState = mediaLabels.length ? mediaLabels.join(' + ') : 'Geen media';
+            const mediaClass = mediaLabels.length ? 'is-ready' : 'is-empty';
+            const preview = String(step.content || '')
+                .replace(/<[^>]+>/g, ' ')
+                .replace(/\s+/g, ' ')
+                .trim()
+                .slice(0, 150);
 
             return `
                 <div class="sbdp-step-card" data-step-index="${index}">
@@ -1247,8 +1311,11 @@
                             <span class="sbdp-step-card__type">${escapeHtml(typeLabel)}</span>
                         </div>
                         <small data-step-location>${locationText}</small>
+                        ${preview ? `<p class="sbdp-step-card__preview">${escapeHtml(preview)}${preview.length >= 150 ? '...' : ''}</p>` : ''}
                         <div class="sbdp-step-card__meta">
                             <span class="sbdp-step-card__status">${escapeHtml(contentState)}</span>
+                            <span class="sbdp-step-card__status ${locationClass}">${escapeHtml(locationState)}</span>
+                            <span class="sbdp-step-card__status ${mediaClass}">${escapeHtml(mediaState)}</span>
                             <span class="sbdp-step-card__status ${missionState}">${escapeHtml(missionLabel)}</span>
                         </div>
                     </div>
@@ -1263,6 +1330,7 @@
         }).join('');
 
         $list.html(html);
+        updateBuilderSummary($builder);
     }
 
     /**
@@ -1272,7 +1340,7 @@
         const $list = $builder.find('[data-builder-list]');
 
         if (typeof $.fn.sortable === 'undefined') {
-            console.warn('[Tour Builder] jQuery UI Sortable not available');
+            debugWarn('[Tour Builder] jQuery UI Sortable not available');
             return;
         }
 
@@ -1288,6 +1356,7 @@
                 });
                 state.steps = newOrder;
                 renderStepList($builder);
+                saveBlueprint();
             }
         });
     }
@@ -1296,8 +1365,8 @@
      * Save blueprint to hidden field
      */
     function saveBlueprint() {
-        console.log('[Tour Builder] saveBlueprint() called');
-        console.log('[Tour Builder] Current state.steps:', JSON.parse(JSON.stringify(state.steps)));
+        debugLog('[Tour Builder] saveBlueprint() called');
+        debugLog('[Tour Builder] Current state.steps:', JSON.parse(JSON.stringify(state.steps)));
         
         // Convert steps to format that PHP expects (camelCase for compatibility)
         const stepsForBackend = state.steps.map(step => ({
@@ -1326,7 +1395,7 @@
             gamification: buildGamificationPayload(step),
         }));
         
-        console.log('[Tour Builder] stepsForBackend (camelCase):', JSON.parse(JSON.stringify(stepsForBackend)));
+        debugLog('[Tour Builder] stepsForBackend (camelCase):', JSON.parse(JSON.stringify(stepsForBackend)));
         
         const blueprint = {
             version: '1.0',
@@ -1336,9 +1405,9 @@
         const jsonString = JSON.stringify(blueprint);
         $('#sbdp_tour_blueprint').val(jsonString);
         
-        console.log('[Tour Builder] Blueprint saved with', stepsForBackend.length, 'steps');
-        console.log('[Tour Builder] First step:', stepsForBackend[0]);
-        console.log('[Tour Builder] Hidden field value length:', jsonString.length);
+        debugLog('[Tour Builder] Blueprint saved with', stepsForBackend.length, 'steps');
+        debugLog('[Tour Builder] First step:', stepsForBackend[0]);
+        debugLog('[Tour Builder] Hidden field value length:', jsonString.length);
     }
     
     /**
