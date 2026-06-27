@@ -65,6 +65,8 @@ playwright-report/
 !app/public/wp-content/plugins/booking-pro-module/assets/js/day-planner/dist/**
 !app/public/wp-content/plugins/booking-pro-module/modules/product-overview/assets/js/dist/
 !app/public/wp-content/plugins/booking-pro-module/modules/product-overview/assets/js/dist/**
+!app/public/wp-content/plugins/booking-pro-module/modules/product-overview/assets/js/assets/
+!app/public/wp-content/plugins/booking-pro-module/modules/product-overview/assets/js/assets/**
 
 # Project scratch artifacts
 [ ]*

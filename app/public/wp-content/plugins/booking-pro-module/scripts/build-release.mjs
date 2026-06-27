@@ -93,6 +93,7 @@ function syncBuiltArtifacts() {
   const dayPlannerDistDir = path.join(root, "assets", "js", "day-planner", "dist");
   const dayPlannerAssetDir = path.join(root, "assets", "js", "day-planner", "assets");
   const overviewDistDir = path.join(root, "modules", "product-overview", "assets", "js", "dist");
+  const overviewAssetDir = path.join(root, "modules", "product-overview", "assets", "js", "assets");
 
   patchDayPlannerPolicy(path.join(buildJsDir, "dayPlanner.js"));
 
@@ -104,6 +105,7 @@ function syncBuiltArtifacts() {
     name === "activityOverview.css" ||
     name === "client-MGy1wL6B.js"
   );
+  copyFilesByName(buildAssetsDir, overviewAssetDir, (name) => name.endsWith(".js"));
 
   // Keep the shared day-planner fallback entry in sync with the build output.
   copyFile(
