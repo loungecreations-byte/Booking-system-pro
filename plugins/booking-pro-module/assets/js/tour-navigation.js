@@ -629,13 +629,30 @@
         : arrivedCurrent || this.mode === 'story'
         ? "Stop actief"
         : "Loop naar volgende locatie";
+      const tourDurationLabel = this.tourDuration > 0 ? `${this.tourDuration} min` : "";
+      const currentLocation = toStepLocation(step);
+      const nextLabel = nextStep ? nextStep.title || `Stop ${progressState.currentIndex + 2}` : "Eindpunt";
 
       target.innerHTML = `
-        <p class="tour-summary-panel__eyebrow">STOP ${progressState.currentIndex + 1} VAN ${total}</p>
-        <h2 class="tour-summary-panel__title">${escapeHtml(step.title || "Huidige stop")}</h2>
+        <div class="tour-summary-panel__head">
+          <div>
+            <p class="tour-summary-panel__eyebrow">DagjeDenBosch Experience</p>
+            <h1 class="tour-summary-panel__tour-title">${escapeHtml(this.tourTitle || "Private tour")}</h1>
+          </div>
+          <span class="tour-summary-panel__counter">Stop ${progressState.currentIndex + 1}/${total}</span>
+        </div>
+        <div class="tour-summary-panel__current">
+          <p class="tour-summary-panel__step-label">Nu bezig</p>
+          <h2 class="tour-summary-panel__title">${escapeHtml(step.title || "Huidige stop")}</h2>
+          ${currentLocation ? `<p class="tour-summary-panel__location">${escapeHtml(toCompactText(currentLocation, 96))}</p>` : ""}
+        </div>
+        ${this.tourSummary ? `<p class="tour-summary-panel__summary">${escapeHtml(toCompactText(this.tourSummary, 220))}</p>` : ""}
         <div class="tour-summary-panel__chips">
+          <span class="tour-chip">${total} stops</span>
+          ${tourDurationLabel ? `<span class="tour-chip">${escapeHtml(tourDurationLabel)}</span>` : ""}
           ${remainingLabel ? `<span class="tour-chip">${escapeHtml(remainingLabel)}</span>` : ""}
           <span class="tour-chip ${arrivedCurrent || this.mode === 'story' ? 'tour-chip--route-ready' : ''}">${escapeHtml(stateLabel)}</span>
+          <span class="tour-chip">Hierna: ${escapeHtml(toCompactText(nextLabel, 34))}</span>
         </div>
         <div class="tour-summary-panel__progress">
           <div class="tour-summary-panel__progress-bar" aria-hidden="true">
@@ -664,9 +681,16 @@
       const storyFlow = this.renderStoryFlow(step, toGamification(step), progressState);
       const continueBlock = this.renderContinueBlock(step, progressState);
       const media = this.renderMedia(step);
+      const location = toStepLocation(step);
 
       target.innerHTML = `
         <article class="tour-story-layout">
+          <header class="tour-step-current">
+            <p class="tour-step-current__eyebrow">Hoofdstuk ${progressState.currentIndex + 1} van ${progressState.total}</p>
+            <h2 class="tour-step-current__title">${escapeHtml(step.title || "Tourstop")}</h2>
+            ${location ? `<p class="tour-step-current__location">${escapeHtml(toCompactText(location, 120))}</p>` : ""}
+          </header>
+
           ${media.html ? media.html : ""}
           
           <div class="tour-layout__right">
@@ -751,15 +775,16 @@
       const routeMeta = duration && distance ? `${duration} · ${distance}` : duration || distance || null;
 
       const primaryAction = nextStep
-        ? `<button type="button" class="tour-story-flow__action" data-tour-open-navigation>Start route →</button>`
+        ? `<button type="button" class="tour-story-flow__action" data-tour-open-navigation>Start route naar volgende stop</button>`
         : `<button type="button" class="tour-story-flow__action" data-tour-complete${progressState.completedSet.has(progressState.currentIndex) ? " disabled" : ""}>${
-            progressState.completedSet.has(progressState.currentIndex) ? "Tour afgerond" : "Tour afronden & XP innen"
+            progressState.completedSet.has(progressState.currentIndex) ? "Tour afgerond" : "Tour afronden"
           }</button>`;
 
       return `
         <div class="tour-continue">
           ${nextStep ? `
             <div class="tour-continue__route-info">
+              <span class="tour-continue__label">Volgende hoofdstuk</span>
               <span class="tour-continue__dest">Hierna: ${escapeHtml(nextTitle)}</span>
               ${routeMeta ? `<span class="tour-continue__meta">${escapeHtml(routeMeta)}</span>` : ""}
             </div>
