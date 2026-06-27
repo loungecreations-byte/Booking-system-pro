@@ -171,6 +171,10 @@ spl_autoload_register(static function ($class) {
 require_once DDB_SPOTS_PATH . 'includes/Core/Container.php';
 require_once DDB_SPOTS_PATH . 'includes/class-ddb-spots.php';
 
+if (defined('WP_CLI') && WP_CLI && file_exists(DDB_SPOTS_PATH . 'includes/CLI/Media.php')) {
+	require_once DDB_SPOTS_PATH . 'includes/CLI/Media.php';
+}
+
 function ddb_spots_activate(): void {
 	DDB_Spots_Core_Roles::setup();
 	DDB_Spots_Core_Installer::activate();
