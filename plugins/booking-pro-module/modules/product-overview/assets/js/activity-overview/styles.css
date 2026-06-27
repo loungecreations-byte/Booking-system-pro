@@ -2274,3 +2274,76 @@ html[data-theme="light"] .ao-card__overlay {
   border-color: var(--ui-color-primary-hover, #cf9f5e);
   color: var(--ui-color-primary-contrast, #100b02);
 }
+
+/* Activities overview density: use the available desktop space for scanning. */
+.sbdp-activity-overview .ao-shell {
+  max-width: min(1760px, calc(100vw - 96px));
+  padding-inline: clamp(24px, 4vw, 56px);
+}
+
+.sbdp-activity-overview .ao-layout {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.sbdp-activity-overview .ao-main {
+  width: 100%;
+}
+
+.sbdp-activity-overview .ao-grid {
+  display: grid;
+  gap: clamp(18px, 1.6vw, 28px);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.sbdp-activity-overview .ui-listing-card {
+  min-height: 360px;
+}
+
+.sbdp-activity-overview .ui-listing-card__media {
+  aspect-ratio: 16 / 10;
+  min-height: 0;
+}
+
+.sbdp-activity-overview .ui-listing-card__content {
+  min-height: 5.25rem;
+}
+
+.sbdp-activity-overview .ui-listing-card__title {
+  overflow-wrap: anywhere;
+}
+
+.sbdp-activity-overview .ui-listing-card__action-row {
+  align-items: stretch;
+  gap: 10px;
+}
+
+.sbdp-activity-overview .ui-listing-card__price,
+.sbdp-activity-overview .ui-listing-card__cta {
+  min-width: 0;
+}
+
+@media (max-width: 1180px) {
+  .sbdp-activity-overview .ao-shell {
+    max-width: min(1180px, calc(100vw - 48px));
+    padding-inline: 24px;
+  }
+
+  .sbdp-activity-overview .ao-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .sbdp-activity-overview .ao-shell {
+    max-width: 100%;
+    padding-inline: 14px;
+  }
+
+  .sbdp-activity-overview .ao-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sbdp-activity-overview .ui-listing-card {
+    min-height: 330px;
+  }
+}
