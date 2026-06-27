@@ -77,8 +77,8 @@ class DDB_Spots_Frontend_Render {
 		$rating_markup = $rating > 0
 			? '<span class="ddb-node-hero__rating">' . esc_html(number_format($rating, 1)) . '</span><span class="ddb-node-hero__reviews">' . esc_html(sprintf(_n('%d review', '%d reviews', max(1, $rating_total), 'ddb-spots'), max(1, $rating_total))) . '</span>'
 			: '<span class="ddb-node-hero__reviews">' . esc_html__('Nieuwe spot', 'ddb-spots') . '</span>';
-		$type_badge = '' !== $type_label ? '<span class="ddb-node-badge">' . esc_html($type_label) . '</span>' : '';
-		$area_badge = '' !== $area_label ? '<span class="ddb-node-badge ddb-node-badge--ghost">' . esc_html($area_label) . '</span>' : '';
+		$type_badge = '' !== $type_label ? '<span class="ui-badge ddb-node-badge">' . esc_html($type_label) . '</span>' : '';
+		$area_badge = '' !== $area_label ? '<span class="ui-badge ddb-node-badge ddb-node-badge--ghost">' . esc_html($area_label) . '</span>' : '';
 		$subtitle_markup = '' !== $summary ? '<p class="ddb-node-hero__subtitle">' . esc_html($summary) . '</p>' : '';
 		$location_markup = '' !== $location ? '<p class="ddb-node-hero__location">' . esc_html($location) . '</p>' : '';
 
@@ -137,27 +137,27 @@ class DDB_Spots_Frontend_Render {
 		}
 
 		$sections = array(
-			'<section class="ddb-node-section" id="omschrijving"><h2>' . esc_html__('Over deze plek', 'ddb-spots') . '</h2><div class="ddb-node-description">' . $description_markup . '</div></section>',
-			'<section class="ddb-node-section ddb-node-section--sidebar" id="praktisch"><h2>' . esc_html__('Praktisch', 'ddb-spots') . '</h2>' . $this->render_practical_markup($spot_id, $location, $phone, $website, $hours_lines, $lat, $lng, $maps_url) . '</section>',
-			'<section class="ddb-node-section ddb-node-section--sidebar ddb-node-section--context" id="dag-context"><h2>' . esc_html__('Past in je dag', 'ddb-spots') . '</h2>' . $this->render_context_snapshot($context_snapshot, $area_label) . '</section>',
+			'<section class="ui-surface ui-surface--elevated ddb-node-section" id="omschrijving"><h2>' . esc_html__('Over deze plek', 'ddb-spots') . '</h2><div class="ddb-node-description">' . $description_markup . '</div></section>',
+			'<section class="ui-surface ui-surface--elevated ddb-node-section ddb-node-section--sidebar" id="praktisch"><h2>' . esc_html__('Praktisch', 'ddb-spots') . '</h2>' . $this->render_practical_markup($spot_id, $location, $phone, $website, $hours_lines, $lat, $lng, $maps_url) . '</section>',
+			'<section class="ui-surface ui-surface--elevated ddb-node-section ddb-node-section--sidebar ddb-node-section--context" id="dag-context"><h2>' . esc_html__('Past in je dag', 'ddb-spots') . '</h2>' . $this->render_context_snapshot($context_snapshot, $area_label) . '</section>',
 		);
 
 		if ('' !== $day_cards) {
 			// Append day context items to the sidebar 'Past in je dag' section
-			$sections[2] = '<section class="ddb-node-section ddb-node-section--sidebar ddb-node-section--context" id="dag-context"><h2>' . esc_html__('Past in je dag', 'ddb-spots') . '</h2>' . $this->render_context_snapshot($context_snapshot, $area_label) . '<ul class="ddb-node-why-list">' . $day_cards . '</ul></section>';
+			$sections[2] = '<section class="ui-surface ui-surface--elevated ddb-node-section ddb-node-section--sidebar ddb-node-section--context" id="dag-context"><h2>' . esc_html__('Past in je dag', 'ddb-spots') . '</h2>' . $this->render_context_snapshot($context_snapshot, $area_label) . '<ul class="ddb-node-why-list">' . $day_cards . '</ul></section>';
 		}
 
-		$sections[] = '<section class="ddb-node-section" id="reviews"><h2>' . esc_html__('Reviews', 'ddb-spots') . '</h2>' . $this->render_reviews_markup($reviews) . '</section>';
+		$sections[] = '<section class="ui-surface ui-surface--elevated ddb-node-section" id="reviews"><h2>' . esc_html__('Reviews', 'ddb-spots') . '</h2>' . $this->render_reviews_markup($reviews) . '</section>';
 
 		if (! empty($highlights)) {
 			$highlight_list = '';
 			foreach ($highlights as $item) {
 				$highlight_list .= '<li>' . esc_html($item) . '</li>';
 			}
-			$sections[] = '<section class="ddb-node-section" id="experience-highlights"><h2>' . esc_html__('Hoogtepunten', 'ddb-spots') . '</h2><ul class="ddb-node-highlight-list">' . $highlight_list . '</ul></section>';
+			$sections[] = '<section class="ui-surface ui-surface--elevated ddb-node-section" id="experience-highlights"><h2>' . esc_html__('Hoogtepunten', 'ddb-spots') . '</h2><ul class="ddb-node-highlight-list">' . $highlight_list . '</ul></section>';
 		}
 
-		$sections[] = '<section class="ddb-node-section" id="maak-je-dag-compleet"><h2>' . esc_html__('Combineer', 'ddb-spots') . '</h2>' . $this->render_bundle_cards($bundles) . '</section>';
+		$sections[] = '<section class="ui-surface ui-surface--elevated ddb-node-section" id="maak-je-dag-compleet"><h2>' . esc_html__('Combineer', 'ddb-spots') . '</h2>' . $this->render_bundle_cards($bundles) . '</section>';
 
 		return '<div class="ddb-node-main">' . implode('', $sections) . '</div>';
 	}
@@ -261,7 +261,7 @@ class DDB_Spots_Frontend_Render {
 			}
 			$cards .= '</div>';
 			if ('' !== $url) {
-				$cards .= '<a class="ddb-node-btn ddb-node-btn--subtle" href="' . esc_url($url) . '" data-ddb-track="module_event" data-ddb-context="bundle" data-ddb-cta-type="bundle_add" data-ddb-module="bundle_engine" data-ddb-spot-ids="' . esc_attr(implode(',', $spot_ids)) . '">' . esc_html__('Voeg beide toe', 'ddb-spots') . '</a>';
+				$cards .= '<a class="ui-btn ui-btn--secondary ddb-node-btn ddb-node-btn--subtle" href="' . esc_url($url) . '" data-ddb-track="module_event" data-ddb-context="bundle" data-ddb-cta-type="bundle_add" data-ddb-module="bundle_engine" data-ddb-spot-ids="' . esc_attr(implode(',', $spot_ids)) . '">' . esc_html__('Voeg beide toe', 'ddb-spots') . '</a>';
 			}
 			$cards .= '</article>';
 		}
@@ -320,16 +320,16 @@ class DDB_Spots_Frontend_Render {
 			$val = '' !== (string) $tel ? '<a href="' . esc_url('tel:' . $tel) . '">' . esc_html($phone) . '</a>' : esc_html($phone);
 			$rows[] = '<div><dt>' . esc_html__('Telefoon', 'ddb-spots') . '</dt><dd>' . $val . '</dd></div>';
 			if ('' !== (string) $tel) {
-				$actions[] = '<a class="ddb-node-btn ddb-node-btn--subtle" href="' . esc_url('tel:' . $tel) . '">' . esc_html__('Bel direct', 'ddb-spots') . '</a>';
+				$actions[] = '<a class="ui-btn ui-btn--secondary ddb-node-btn ddb-node-btn--subtle" href="' . esc_url('tel:' . $tel) . '">' . esc_html__('Bel direct', 'ddb-spots') . '</a>';
 			}
 		}
 		if ('' !== $website && $this->is_affiliate_website($spot_id, $website)) {
 			$host = (string) (wp_parse_url($website, PHP_URL_HOST) ?: $website);
 			$rows[] = '<div><dt>' . esc_html__('Website', 'ddb-spots') . '</dt><dd><a href="' . esc_url($website) . '" target="_blank" rel="noopener noreferrer sponsored">' . esc_html($host) . '</a></dd></div>';
-			$actions[] = '<a class="ddb-node-btn ddb-node-btn--ghost" href="' . esc_url($website) . '" target="_blank" rel="noopener noreferrer sponsored">' . esc_html__('Website', 'ddb-spots') . '</a>';
+			$actions[] = '<a class="ui-btn ui-btn--ghost ddb-node-btn ddb-node-btn--ghost" href="' . esc_url($website) . '" target="_blank" rel="noopener noreferrer sponsored">' . esc_html__('Website', 'ddb-spots') . '</a>';
 		}
 		if ('' !== $maps_url) {
-			$actions[] = '<a class="ddb-node-btn ddb-node-btn--ghost" href="' . esc_url($maps_url) . '" target="_blank" rel="noopener noreferrer">' . esc_html__('Route plannen', 'ddb-spots') . '</a>';
+			$actions[] = '<a class="ui-btn ui-btn--ghost ddb-node-btn ddb-node-btn--ghost" href="' . esc_url($maps_url) . '" target="_blank" rel="noopener noreferrer">' . esc_html__('Route plannen', 'ddb-spots') . '</a>';
 		}
 
 		$hours_markup = '';
@@ -343,7 +343,7 @@ class DDB_Spots_Frontend_Render {
 
 		$map_markup = '';
 		if (null !== $lat && null !== $lng) {
-			$map_markup = '<button type="button" class="ddb-node-btn ddb-node-btn--ghost" data-ddb-map-expand>' . esc_html__('Toon kaart', 'ddb-spots') . '</button>' .
+			$map_markup = '<button type="button" class="ui-btn ui-btn--ghost ddb-node-btn ddb-node-btn--ghost" data-ddb-map-expand>' . esc_html__('Toon kaart', 'ddb-spots') . '</button>' .
 				'<div class="ddb-node-map" data-ddb-map-canvas hidden>' .
 					'<iframe title="' . esc_attr__('Locatiekaart', 'ddb-spots') . '" src="' . esc_url($this->build_openstreetmap_embed_url($lat, $lng)) . '" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>' .
 					('' !== $maps_url ? '<a href="' . esc_url($maps_url) . '" target="_blank" rel="noopener noreferrer" class="ddb-node-map__route" data-ddb-track="cta_click" data-ddb-context="practical_map" data-ddb-spot-id="' . esc_attr((string) $spot_id) . '" data-ddb-cta-type="route">' . esc_html__('Open route', 'ddb-spots') . '</a>' : '') .
@@ -455,7 +455,7 @@ class DDB_Spots_Frontend_Render {
 
 		$out = '<ul class="ddb-node-context-chips">';
 		foreach ($chips as $chip) {
-			$out .= '<li>' . esc_html((string) $chip) . '</li>';
+			$out .= '<li class="ui-chip ui-chip--muted">' . esc_html((string) $chip) . '</li>';
 		}
 		$out .= '</ul>';
 		return $out;
@@ -483,7 +483,7 @@ class DDB_Spots_Frontend_Render {
 
 		$out = '<ul class="ddb-node-hero__context">';
 		foreach ($chips as $chip) {
-			$out .= '<li>' . esc_html((string) $chip) . '</li>';
+			$out .= '<li class="ui-chip">' . esc_html((string) $chip) . '</li>';
 		}
 		$out .= '</ul>';
 		return $out;
@@ -616,7 +616,7 @@ class DDB_Spots_Frontend_Render {
 			return '<div class="ddb-node-reserve" data-ddb-track="cta_click" data-ddb-context="single_secondary" data-ddb-spot-id="' . esc_attr((string) $spot_id) . '" data-ddb-spot-type="' . esc_attr($type_slug) . '" data-ddb-cta-type="reserve">' . $reserve_cta . '</div>';
 		}
 		if ('' !== $maps_url) {
-			return '<a class="ddb-node-btn ddb-node-btn--subtle" href="' . esc_url($maps_url) . '" target="_blank" rel="noopener noreferrer" data-ddb-track="cta_click" data-ddb-context="single_secondary" data-ddb-spot-id="' . esc_attr((string) $spot_id) . '" data-ddb-spot-type="' . esc_attr($type_slug) . '" data-ddb-cta-type="route">' . esc_html__('Route', 'ddb-spots') . '</a>';
+			return '<a class="ui-btn ui-btn--secondary ddb-node-btn ddb-node-btn--subtle" href="' . esc_url($maps_url) . '" target="_blank" rel="noopener noreferrer" data-ddb-track="cta_click" data-ddb-context="single_secondary" data-ddb-spot-id="' . esc_attr((string) $spot_id) . '" data-ddb-spot-type="' . esc_attr($type_slug) . '" data-ddb-cta-type="route">' . esc_html__('Route', 'ddb-spots') . '</a>';
 		}
 		return '';
 	}
@@ -686,7 +686,7 @@ class DDB_Spots_Frontend_Render {
 
 	private function build_add_to_day_button(int $spot_id, string $type_slug): string {
 		$url = $this->get_add_to_day_url($spot_id);
-		return '<a class="ddb-node-btn ddb-node-btn--primary" href="' . esc_url($url) . '" data-ddb-add-to-day data-ddb-track="add_to_plan" data-ddb-context="single_primary" data-ddb-spot-id="' . esc_attr((string) $spot_id) . '" data-ddb-spot-type="' . esc_attr($type_slug) . '" data-ddb-cta-type="add_to_day">' . esc_html__('Voeg toe aan mijn dag', 'ddb-spots') . '</a>';
+		return '<a class="ui-btn ui-btn--primary ddb-node-btn ddb-node-btn--primary" href="' . esc_url($url) . '" data-ddb-add-to-day data-ddb-track="add_to_plan" data-ddb-context="single_primary" data-ddb-spot-id="' . esc_attr((string) $spot_id) . '" data-ddb-spot-type="' . esc_attr($type_slug) . '" data-ddb-cta-type="add_to_day">' . esc_html__('Voeg toe aan mijn dag', 'ddb-spots') . '</a>';
 	}
 
 	private function get_add_to_day_url(int $spot_id): string {
@@ -708,10 +708,10 @@ class DDB_Spots_Frontend_Render {
 		}
 		$items = '';
 		if ($is_top_pick) {
-			$items .= '<span class="ddb-node-badge ddb-node-badge--top">' . esc_html__('Top Pick', 'ddb-spots') . '</span>';
+			$items .= '<span class="ui-badge ddb-node-badge ddb-node-badge--top">' . esc_html__('Top Pick', 'ddb-spots') . '</span>';
 		}
 		if ($is_sponsored) {
-			$items .= '<span class="ddb-node-badge ddb-node-badge--sponsored">' . esc_html__('Gesponsord', 'ddb-spots') . '</span>';
+			$items .= '<span class="ui-badge ddb-node-badge ddb-node-badge--sponsored">' . esc_html__('Gesponsord', 'ddb-spots') . '</span>';
 		}
 		return '<div class="ddb-node-hero__labels">' . $items . '</div>';
 	}
