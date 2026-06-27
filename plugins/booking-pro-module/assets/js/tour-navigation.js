@@ -615,15 +615,6 @@
       const nextStep = progressState.nextStep;
       
       const completedCount = progressState.completedCount;
-      const remainingStops = total - completedCount;
-      const stepDurationMinutes = this.getEstimatedStopDurationMinutes(step, progressState);
-      const remainingMinutes = remainingStops > 0 ? remainingStops * stepDurationMinutes : 0;
-      const remainingLabel = remainingMinutes > 60
-        ? `~${Math.round(remainingMinutes / 60)}u resterend`
-        : remainingMinutes > 0
-        ? `~${remainingMinutes} min resterend`
-        : "";
-
       const stateLabel = !nextStep
         ? "Laatste stop"
         : arrivedCurrent || this.mode === 'story'
@@ -641,16 +632,9 @@
           </div>
           <span class="tour-summary-panel__counter">Stop ${progressState.currentIndex + 1}/${total}</span>
         </div>
-        <div class="tour-summary-panel__current">
-          <p class="tour-summary-panel__step-label">Nu bezig</p>
-          <h2 class="tour-summary-panel__title">${escapeHtml(step.title || "Huidige stop")}</h2>
-          ${currentLocation ? `<p class="tour-summary-panel__location">${escapeHtml(toCompactText(currentLocation, 96))}</p>` : ""}
-        </div>
-        ${this.tourSummary ? `<p class="tour-summary-panel__summary">${escapeHtml(toCompactText(this.tourSummary, 220))}</p>` : ""}
         <div class="tour-summary-panel__chips">
           <span class="tour-chip">${total} stops</span>
           ${tourDurationLabel ? `<span class="tour-chip">${escapeHtml(tourDurationLabel)}</span>` : ""}
-          ${remainingLabel ? `<span class="tour-chip">${escapeHtml(remainingLabel)}</span>` : ""}
           <span class="tour-chip ${arrivedCurrent || this.mode === 'story' ? 'tour-chip--route-ready' : ''}">${escapeHtml(stateLabel)}</span>
           <span class="tour-chip">Hierna: ${escapeHtml(toCompactText(nextLabel, 34))}</span>
         </div>
