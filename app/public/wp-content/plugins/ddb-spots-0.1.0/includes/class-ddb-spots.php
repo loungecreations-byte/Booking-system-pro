@@ -1600,7 +1600,10 @@ class DDB_Spots {
 			
 			// Component specific styles (if files existed or were split)
 			if (is_singular(DDB_Spots_Core_Schema::POST_TYPE)) {
-				wp_enqueue_style('ddb-spots-single', DDB_SPOTS_URL . 'assets/css/ddb-spots-single.css', array('ddb-spots-core'), DDB_SPOTS_VERSION);
+				$single_css_path = DDB_SPOTS_PATH . 'assets/css/ddb-spots-single.css';
+				if (file_exists($single_css_path)) {
+					wp_enqueue_style('ddb-spots-single', DDB_SPOTS_URL . 'assets/css/ddb-spots-single.css', array('ddb-spots-core'), (string) filemtime($single_css_path));
+				}
 			}
 
 			if ($has_shortcode_widget) {

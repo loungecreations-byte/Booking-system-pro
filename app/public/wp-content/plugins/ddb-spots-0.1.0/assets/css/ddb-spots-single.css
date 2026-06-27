@@ -1,0 +1,3 @@
+/* Compatibility shim.
+   Spot detail styles live in ddb-spots.css; this file prevents stale page cache
+   from requesting a missing split stylesheet. */
