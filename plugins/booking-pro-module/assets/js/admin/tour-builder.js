@@ -999,7 +999,7 @@
         $lngInput.on('change', updateMapFromCoordinates);
 
         // Set marker if location exists
-        if (step.lat && step.lng) {
+        if (step.lat && step.lng && state.map && typeof L !== 'undefined') {
             console.log('[Tour Builder] Setting marker for existing location:', step.lat, step.lng);
             updateMarker(L.latLng(step.lat, step.lng));
         }

@@ -394,6 +394,7 @@ class SBDP_Private_Tours_Admin
         // Enqueue jQuery UI Sortable (depends on jQuery)
         wp_enqueue_script('jquery-ui-sortable');
 
+        $script_dependencies = array('jquery', 'jquery-ui-sortable');
         $leaflet_css = SBDP_DIR . 'assets/css/vendor/leaflet.css';
         $leaflet_js  = SBDP_DIR . 'assets/js/vendor/leaflet.min.js';
         if (is_readable($leaflet_css) && is_readable($leaflet_js)) {
@@ -411,6 +412,8 @@ class SBDP_Private_Tours_Admin
                 (string) filemtime($leaflet_js),
                 false
             );
+
+            $script_dependencies[] = 'leaflet';
         }
 
         // Enqueue WordPress media library
@@ -445,7 +448,7 @@ class SBDP_Private_Tours_Admin
         wp_enqueue_script(
             'sbdp-tour-builder',
             SBDP_URL . 'assets/js/admin/tour-builder.js',
-            array('jquery', 'jquery-ui-sortable', 'leaflet'),
+            $script_dependencies,
             SBDP_VER . '-' . time(),  // Cache busting
             true  // Load in footer
         );
