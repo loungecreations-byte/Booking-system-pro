@@ -18,6 +18,8 @@ Do not deploy with Git:
 - `wp-config.php`
 - WooCommerce orders/users/settings
 
+Uploads/media are runtime data. Keep them out of Git and sync them over SSH when a staging page depends on attachment files.
+
 Required runtime assets:
 
 - `wp-content/plugins/booking-pro-module/assets/js/day-planner/dist/`
@@ -110,6 +112,35 @@ After publishing planner or product-overview assets, clear cache:
 cd /var/www/vhosts/dagjedenbosch.nl/site1
 php -d memory_limit=512M $(command -v wp) cache flush
 php -d memory_limit=512M $(command -v wp) rocket clean --confirm
+```
+
+## Uploads/media sync
+
+Use this when staging has WordPress attachment records but missing files under `wp-content/uploads`.
+
+Dry-run from the repository root:
+
+```powershell
+.\scripts\sync-staging-uploads.ps1 -IncludePaths 2026 -RunMediaAudit
+```
+
+Apply the upload:
+
+```powershell
+.\scripts\sync-staging-uploads.ps1 -IncludePaths 2026 -Apply -RunMediaAudit
+```
+
+Rules:
+
+- This script copies local uploads to staging over SSH.
+- It does not delete remote files.
+- It does not change Git tracking for uploads.
+- Keep `.gitignore` excluding `app/public/wp-content/uploads/`.
+- After syncing DBSpots media, validate with:
+
+```bash
+cd /var/www/vhosts/dagjedenbosch.nl/site1
+php -d memory_limit=512M $(command -v wp) ddb-spots media audit
 ```
 
 ## Cleanup history
