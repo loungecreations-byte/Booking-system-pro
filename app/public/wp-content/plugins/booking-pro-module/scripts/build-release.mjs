@@ -36,6 +36,29 @@ function copyFilesByName(srcDir, destDir, predicate) {
   }
 }
 
+function copyLatestFileByPattern(srcDir, destFile, pattern) {
+  if (!fs.existsSync(srcDir)) {
+    throw new Error(`Missing build directory: ${srcDir}`);
+  }
+
+  const matches = fs.readdirSync(srcDir, { withFileTypes: true })
+    .filter((entry) => entry.isFile() && pattern.test(entry.name))
+    .map((entry) => {
+      const filePath = path.join(srcDir, entry.name);
+      return {
+        filePath,
+        mtimeMs: fs.statSync(filePath).mtimeMs,
+      };
+    })
+    .sort((a, b) => b.mtimeMs - a.mtimeMs);
+
+  if (matches.length === 0) {
+    throw new Error(`Missing build artifact matching ${pattern} in ${srcDir}`);
+  }
+
+  copyFile(matches[0].filePath, destFile);
+}
+
 function patchDayPlannerPolicy(filePath) {
   if (!fs.existsSync(filePath)) {
     return false;
@@ -104,6 +127,11 @@ function syncBuiltArtifacts() {
     name === "activityOverview.js" ||
     name === "activityOverview.css" ||
     name === "client-MGy1wL6B.js"
+  );
+  copyLatestFileByPattern(
+    buildAssetsDir,
+    path.join(overviewDistDir, "activityOverview.css"),
+    /^activityOverview-[A-Za-z0-9_-]+\.css$/
   );
   copyFilesByName(buildAssetsDir, overviewAssetDir, (name) => name.endsWith(".js"));
 
