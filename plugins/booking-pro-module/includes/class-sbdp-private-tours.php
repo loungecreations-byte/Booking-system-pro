@@ -511,8 +511,8 @@ class SBDP_Private_Tours
                 'routeEndpoint'        => esc_url_raw(rest_url('sbdp/v1/private-tours/navigation/route')),
                 'embedDiagnosticsEndpoint' => esc_url_raw(rest_url('sbdp/v1/private-tours/navigation/embed-diagnostics')),
                 'nonce'                => wp_create_nonce('wp_rest'),
-                'defaultMapTiles'      => 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-                'defaultMapAttribution' => '&copy; OpenStreetMap contributors',
+                'defaultMapTiles'      => 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+                'defaultMapAttribution' => '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
                 'googleMapsEmbedApiKey' => $google_maps_embed_api_key,
                 'googleMapsEmbedLanguage' => $google_maps_embed_language,
                 'googleMapsEmbedRegion' => $google_maps_embed_region,
@@ -523,6 +523,9 @@ class SBDP_Private_Tours
         if (is_readable($leaflet_css) && is_readable($leaflet_js)) {
             wp_register_style('leaflet', SBDP_URL . 'assets/css/vendor/leaflet.css', array(), (string) filemtime($leaflet_css));
             wp_register_script('leaflet', SBDP_URL . 'assets/js/vendor/leaflet.min.js', array(), (string) filemtime($leaflet_js), true);
+        } else {
+            wp_register_style('leaflet', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css', array(), '1.9.4');
+            wp_register_script('leaflet', 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js', array(), '1.9.4', true);
         }
     }
     /**

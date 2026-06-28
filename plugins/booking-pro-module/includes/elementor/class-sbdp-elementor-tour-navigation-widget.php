@@ -169,9 +169,13 @@ class SBDP_Elementor_Tour_Navigation_Widget extends Widget_Base
 
         $map_height = isset($settings['map_height']) ? absint($settings['map_height']) : 520;
         $map_height = max(420, min(680, $map_height));
-        $default_map_tiles = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+        $default_map_tiles = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png';
         $map_tiles_url = (string) apply_filters('sbdp/private_tours/map_tiles_url', $default_map_tiles, $post_id);
-        $map_attribution = (string) apply_filters('sbdp/private_tours/map_tiles_attribution', '&copy; OpenStreetMap contributors', $post_id);
+        $map_attribution = (string) apply_filters(
+            'sbdp/private_tours/map_tiles_attribution',
+            '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+            $post_id
+        );
         $route_endpoint = esc_url_raw(rest_url('sbdp/v1/private-tours/navigation/route'));
         $embed_diagnostics_endpoint = esc_url_raw(rest_url('sbdp/v1/private-tours/navigation/embed-diagnostics'));
         $route_profile = (string) apply_filters('sbdp/private_tours/navigation_profile', 'walking', $post_id);
