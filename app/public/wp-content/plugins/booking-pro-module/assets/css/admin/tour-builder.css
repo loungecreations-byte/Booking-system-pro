@@ -707,3 +707,180 @@
         padding-right: 18px;
     }
 }
+
+/* Compact production editor layout */
+body.sbdp-tour-admin .sbdp-private-tour-builder {
+    background: #151c22;
+    border-color: #3c434a;
+    box-shadow: none;
+}
+
+body.sbdp-tour-admin .sbdp-builder__header {
+    padding: 18px 24px 14px;
+    background: #151c22;
+    border-bottom-color: #3c434a;
+}
+
+body.sbdp-tour-admin .sbdp-builder__eyebrow {
+    color: #f0b15b;
+}
+
+body.sbdp-tour-admin .sbdp-builder__title {
+    color: #ffffff;
+    font-size: 24px;
+    line-height: 1.15;
+}
+
+body.sbdp-tour-admin .sbdp-builder__subtitle {
+    color: #b8c1ca;
+    line-height: 1.35;
+}
+
+body.sbdp-tour-admin .sbdp-builder__meta {
+    padding: 0 24px 14px;
+}
+
+body.sbdp-tour-admin [data-builder-map] {
+    margin-bottom: 14px;
+}
+
+body.sbdp-tour-admin [data-builder-list] {
+    display: grid;
+    gap: 8px;
+    padding: 0 24px 18px;
+}
+
+body.sbdp-tour-admin .sbdp-step-card {
+    display: grid;
+    grid-template-columns: 24px 30px minmax(0, 1fr) auto auto;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    padding: 7px 10px;
+    min-height: 52px;
+    background: #0f151a;
+    border-color: #303941;
+    color: #dfe7ef;
+    cursor: default;
+}
+
+body.sbdp-tour-admin .sbdp-step-card:hover {
+    background: #111920;
+    border-color: #596775;
+    box-shadow: none;
+}
+
+body.sbdp-tour-admin .sbdp-step-card__handle {
+    color: #8d99a6;
+    font-size: 15px;
+    cursor: grab;
+}
+
+body.sbdp-tour-admin .sbdp-step-card__number {
+    width: 26px;
+    height: 26px;
+    background: #f0b15b;
+    color: #111820;
+    font-size: 12px;
+}
+
+body.sbdp-tour-admin .sbdp-step-card__icon {
+    display: none;
+}
+
+body.sbdp-tour-admin .sbdp-step-card__content {
+    gap: 2px;
+    overflow: hidden;
+}
+
+body.sbdp-tour-admin .sbdp-step-card__topline {
+    gap: 7px;
+    flex-wrap: nowrap;
+}
+
+body.sbdp-tour-admin .sbdp-step-card__content strong {
+    color: #ffffff;
+    font-size: 13px;
+    line-height: 1.25;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+body.sbdp-tour-admin .sbdp-step-card__content small {
+    color: #9aa8b6;
+    font-size: 11px;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+body.sbdp-tour-admin .sbdp-step-card__preview {
+    display: none;
+}
+
+body.sbdp-tour-admin .sbdp-step-card__type,
+body.sbdp-tour-admin .sbdp-step-card__status {
+    min-height: 18px;
+    padding: 0 6px;
+    font-size: 9px;
+    letter-spacing: 0;
+    white-space: nowrap;
+}
+
+body.sbdp-tour-admin .sbdp-step-card__meta {
+    gap: 4px;
+    flex-wrap: nowrap;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+body.sbdp-tour-admin .sbdp-step-card__status {
+    flex: 0 1 auto;
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+body.sbdp-tour-admin .sbdp-step-card__points {
+    padding: 3px 7px;
+    font-size: 10px;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+body.sbdp-tour-admin .sbdp-step-card__actions {
+    justify-content: flex-end;
+    flex-wrap: nowrap;
+    gap: 4px;
+}
+
+body.sbdp-tour-admin .sbdp-step-card__actions .button {
+    height: 24px;
+    min-height: 24px;
+    padding: 0 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    line-height: 22px;
+}
+
+body.sbdp-tour-admin .sbdp-step-card-placeholder {
+    height: 58px;
+    margin: 0;
+}
+
+@media (max-width: 960px) {
+    body.sbdp-tour-admin .sbdp-step-card {
+        grid-template-columns: 24px 30px minmax(0, 1fr);
+    }
+
+    body.sbdp-tour-admin .sbdp-step-card__points,
+    body.sbdp-tour-admin .sbdp-step-card__actions {
+        grid-column: 3;
+    }
+
+    body.sbdp-tour-admin .sbdp-step-card__actions {
+        justify-content: flex-start;
+    }
+}
