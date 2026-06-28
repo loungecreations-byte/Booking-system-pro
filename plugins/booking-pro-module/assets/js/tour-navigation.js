@@ -653,7 +653,7 @@
         return;
       }
 
-      this.closeRouteSheet();
+      this.closeRouteSheet(true);
 
       const progressState = this.getTourProgressState();
       const step = this.steps[this.currentIndex];
@@ -757,9 +757,11 @@
       const distance = transition ? formatDistance(Number(transition.distance || 0)) : null;
       const duration = transition ? formatDuration(Number(transition.duration || 0)) : null;
       const routeMeta = duration && distance ? `${duration} · ${distance}` : duration || distance || null;
+      const externalUrl = nextStep ? this.buildExternalNavigationUrl(nextStep, step) : "";
+      const hasExternalRoute = Boolean(nextStep && externalUrl && externalUrl !== "#");
 
       const primaryAction = nextStep
-        ? `<button type="button" class="tour-story-flow__action" data-tour-open-navigation>Start route naar volgende stop</button>`
+        ? `<a class="tour-story-flow__action" href="${escapeHtml(externalUrl)}" target="_blank" rel="noopener" data-tour-native-navigation>${hasExternalRoute ? "Navigeer naar volgende stop" : "Bekijk route naar volgende stop"}</a>`
         : `<button type="button" class="tour-story-flow__action" data-tour-complete${progressState.completedSet.has(progressState.currentIndex) ? " disabled" : ""}>${
             progressState.completedSet.has(progressState.currentIndex) ? "Tour afgerond" : "Tour afronden"
           }</button>`;
@@ -775,6 +777,7 @@
           ` : `<div class="tour-continue__copy"><h3 class="tour-continue__title">Laatste stop</h3></div>`}
           <div class="tour-continue__actions">
             ${primaryAction}
+            ${nextStep ? `<button type="button" class="tour-navigation-info__secondary tour-continue__details" data-tour-open-navigation>Route-details</button>` : ""}
           </div>
         </div>
       `;
@@ -1006,6 +1009,14 @@
         const distance = transition ? formatDistance(Number(transition.distance || 0)) : "Onbekend";
         const duration = transition ? formatDuration(Number(transition.duration || 0)) : "Onbekend";
         const arrived = progressState.arrivalReady;
+        const externalUrl = this.buildExternalNavigationUrl(nextStep, step);
+        const hasCoordinates = Boolean(this.getStepPoint(nextStep));
+        const proximity = this.getDistanceToStep(nextStep);
+        const proximityText = proximity !== null
+          ? `Je bent ongeveer ${formatDistance(proximity)} van deze stop.`
+          : hasCoordinates
+            ? "Tik op navigeren voor GPS en routebegeleiding."
+            : "Deze stop mist coordinaten. Gebruik het locatie-label als fallback.";
         
         let primaryCta;
         let ctaAction;
@@ -1014,7 +1025,7 @@
             primaryCta = "Open stop: " + nextTitle;
             ctaAction = "data-tour-start-next-step";
         } else {
-            primaryCta = "Ik ben bij de " + nextTitle;
+            primaryCta = "Ik ben aangekomen";
             ctaAction = "data-tour-arrival-confirm";
         }
 
@@ -1032,11 +1043,13 @@
                 <span class="tour-navigation-info__dur">${escapeHtml(duration)} wandelen</span>
               </div>
               <p class="tour-navigation-info__subtext">Vanaf: ${escapeHtml(currentTitle)}</p>
+              <p class="tour-navigation-info__gps">${escapeHtml(proximityText)}</p>
             </div>
 
             <div class="tour-navigation-info__actions">
-              <button type="button" class="tour-route-cta" ${ctaAction}>${primaryCta}</button>
-              <button type="button" class="tour-navigation-info__secondary" data-tour-route-sheet-open>Routeoverzicht</button>
+              ${!arrived ? `<a class="tour-route-cta tour-route-cta--external" href="${escapeHtml(externalUrl)}" target="_blank" rel="noopener" data-tour-native-navigation>Navigeer met Maps</a>` : ""}
+              <button type="button" class="tour-route-cta ${arrived ? "" : "tour-route-cta--secondary"}" ${ctaAction}>${primaryCta}</button>
+              <button type="button" class="tour-navigation-info__secondary" data-tour-route-sheet-open>Route-details</button>
             </div>
           </section>
         `;
@@ -1195,6 +1208,15 @@
       }
 
       return null;
+    }
+
+    getDistanceToStep(step) {
+      const point = this.getStepPoint(step);
+      if (!point || !this.currentLocation) {
+        return null;
+      }
+
+      return haversineMeters(this.currentLocation, point);
     }
 
     isRouteStarted(index = this.currentIndex) {
@@ -1733,6 +1755,24 @@
     }
 
     bindDynamicEvents() {
+      this.root.querySelectorAll('[data-tour-native-navigation]').forEach((link) => {
+        if (link.dataset.boundClick === "1") {
+          return;
+        }
+
+        link.dataset.boundClick = "1";
+        link.addEventListener("click", () => {
+          if (this.getNextStep(this.currentIndex) && !this.completed.has(this.currentIndex)) {
+            this.completed.add(this.currentIndex);
+          }
+
+          this.routeStartedFor = this.currentIndex;
+          this.mode = "navigation";
+          this.updateNavigationStatus("Maps geopend. Volg de route en bevestig je aankomst in de tour.");
+          this.persistState();
+        });
+      });
+
       this.root.querySelectorAll(SELECTORS.complete).forEach((button) => {
         if (button.dataset.boundClick === "1") {
           return;
@@ -2311,13 +2351,15 @@
       this.updateNavigationStatus("Routeoverzicht geopend.");
     }
 
-    closeRouteSheet() {
+    closeRouteSheet(silent = false) {
       const preview = this.root.querySelector("[data-tour-route-preview]");
       if (preview) {
         preview.classList.remove("is-open");
         preview.open = false;
       }
-      this.updateNavigationStatus("Routeoverzicht gesloten.");
+      if (!silent) {
+        this.updateNavigationStatus("Routeoverzicht gesloten.");
+      }
     }
 
     getNavigationStatusText() {
@@ -2532,6 +2574,7 @@
       this.mode = "navigation";
       this.render();
       this.refreshMapLayout();
+      this.updateNavigationStatus("Route-details geopend. Gebruik Maps voor navigatie en bevestig daarna je aankomst.");
 
       if (startLive) {
         if (!window.isSecureContext || !navigator.geolocation) {

@@ -697,6 +697,13 @@
   margin: 0;
 }
 
+.tour-navigation-info__gps {
+  margin: 0.35rem 0 0;
+  color: var(--tour-muted);
+  font-size: 0.86rem;
+  line-height: 1.55;
+}
+
 .tour-navigation-info__status {
   font-size: 0.9rem;
   color: var(--tour-muted);
@@ -737,6 +744,22 @@
 }
 
 .tour-route-cta:active { transform: scale(0.98); }
+
+.tour-route-cta--external {
+  text-decoration: none;
+}
+
+.tour-route-cta--secondary {
+  background: color-mix(in srgb, var(--tour-surface) 94%, transparent);
+  border: 1px solid var(--tour-border-hi);
+  color: var(--tour-text);
+  box-shadow: none;
+}
+
+.tour-route-cta--secondary:hover {
+  border-color: var(--tour-accent);
+  box-shadow: none;
+}
 
 /* Secondary action */
 .tour-navigation-info__secondary {
@@ -1664,6 +1687,8 @@ body.sbdp-is-tour-mode .elementor-nav-menu--main {
 
 .tour-continue__actions {
   display: flex;
+  gap: 0.65rem;
+  align-items: center;
 }
 
 .tour-story-flow__action,
@@ -1673,6 +1698,10 @@ body.sbdp-is-tour-mode .elementor-nav-menu--main {
   letter-spacing: 0.02em;
   text-transform: none;
   width: 100%;
+}
+
+.tour-continue__details {
+  white-space: nowrap;
 }
 
 .tour-mobile-nav {
