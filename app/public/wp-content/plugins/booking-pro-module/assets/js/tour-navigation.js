@@ -43,7 +43,9 @@
     zoom: 15,
     refreshDistanceMeters: 24,
     refreshIntervalMs: 12000,
-    arrivalThresholdMeters: 45,
+    nearThresholdMeters: 80,
+    almostThresholdMeters: 35,
+    arrivalThresholdMeters: 18,
   };
 
   function clamp(value, min, max) {
@@ -343,6 +345,7 @@
       this.liveRoute = null;
       this.userMarker = null;
       this.userAccuracy = null;
+      this.targetZone = null;
       this.currentLocation = null;
       this.watchId = null;
       this.routeAbortController = null;
@@ -502,9 +505,16 @@
 
     initMap() {
       const mapElement = this.root.querySelector(SELECTORS.map);
-      if (!mapElement || typeof window.L === "undefined") {
+      if (!mapElement) {
         return;
       }
+
+      if (typeof window.L === "undefined") {
+        this.renderStaticRouteMap();
+        this.updateMapStatus("Eenvoudige routekaart actief. Start route voor live afstand.");
+        return;
+      }
+
       const points = this.steps
         .map((step, index) => ({
           index,
@@ -757,11 +767,8 @@
       const distance = transition ? formatDistance(Number(transition.distance || 0)) : null;
       const duration = transition ? formatDuration(Number(transition.duration || 0)) : null;
       const routeMeta = duration && distance ? `${duration} · ${distance}` : duration || distance || null;
-      const externalUrl = nextStep ? this.buildExternalNavigationUrl(nextStep, step) : "";
-      const hasExternalRoute = Boolean(nextStep && externalUrl && externalUrl !== "#");
-
       const primaryAction = nextStep
-        ? `<a class="tour-story-flow__action" href="${escapeHtml(externalUrl)}" target="_blank" rel="noopener" data-tour-native-navigation>${hasExternalRoute ? "Navigeer naar volgende stop" : "Bekijk route naar volgende stop"}</a>`
+        ? `<button type="button" class="tour-story-flow__action" data-tour-start-route>Start route</button>`
         : `<button type="button" class="tour-story-flow__action" data-tour-complete${progressState.completedSet.has(progressState.currentIndex) ? " disabled" : ""}>${
             progressState.completedSet.has(progressState.currentIndex) ? "Tour afgerond" : "Tour afronden"
           }</button>`;
@@ -1012,10 +1019,11 @@
         const externalUrl = this.buildExternalNavigationUrl(nextStep, step);
         const hasCoordinates = Boolean(this.getStepPoint(nextStep));
         const proximity = this.getDistanceToStep(nextStep);
+        const zone = this.getArrivalZone(proximity);
         const proximityText = proximity !== null
-          ? `Je bent ongeveer ${formatDistance(proximity)} van deze stop.`
+          ? this.getArrivalZoneLabel(zone, proximity)
           : hasCoordinates
-            ? "Tik op navigeren voor GPS en routebegeleiding."
+            ? "Start de route om je GPS-positie en afstand live te zien."
             : "Deze stop mist coordinaten. Gebruik het locatie-label als fallback.";
         
         let primaryCta;
@@ -1025,14 +1033,14 @@
             primaryCta = "Open stop: " + nextTitle;
             ctaAction = "data-tour-start-next-step";
         } else {
-            primaryCta = "Ik ben aangekomen";
-            ctaAction = "data-tour-arrival-confirm";
+            primaryCta = this.isRouteStarted(progressState.currentIndex) && this.currentLocation ? "Route actief" : "Start live route";
+            ctaAction = "data-tour-start-route";
         }
 
         return `
-          <section class="tour-navigation-info tour-navigation-info--rail ${arrived ? "tour-navigation-info--arrived" : "tour-navigation-info--active"}">
+          <section class="tour-navigation-info tour-navigation-info--rail tour-navigation-info--${escapeHtml(zone)} ${arrived ? "tour-navigation-info--arrived" : "tour-navigation-info--active"}">
             <div class="tour-navigation-info__header">
-              <p class="tour-navigation-info__eyebrow">${arrived ? "Bestemming bereikt" : "Onderweg naar volgende stop"}</p>
+              <p class="tour-navigation-info__eyebrow">${arrived || zone === "arrived" ? "Bestemming bereikt" : zone === "almost" ? "Bijna aangekomen" : "Route naar volgende stop"}</p>
               <h3 class="tour-navigation-info__title">${escapeHtml(nextTitle)}</h3>
               <p class="tour-navigation-info__status" data-tour-nav-status></p>
             </div>
@@ -1047,9 +1055,9 @@
             </div>
 
             <div class="tour-navigation-info__actions">
-              ${!arrived ? `<a class="tour-route-cta tour-route-cta--external" href="${escapeHtml(externalUrl)}" target="_blank" rel="noopener" data-tour-native-navigation>Navigeer met Maps</a>` : ""}
-              <button type="button" class="tour-route-cta ${arrived ? "" : "tour-route-cta--secondary"}" ${ctaAction}>${primaryCta}</button>
-              <button type="button" class="tour-navigation-info__secondary" data-tour-route-sheet-open>Route-details</button>
+              <button type="button" class="tour-route-cta" ${ctaAction}>${primaryCta}</button>
+              ${!arrived ? `<button type="button" class="tour-route-cta tour-route-cta--secondary" data-tour-arrival-confirm>Ik ben aangekomen</button>` : ""}
+              ${!arrived ? `<a class="tour-navigation-info__secondary tour-navigation-info__maps" href="${escapeHtml(externalUrl)}" target="_blank" rel="noopener" data-tour-native-navigation>Open in Google Maps</a>` : ""}
             </div>
           </section>
         `;
@@ -1217,6 +1225,44 @@
       }
 
       return haversineMeters(this.currentLocation, point);
+    }
+
+    getArrivalZone(distance) {
+      if (!Number.isFinite(distance)) {
+        return "idle";
+      }
+
+      if (distance <= MAP_CONFIG.arrivalThresholdMeters) {
+        return "arrived";
+      }
+
+      if (distance <= MAP_CONFIG.almostThresholdMeters) {
+        return "almost";
+      }
+
+      if (distance <= MAP_CONFIG.nearThresholdMeters) {
+        return "near";
+      }
+
+      return "walking";
+    }
+
+    getArrivalZoneLabel(zone, distance) {
+      const distanceLabel = Number.isFinite(distance) ? formatDistance(distance) : "";
+
+      if (zone === "arrived") {
+        return `Je bent aangekomen. Afstand tot stop: ${distanceLabel}.`;
+      }
+
+      if (zone === "almost") {
+        return `Je bent bijna bij de stop. Nog ${distanceLabel}.`;
+      }
+
+      if (zone === "near") {
+        return `Je bent onderweg en komt dichterbij. Nog ${distanceLabel}.`;
+      }
+
+      return `Volg de route naar de volgende stop. Nog ${distanceLabel}.`;
     }
 
     isRouteStarted(index = this.currentIndex) {
@@ -1651,7 +1697,7 @@
           <strong class="tour-mobile-nav__title">${escapeHtml(nextTitle)}</strong>
         </div>
         ${meta ? `<span class="tour-mobile-nav__meta">${escapeHtml(meta)}</span>` : ''}
-        <button type="button" class="tour-mobile-nav__cta" data-tour-open-navigation>Route</button>
+        <button type="button" class="tour-mobile-nav__cta" data-tour-start-route>Start route</button>
       `;
     }
 
@@ -1680,6 +1726,11 @@
     }
 
     renderMapState() {
+      if (!this.map) {
+        this.renderStaticRouteMap();
+        return;
+      }
+
       if (!this.map || !this.markers.length) {
         return;
       }
@@ -1748,10 +1799,93 @@
       }
 
       if (this.isRouteStarted(this.currentIndex)) {
+        this.updateTargetZoneLayer();
         this.refreshLiveRoute(true);
       } else {
+        this.updateTargetZoneLayer();
         this.clearLiveRoute();
       }
+    }
+
+    renderStaticRouteMap() {
+      const mapElement = this.root.querySelector(SELECTORS.map);
+      if (!mapElement) {
+        return;
+      }
+
+      const points = this.steps
+        .map((step, index) => ({
+          index,
+          lat: Number(step.lat),
+          lng: Number(step.lng),
+          title: step.title || `Stop ${index + 1}`,
+        }))
+        .filter((point) => Number.isFinite(point.lat) && Number.isFinite(point.lng));
+
+      if (!points.length) {
+        mapElement.classList.add("tour-map--static");
+        mapElement.innerHTML = '<p class="tour-map__placeholder">Geen locaties beschikbaar.</p>';
+        this.updateMapStatus("Geen geolocaties gevonden in deze tour.");
+        return;
+      }
+
+      const lats = points.map((point) => point.lat);
+      const lngs = points.map((point) => point.lng);
+      const minLat = Math.min(...lats);
+      const maxLat = Math.max(...lats);
+      const minLng = Math.min(...lngs);
+      const maxLng = Math.max(...lngs);
+      const latRange = Math.max(maxLat - minLat, 0.00008);
+      const lngRange = Math.max(maxLng - minLng, 0.00008);
+      const padding = 12;
+      const scale = 100 - padding * 2;
+      const project = (point) => ({
+        x: padding + ((point.lng - minLng) / lngRange) * scale,
+        y: padding + ((maxLat - point.lat) / latRange) * scale,
+      });
+      const plotted = points.map((point) => ({ ...point, ...project(point) }));
+      const currentPoint = plotted.find((point) => point.index === this.currentIndex) || plotted[0];
+      const targetStep = this.getRouteTargetStep();
+      const targetPoint = targetStep
+        ? plotted.find((point) => point.index === this.steps.indexOf(targetStep))
+        : null;
+      const distance = targetStep ? this.getDistanceToStep(targetStep) : null;
+      const zone = this.getArrivalZone(distance);
+      const zoneLabel = targetStep && Number.isFinite(distance)
+        ? this.getArrivalZoneLabel(zone, distance)
+        : this.isRouteStarted(this.currentIndex)
+          ? "Locatie wordt opgehaald. Houd de tour open."
+          : "Start route om live afstand op de kaart te zien.";
+      const path = plotted.map((point) => `${point.x.toFixed(2)},${point.y.toFixed(2)}`).join(" ");
+      const targetRadius = zone === "arrived" ? 5.5 : zone === "almost" ? 8 : zone === "near" ? 10 : 12;
+
+      const markers = plotted.map((point) => {
+        const isCurrent = point.index === this.currentIndex;
+        const isNext = point.index === this.currentIndex + 1;
+        const isDone = this.completed.has(point.index);
+        const state = isCurrent ? "current" : isNext ? "next" : isDone ? "completed" : "upcoming";
+        return `
+          <span class="tour-static-map__marker tour-static-map__marker--${state}" style="left:${point.x.toFixed(2)}%;top:${point.y.toFixed(2)}%;" aria-label="${escapeHtml(point.title)}">
+            ${point.index + 1}
+          </span>
+        `;
+      }).join("");
+
+      mapElement.classList.add("tour-map--static");
+      mapElement.innerHTML = `
+        <div class="tour-static-map" aria-label="Routekaart">
+          <svg class="tour-static-map__svg" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+            <polyline class="tour-static-map__path" points="${escapeHtml(path)}"></polyline>
+            ${targetPoint ? `<circle class="tour-static-map__zone tour-static-map__zone--${escapeHtml(zone)}" cx="${targetPoint.x.toFixed(2)}" cy="${targetPoint.y.toFixed(2)}" r="${targetRadius}"></circle>` : ""}
+            ${this.currentLocation && currentPoint ? `<line class="tour-static-map__bearing" x1="${currentPoint.x.toFixed(2)}" y1="${currentPoint.y.toFixed(2)}" x2="${targetPoint ? targetPoint.x.toFixed(2) : currentPoint.x.toFixed(2)}" y2="${targetPoint ? targetPoint.y.toFixed(2) : currentPoint.y.toFixed(2)}"></line>` : ""}
+          </svg>
+          ${markers}
+          <div class="tour-static-map__status tour-static-map__status--${escapeHtml(zone)}">
+            <strong>${zone === "arrived" ? "Bestemming bereikt" : zone === "almost" ? "Bijna bij de stop" : zone === "near" ? "Dichtbij" : "Route"}</strong>
+            <span>${escapeHtml(zoneLabel)}</span>
+          </div>
+        </div>
+      `;
     }
 
     bindDynamicEvents() {
@@ -1992,6 +2126,10 @@
           };
 
           this.updateUserLocationLayer();
+          this.updateTargetZoneLayer();
+          if (!this.map) {
+            this.renderStaticRouteMap();
+          }
           if (this.isRouteStarted(this.currentIndex)) {
             this.updateArrivalState();
             this.refreshLiveRoute(false);
@@ -2022,6 +2160,9 @@
 
     updateUserLocationLayer() {
       if (!this.map || !this.currentLocation) {
+        if (this.currentLocation) {
+          this.renderStaticRouteMap();
+        }
         return;
       }
 
@@ -2362,6 +2503,55 @@
       }
     }
 
+    updateTargetZoneLayer() {
+      if (!this.map || !window.L) {
+        return;
+      }
+
+      const targetStep = this.getRouteTargetStep();
+      const target = this.getStepPoint(targetStep);
+      if (!target) {
+        if (this.targetZone) {
+          this.map.removeLayer(this.targetZone);
+          this.targetZone = null;
+        }
+        return;
+      }
+
+      const distance = this.getDistanceToStep(targetStep);
+      const zone = this.getArrivalZone(distance);
+      const styleByZone = {
+        idle: { color: "#d6a461", fillColor: "rgba(214,164,97,0.14)", fillOpacity: 0.18 },
+        walking: { color: "#72aee6", fillColor: "rgba(114,174,230,0.14)", fillOpacity: 0.18 },
+        near: { color: "#d6a461", fillColor: "rgba(214,164,97,0.20)", fillOpacity: 0.24 },
+        almost: { color: "#f0b15b", fillColor: "rgba(240,177,91,0.30)", fillOpacity: 0.32 },
+        arrived: { color: "#68de7c", fillColor: "rgba(104,222,124,0.28)", fillOpacity: 0.34 },
+      };
+      const style = styleByZone[zone] || styleByZone.idle;
+      const latLng = [target.lat, target.lng];
+      const radius = zone === "arrived" ? MAP_CONFIG.arrivalThresholdMeters : MAP_CONFIG.almostThresholdMeters;
+
+      if (!this.targetZone) {
+        this.targetZone = window.L.circle(latLng, {
+          radius,
+          color: style.color,
+          weight: 2,
+          fillColor: style.fillColor,
+          fillOpacity: style.fillOpacity,
+          dashArray: zone === "arrived" ? null : "6, 5",
+        }).addTo(this.map);
+      } else {
+        this.targetZone.setLatLng(latLng);
+        this.targetZone.setRadius(radius);
+        this.targetZone.setStyle({
+          color: style.color,
+          fillColor: style.fillColor,
+          fillOpacity: style.fillOpacity,
+          dashArray: zone === "arrived" ? null : "6, 5",
+        });
+      }
+    }
+
     getNavigationStatusText() {
       const nextStep = this.getNextStep(this.currentIndex);
       const currentStep = this.steps[this.currentIndex] || null;
@@ -2374,6 +2564,12 @@
 
       if (nextStep && this.isRouteStarted(this.currentIndex) && this.mapStatus) {
         return this.mapStatus;
+      }
+
+      if (nextStep && this.currentLocation) {
+        const distance = this.getDistanceToStep(nextStep);
+        const zone = this.getArrivalZone(distance);
+        return this.getArrivalZoneLabel(zone, distance);
       }
 
       if (nextStep) {
@@ -2440,6 +2636,10 @@
       const status = this.getNavigationStatusText();
       this.root.querySelectorAll(SELECTORS.navStatus).forEach((node) => {
         node.textContent = status;
+      });
+
+      this.root.querySelectorAll(".tour-navigation-info [data-tour-start-route]").forEach((button) => {
+        button.textContent = this.isRouteStarted(this.currentIndex) && this.currentLocation ? "Route actief" : "Start live route";
       });
 
       const currentStep = this.steps[this.currentIndex] || null;
