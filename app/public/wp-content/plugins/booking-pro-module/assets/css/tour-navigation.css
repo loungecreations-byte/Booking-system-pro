@@ -752,6 +752,7 @@
   font-family: inherit;
   white-space: nowrap;
   width: 100%;
+  text-decoration: none;
 }
 
 .tour-route-cta:hover {
@@ -1011,6 +1012,10 @@
 .tour-map .leaflet-div-icon {
   background: none;
   border: none;
+}
+
+.tour-map .leaflet-tile {
+  filter: brightness(0.72) contrast(1.18) saturate(0.9);
 }
 
 .tour-map-status {

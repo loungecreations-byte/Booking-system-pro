@@ -1013,17 +1013,25 @@
         const transition = this.getTransitionData(progressState.currentIndex);  
         const currentTitle = step && step.title ? step.title : "Stop " + (progressState.currentIndex + 1);
         const nextTitle = nextStep.title || "Stop " + (progressState.currentIndex + 2);
-        const distance = transition ? formatDistance(Number(transition.distance || 0)) : "Onbekend";
-        const duration = transition ? formatDuration(Number(transition.duration || 0)) : "Onbekend";
         const arrived = progressState.arrivalReady;
         const externalUrl = this.buildExternalNavigationUrl(nextStep, step);
         const hasCoordinates = Boolean(this.getStepPoint(nextStep));
         const proximity = this.getDistanceToStep(nextStep);
         const zone = this.getArrivalZone(proximity);
+        const displayDistance = proximity !== null
+          ? formatDistance(proximity)
+          : transition
+            ? formatDistance(Number(transition.distance || 0))
+            : "Onbekend";
+        const displayDuration = proximity !== null
+          ? formatDuration(proximity / 1.38)
+          : transition
+            ? formatDuration(Number(transition.duration || 0))
+            : "Onbekend";
         const proximityText = proximity !== null
           ? this.getArrivalZoneLabel(zone, proximity)
           : hasCoordinates
-            ? "Start de route om je GPS-positie en afstand live te zien."
+            ? "Sta locatie toe om je afstand tot de volgende stop te zien."
             : "Deze stop mist coordinaten. Gebruik het locatie-label als fallback.";
         
         let primaryCta;
@@ -1033,8 +1041,8 @@
             primaryCta = "Open stop: " + nextTitle;
             ctaAction = "data-tour-start-next-step";
         } else {
-            primaryCta = this.isRouteStarted(progressState.currentIndex) && this.currentLocation ? "Route actief" : "Start live route";
-            ctaAction = "data-tour-start-route";
+            primaryCta = "Open wandelroute in Google Maps";
+            ctaAction = `href="${escapeHtml(externalUrl)}" target="_blank" rel="noopener" data-tour-native-navigation`;
         }
 
         return `
@@ -1047,17 +1055,17 @@
             
             <div class="tour-navigation-info__context" aria-label="Routegegevens">
               <div class="tour-navigation-info__measurements">
-                <span class="tour-navigation-info__dist">${escapeHtml(distance)}</span>
-                <span class="tour-navigation-info__dur">${escapeHtml(duration)} wandelen</span>
+                <span class="tour-navigation-info__dist">${escapeHtml(displayDistance)}</span>
+                <span class="tour-navigation-info__dur">${escapeHtml(displayDuration)} lopen</span>
               </div>
               <p class="tour-navigation-info__subtext">Vanaf: ${escapeHtml(currentTitle)}</p>
               <p class="tour-navigation-info__gps">${escapeHtml(proximityText)}</p>
             </div>
 
             <div class="tour-navigation-info__actions">
-              <button type="button" class="tour-route-cta" ${ctaAction}>${primaryCta}</button>
+              ${arrived ? `<button type="button" class="tour-route-cta" ${ctaAction}>${primaryCta}</button>` : `<a class="tour-route-cta" ${ctaAction}>${primaryCta}</a>`}
               ${!arrived ? `<button type="button" class="tour-route-cta tour-route-cta--secondary" data-tour-arrival-confirm>Ik ben aangekomen</button>` : ""}
-              ${!arrived ? `<a class="tour-navigation-info__secondary tour-navigation-info__maps" href="${escapeHtml(externalUrl)}" target="_blank" rel="noopener" data-tour-native-navigation>Open in Google Maps</a>` : ""}
+              ${!arrived ? `<button type="button" class="tour-navigation-info__secondary" data-tour-start-route>${this.currentLocation ? "GPS in tour aan" : "GPS in tour starten"}</button>` : ""}
             </div>
           </section>
         `;
@@ -2370,6 +2378,7 @@
       url.searchParams.set("api", "1");
       url.searchParams.set("destination", destination);
       url.searchParams.set("travelmode", "walking");
+      url.searchParams.set("dir_action", "navigate");
 
       if (this.currentLocation) {
         url.searchParams.set("origin", `${this.currentLocation.lat},${this.currentLocation.lng}`);
@@ -2639,7 +2648,7 @@
       });
 
       this.root.querySelectorAll(".tour-navigation-info [data-tour-start-route]").forEach((button) => {
-        button.textContent = this.isRouteStarted(this.currentIndex) && this.currentLocation ? "Route actief" : "Start live route";
+        button.textContent = this.currentLocation ? "GPS in tour aan" : "GPS in tour starten";
       });
 
       const currentStep = this.steps[this.currentIndex] || null;
