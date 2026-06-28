@@ -634,17 +634,17 @@
 .tour-navigation-panel__body {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 1rem;
 }
 
 .tour-navigation-info {
   background: var(--tour-surface);
   border: 1px solid var(--tour-border-hi);
   border-radius: var(--tour-r-lg);
-  padding: 2.5rem;
+  padding: clamp(1rem, 1.8vw, 1.45rem);
   display: flex;
   flex-direction: column;
-  gap: 2rem;
+  gap: 1.1rem;
 }
 
 .tour-navigation-info--arrived {
@@ -674,8 +674,9 @@
 
 .tour-navigation-info__measurements {
   display: flex;
-  gap: 2.5rem;
+  gap: 1.25rem;
   align-items: baseline;
+  flex-wrap: wrap;
 }
 
 .tour-navigation-info__dist {
@@ -713,8 +714,8 @@
 .tour-navigation-info__actions {
   display: flex;
   flex-direction: column;
-  gap: 0.75rem;
-  align-items: flex-start;
+  gap: 0.65rem;
+  align-items: stretch;
 }
 
 .tour-navigation-info--near {
@@ -750,6 +751,7 @@
   transition: transform 0.25s cubic-bezier(0.175,0.885,0.32,1.275), box-shadow 0.25s;
   font-family: inherit;
   white-space: nowrap;
+  width: 100%;
 }
 
 .tour-route-cta:hover {
@@ -806,9 +808,10 @@
    MAP PANEL
    --------------------------------------------------------------- */
 .tour-navigation-layout {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(320px, 0.65fr);
+  gap: clamp(0.9rem, 1.5vw, 1.25rem);
+  align-items: start;
 }
 
 .tour-navigation-map-panel {
@@ -816,11 +819,19 @@
   overflow: hidden;
   border: 1px solid var(--tour-border-hi);
   box-shadow: var(--tour-shadow-lg);
+  min-width: 0;
+}
+
+.tour-navigation-sidebar {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 .tour-map {
   width: 100%;
-  height: var(--tour-map-height, 520px);
+  height: clamp(420px, 62vh, var(--tour-map-height, 620px));
   display: block;
   position: relative;
   overflow: hidden;
@@ -2238,34 +2249,73 @@ body.sbdp-is-tour-mode {
 }
 
 .tour-stage__panel--navigation:not([hidden]) {
-  position: fixed;
-  inset: 0;
-  z-index: 9990;
-  display: grid;
-  place-items: end center;
-  padding: 1rem;
-  background: rgba(0, 0, 0, 0.74);
-  backdrop-filter: blur(8px);
+  position: static;
+  inset: auto;
+  z-index: auto;
+  display: block;
+  padding: 0;
+  background: transparent;
+  backdrop-filter: none;
 }
 
 .tour-navigation-layout {
-  width: min(980px, 100%);
-  max-height: min(86vh, 760px);
-  overflow: auto;
-  padding: 1rem;
-  border: 1px solid var(--tour-border-hi);
-  border-radius: 20px;
-  background: #080808;
-  box-shadow: 0 24px 80px rgba(0,0,0,0.62);
+  width: 100%;
+  max-height: none;
+  overflow: visible;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
-.tour-map {
-  height: min(var(--tour-map-height, 520px), 54vh);
+.sbdp-tour-navigation.is-navigation-mode .tour-shell__body {
+  grid-template-columns: minmax(0, 1180px);
+  justify-content: center;
+}
+
+.sbdp-tour-navigation.is-navigation-mode .tour-route-rail {
+  display: none;
+}
+
+.sbdp-tour-navigation.is-navigation-mode .tour-stage {
+  width: 100%;
+}
+
+.sbdp-tour-navigation.is-navigation-mode .tour-navigation-map-panel {
+  position: sticky;
+  top: 1rem;
+}
+
+.sbdp-tour-navigation.is-navigation-mode .tour-route-cta {
+  background: linear-gradient(135deg, var(--tour-accent) 0%, var(--tour-accent-hi) 100%);
+  color: var(--tour-accent-ink);
+  box-shadow: 0 14px 34px rgba(207,155,90,0.24);
+}
+
+.sbdp-tour-navigation.is-navigation-mode .tour-route-cta--secondary {
+  background: rgba(255,255,255,0.045);
+  color: var(--tour-text);
+  border: 1px solid var(--tour-border-hi);
+  box-shadow: none;
+}
+
+.sbdp-tour-navigation.is-navigation-mode .tour-navigation-info__maps {
+  color: var(--tour-muted);
+  opacity: 0.72;
 }
 
 @media (max-width: 1080px) {
   .tour-shell__body {
     grid-template-columns: minmax(0, var(--tour-player-width));
+  }
+
+  .tour-navigation-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .sbdp-tour-navigation.is-navigation-mode .tour-navigation-map-panel {
+    position: static;
   }
 
   .tour-route-rail {
@@ -2336,6 +2386,14 @@ body.sbdp-is-tour-mode {
   .tour-route-cta {
     width: 100%;
     min-width: 0;
+  }
+
+  .tour-map {
+    height: clamp(340px, 54vh, 520px);
+  }
+
+  .tour-navigation-info__measurements {
+    gap: 0.85rem;
   }
 }
 
