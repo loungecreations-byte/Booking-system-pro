@@ -2562,14 +2562,14 @@
         return `Je bent aangekomen bij ${nextLocationLabel}. Open nu het volgende hoofdstuk.`;
       }
 
-      if (nextStep && this.isRouteStarted(this.currentIndex) && this.mapStatus) {
-        return this.mapStatus;
-      }
-
       if (nextStep && this.currentLocation) {
         const distance = this.getDistanceToStep(nextStep);
         const zone = this.getArrivalZone(distance);
         return this.getArrivalZoneLabel(zone, distance);
+      }
+
+      if (nextStep && this.isRouteStarted(this.currentIndex) && this.mapStatus) {
+        return this.mapStatus;
       }
 
       if (nextStep) {
@@ -2765,6 +2765,7 @@
 
       if (this.mode === "navigation") {
         this.syncModeState();
+        this.scrollNavigationIntoView();
         if (startLive) {
           this.enableLiveLocation(true);
         }
@@ -2774,7 +2775,8 @@
       this.mode = "navigation";
       this.render();
       this.refreshMapLayout();
-      this.updateNavigationStatus("Route-details geopend. Gebruik Maps voor navigatie en bevestig daarna je aankomst.");
+      this.scrollNavigationIntoView();
+      this.updateNavigationStatus("Route geopend. Volg de kaart en bevestig je aankomst in de tour.");
 
       if (startLive) {
         if (!window.isSecureContext || !navigator.geolocation) {
@@ -2785,6 +2787,18 @@
 
         this.enableLiveLocation(true);
       }
+    }
+
+    scrollNavigationIntoView() {
+      const navigationPanel = this.root.querySelector(SELECTORS.navigationPanel);
+      const target = this.root.querySelector(SELECTORS.mapPanel) || navigationPanel;
+      if (!target || typeof target.scrollIntoView !== "function") {
+        return;
+      }
+
+      window.requestAnimationFrame(() => {
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
     }
 
     closeNavigationMode() {
