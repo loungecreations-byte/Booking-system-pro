@@ -2140,3 +2140,121 @@ body.sbdp-is-tour-mode {
     min-width: 0;
   }
 }
+
+/* Final tour player pass: full-width status, calmer rail, immersive focus */
+body.sbdp-is-tour-mode #wp-chatbot-chat-container,
+body.sbdp-is-tour-mode .wp-chatbot-mobile-full-screen,
+body.sbdp-is-tour-mode [id*="chatbot"],
+body.sbdp-is-tour-mode [class*="chatbot"] {
+  display: none !important;
+}
+
+.tour-summary-panel {
+  width: 100%;
+  max-width: none;
+  margin-inline: 0;
+  padding: clamp(0.9rem, 1.7vw, 1.35rem) clamp(1rem, 2vw, 1.5rem);
+}
+
+.tour-summary-panel__tour-title {
+  font-size: clamp(1.8rem, 3.2vw, 3.35rem);
+}
+
+.tour-summary-panel__chips {
+  max-width: 980px;
+}
+
+.tour-shell__body {
+  grid-template-columns: minmax(0, 940px) minmax(230px, 270px);
+  gap: clamp(0.8rem, 1.4vw, 1.2rem);
+}
+
+.tour-route-rail {
+  background: rgba(8, 8, 8, 0.52);
+  border-color: color-mix(in srgb, var(--tour-border) 64%, transparent);
+  box-shadow: none;
+}
+
+.tour-route-rail__heading {
+  opacity: 0.8;
+}
+
+.tour-route-rail__title {
+  font-size: 0.96rem;
+}
+
+.tour-stop-card {
+  background: transparent;
+  border-color: transparent;
+}
+
+.tour-stop-card--current {
+  background: color-mix(in srgb, var(--tour-accent) 11%, transparent);
+}
+
+.tour-step-current {
+  margin-bottom: 0.75rem;
+}
+
+.tour-step-current__title {
+  max-width: 900px;
+}
+
+.tour-step__media-primary {
+  margin-bottom: 0.75rem;
+}
+
+.tour-step__intro,
+.tour-step__story,
+.tour-story-flow__block--mission,
+.tour-continue {
+  padding: clamp(0.9rem, 1.35vw, 1.2rem);
+}
+
+.tour-story-flow__block--mission {
+  display: grid;
+  gap: 0.38rem;
+}
+
+.tour-story-flow__title {
+  margin-bottom: 0.25rem;
+}
+
+.tour-story-flow__detail {
+  margin-bottom: 0.35rem;
+}
+
+.tour-continue {
+  border-color: color-mix(in srgb, var(--tour-accent) 28%, var(--tour-border));
+}
+
+.tour-story-flow__action,
+.tour-route-cta {
+  background: var(--ui-color-cta);
+  color: var(--ui-color-cta-contrast);
+  box-shadow: 0 14px 34px color-mix(in srgb, var(--ui-color-cta) 22%, transparent);
+}
+
+@media (max-width: 1080px) {
+  .tour-summary-panel {
+    width: 100%;
+  }
+
+  .tour-shell__body {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .tour-summary-panel__head {
+    gap: 0.65rem;
+  }
+
+  .tour-summary-panel__tour-title {
+    font-size: clamp(1.65rem, 7vw, 2.3rem);
+  }
+
+  .tour-chip {
+    font-size: 0.64rem;
+  }
+}
