@@ -156,6 +156,7 @@ function PlannerShell() {
   return (
     <PlannerTelemetryProvider activeView="planner">
       <div className="sbdp-day-planner">
+        <h1 className="sbdp-day-planner__screen-title">Plan je dag in Den Bosch</h1>
         {error ? <div className="sbdp-day-planner__error">{error}</div> : null}
 
         <InfoStep />

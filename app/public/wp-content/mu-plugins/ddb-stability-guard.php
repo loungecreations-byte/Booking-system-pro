@@ -114,7 +114,14 @@ add_action('wp_head', static function (): void {
 
     $host = isset($_SERVER['HTTP_HOST']) ? (string) wp_unslash($_SERVER['HTTP_HOST']) : '';
     $host = strtolower(trim((string) preg_replace('/:\\d+$/', '', $host)));
-    if ($host === '' || (!str_ends_with($host, '.local') && $host !== 'localhost')) {
+    $agent_bridge_hosts = array('localhost', 'staging.dagjedenbosch.nl');
+    if (
+        $host === ''
+        || (
+            ! str_ends_with($host, '.local')
+            && ! in_array($host, $agent_bridge_hosts, true)
+        )
+    ) {
         return;
     }
 

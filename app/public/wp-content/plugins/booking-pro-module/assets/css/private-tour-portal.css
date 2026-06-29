@@ -299,10 +299,22 @@
 }
 
 .sbdp-portal__video-frame {
+  background: var(--portal-surface-2);
   border-radius: 14px;
   overflow: hidden;
   width: 100%;
   margin-top: 0.65rem;
+}
+
+.sbdp-portal__video-frame:has(video)::after,
+.sbdp-portal__video-frame:has(iframe)::after {
+  content: "Lukt afspelen niet? Gebruik de audio, tekst of volgende stap in de tour.";
+  display: block;
+  padding: 0.65rem 0.85rem;
+  border-top: 1px solid var(--portal-border);
+  color: var(--portal-muted);
+  font-size: 0.85rem;
+  line-height: 1.45;
 }
 
 .sbdp-portal__video-frame iframe {

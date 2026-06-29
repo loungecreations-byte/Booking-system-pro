@@ -1,5 +1,6 @@
 .single-product {
     background: #000;
+    overflow-x: clip;
 }
 
 .single-product .product,
@@ -10,6 +11,13 @@
 .single-product .upsells.products {
     max-width: min(82rem, calc(100% - 2rem));
     margin-inline: auto;
+    min-width: 0;
+}
+
+.single-product .product *,
+.single-product .product *::before,
+.single-product .product *::after {
+    box-sizing: border-box;
 }
 
 .ddb-product-hero {
@@ -187,6 +195,7 @@
 
 .sbdp-number-display {
     flex: 1 1 auto;
+    min-width: 0;
     min-height: 2.75rem;
     display: inline-flex;
     align-items: center;
@@ -522,6 +531,26 @@ body.single-product .sbdp-timeslot-chips {
     grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
     position: relative;
     isolation: isolate;
+}
+
+body.single-product .woocommerce,
+body.single-product .summary,
+body.single-product .entry-summary,
+body.single-product .sbdp-booking-form-wrapper,
+body.single-product #sbdp-booking-form,
+body.single-product .sbdp-grid-shell,
+body.single-product .sbdp-field-grid,
+body.single-product .sbdp-step-card,
+body.single-product .sbdp-timeslot-chips {
+    max-width: 100%;
+    min-width: 0;
+}
+
+body.single-product .sbdp-step-card h2,
+body.single-product .woocommerce-tabs h2,
+body.single-product .related.products h2,
+body.single-product .upsells.products h2 {
+    overflow-wrap: anywhere;
 }
 
 body.single-product .sbdp-field-grid {

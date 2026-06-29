@@ -949,6 +949,7 @@ if (!class_exists('DDB_Core_Design_System')) {
             $html = self::strip_legacy_dark_toggle_markup($html);
             $html = self::sanitize_agent_widget_markup($html);
             $html = self::sanitize_plan_route_markup($html);
+            $html = self::normalize_product_detail_headings($html);
             $html = self::normalize_document_closing_tags($html);
 
             if (!self::is_front_app_route()) {
@@ -984,6 +985,7 @@ if (!class_exists('DDB_Core_Design_System')) {
             $html = self::sanitize_spot_detail_markup($html);
             $html = self::sanitize_private_tour_markup($html);
             $html = self::sanitize_cart_empty_markup($html);
+            $html = self::normalize_product_detail_headings($html);
             $html = self::ensure_canonical_link($html);
             $html = self::ensure_main_landmark($html);
             $html = self::inject_semantic_h1_markup($html);
@@ -1122,6 +1124,7 @@ if (!class_exists('DDB_Core_Design_System')) {
             $html = self::sanitize_agent_widget_markup($html);
             $html = self::sanitize_plan_route_markup($html);
             $html = self::sanitize_discover_route_markup($html);
+            $html = self::normalize_product_detail_headings($html);
             $html = self::normalize_document_closing_tags($html);
 
             $html = preg_replace_callback(
@@ -1245,6 +1248,40 @@ if (!class_exists('DDB_Core_Design_System')) {
             );
 
             return (string) $html;
+        }
+
+        private static function normalize_product_detail_headings(string $html): string
+        {
+            if (!self::is_product_detail_route() || substr_count(strtolower($html), '<h1') < 2) {
+                return $html;
+            }
+
+            $seen_h1 = false;
+
+            return (string) preg_replace_callback(
+                '/<h1\b([^>]*)>(.*?)<\/h1>/is',
+                static function (array $matches) use (&$seen_h1): string {
+                    if (!$seen_h1) {
+                        $seen_h1 = true;
+                        return $matches[0];
+                    }
+
+                    return '<h2' . $matches[1] . '>' . $matches[2] . '</h2>';
+                },
+                $html
+            );
+        }
+
+        private static function is_product_detail_route(): bool
+        {
+            if (function_exists('is_product') && is_product()) {
+                return true;
+            }
+
+            $request_uri = isset($_SERVER['REQUEST_URI']) ? (string) wp_unslash($_SERVER['REQUEST_URI']) : '';
+            $path = strtolower((string) wp_parse_url($request_uri, PHP_URL_PATH));
+
+            return str_starts_with('/' . trim($path, '/'), '/product/');
         }
 
         private static function ensure_canonical_link(string $html): string
@@ -3330,15 +3367,16 @@ if (!class_exists('DDB_Core_Design_System')) {
             $site_host = wp_parse_url(home_url('/'), PHP_URL_HOST);
             $request_host = isset($_SERVER['HTTP_HOST']) ? (string) wp_unslash($_SERVER['HTTP_HOST']) : '';
             $request_host = strtolower(trim(preg_replace('/:\\d+$/', '', $request_host) ?? ''));
+            $disable_hosts = array('localhost', 'staging.dagjedenbosch.nl');
 
             if (is_string($site_host) && $site_host !== '') {
                 $site_host = strtolower($site_host);
-                if (str_ends_with($site_host, '.local') || $site_host === 'localhost') {
+                if (str_ends_with($site_host, '.local') || in_array($site_host, $disable_hosts, true)) {
                     return true;
                 }
             }
 
-            return str_ends_with($request_host, '.local') || $request_host === 'localhost';
+            return str_ends_with($request_host, '.local') || in_array($request_host, $disable_hosts, true);
         }
 
         private static function normalize_front_language_attributes(string $attributes): string
