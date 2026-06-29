@@ -835,9 +835,15 @@
 
 .sbdp-day-planner__columns {
   display: grid;
-  grid-template-columns: minmax(0, 1.45fr) minmax(360px, 1fr);
+  grid-template-columns: minmax(0, 1.45fr) minmax(320px, 1fr);
   gap: 1.45rem;
   align-items: flex-start;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.sbdp-day-planner__columns > * {
+  min-width: 0;
 }
 
 .sbdp-day-planner__primary {
@@ -867,7 +873,7 @@
   }
 
   .sbdp-day-planner__columns {
-    grid-template-columns: minmax(0, 1.3fr) minmax(520px, 1fr);
+    grid-template-columns: minmax(0, 1.3fr) minmax(420px, 1fr);
     gap: 1.7rem;
   }
 }

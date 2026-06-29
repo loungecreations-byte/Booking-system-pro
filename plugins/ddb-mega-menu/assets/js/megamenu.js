@@ -86,6 +86,43 @@
       el.setAttribute("aria-expanded", state ? "true" : "false");
     };
 
+    const setDrawerInteractive = (isOpen) => {
+      if (!drawer) {
+        return;
+      }
+
+      drawer.setAttribute("aria-hidden", isOpen ? "false" : "true");
+      if ("inert" in drawer) {
+        drawer.inert = !isOpen;
+      }
+
+      drawer
+        .querySelectorAll('a, button, input, select, textarea, [tabindex]')
+        .forEach((node) => {
+          if (!(node instanceof HTMLElement)) {
+            return;
+          }
+
+          if (isOpen) {
+            if (node.dataset.ddbPreviousTabindex !== undefined) {
+              const previous = node.dataset.ddbPreviousTabindex;
+              if (previous === "") {
+                node.removeAttribute("tabindex");
+              } else {
+                node.setAttribute("tabindex", previous);
+              }
+              delete node.dataset.ddbPreviousTabindex;
+            }
+            return;
+          }
+
+          if (node.dataset.ddbPreviousTabindex === undefined) {
+            node.dataset.ddbPreviousTabindex = node.getAttribute("tabindex") || "";
+          }
+          node.setAttribute("tabindex", "-1");
+        });
+    };
+
     const closeDesktopPanel = () => {
       if (!activeDesktopPanel) {
         return;
@@ -172,6 +209,7 @@
       root.classList.add("is-drawer-open");
       document.body.classList.add("ddb-mega-lock");
       drawerOpen = true;
+      setDrawerInteractive(true);
 
       if (mobileToggle) {
         setExpanded(mobileToggle, true);
@@ -188,6 +226,7 @@
       root.classList.remove("is-drawer-open");
       document.body.classList.remove("ddb-mega-lock");
       drawerOpen = false;
+      setDrawerInteractive(false);
 
       if (mobileToggle) {
         setExpanded(mobileToggle, false);
@@ -195,6 +234,8 @@
 
       closeAllMobilePanels();
     };
+
+    setDrawerInteractive(false);
 
     const updateHeaderState = () => {
       const scrollY =

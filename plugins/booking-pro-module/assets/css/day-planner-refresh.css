@@ -40,6 +40,26 @@
   box-shadow: var(--sbdp-shadow);
   padding: var(--sbdp-space-3);
   gap: var(--sbdp-space-3);
+  max-width: 100%;
+  overflow-x: clip;
+}
+
+.sbdp-day-planner *,
+.sbdp-day-planner *::before,
+.sbdp-day-planner *::after {
+  box-sizing: border-box;
+}
+
+.sbdp-day-planner__screen-title {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }
 
 .sbdp-day-planner .sbdp-workspace__header,
