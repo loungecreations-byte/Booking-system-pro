@@ -37,6 +37,9 @@
     routeSheetBackdrop: "[data-tour-route-sheet-backdrop]",
     routeSheetFrame: "[data-tour-route-sheet-frame]",
     routeEmbedDiagnostic: "[data-tour-route-embed-diagnostic]",
+    mobilePrev: "[data-tour-mobile-prev]",
+    mobileNext: "[data-tour-mobile-next]",
+    mobileRoute: "[data-tour-mobile-route]",
   };
 
   const MAP_CONFIG = {
@@ -1686,26 +1689,52 @@
 
       const progressState = this.getTourProgressState();
       const nextStep = progressState.nextStep;
-
-      if (!nextStep || this.mode === 'navigation') {
-        bar.hidden = true;
-        return;
-      }
+      const atStart = progressState.currentIndex <= 0;
+      const atEnd = progressState.currentIndex >= progressState.total - 1;
+      const currentStep = progressState.currentStep;
+      const completedCurrent = progressState.completedSet.has(progressState.currentIndex);
+      const arrivedCurrent = this.arrivedTransitions.has(progressState.currentIndex);
 
       const transition = this.getTransitionData(progressState.currentIndex);
       const duration = transition ? formatDuration(Number(transition.duration || 0)) : null;
       const distance = transition ? formatDistance(Number(transition.distance || 0)) : null;
       const meta = duration && distance ? `${duration} · ${distance}` : duration || distance || '';
-      const nextTitle = nextStep.title || `Stop ${progressState.currentIndex + 2}`;
+      const nextTitle = nextStep ? nextStep.title || `Stop ${progressState.currentIndex + 2}` : "Laatste stop";
+      const currentTitle = currentStep ? currentStep.title || `Stop ${progressState.currentIndex + 1}` : "Tourstop";
+      const statusText = nextStep
+        ? arrivedCurrent
+          ? "Je bent er bijna. Open het volgende hoofdstuk."
+          : this.isRouteStarted(progressState.currentIndex)
+          ? this.getNavigationStatusText()
+          : `Hierna: ${nextTitle}`
+        : completedCurrent
+        ? "Tour afgerond"
+        : "Laatste hoofdstuk";
+      const nextLabel = atEnd ? (completedCurrent ? "Klaar" : "Afronden") : arrivedCurrent ? "Open" : "Volgende";
+      const routeLabel = this.mode === "navigation" ? "Verhaal" : this.currentLocation ? "GPS" : "Route";
 
       bar.hidden = false;
       bar.innerHTML = `
-        <div class="tour-mobile-nav__dest">
-          <span class="tour-mobile-nav__label">Hierna</span>
-          <strong class="tour-mobile-nav__title">${escapeHtml(nextTitle)}</strong>
+        <div class="tour-mobile-nav__status">
+          <span class="tour-mobile-nav__label">Stop ${progressState.currentIndex + 1}/${progressState.total}</span>
+          <strong class="tour-mobile-nav__title">${escapeHtml(currentTitle)}</strong>
+          <span class="tour-mobile-nav__hint">${escapeHtml(statusText)}</span>
         </div>
-        ${meta ? `<span class="tour-mobile-nav__meta">${escapeHtml(meta)}</span>` : ''}
-        <button type="button" class="tour-mobile-nav__cta" data-tour-start-route>Start route</button>
+        ${meta && nextStep ? `<span class="tour-mobile-nav__meta">${escapeHtml(meta)}</span>` : ''}
+        <div class="tour-mobile-nav__actions">
+          <button type="button" class="tour-mobile-nav__button" data-tour-mobile-prev ${atStart ? "disabled" : ""}>
+            <span aria-hidden="true">‹</span>
+            <span>Vorige</span>
+          </button>
+          <button type="button" class="tour-mobile-nav__button tour-mobile-nav__button--route" data-tour-mobile-route>
+            <span aria-hidden="true">${this.mode === "navigation" ? "✕" : "⌖"}</span>
+            <span>${escapeHtml(routeLabel)}</span>
+          </button>
+          <button type="button" class="tour-mobile-nav__button tour-mobile-nav__button--primary" data-tour-mobile-next ${atEnd && completedCurrent ? "disabled" : ""}>
+            <span>${escapeHtml(nextLabel)}</span>
+            <span aria-hidden="true">›</span>
+          </button>
+        </div>
       `;
     }
 
@@ -2095,6 +2124,40 @@
 
         button.dataset.boundClick = "1";
         button.addEventListener("click", () => this.closeRouteSheet());
+      });
+
+      this.root.querySelectorAll(SELECTORS.mobilePrev).forEach((button) => {
+        if (button.dataset.boundClick === "1") {
+          return;
+        }
+
+        button.dataset.boundClick = "1";
+        button.addEventListener("click", () => this.goTo(this.currentIndex - 1));
+      });
+
+      this.root.querySelectorAll(SELECTORS.mobileNext).forEach((button) => {
+        if (button.dataset.boundClick === "1") {
+          return;
+        }
+
+        button.dataset.boundClick = "1";
+        button.addEventListener("click", () => this.handleNext());
+      });
+
+      this.root.querySelectorAll(SELECTORS.mobileRoute).forEach((button) => {
+        if (button.dataset.boundClick === "1") {
+          return;
+        }
+
+        button.dataset.boundClick = "1";
+        button.addEventListener("click", () => {
+          if (this.mode === "navigation") {
+            this.closeNavigationMode();
+            return;
+          }
+
+          this.openNavigationMode(true);
+        });
       });
 
     }
