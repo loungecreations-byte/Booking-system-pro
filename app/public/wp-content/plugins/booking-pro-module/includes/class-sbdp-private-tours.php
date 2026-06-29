@@ -49,6 +49,7 @@ class SBDP_Private_Tours
 
         add_action('init', array(__CLASS__, 'register_post_types'));
         add_action('init', array(__CLASS__, 'register_post_meta'));
+        add_action('init', array(SBDP_Private_Tours_Tickets::class, 'maybe_upgrade_schema'), 20);
         add_action('wp_enqueue_scripts', array(__CLASS__, 'register_assets'));
         add_filter('body_class', array(__CLASS__, 'add_tour_mode_body_class'));
 

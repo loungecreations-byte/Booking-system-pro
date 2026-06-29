@@ -10,6 +10,18 @@ if (! defined('ARRAY_A')) {
     define('ARRAY_A', 'ARRAY_A');
 }
 
+if (! defined('OBJECT')) {
+    define('OBJECT', 'OBJECT');
+}
+
+if (! defined('HOUR_IN_SECONDS')) {
+    define('HOUR_IN_SECONDS', 3600);
+}
+
+if (! defined('DAY_IN_SECONDS')) {
+    define('DAY_IN_SECONDS', 86400);
+}
+
 if (! class_exists('WP_Error')) {
     class WP_Error
     {
@@ -150,8 +162,9 @@ if (! class_exists('wpdb')) {
             return $query;
         }
 
-        public function insert(string $table, array $data)
+        public function insert(string $table, array $data, ...$formats)
         {
+            unset($formats);
             $rows = $this->storage[$table] ?? array();
             $id = count($rows) + 1;
             $data['id'] = $id;
@@ -161,8 +174,9 @@ if (! class_exists('wpdb')) {
             return 1;
         }
 
-        public function update(string $table, array $data, array $where)
+        public function update(string $table, array $data, array $where, ...$formats)
         {
+            unset($formats);
             if (! isset($this->storage[$table])) {
                 return false;
             }
@@ -276,6 +290,7 @@ $GLOBALS['wpdb'] = $GLOBALS['wpdb'] ?? new wpdb();
 $GLOBALS['__test_current_user_can'] = false;
 $GLOBALS['__test_current_user_id'] = 0;
 $GLOBALS['__test_options'] = array();
+$GLOBALS['__test_transients'] = array();
 $GLOBALS['__test_dbdelta_calls'] = array();
 $GLOBALS['__test_rest_routes'] = array();
 $GLOBALS['__test_filters'] = array();
@@ -449,6 +464,55 @@ function wp_mail($to, string $subject, string $message, $headers = array()): boo
     }
 
     return true;
+}
+
+function set_transient(string $key, $value, int $expiration = 0): bool
+{
+    if (isset($GLOBALS['__eliio_test_transients']) && is_array($GLOBALS['__eliio_test_transients'])) {
+        $GLOBALS['__eliio_test_transients'][$key] = $value;
+        $GLOBALS['__eliio_test_transient_ttl'][$key] = $expiration;
+    }
+
+    $GLOBALS['__test_transients'][$key] = array(
+        'value' => $value,
+        'expiration' => $expiration,
+    );
+
+    return true;
+}
+
+function get_transient(string $key)
+{
+    if (isset($GLOBALS['__eliio_test_transients']) && is_array($GLOBALS['__eliio_test_transients'])) {
+        return array_key_exists($key, $GLOBALS['__eliio_test_transients'])
+            ? $GLOBALS['__eliio_test_transients'][$key]
+            : false;
+    }
+
+    return $GLOBALS['__test_transients'][$key]['value'] ?? false;
+}
+
+function home_url(string $path = ''): string
+{
+    return 'https://example.test' . $path;
+}
+
+function get_page_by_path(string $page_path, $output = OBJECT, string $post_type = 'page')
+{
+    unset($page_path, $output, $post_type);
+    return null;
+}
+
+function get_permalink($post): string
+{
+    unset($post);
+    return 'https://example.test/private-tour-portal/';
+}
+
+function add_query_arg(array $args, string $url): string
+{
+    $separator = str_contains($url, '?') ? '&' : '?';
+    return $url . $separator . http_build_query($args);
 }
 
 function __(string $text, string $domain = 'default'): string
