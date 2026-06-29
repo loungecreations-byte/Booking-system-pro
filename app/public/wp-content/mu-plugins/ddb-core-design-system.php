@@ -1221,13 +1221,14 @@ if (!class_exists('DDB_Core_Design_System')) {
                 ],
                 [
                     "window.DDB_AGENT_API_URL = '" . esc_js($local_api_url) . "';",
-                    "window.DDB_AGENT_DEMO_VIDEO = 'https://agent.dagjedenbosch.nl/videos/avatar-jeroen.mp4';",
+                    "window.DDB_AGENT_DEMO_VIDEO = '';",
                 ],
                 $html
             );
 
             // Also replace direct host literals that may appear in bundled scripts or inline snippets.
             $html = str_replace('https://agent.dagjedenbosch.nl/agent', esc_js($local_api_url), $html);
+            $html = str_replace('https://agent.dagjedenbosch.nl/videos/avatar-jeroen.mp4', '', $html);
 
             // Catch minified variants that do not exactly match the canonical assignment string.
             $html = (string) preg_replace(
