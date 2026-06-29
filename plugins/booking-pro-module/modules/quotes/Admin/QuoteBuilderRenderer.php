@@ -2083,6 +2083,12 @@ final class QuoteBuilderRenderer
             .bsp-quote-admin__overview-stat:hover,.bsp-quote-admin__overview-stat.is-active{border-color:#2271b1;box-shadow:inset 0 0 0 1px #2271b1}
             .bsp-quote-admin__overview-stat span{font-size:12px;color:#50575e;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
             .bsp-quote-admin__overview-stat strong{font-size:24px;line-height:1.1}
+            .bsp-quote-admin__metric-card{display:flex;flex-direction:column;gap:4px;padding:12px 14px;border:1px solid #dcdcde;border-radius:8px;background:#fff;text-decoration:none;color:#1d2327}
+            .bsp-quote-admin__metric-card:hover,.bsp-quote-admin__metric-card.is-active{border-color:#2271b1;box-shadow:inset 0 0 0 1px #2271b1}
+            .bsp-quote-admin__metric-card span{font-size:12px;color:#50575e;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+            .bsp-quote-admin__metric-card strong{font-size:24px;line-height:1.1}
+            .bsp-quote-admin__plain-list{margin:0;padding-left:18px}
+            .bsp-quote-admin__plain-list li{margin:0 0 4px}
             .bsp-quote-admin__overview-next{border-left:5px solid #2271b1}
             .bsp-quote-admin__overview-next strong{display:block;font-size:20px;line-height:1.3;margin:4px 0}
             .bsp-quote-admin__overview-next p{margin:0 0 12px;color:#50575e}

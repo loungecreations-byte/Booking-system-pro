@@ -200,6 +200,8 @@ final class QuoteWorkspaceRenderer
         }
         echo '</div></div></section>';
 
+        self::renderTourTicketHealthPanel();
+
         $visibleBuckets = $active === 'all' ? $buckets : array($active => $buckets[$active]);
         foreach ($visibleBuckets as $bucket) {
             $rows = self::filterOperationsRows((array) $bucket['rows'], $filters);
@@ -218,6 +220,264 @@ final class QuoteWorkspaceRenderer
             echo '</tbody></table></div></div></section>';
         }
         echo '</div>';
+    }
+
+    private static function renderTourTicketHealthPanel(): void
+    {
+        $rows = self::buildTourTicketHealthRows();
+        $critical = count(array_filter($rows, static fn (array $row): bool => (string) ($row['severity'] ?? '') === 'critical'));
+        $warning = count(array_filter($rows, static fn (array $row): bool => (string) ($row['severity'] ?? '') === 'warning'));
+        $healthy = count(array_filter($rows, static fn (array $row): bool => (string) ($row['severity'] ?? '') === 'healthy'));
+
+        echo '<section class="postbox bsp-quote-admin__panel">';
+        echo '<div class="bsp-quote-admin__panel-header"><h3>' . esc_html__('Tour & Ticket Health', 'sbdp') . '</h3><p class="bsp-quote-admin__muted">' . esc_html__('Read-only controle op ticketbaarheid, tourcontent en klanttoegang. Dit wijzigt geen orders, tickets of boekingsstatussen.', 'sbdp') . '</p></div>';
+        echo '<div class="bsp-quote-admin__panel-body">';
+        echo '<div class="bsp-quote-admin__overview-stat-grid">';
+        echo self::renderStatCard(__('Kritiek', 'sbdp'), (string) $critical);
+        echo self::renderStatCard(__('Aandacht', 'sbdp'), (string) $warning);
+        echo self::renderStatCard(__('Gezond', 'sbdp'), (string) $healthy);
+        echo self::renderStatCard(__('Tours', 'sbdp'), (string) count($rows));
+        echo '</div>';
+
+        echo '<div class="bsp-quote-admin__table-wrap"><table class="widefat striped"><thead><tr><th>' . esc_html__('Tour', 'sbdp') . '</th><th>' . esc_html__('Health', 'sbdp') . '</th><th>' . esc_html__('Tickets', 'sbdp') . '</th><th>' . esc_html__('Checks', 'sbdp') . '</th><th>' . esc_html__('Volgende actie', 'sbdp') . '</th><th>' . esc_html__('Open', 'sbdp') . '</th></tr></thead><tbody>';
+        if ($rows === array()) {
+            echo '<tr><td colspan="6">' . esc_html__('Geen private tours gevonden.', 'sbdp') . '</td></tr>';
+        } else {
+            foreach ($rows as $row) {
+                $badgeClass = (string) ($row['severity'] ?? '') === 'critical'
+                    ? 'is-bad'
+                    : (((string) ($row['severity'] ?? '') === 'warning') ? 'is-warn' : 'is-good');
+                echo '<tr>';
+                echo '<td><strong>' . esc_html((string) ($row['title'] ?? '')) . '</strong><br><small class="bsp-quote-admin__muted">#' . esc_html((string) ($row['tour_id'] ?? 0)) . '</small></td>';
+                echo '<td>' . self::renderInlineBadge((string) ($row['health_label'] ?? ''), $badgeClass) . '</td>';
+                echo '<td>' . esc_html((string) ($row['ticket_summary'] ?? '')) . '<br><small class="bsp-quote-admin__muted">' . esc_html((string) ($row['latest_ticket_label'] ?? '')) . '</small></td>';
+                echo '<td><ul class="bsp-quote-admin__plain-list">';
+                foreach ((array) ($row['checks'] ?? array()) as $check) {
+                    echo '<li>' . esc_html((string) $check) . '</li>';
+                }
+                echo '</ul></td>';
+                echo '<td>' . esc_html((string) ($row['next_action'] ?? '')) . '</td>';
+                echo '<td><a class="button button-small" href="' . esc_url((string) ($row['edit_url'] ?? '#')) . '">' . esc_html__('Tour', 'sbdp') . '</a>';
+                if (! empty($row['product_url'])) {
+                    echo ' <a class="button button-small" href="' . esc_url((string) $row['product_url']) . '">' . esc_html__('Product', 'sbdp') . '</a>';
+                }
+                echo '</td>';
+                echo '</tr>';
+            }
+        }
+        echo '</tbody></table></div></div></section>';
+    }
+
+    /**
+     * @return array<int,array<string,mixed>>
+     */
+    private static function buildTourTicketHealthRows(): array
+    {
+        if (! class_exists('\SBDP_Private_Tours') || ! class_exists('\SBDP_Private_Tours_Tickets')) {
+            return array();
+        }
+
+        $tourPostType = \SBDP_Private_Tours::POST_TYPE_TOUR;
+        $tourIds = get_posts(array(
+            'post_type' => $tourPostType,
+            'post_status' => array('publish', 'draft', 'pending', 'private'),
+            'numberposts' => -1,
+            'fields' => 'ids',
+            'orderby' => 'title',
+            'order' => 'ASC',
+        ));
+        if (! is_array($tourIds)) {
+            return array();
+        }
+
+        $ticketStats = self::loadPrivateTourTicketStats();
+        $rows = array();
+        foreach ($tourIds as $tourIdRaw) {
+            $tourId = (int) $tourIdRaw;
+            if ($tourId <= 0) {
+                continue;
+            }
+
+            $steps = \SBDP_Private_Tours_Tickets::get_steps_for_tour($tourId);
+            $stepCount = count($steps);
+            $missingLocation = 0;
+            $missingContent = 0;
+            $missingMedia = 0;
+            foreach ($steps as $step) {
+                $lat = $step['lat'] ?? null;
+                $lng = $step['lng'] ?? null;
+                if (! is_numeric($lat) || ! is_numeric($lng)) {
+                    $missingLocation++;
+                }
+                $content = trim(wp_strip_all_tags((string) ($step['content'] ?? '')));
+                if ($content === '') {
+                    $missingContent++;
+                }
+                $hasMedia = trim((string) ($step['mediaUrl'] ?? '')) !== ''
+                    || trim((string) ($step['videoUrl'] ?? '')) !== ''
+                    || trim((string) ($step['audioUrl'] ?? '')) !== ''
+                    || trim((string) ($step['imageUrl'] ?? '')) !== ''
+                    || trim((string) ($step['heygenEmbedUrl'] ?? '')) !== '';
+                if (! $hasMedia) {
+                    $missingMedia++;
+                }
+            }
+
+            $productId = (int) get_post_meta($tourId, '_sbdp_tour_product_id', true);
+            $product = $productId > 0 ? get_post($productId) : null;
+            $supportEmail = trim((string) get_post_meta($tourId, '_sbdp_tour_support_email', true));
+            $stats = $ticketStats[$tourId] ?? array(
+                'total' => 0,
+                'active' => 0,
+                'redeemed' => 0,
+                'active_access' => 0,
+                'expired_access' => 0,
+                'latest_created_at' => '',
+            );
+
+            $checks = array();
+            $blockers = array();
+            $warnings = array();
+
+            if ($productId <= 0 || ! $product) {
+                $blockers[] = __('Geen WooCommerce product gekoppeld', 'sbdp');
+            } else {
+                $checks[] = sprintf(__('Product gekoppeld: #%d', 'sbdp'), $productId);
+                if ((string) get_post_status($productId) !== 'publish') {
+                    $warnings[] = __('Gekoppeld product is niet gepubliceerd', 'sbdp');
+                }
+            }
+
+            if ($stepCount <= 0) {
+                $blockers[] = __('Geen hoofdstukken/stops gepubliceerd', 'sbdp');
+            } else {
+                $checks[] = sprintf(_n('%d stop', '%d stops', $stepCount, 'sbdp'), $stepCount);
+                if ($missingLocation > 0) {
+                    $warnings[] = sprintf(_n('%d stop mist GPS', '%d stops missen GPS', $missingLocation, 'sbdp'), $missingLocation);
+                }
+                if ($missingContent > 0) {
+                    $warnings[] = sprintf(_n('%d stop mist tekst', '%d stops missen tekst', $missingContent, 'sbdp'), $missingContent);
+                }
+                if ($missingMedia > 0) {
+                    $warnings[] = sprintf(_n('%d stop mist media', '%d stops missen media', $missingMedia, 'sbdp'), $missingMedia);
+                }
+            }
+
+            if ($supportEmail === '') {
+                $warnings[] = __('Geen support e-mail ingesteld', 'sbdp');
+            } else {
+                $checks[] = __('Support e-mail aanwezig', 'sbdp');
+            }
+
+            if ((int) ($stats['total'] ?? 0) <= 0) {
+                $warnings[] = __('Nog geen tickets uitgegeven', 'sbdp');
+            } else {
+                $checks[] = sprintf(__('Tickets: %d totaal, %d actief, %d gestart', 'sbdp'), (int) $stats['total'], (int) $stats['active'], (int) $stats['active_access']);
+            }
+
+            $severity = 'healthy';
+            $healthLabel = __('Gezond', 'sbdp');
+            $nextAction = __('Geen directe actie nodig', 'sbdp');
+            if ($blockers !== array()) {
+                $severity = 'critical';
+                $healthLabel = __('Kritiek', 'sbdp');
+                $nextAction = (string) $blockers[0];
+            } elseif ($warnings !== array()) {
+                $severity = 'warning';
+                $healthLabel = __('Aandacht', 'sbdp');
+                $nextAction = (string) $warnings[0];
+            }
+
+            $rows[] = array(
+                'tour_id' => $tourId,
+                'title' => get_the_title($tourId),
+                'severity' => $severity,
+                'health_label' => $healthLabel,
+                'ticket_summary' => sprintf(
+                    __('%d totaal / %d actief / %d verlopen', 'sbdp'),
+                    (int) ($stats['total'] ?? 0),
+                    (int) ($stats['active'] ?? 0),
+                    (int) ($stats['expired_access'] ?? 0)
+                ),
+                'latest_ticket_label' => trim((string) ($stats['latest_created_at'] ?? '')) !== ''
+                    ? sprintf(__('Laatste ticket: %s', 'sbdp'), (string) $stats['latest_created_at'])
+                    : __('Nog geen ticketdata', 'sbdp'),
+                'checks' => array_values(array_merge($blockers, $warnings, $checks)),
+                'next_action' => $nextAction,
+                'edit_url' => get_edit_post_link($tourId, 'raw') ?: '#',
+                'product_url' => $productId > 0 ? (get_edit_post_link($productId, 'raw') ?: '') : '',
+            );
+        }
+
+        usort($rows, static function (array $left, array $right): int {
+            $rank = array('critical' => 0, 'warning' => 1, 'healthy' => 2);
+            $leftRank = $rank[(string) ($left['severity'] ?? 'healthy')] ?? 2;
+            $rightRank = $rank[(string) ($right['severity'] ?? 'healthy')] ?? 2;
+            if ($leftRank !== $rightRank) {
+                return $leftRank <=> $rightRank;
+            }
+            return strcasecmp((string) ($left['title'] ?? ''), (string) ($right['title'] ?? ''));
+        });
+
+        return $rows;
+    }
+
+    /**
+     * @return array<int,array<string,mixed>>
+     */
+    private static function loadPrivateTourTicketStats(): array
+    {
+        global $wpdb;
+
+        if (! isset($wpdb) || ! is_object($wpdb)) {
+            return array();
+        }
+
+        $table = $wpdb->prefix . 'sbdp_private_tour_tickets';
+        $tableExists = (string) $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table));
+        if ($tableExists !== $table) {
+            return array();
+        }
+
+        $now = current_time('mysql', true);
+        $rows = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT tour_id,
+                    COUNT(*) AS total,
+                    SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) AS active,
+                    SUM(CASE WHEN redeemed_at IS NOT NULL THEN 1 ELSE 0 END) AS redeemed,
+                    SUM(CASE WHEN access_expires_at IS NOT NULL AND access_expires_at >= %s THEN 1 ELSE 0 END) AS active_access,
+                    SUM(CASE WHEN access_expires_at IS NOT NULL AND access_expires_at < %s THEN 1 ELSE 0 END) AS expired_access,
+                    MAX(created_at) AS latest_created_at
+                FROM {$table}
+                GROUP BY tour_id",
+                $now,
+                $now
+            ),
+            ARRAY_A
+        );
+
+        if (! is_array($rows)) {
+            return array();
+        }
+
+        $stats = array();
+        foreach ($rows as $row) {
+            $tourId = (int) ($row['tour_id'] ?? 0);
+            if ($tourId <= 0) {
+                continue;
+            }
+            $stats[$tourId] = array(
+                'total' => (int) ($row['total'] ?? 0),
+                'active' => (int) ($row['active'] ?? 0),
+                'redeemed' => (int) ($row['redeemed'] ?? 0),
+                'active_access' => (int) ($row['active_access'] ?? 0),
+                'expired_access' => (int) ($row['expired_access'] ?? 0),
+                'latest_created_at' => (string) ($row['latest_created_at'] ?? ''),
+            );
+        }
+
+        return $stats;
     }
 
     /**
