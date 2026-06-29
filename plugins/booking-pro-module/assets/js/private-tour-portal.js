@@ -484,6 +484,7 @@ function mountPortal(root) {
 	const submitButton = form.querySelector("button[type='submit']");
 	const params = new URLSearchParams(window.location.search);
 	const previewToken = params.get('sbdp_preview_token');
+	const ticketToken = params.get('ticket');
 
 	state.ui.prevButton.addEventListener('click', () => {
 		setActiveIndex(state.activeIndex - 1);
@@ -539,6 +540,11 @@ function mountPortal(root) {
 				form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
 			}
 		}, 150);
+	}
+
+	if (!previewToken && ticketToken && tokenField) {
+		tokenField.value = ticketToken;
+		renderMessage(messages, 'Ticketlink geladen. Vul indien gevraagd het e-mailadres van je bestelling in en start de tour.', 'success');
 	}
 
 	form.addEventListener('submit', async (event) => {
@@ -824,8 +830,8 @@ function initPortal() {
 	components.forEach((component) => mountPortal(component));
 }
 
-document.addEventListener('DOMContentLoaded', initPortal);
-
-export { SELECTORS, request, initPortal };
-
-
+if (document.readyState === 'loading') {
+	document.addEventListener('DOMContentLoaded', initPortal, { once: true });
+} else {
+	initPortal();
+}

@@ -50,6 +50,24 @@ namespace BSP\Tests\Quotes {
             $this->assertSame('blocked', $disabled['routeIntent']);
         }
 
+        public function testJeroenBoschTourProductCanBeExplicitDirectBookable(): void
+        {
+            $this->setMeta(116, array(
+                '_ddb_booking_mode' => 'direct',
+                '_ddb_direct_booking_enabled' => 'yes',
+                '_ddb_quote_os_enabled' => 'no',
+                '_ddb_supplier_confirmation_required' => 'no',
+            ));
+
+            $resolved = (new BookingModeService())->resolve(116);
+
+            $this->assertSame('direct', $resolved['bookingMode']);
+            $this->assertTrue($resolved['directBookable']);
+            $this->assertFalse($resolved['quoteOsEnabled']);
+            $this->assertFalse($resolved['supplierConfirmationRequired']);
+            $this->assertSame('checkout', $resolved['routeIntent']);
+        }
+
         public function testQuoteProductIsRequestOnlyWithQuoteOsEnabled(): void
         {
             $this->setMeta(203, array(

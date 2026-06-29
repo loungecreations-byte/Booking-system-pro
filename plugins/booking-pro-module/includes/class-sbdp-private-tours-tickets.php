@@ -16,8 +16,11 @@ if (! defined('ABSPATH')) {
 class SBDP_Private_Tours_Tickets
 {
     private const TABLE = 'sbdp_private_tour_tickets';
+    private const SCHEMA_OPTION = 'sbdp_private_tour_tickets_schema_version';
+    private const SCHEMA_VERSION = 2;
     private const SESSION_PREFIX = 'sbdp_private_session_';
     public const SESSION_TTL = 12 * HOUR_IN_SECONDS;
+    public const ACCESS_TTL = DAY_IN_SECONDS;
 /**
      * Cache for step counts during a request lifecycle.
      *
@@ -46,6 +49,8 @@ class SBDP_Private_Tours_Tickets
             session_expires_at datetime NULL,
             created_at datetime NOT NULL,
             redeemed_at datetime NULL,
+            activated_at datetime NULL,
+            access_expires_at datetime NULL,
             expires_at datetime NULL,
             PRIMARY KEY  (id),
             UNIQUE KEY token (token),
@@ -55,6 +60,20 @@ class SBDP_Private_Tours_Tickets
         ) {$collate};";
         require_once ABSPATH . 'wp-admin/includes/upgrade.php';
         dbDelta($sql);
+    }
+
+    /**
+     * Upgrade the ticket table when code introduces new columns.
+     */
+    public static function maybe_upgrade_schema(): void
+    {
+        $version = (int) get_option(self::SCHEMA_OPTION, 0);
+        if ($version >= self::SCHEMA_VERSION) {
+            return;
+        }
+
+        self::create_table();
+        update_option(self::SCHEMA_OPTION, self::SCHEMA_VERSION, false);
     }
 
     /**
@@ -172,16 +191,18 @@ class SBDP_Private_Tours_Tickets
         $lines   = array();
         $lines[] = sprintf(__('Bedankt voor je aankoop van de "%s" privetour.', 'sbdp'), $tour_title);
         $lines[] = '';
-        $lines[] = __('Gebruik onderstaande ticketcodes om iedere deelnemer toegang te geven:', 'sbdp');
+        $lines[] = __('Gebruik onderstaande persoonlijke links om iedere deelnemer toegang te geven:', 'sbdp');
         foreach ($tickets as $index => $ticket) {
-            $lines[] = sprintf('%d. %s', $index + 1, $ticket['token']);
+            $token = (string) ($ticket['token'] ?? '');
+            $lines[] = sprintf('%d. %s', $index + 1, self::ticket_url($token));
         }
 
         $lines[] = '';
         $lines[] = sprintf(__('Open het portaal: %s', 'sbdp'), $portal);
-        $lines[] = __('Voer per deelnemer een ticketcode in om de tour te starten.', 'sbdp');
+        $lines[] = __('Elke link is persoonlijk en start bij eerste gebruik een kijkperiode van 24 uur.', 'sbdp');
+        $lines[] = __('Je kunt de ticketcode in de link ook handmatig invoeren in het portaal.', 'sbdp');
         $lines[] = __('Gebruik het e-mailadres van je bestelling voor toegang.', 'sbdp');
-        $lines[] = __('Deel je ticketcodes niet; elke code is persoonlijk.', 'sbdp');
+        $lines[] = __('Deel elke link met precies één deelnemer.', 'sbdp');
         if (! empty($tickets[0]['expires_at'])) {
             $lines[] = sprintf(__('Tickets zijn geldig tot %s (UTC).', 'sbdp'), $tickets[0]['expires_at']);
         }
@@ -361,12 +382,13 @@ class SBDP_Private_Tours_Tickets
      *
      * @return string
      */
-    public static function create_session(int $ticket_id): string
+    public static function create_session(int $ticket_id, ?int $ttl = null): string
     {
         global $wpdb;
             $session = self::generate_token(32);
-            $expires_at = gmdate('Y-m-d H:i:s', time() + self::SESSION_TTL);
-            set_transient(self::SESSION_PREFIX . $session, $ticket_id, self::SESSION_TTL);
+            $ttl = $ttl !== null ? max(1, min(self::SESSION_TTL, $ttl)) : self::SESSION_TTL;
+            $expires_at = gmdate('Y-m-d H:i:s', time() + $ttl);
+            set_transient(self::SESSION_PREFIX . $session, $ticket_id, $ttl);
             $wpdb->update(self::table(), array(
                 'session_token'      => $session,
                 'session_expires_at' => $expires_at,
@@ -374,6 +396,80 @@ class SBDP_Private_Tours_Tickets
                 'id' => $ticket_id,
             ), array('%s', '%s'), array('%d'));
             return $session;
+    }
+
+    /**
+     * Start or validate the 24-hour ticket access window.
+     *
+     * @param int                  $ticket_id Ticket identifier.
+     * @param array<string, mixed> $ticket    Current ticket row.
+     *
+     * @return array<string, mixed>|WP_Error
+     */
+    public static function ensure_access_window(int $ticket_id, array $ticket)
+    {
+        global $wpdb;
+
+        if ($ticket_id <= 0) {
+            return new WP_Error('sbdp_invalid_ticket', __('The provided ticket is not valid.', 'sbdp'), array('status' => 404));
+        }
+
+        $now = time();
+        $activated_at = isset($ticket['activated_at']) ? trim((string) $ticket['activated_at']) : '';
+        $access_expires_at = isset($ticket['access_expires_at']) ? trim((string) $ticket['access_expires_at']) : '';
+
+        if ($access_expires_at !== '') {
+            $access_expires = strtotime($access_expires_at . ' UTC');
+            if ($access_expires && $access_expires < $now) {
+                return new WP_Error('sbdp_ticket_access_expired', __('This ticket access period has expired.', 'sbdp'), array('status' => 403));
+            }
+
+            return $ticket;
+        }
+
+        $activation_time = $activated_at !== '' ? strtotime($activated_at . ' UTC') : false;
+        if (! $activation_time) {
+            $activation_time = $now;
+            $activated_at = gmdate('Y-m-d H:i:s', $activation_time);
+        }
+
+        $ttl = self::access_ttl($ticket);
+        $access_expires_at = gmdate('Y-m-d H:i:s', $activation_time + $ttl);
+        if (($activation_time + $ttl) < $now) {
+            return new WP_Error('sbdp_ticket_access_expired', __('This ticket access period has expired.', 'sbdp'), array('status' => 403));
+        }
+
+        $wpdb->update(self::table(), array(
+                'activated_at'       => $activated_at,
+                'access_expires_at'  => $access_expires_at,
+            ), array(
+                'id' => $ticket_id,
+            ), array('%s', '%s'), array('%d'));
+
+        $ticket['activated_at'] = $activated_at;
+        $ticket['access_expires_at'] = $access_expires_at;
+
+        return $ticket;
+    }
+
+    /**
+     * Resolve remaining ticket access seconds.
+     *
+     * @param array<string, mixed> $ticket Ticket row.
+     */
+    public static function access_remaining_seconds(array $ticket): int
+    {
+        $access_expires_at = isset($ticket['access_expires_at']) ? trim((string) $ticket['access_expires_at']) : '';
+        if ($access_expires_at === '') {
+            return self::ACCESS_TTL;
+        }
+
+        $expires = strtotime($access_expires_at . ' UTC');
+        if (! $expires) {
+            return self::ACCESS_TTL;
+        }
+
+        return max(0, $expires - time());
     }
     /**
      * Generate a preview ticket for editors without an order.
@@ -619,7 +715,35 @@ class SBDP_Private_Tours_Tickets
             return get_permalink($page);
         }
 
-        return home_url('/');
+        return home_url('/private-tour-portal/');
+    }
+
+    /**
+     * Build a direct portal URL for a ticket token.
+     */
+    public static function ticket_url(string $token): string
+    {
+        $token = preg_replace('/[^A-Za-z0-9_-]/', '', $token) ?? '';
+        $base = self::portal_url();
+        if ($token === '') {
+            return $base;
+        }
+
+        return add_query_arg(array('ticket' => $token), $base);
+    }
+
+    /**
+     * Resolve the access window in seconds.
+     *
+     * @param array<string, mixed> $ticket Ticket row.
+     */
+    private static function access_ttl(array $ticket): int
+    {
+        $tour_id = (int) ($ticket['tour_id'] ?? 0);
+        $order_id = (int) ($ticket['order_id'] ?? 0);
+        $seconds = (int) apply_filters('sbdp/private_tours/access_ttl', self::ACCESS_TTL, $tour_id, $order_id, $ticket);
+
+        return max(HOUR_IN_SECONDS, $seconds);
     }
 
     /**

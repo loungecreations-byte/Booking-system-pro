@@ -245,14 +245,24 @@ class SBDP_Private_Tours_REST
             }
         }
 
+        $ticket = SBDP_Private_Tours_Tickets::ensure_access_window((int) $ticket['id'], $ticket);
+        if (is_wp_error($ticket)) {
+            return $ticket;
+        }
+
         $session = '';
-        $expires_in = SBDP_Private_Tours_Tickets::SESSION_TTL;
+        $access_remaining = SBDP_Private_Tours_Tickets::access_remaining_seconds($ticket);
+        if ($access_remaining <= 0) {
+            return new WP_Error('sbdp_ticket_access_expired', __('This ticket access period has expired.', 'sbdp'), array('status' => 403));
+        }
+
+        $expires_in = min(SBDP_Private_Tours_Tickets::SESSION_TTL, $access_remaining);
         $now = time();
         if (! empty($ticket['session_token']) && ! empty($ticket['session_expires_at'])) {
             $session_expires = strtotime($ticket['session_expires_at'] . ' UTC');
             if ($session_expires && $session_expires > $now) {
                 $session = (string) $ticket['session_token'];
-                $ttl = max(0, $session_expires - $now);
+                $ttl = min(max(0, $session_expires - $now), $access_remaining);
                 if ($ttl > 0) {
                     set_transient('sbdp_private_session_' . $session, (int) $ticket['id'], $ttl);
                     $expires_in = $ttl;
@@ -261,7 +271,7 @@ class SBDP_Private_Tours_REST
         }
 
         if ('' === $session) {
-            $session = SBDP_Private_Tours_Tickets::create_session((int) $ticket['id']);
+            $session = SBDP_Private_Tours_Tickets::create_session((int) $ticket['id'], $access_remaining);
             SBDP_Private_Tours_Tickets::touch_redeemed((int) $ticket['id']);
         }
 
@@ -270,6 +280,7 @@ class SBDP_Private_Tours_REST
                 'tourId'    => (int) $ticket['tour_id'],
                 'orderId'   => (int) $ticket['order_id'],
                 'expiresIn' => $expires_in,
+                'accessExpiresAt' => (string) ($ticket['access_expires_at'] ?? ''),
             ));
     }
 
@@ -369,6 +380,8 @@ class SBDP_Private_Tours_REST
                 'email'      => $ticket['email'],
                 'status'     => $ticket['status'],
                 'redeemedAt' => $ticket['redeemed_at'],
+                'activatedAt' => $ticket['activated_at'] ?? null,
+                'accessExpiresAt' => $ticket['access_expires_at'] ?? null,
             ),
             'tour'     => array(
                 'id'          => $tour_id,
