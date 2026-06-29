@@ -24,6 +24,15 @@
         return text;
       };
 
+  function escapeHtml(value) {
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
   function hasEndpoint(key) {
     return !!(v2 && typeof v2[key] === 'string' && v2[key]);
   }
@@ -422,6 +431,8 @@
       container.appendChild(legend);
     }
 
+    container.appendChild(renderDayScale(dayStart, dayEnd));
+
     timeline.forEach((entry) => {
       const card = document.createElement('section');
       card.className = 'sbdp-planboard__resource';
@@ -462,6 +473,7 @@
 
       const timelineRow = document.createElement('div');
       timelineRow.className = 'sbdp-planboard__timeline';
+      timelineRow.setAttribute('aria-label', `${resourceName} ${i18n('planning', 'sbdp')}`);
       if (hasEndpoint('move')) {
         timelineRow.dataset.resourceId = String(resource.id || 0);
         timelineRow.addEventListener('dragover', (event) => {
@@ -516,6 +528,22 @@
     return container;
   }
 
+  function renderDayScale(dayStart, dayEnd) {
+    const scale = document.createElement('div');
+    scale.className = 'sbdp-planboard__scale';
+    scale.setAttribute('aria-hidden', 'true');
+
+    const startHour = dayStart.getHours();
+    const endHour = dayEnd.getHours();
+    for (let hour = startHour; hour <= endHour; hour += 2) {
+      const marker = document.createElement('span');
+      marker.textContent = `${String(hour).padStart(2, '0')}:00`;
+      scale.appendChild(marker);
+    }
+
+    return scale;
+  }
+
   function createSegmentElement(segment, dayStart, dayEnd, totalMs, fallbackColor = '#2563eb', resourceMeta) {
     const element = document.createElement('div');
     const type = segment.type === 'booking' ? 'booking' : 'available';
@@ -538,7 +566,18 @@
     }
 
     if (type === 'booking' && segment.event) {
-      element.innerHTML = `<strong>${segment.event.product_name || i18n('Activiteit', 'sbdp')}</strong><span>${label}</span>`;
+      const customer = segment.event.customer || '';
+      const participants = segment.event.participants ? `${segment.event.participants} ${i18n('deelnemers', 'sbdp')}` : '';
+      const orderStatus = segment.event.order_status || '';
+      element.innerHTML = `
+        <strong>${escapeHtml(segment.event.product_name || i18n('Activiteit', 'sbdp'))}</strong>
+        <span class="sbdp-planboard__segment-time">${escapeHtml(label)}</span>
+        <span class="sbdp-planboard__segment-meta">
+          ${customer ? `<span>${escapeHtml(customer)}</span>` : ''}
+          ${participants ? `<span>${escapeHtml(participants)}</span>` : ''}
+          ${orderStatus ? `<span>${escapeHtml(orderStatus)}</span>` : ''}
+        </span>
+      `;
       const titleParts = [
         segment.event.product_name,
         segment.event.customer,
@@ -548,6 +587,7 @@
         titleParts.push(label);
       }
       element.title = titleParts.join(' | ');
+      element.setAttribute('aria-label', titleParts.join(', '));
 
       const bookingPayload = buildBookingPayload(segment.event);
       if (bookingPayload) {
