@@ -84,6 +84,13 @@ function ActivityOverviewApp({ config }: ActivityOverviewAppProps) {
         return;
       }
 
+      const hasServerProducts = Array.isArray(config.products) && config.products.length > 0;
+      const hasRuntimeContext = discoveryContext.date !== "" || discoveryContext.participants !== null;
+
+      if (hasServerProducts && !hasRuntimeContext) {
+        return;
+      }
+
       setLoading(true);
       try {
         const result = await fetchProducts(config, discoveryContext);
