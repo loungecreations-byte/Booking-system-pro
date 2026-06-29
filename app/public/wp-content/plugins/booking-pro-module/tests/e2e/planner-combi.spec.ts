@@ -1,6 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
-const PRODUCT_URL = "http://dagjedenbosch.local/product/bierproeverij/";
+const BASE_URL = (process.env.E2E_BASE_URL || "http://dagjedenbosch.local").replace(/\/+$/, "");
+const PRODUCT_URL = `${BASE_URL}/product/bierproeverij/`;
 
 function isoDate(daysFromNow = 1): string {
   const value = new Date();
@@ -9,7 +10,7 @@ function isoDate(daysFromNow = 1): string {
 }
 
 async function clearPlannerStorage(page: Page) {
-  await page.goto("http://dagjedenbosch.local/", { waitUntil: "domcontentloaded" });
+  await page.goto(`${BASE_URL}/`, { waitUntil: "domcontentloaded" });
   await page.evaluate(() => {
     try {
       window.localStorage.removeItem("sbdpPlannerDraftV1");

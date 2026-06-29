@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
-const PRODUCT_URL = "http://dagjedenbosch.local/product/bierproeverij/";
+const BASE_URL = (process.env.E2E_BASE_URL || "http://dagjedenbosch.local").replace(/\/+$/, "");
+const PRODUCT_URL = `${BASE_URL}/product/bierproeverij/`;
 
 function isoDate(daysFromNow = 1): string {
   const value = new Date();
