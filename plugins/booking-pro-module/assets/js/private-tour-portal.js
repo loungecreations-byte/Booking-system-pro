@@ -97,6 +97,25 @@ function normalizeDisplayText(value, fallback = '') {
 	return raw;
 }
 
+function formatAccessUntil(value) {
+	if (!value) {
+		return '';
+	}
+
+	const normalized = String(value).trim().replace(' ', 'T');
+	const date = new Date(`${normalized.endsWith('Z') ? normalized : `${normalized}Z`}`);
+	if (Number.isNaN(date.getTime())) {
+		return '';
+	}
+
+	return new Intl.DateTimeFormat('nl-NL', {
+		day: 'numeric',
+		month: 'short',
+		hour: '2-digit',
+		minute: '2-digit',
+	}).format(date);
+}
+
 /**
  * Execute a REST call against the private tour API.
  *
@@ -242,12 +261,12 @@ function buildWizard(container) {
 	const prevButton = document.createElement('button');
 	prevButton.type = 'button';
 	prevButton.className = 'button button-secondary';
-	prevButton.textContent = 'Vorige hoofdstuk';
+	prevButton.textContent = 'Vorig hoofdstuk';
 
 	const nextButton = document.createElement('button');
 	nextButton.type = 'button';
 	nextButton.className = 'button button-primary';
-	nextButton.textContent = 'Volgende hoofdstuk';
+	nextButton.textContent = 'Volgend hoofdstuk';
 
 	controls.appendChild(prevButton);
 	controls.appendChild(nextButton);
@@ -312,7 +331,7 @@ function renderMediaLinks(step) {
 
 	if (heygenUrl) {
 		blocks.push(
-			`<div class="sbdp-portal__media sbdp-portal__media--heygen"><div class="sbdp-portal__video-frame" style="position:relative;width:100%;padding-bottom:56.25%;overflow:hidden;"><iframe src="${heygenUrl}" style="position:absolute;top:0;left:0;width:100%;height:100%;border:0;" allowfullscreen allow="autoplay; fullscreen"></iframe></div></div>`
+			`<div class="sbdp-portal__media sbdp-portal__media--heygen"><div class="sbdp-portal__video-frame"><iframe src="${heygenUrl}" allowfullscreen allow="autoplay; fullscreen"></iframe></div></div>`
 		);
 	}
 
@@ -412,7 +431,11 @@ function renderSession(root, payload) {
 		if (contactEmail) {
 			stats.push(contactEmail);
 		}
-		meta.textContent = stats.join(' • ');
+		const accessUntil = formatAccessUntil(payload.ticket?.accessExpiresAt);
+		if (accessUntil) {
+			stats.push(`Geldig tot ${accessUntil}`);
+		}
+		meta.innerHTML = stats.map((item) => `<span>${escapeHtml(item)}</span>`).join('');
 	}
 
 	const login = root.querySelector(SELECTORS.login);
@@ -644,7 +667,7 @@ function mountPortal(root) {
 		const statuses = computeStatuses();
 		state.ui.nav.innerHTML = '';
 
-	state.steps.forEach((step, idx) => {
+		state.steps.forEach((step, idx) => {
 			const item = document.createElement('li');
 			item.className = 'sbdp-wizard__nav-item';
 
@@ -674,12 +697,12 @@ function mountPortal(root) {
 
 			item.appendChild(button);
 			state.ui.nav.appendChild(item);
-	});
+		});
 
-	renderActiveStep();
-	updateControls();
-	updateProgressSummary(root, state);
-}
+		renderActiveStep();
+		updateControls();
+		updateProgressSummary(root, state);
+	}
 
 	function renderActiveStep() {
 		const step = state.steps[state.activeIndex];
@@ -746,7 +769,7 @@ function mountPortal(root) {
 
 		if (!currentStatus.unlocked) {
 			state.ui.nextButton.disabled = true;
-			state.ui.nextButton.textContent = 'Volgende hoofdstuk';
+			state.ui.nextButton.textContent = 'Volgend hoofdstuk';
 			return;
 		}
 
@@ -762,7 +785,7 @@ function mountPortal(root) {
 		}
 
 		state.ui.nextButton.disabled = false;
-		state.ui.nextButton.textContent = currentStatus.completed ? 'Volgende hoofdstuk' : 'Markeer als voltooid';
+		state.ui.nextButton.textContent = currentStatus.completed ? 'Volgend hoofdstuk' : 'Markeer als voltooid';
 	}
 
 	async function handleNext() {

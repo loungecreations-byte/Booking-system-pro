@@ -17,6 +17,7 @@
   margin: 0 auto 2rem;
   max-width: 1200px;
   padding: 2rem;
+  width: min(100%, 1200px);
 }
 
 .sbdp-portal__login,
@@ -124,6 +125,7 @@
 
 .sbdp-portal__session {
   margin-top: 2rem;
+  overflow: hidden;
   position: relative;
 }
 
@@ -153,6 +155,16 @@
   gap: 0.5rem;
   font-size: 0.85rem;
   margin-top: 0.65rem;
+}
+
+.sbdp-portal__meta span {
+  background: color-mix(in srgb, var(--portal-surface-2) 78%, transparent);
+  border: 1px solid var(--portal-border);
+  border-radius: 999px;
+  color: var(--portal-text);
+  display: inline-flex;
+  line-height: 1.2;
+  padding: 0.35rem 0.7rem;
 }
 
 .sbdp-portal__progress {
@@ -208,6 +220,11 @@
   display: grid;
   gap: 1.25rem;
   grid-template-columns: minmax(180px, 220px) 1fr;
+}
+
+.sbdp-portal__wizard-nav-wrapper,
+.sbdp-portal__wizard-content-wrapper {
+  min-width: 0;
 }
 
 .sbdp-portal__wizard-nav {
@@ -301,7 +318,9 @@
 .sbdp-portal__video-frame {
   background: var(--portal-surface-2);
   border-radius: 14px;
+  aspect-ratio: 16 / 9;
   overflow: hidden;
+  position: relative;
   width: 100%;
   margin-top: 0.65rem;
 }
@@ -320,8 +339,10 @@
 .sbdp-portal__video-frame iframe {
   border: 0;
   display: block;
-  height: min(450px, 70vh);
+  height: 100%;
+  inset: 0;
   max-width: 100%;
+  position: absolute;
   width: 100%;
 }
 
@@ -356,6 +377,7 @@
   flex-wrap: wrap;
   gap: 0.75rem;
   margin-top: 1.25rem;
+  z-index: 3;
 }
 
 .sbdp-wizard__controls button {
@@ -378,6 +400,11 @@
     flex-direction: row;
     overflow-x: auto;
     padding-bottom: 0.5rem;
+    scroll-snap-type: x proximity;
+  }
+
+  .sbdp-wizard__nav-item {
+    scroll-snap-align: start;
   }
 
   .sbdp-wizard__nav-button {
@@ -391,13 +418,95 @@
 }
 
 @media (max-width: 640px) {
-  .sbdp-private-tour-portal,
+  .sbdp-private-tour-portal {
+    border-left: 0;
+    border-radius: 0;
+    border-right: 0;
+    margin-left: calc(50% - 50vw);
+    margin-right: calc(50% - 50vw);
+    padding: 0.85rem;
+    width: 100vw;
+  }
+
   .sbdp-portal__login,
   .sbdp-portal__session {
-    padding: 1.5rem;
+    border-radius: 16px;
+    padding: 1rem;
   }
 
   .sbdp-portal__form label {
     font-size: 0.75rem;
+  }
+
+  .sbdp-portal__form button {
+    justify-content: center;
+    min-height: 46px;
+    width: 100%;
+  }
+
+  .sbdp-portal__header {
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+  }
+
+  .sbdp-portal__title {
+    font-size: 1.45rem;
+    line-height: 1.15;
+  }
+
+  .sbdp-portal__summary {
+    font-size: 0.95rem;
+  }
+
+  .sbdp-portal__meta span,
+  .sbdp-portal__progress-meta {
+    font-size: 0.8rem;
+  }
+
+  .sbdp-portal__wizard-layout {
+    gap: 0.85rem;
+  }
+
+  .sbdp-portal__wizard-nav-wrapper {
+    background: linear-gradient(180deg, var(--portal-surface) 75%, transparent);
+    margin: 0 -0.25rem;
+    padding: 0.1rem 0.25rem 0.35rem;
+    position: sticky;
+    top: 0;
+    z-index: 4;
+  }
+
+  .sbdp-wizard__nav-button {
+    min-height: 44px;
+    min-width: 150px;
+    padding: 0.6rem 0.75rem;
+  }
+
+  .sbdp-portal__wizard-content-wrapper {
+    border-radius: 16px;
+    padding: 1rem;
+  }
+
+  .sbdp-wizard__step-header h3 {
+    font-size: 1.2rem;
+    line-height: 1.2;
+  }
+
+  .sbdp-portal__video-frame {
+    border-radius: 12px;
+  }
+
+  .sbdp-wizard__controls {
+    background: color-mix(in srgb, var(--portal-surface) 92%, transparent);
+    border-top: 1px solid var(--portal-border);
+    bottom: 0;
+    margin: 1rem -1rem -1rem;
+    padding: 0.75rem 1rem max(0.75rem, env(safe-area-inset-bottom));
+    position: sticky;
+  }
+
+  .sbdp-wizard__controls button {
+    flex: 1 1 calc(50% - 0.5rem);
+    min-height: 46px;
   }
 }
