@@ -380,7 +380,7 @@ final class QuoteWorkspaceRenderer
         echo self::renderStatCard(__('Tours', 'sbdp'), (string) count($rows));
         echo '</div>';
 
-        echo '<div class="bsp-quote-admin__table-wrap"><table class="widefat striped"><thead><tr><th>' . esc_html__('Tour', 'sbdp') . '</th><th>' . esc_html__('Health', 'sbdp') . '</th><th>' . esc_html__('Tickets', 'sbdp') . '</th><th>' . esc_html__('Checks', 'sbdp') . '</th><th>' . esc_html__('Volgende actie', 'sbdp') . '</th><th>' . esc_html__('Open', 'sbdp') . '</th></tr></thead><tbody>';
+        echo '<div class="bsp-quote-admin__table-wrap"><table class="widefat striped"><thead><tr><th>' . esc_html__('Tour', 'sbdp') . '</th><th>' . esc_html__('Health', 'sbdp') . '</th><th>' . esc_html__('Tickets', 'sbdp') . '</th><th>' . esc_html__('Readiness detail', 'sbdp') . '</th><th>' . esc_html__('Volgende actie', 'sbdp') . '</th><th>' . esc_html__('Open', 'sbdp') . '</th></tr></thead><tbody>';
         if ($rows === array()) {
             echo '<tr><td colspan="6">' . esc_html__('Geen private tours gevonden.', 'sbdp') . '</td></tr>';
         } else {
@@ -396,11 +396,36 @@ final class QuoteWorkspaceRenderer
                 foreach ((array) ($row['checks'] ?? array()) as $check) {
                     echo '<li>' . esc_html((string) $check) . '</li>';
                 }
-                echo '</ul></td>';
+                echo '</ul>';
+                if (! empty($row['issue_links']) && is_array($row['issue_links'])) {
+                    echo '<details class="bsp-quote-admin__issue-links"><summary>' . esc_html__('Toon concrete herstelpunten', 'sbdp') . '</summary><ul>';
+                    foreach ($row['issue_links'] as $issue) {
+                        if (! is_array($issue)) {
+                            continue;
+                        }
+                        $label = (string) ($issue['label'] ?? '');
+                        $url = (string) ($issue['url'] ?? '');
+                        echo '<li>';
+                        if ($url !== '') {
+                            echo '<a href="' . esc_url($url) . '">' . esc_html($label) . '</a>';
+                        } else {
+                            echo esc_html($label);
+                        }
+                        if (! empty($issue['hint'])) {
+                            echo '<small class="bsp-quote-admin__muted"> ' . esc_html((string) $issue['hint']) . '</small>';
+                        }
+                        echo '</li>';
+                    }
+                    echo '</ul></details>';
+                }
+                echo '</td>';
                 echo '<td>' . esc_html((string) ($row['next_action'] ?? '')) . '</td>';
                 echo '<td><a class="button button-small" href="' . esc_url((string) ($row['edit_url'] ?? '#')) . '">' . esc_html__('Tour', 'sbdp') . '</a>';
                 if (! empty($row['product_url'])) {
                     echo ' <a class="button button-small" href="' . esc_url((string) $row['product_url']) . '">' . esc_html__('Product', 'sbdp') . '</a>';
+                }
+                if (! empty($row['preview_url'])) {
+                    echo ' <a class="button button-small" href="' . esc_url((string) $row['preview_url']) . '">' . esc_html__('Preview', 'sbdp') . '</a>';
                 }
                 echo '</td>';
                 echo '</tr>';
@@ -444,15 +469,29 @@ final class QuoteWorkspaceRenderer
             $missingLocation = 0;
             $missingContent = 0;
             $missingMedia = 0;
+            $issueLinks = array();
             foreach ($steps as $step) {
+                $stepId = (int) ($step['id'] ?? 0);
+                $stepTitle = (string) (($step['title'] ?? '') ?: sprintf(__('Stop #%d', 'sbdp'), $stepId));
+                $stepUrl = $stepId > 0 ? (get_edit_post_link($stepId, 'raw') ?: '') : '';
                 $lat = $step['lat'] ?? null;
                 $lng = $step['lng'] ?? null;
                 if (! is_numeric($lat) || ! is_numeric($lng)) {
                     $missingLocation++;
+                    $issueLinks[] = array(
+                        'label' => sprintf(__('%s: GPS ontbreekt', 'sbdp'), $stepTitle),
+                        'url' => $stepUrl,
+                        'hint' => __('Vul latitude en longitude in bij de tourstop.', 'sbdp'),
+                    );
                 }
                 $content = trim(wp_strip_all_tags((string) ($step['content'] ?? '')));
                 if ($content === '') {
                     $missingContent++;
+                    $issueLinks[] = array(
+                        'label' => sprintf(__('%s: tekst ontbreekt', 'sbdp'), $stepTitle),
+                        'url' => $stepUrl,
+                        'hint' => __('Voeg verhaaltekst of Elementor-content toe.', 'sbdp'),
+                    );
                 }
                 $hasMedia = trim((string) ($step['mediaUrl'] ?? '')) !== ''
                     || trim((string) ($step['videoUrl'] ?? '')) !== ''
@@ -461,6 +500,11 @@ final class QuoteWorkspaceRenderer
                     || trim((string) ($step['heygenEmbedUrl'] ?? '')) !== '';
                 if (! $hasMedia) {
                     $missingMedia++;
+                    $issueLinks[] = array(
+                        'label' => sprintf(__('%s: media ontbreekt', 'sbdp'), $stepTitle),
+                        'url' => $stepUrl,
+                        'hint' => __('Voeg video, audio, afbeelding of HeyGen embed toe.', 'sbdp'),
+                    );
                 }
             }
 
@@ -482,15 +526,30 @@ final class QuoteWorkspaceRenderer
 
             if ($productId <= 0 || ! $product) {
                 $blockers[] = __('Geen WooCommerce product gekoppeld', 'sbdp');
+                $issueLinks[] = array(
+                    'label' => __('Tour mist WooCommerce productkoppeling', 'sbdp'),
+                    'url' => get_edit_post_link($tourId, 'raw') ?: '',
+                    'hint' => __('Koppel het product in Tourinstellingen.', 'sbdp'),
+                );
             } else {
                 $checks[] = sprintf(__('Product gekoppeld: #%d', 'sbdp'), $productId);
                 if ((string) get_post_status($productId) !== 'publish') {
                     $warnings[] = __('Gekoppeld product is niet gepubliceerd', 'sbdp');
+                    $issueLinks[] = array(
+                        'label' => sprintf(__('Product #%d is niet gepubliceerd', 'sbdp'), $productId),
+                        'url' => get_edit_post_link($productId, 'raw') ?: '',
+                        'hint' => __('Controleer publicatiestatus en zichtbaarheid.', 'sbdp'),
+                    );
                 }
             }
 
             if ($stepCount <= 0) {
                 $blockers[] = __('Geen hoofdstukken/stops gepubliceerd', 'sbdp');
+                $issueLinks[] = array(
+                    'label' => __('Tour heeft geen gepubliceerde stops', 'sbdp'),
+                    'url' => get_edit_post_link($tourId, 'raw') ?: '',
+                    'hint' => __('Voeg stops toe in de tour builder.', 'sbdp'),
+                );
             } else {
                 $checks[] = sprintf(_n('%d stop', '%d stops', $stepCount, 'sbdp'), $stepCount);
                 if ($missingLocation > 0) {
@@ -506,6 +565,11 @@ final class QuoteWorkspaceRenderer
 
             if ($supportEmail === '') {
                 $warnings[] = __('Geen support e-mail ingesteld', 'sbdp');
+                $issueLinks[] = array(
+                    'label' => __('Support e-mail ontbreekt', 'sbdp'),
+                    'url' => get_edit_post_link($tourId, 'raw') ?: '',
+                    'hint' => __('Vul support e-mail in bij Tourinstellingen.', 'sbdp'),
+                );
             } else {
                 $checks[] = __('Support e-mail aanwezig', 'sbdp');
             }
@@ -544,9 +608,11 @@ final class QuoteWorkspaceRenderer
                     ? sprintf(__('Laatste ticket: %s', 'sbdp'), (string) $stats['latest_created_at'])
                     : __('Nog geen ticketdata', 'sbdp'),
                 'checks' => array_values(array_merge($blockers, $warnings, $checks)),
+                'issue_links' => $issueLinks,
                 'next_action' => $nextAction,
                 'edit_url' => get_edit_post_link($tourId, 'raw') ?: '#',
                 'product_url' => $productId > 0 ? (get_edit_post_link($productId, 'raw') ?: '') : '',
+                'preview_url' => self::privateTourPreviewUrl($tourId),
             );
         }
 
@@ -561,6 +627,24 @@ final class QuoteWorkspaceRenderer
         });
 
         return $rows;
+    }
+
+    private static function privateTourPreviewUrl(int $tourId): string
+    {
+        if ($tourId <= 0 || ! function_exists('wp_nonce_url')) {
+            return '';
+        }
+
+        return wp_nonce_url(
+            add_query_arg(
+                array(
+                    'action' => 'sbdp_preview_tour',
+                    'tour_id' => $tourId,
+                ),
+                admin_url('admin-post.php')
+            ),
+            'sbdp_preview_tour_' . $tourId
+        );
     }
 
     /**
