@@ -539,6 +539,10 @@ class SBDP_Private_Tours
         wp_enqueue_script('sbdp-private-tour-portal');
         wp_enqueue_style('sbdp-private-tour-portal');
         wp_enqueue_style('dashicons');
+        if (wp_style_is('leaflet', 'registered') && wp_script_is('leaflet', 'registered')) {
+            wp_enqueue_style('leaflet');
+            wp_enqueue_script('leaflet');
+        }
         ob_start();
         ?>
         <div class="sbdp-private-tour-portal" data-component="sbdp-private-tour-portal">

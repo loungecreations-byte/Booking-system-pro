@@ -20,6 +20,40 @@
   width: min(100%, 1200px);
 }
 
+body.sbdp-private-tour-portal-active {
+  background: var(--ui-color-bg);
+}
+
+body.sbdp-private-tour-portal-active .site-footer,
+body.sbdp-private-tour-portal-active footer.elementor-location-footer,
+body.sbdp-private-tour-portal-active .footer-area,
+body.sbdp-private-tour-portal-active [class*="site-footer"],
+body.sbdp-private-tour-portal-active .ddb-footer,
+body.sbdp-private-tour-portal-active #wp-chatbot-chat-container,
+body.sbdp-private-tour-portal-active .wp-chatbot-mobile-full-screen,
+body.sbdp-private-tour-portal-active [id*="chatbot"],
+body.sbdp-private-tour-portal-active [class*="chatbot"] {
+  display: none;
+}
+
+.sbdp-private-tour-portal[data-session-active="true"] {
+  border-color: color-mix(in srgb, var(--portal-primary) 18%, var(--portal-border));
+  border-radius: 0;
+  box-shadow: none;
+  max-width: none;
+  min-height: 100svh;
+  padding: clamp(1rem, 2vw, 1.5rem);
+  width: 100%;
+}
+
+.sbdp-private-tour-portal[data-session-active="true"] .sbdp-portal__session {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  margin-top: 0;
+  padding: 0;
+}
+
 .sbdp-portal__login,
 .sbdp-portal__session {
   background: var(--portal-surface);
@@ -346,6 +380,103 @@
   width: 100%;
 }
 
+.sbdp-portal__route-panel {
+  background: color-mix(in srgb, var(--portal-surface-2) 84%, transparent);
+  border: 1px solid color-mix(in srgb, var(--portal-primary) 24%, var(--portal-border));
+  border-radius: 18px;
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 42%);
+  padding: 1rem;
+}
+
+.sbdp-portal__route-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.sbdp-portal__route-eyebrow {
+  color: var(--portal-primary);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.sbdp-portal__route-copy h4 {
+  color: var(--portal-text);
+  font-size: 1.2rem;
+  line-height: 1.15;
+  margin: 0;
+}
+
+.sbdp-portal__route-status {
+  color: var(--portal-text);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.35;
+  margin: 0;
+}
+
+.sbdp-portal__route-next {
+  color: var(--portal-muted);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.sbdp-portal__route-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  grid-column: 1;
+}
+
+.sbdp-portal__route-actions .button,
+.sbdp-wizard__controls .button {
+  border-radius: 999px;
+  font-weight: 800;
+  min-height: 44px;
+  padding: 0.65rem 1rem;
+}
+
+.sbdp-portal__route-actions .button-primary,
+.sbdp-wizard__controls .button-primary {
+  background: var(--portal-primary);
+  border-color: var(--portal-primary);
+  color: var(--portal-primary-contrast);
+}
+
+.sbdp-portal__route-actions .button-secondary,
+.sbdp-wizard__controls .button-secondary {
+  background: transparent;
+  border-color: var(--portal-border);
+  color: var(--portal-text);
+}
+
+.sbdp-portal__route-map {
+  background:
+    radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--portal-primary) 15%, transparent), transparent 34%),
+    var(--portal-bg);
+  border: 1px solid var(--portal-border);
+  border-radius: 16px;
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  min-height: 260px;
+  overflow: hidden;
+}
+
+.sbdp-portal__route-panel[data-arrival-state="near"],
+.sbdp-portal__route-panel[data-arrival-state="almost"] {
+  border-color: color-mix(in srgb, var(--portal-primary) 58%, var(--portal-border));
+}
+
+.sbdp-portal__route-panel[data-arrival-state="arrived"] {
+  border-color: color-mix(in srgb, var(--ui-color-success) 70%, var(--portal-border));
+}
+
 .sbdp-portal__gamification {
   display: flex;
   flex-wrap: wrap;
@@ -396,6 +527,16 @@
     grid-template-columns: 1fr;
   }
 
+  .sbdp-portal__route-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .sbdp-portal__route-actions,
+  .sbdp-portal__route-map {
+    grid-column: auto;
+    grid-row: auto;
+  }
+
   .sbdp-portal__wizard-nav {
     flex-direction: row;
     overflow-x: auto;
@@ -426,6 +567,11 @@
     margin-right: calc(50% - 50vw);
     padding: 0.85rem;
     width: 100vw;
+  }
+
+  .sbdp-private-tour-portal[data-session-active="true"] {
+    margin-bottom: 0;
+    padding: 0.75rem 0.75rem 0;
   }
 
   .sbdp-portal__login,
@@ -487,6 +633,14 @@
     padding: 1rem;
   }
 
+  .sbdp-private-tour-portal[data-session-active="true"] .sbdp-portal__wizard-content-wrapper {
+    border-left: 0;
+    border-radius: 18px 18px 0 0;
+    border-right: 0;
+    margin-left: -0.75rem;
+    margin-right: -0.75rem;
+  }
+
   .sbdp-wizard__step-header h3 {
     font-size: 1.2rem;
     line-height: 1.2;
@@ -494,6 +648,34 @@
 
   .sbdp-portal__video-frame {
     border-radius: 12px;
+  }
+
+  .sbdp-portal__route-panel {
+    border-radius: 16px;
+    margin-bottom: 0.25rem;
+    padding: 0.85rem;
+  }
+
+  .sbdp-portal__route-copy h4 {
+    font-size: 1.08rem;
+  }
+
+  .sbdp-portal__route-status {
+    font-size: 0.95rem;
+  }
+
+  .sbdp-portal__route-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .sbdp-portal__route-actions .button {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .sbdp-portal__route-map {
+    min-height: 230px;
   }
 
   .sbdp-wizard__controls {

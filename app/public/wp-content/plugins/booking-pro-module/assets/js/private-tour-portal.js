@@ -116,6 +116,103 @@ function formatAccessUntil(value) {
 	}).format(date);
 }
 
+function toFiniteNumber(value) {
+	const number = Number(value);
+	return Number.isFinite(number) ? number : null;
+}
+
+function hasStepCoordinates(step) {
+	return toFiniteNumber(step?.lat) !== null && toFiniteNumber(step?.lng) !== null;
+}
+
+function formatDistance(meters) {
+	const safeMeters = Number.isFinite(meters) ? Math.max(0, meters) : 0;
+	return safeMeters >= 1000 ? `${(safeMeters / 1000).toFixed(1)} km` : `${Math.round(safeMeters)} m`;
+}
+
+function formatDuration(seconds) {
+	const minutes = Math.max(0, Math.round((Number(seconds) || 0) / 60));
+	if (minutes < 1) {
+		return '< 1 min';
+	}
+	if (minutes >= 60) {
+		const hours = Math.floor(minutes / 60);
+		const rest = minutes % 60;
+		return rest ? `${hours}u ${rest}m` : `${hours} uur`;
+	}
+	return `${minutes} min`;
+}
+
+function haversineMeters(a, b) {
+	if (!a || !b) {
+		return null;
+	}
+
+	const earthRadius = 6371000;
+	const dLat = ((b.lat - a.lat) * Math.PI) / 180;
+	const dLng = ((b.lng - a.lng) * Math.PI) / 180;
+	const sinLat = Math.sin(dLat / 2);
+	const sinLng = Math.sin(dLng / 2);
+	const value =
+		sinLat * sinLat +
+		Math.cos((a.lat * Math.PI) / 180) * Math.cos((b.lat * Math.PI) / 180) * sinLng * sinLng;
+	return earthRadius * (2 * Math.atan2(Math.sqrt(value), Math.sqrt(Math.max(0, 1 - value))));
+}
+
+function getArrivalState(distance) {
+	if (!Number.isFinite(distance)) {
+		return { key: 'idle', label: 'Start GPS voor loopnavigatie.' };
+	}
+	if (distance <= 18) {
+		return { key: 'arrived', label: `Bestemming bereikt. Nog ${formatDistance(distance)}.` };
+	}
+	if (distance <= 35) {
+		return { key: 'almost', label: `Je bent bijna bij de stop. Nog ${formatDistance(distance)}.` };
+	}
+	if (distance <= 80) {
+		return { key: 'near', label: `Dichtbij. Nog ${formatDistance(distance)}.` };
+	}
+	return { key: 'walking', label: `Loop naar deze stop. Nog ${formatDistance(distance)}.` };
+}
+
+function buildRouteEndpoint(from, to) {
+	const endpoint = new URL(`${API_BASE}/navigation/route`, window.location.origin);
+	endpoint.searchParams.set('fromLat', Number(from.lat).toFixed(5));
+	endpoint.searchParams.set('fromLng', Number(from.lng).toFixed(5));
+	endpoint.searchParams.set('toLat', Number(to.lat).toFixed(5));
+	endpoint.searchParams.set('toLng', Number(to.lng).toFixed(5));
+	endpoint.searchParams.set('profile', 'walking');
+	return endpoint.toString();
+}
+
+function renderRoutePanel(step, index, steps) {
+	if (!hasStepCoordinates(step)) {
+		return '';
+	}
+
+	const nextStep = steps[index + 1] || null;
+	const targetLabel = getStepLocationLabel(step) || step.title || `Stop ${index + 1}`;
+	const nextLabel = nextStep ? (getStepLocationLabel(nextStep) || nextStep.title || `Stop ${index + 2}`) : '';
+	const lat = toFiniteNumber(step.lat);
+	const lng = toFiniteNumber(step.lng);
+
+	return `
+		<section class="sbdp-portal__route-panel" data-portal-route-panel data-target-lat="${lat}" data-target-lng="${lng}" data-target-label="${escapeHtml(targetLabel)}">
+			<div class="sbdp-portal__route-copy">
+				<p class="sbdp-portal__route-eyebrow">Loopnavigatie</p>
+				<h4>${escapeHtml(targetLabel)}</h4>
+				<p class="sbdp-portal__route-status" data-portal-route-status>Start GPS om afstand en aankomst te volgen.</p>
+				${nextLabel ? `<p class="sbdp-portal__route-next">Hierna: ${escapeHtml(nextLabel)}</p>` : '<p class="sbdp-portal__route-next">Laatste stop van de tour.</p>'}
+			</div>
+			<div class="sbdp-portal__route-actions">
+				<button type="button" class="button button-primary" data-portal-start-gps>Start GPS</button>
+				<button type="button" class="button button-secondary" data-portal-arrived>Ik ben aangekomen</button>
+			</div>
+			<div class="sbdp-portal__route-map" data-portal-route-map aria-label="Routekaart naar deze stop"></div>
+		</section>
+	`;
+}
+
 /**
  * Execute a REST call against the private tour API.
  *
@@ -443,6 +540,8 @@ function renderSession(root, payload) {
 	if (login && session) {
 		login.hidden = true;
 		session.hidden = false;
+		root.dataset.sessionActive = 'true';
+		document.body.classList.add('sbdp-private-tour-portal-active');
 	}
 }
 
@@ -499,6 +598,15 @@ function mountPortal(root) {
 		steps: [],
 		activeIndex: 0,
 		previewTokenUsed: false,
+		geo: {
+			watchId: null,
+			current: null,
+			map: null,
+			routeLayer: null,
+			userMarker: null,
+			targetMarker: null,
+			lastRouteUrl: '',
+		},
 		ui: buildWizard(stepsContainer),
 	};
 
@@ -547,6 +655,19 @@ function mountPortal(root) {
 
 		frameWrap.hidden = false;
 		button.hidden = true;
+	});
+
+	state.ui.content.addEventListener('click', (event) => {
+		const gpsButton = event.target.closest('[data-portal-start-gps]');
+		if (gpsButton) {
+			startGpsTracking(gpsButton);
+			return;
+		}
+
+		const arrivedButton = event.target.closest('[data-portal-arrived]');
+		if (arrivedButton) {
+			handleNext();
+		}
 	});
 
 	if (previewToken && tokenField) {
@@ -740,6 +861,12 @@ function mountPortal(root) {
 		const body = document.createElement('div');
 		body.className = 'sbdp-wizard__step-body';
 
+		const routeMarkup = renderRoutePanel(step, state.activeIndex, state.steps);
+		if (routeMarkup) {
+			body.insertAdjacentHTML('beforeend', routeMarkup);
+			window.setTimeout(() => hydrateRoutePanel(), 0);
+		}
+
 		const mediaMarkup = renderMediaLinks(step);
 		if (mediaMarkup) {
 			body.insertAdjacentHTML('beforeend', mediaMarkup);
@@ -769,7 +896,7 @@ function mountPortal(root) {
 
 		if (!currentStatus.unlocked) {
 			state.ui.nextButton.disabled = true;
-			state.ui.nextButton.textContent = 'Volgend hoofdstuk';
+			state.ui.nextButton.textContent = 'Volgende stop';
 			return;
 		}
 
@@ -779,13 +906,13 @@ function mountPortal(root) {
 				state.ui.nextButton.textContent = 'Tour afgerond';
 			} else {
 				state.ui.nextButton.disabled = false;
-				state.ui.nextButton.textContent = 'Rond hoofdstuk af';
+				state.ui.nextButton.textContent = 'Tour afronden';
 			}
 			return;
 		}
 
 		state.ui.nextButton.disabled = false;
-		state.ui.nextButton.textContent = currentStatus.completed ? 'Volgend hoofdstuk' : 'Markeer als voltooid';
+		state.ui.nextButton.textContent = 'Volgende stop';
 	}
 
 	async function handleNext() {
@@ -813,6 +940,221 @@ function mountPortal(root) {
 			if (state.activeIndex === state.steps.length - 1 && updatedStatuses[state.activeIndex]?.completed) {
 				renderMessage(messages, 'Alle hoofdstukken zijn afgerond.', 'success');
 			}
+		}
+	}
+
+	function getActiveRoutePanel() {
+		return state.ui.content.querySelector('[data-portal-route-panel]');
+	}
+
+	function getActiveTarget() {
+		const panel = getActiveRoutePanel();
+		if (!panel) {
+			return null;
+		}
+
+		const lat = toFiniteNumber(panel.dataset.targetLat);
+		const lng = toFiniteNumber(panel.dataset.targetLng);
+		if (lat === null || lng === null) {
+			return null;
+		}
+
+		return {
+			lat,
+			lng,
+			label: panel.dataset.targetLabel || 'Deze stop',
+		};
+	}
+
+	function hydrateRoutePanel() {
+		const panel = getActiveRoutePanel();
+		const target = getActiveTarget();
+		if (!panel || !target) {
+			return;
+		}
+
+		initRouteMap(panel, target);
+		if (state.geo.current) {
+			updateRoutePanel(state.geo.current);
+		}
+	}
+
+	function initRouteMap(panel, target) {
+		const mapElement = panel.querySelector('[data-portal-route-map]');
+		if (!mapElement || !window.L) {
+			return;
+		}
+
+		if (state.geo.map) {
+			state.geo.map.remove();
+			state.geo.map = null;
+			state.geo.routeLayer = null;
+			state.geo.userMarker = null;
+			state.geo.targetMarker = null;
+			state.geo.lastRouteUrl = '';
+		}
+
+		const map = window.L.map(mapElement, {
+			attributionControl: false,
+			dragging: true,
+			scrollWheelZoom: false,
+			tap: true,
+		}).setView([target.lat, target.lng], 16);
+
+		window.L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+			maxZoom: 20,
+			attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
+		}).addTo(map);
+
+		state.geo.targetMarker = window.L.circleMarker([target.lat, target.lng], {
+			radius: 8,
+			color: '#d6a461',
+			fillColor: '#d6a461',
+			fillOpacity: 0.95,
+			weight: 2,
+		}).addTo(map);
+
+		state.geo.map = map;
+		window.setTimeout(() => map.invalidateSize(), 80);
+	}
+
+	function startGpsTracking(button) {
+		const panel = getActiveRoutePanel();
+		if (!panel) {
+			return;
+		}
+
+		const status = panel.querySelector('[data-portal-route-status]');
+		if (!window.isSecureContext || !navigator.geolocation) {
+			if (status) {
+				status.textContent = 'GPS is niet beschikbaar in deze browser. Gebruik de locatie op de kaart.';
+			}
+			return;
+		}
+
+		if (button) {
+			button.disabled = true;
+			button.textContent = 'GPS actief';
+		}
+
+		if (state.geo.watchId !== null) {
+			navigator.geolocation.clearWatch(state.geo.watchId);
+			state.geo.watchId = null;
+		}
+
+		state.geo.watchId = navigator.geolocation.watchPosition(
+			(position) => {
+				const current = {
+					lat: position.coords.latitude,
+					lng: position.coords.longitude,
+					accuracy: position.coords.accuracy,
+				};
+				state.geo.current = current;
+				updateRoutePanel(current);
+			},
+			() => {
+				if (status) {
+					status.textContent = 'GPS-toegang is geweigerd. Je kunt de stop nog steeds op de kaart volgen.';
+				}
+				if (button) {
+					button.disabled = false;
+					button.textContent = 'Start GPS';
+				}
+			},
+			{
+				enableHighAccuracy: true,
+				maximumAge: 8000,
+				timeout: 12000,
+			}
+		);
+	}
+
+	async function updateRoutePanel(current) {
+		const panel = getActiveRoutePanel();
+		const target = getActiveTarget();
+		if (!panel || !target || !current) {
+			return;
+		}
+
+		const status = panel.querySelector('[data-portal-route-status]');
+		const distance = haversineMeters(current, target);
+		const arrival = getArrivalState(distance);
+		panel.dataset.arrivalState = arrival.key;
+		if (status) {
+			status.textContent = arrival.label;
+		}
+
+		updateRouteMap(current, target);
+		await drawWalkingRoute(current, target, status);
+	}
+
+	function updateRouteMap(current, target) {
+		if (!state.geo.map || !window.L) {
+			return;
+		}
+
+		if (!state.geo.userMarker) {
+			state.geo.userMarker = window.L.circleMarker([current.lat, current.lng], {
+				radius: 7,
+				color: '#72aee6',
+				fillColor: '#72aee6',
+				fillOpacity: 0.95,
+				weight: 2,
+			}).addTo(state.geo.map);
+		} else {
+			state.geo.userMarker.setLatLng([current.lat, current.lng]);
+		}
+
+		const bounds = window.L.latLngBounds([
+			[current.lat, current.lng],
+			[target.lat, target.lng],
+		]);
+		state.geo.map.fitBounds(bounds.pad(0.35), { animate: true, maxZoom: 17 });
+	}
+
+	async function drawWalkingRoute(current, target, status) {
+		if (!state.geo.map || !window.L || !API_BASE) {
+			return;
+		}
+
+		const requestUrl = buildRouteEndpoint(current, target);
+		if (state.geo.lastRouteUrl === requestUrl) {
+			return;
+		}
+		state.geo.lastRouteUrl = requestUrl;
+
+		try {
+			const response = await fetch(requestUrl, {
+				credentials: 'same-origin',
+				headers: NONCE ? { 'X-WP-Nonce': NONCE } : {},
+			});
+			if (!response.ok) {
+				return;
+			}
+
+			const payload = await response.json();
+			const path = Array.isArray(payload?.path) ? payload.path : [];
+			if (path.length < 2) {
+				return;
+			}
+
+			if (state.geo.routeLayer) {
+				state.geo.routeLayer.remove();
+			}
+
+			state.geo.routeLayer = window.L.polyline(path, {
+				color: '#d6a461',
+				weight: 5,
+				opacity: 0.9,
+			}).addTo(state.geo.map);
+
+			const routeDistance = Number(payload.distance || 0);
+			const routeDuration = Number(payload.duration || 0);
+			if (status && routeDistance > 0) {
+				status.textContent = `Nog ${formatDistance(routeDistance)} • ${formatDuration(routeDuration)} lopen.`;
+			}
+		} catch (error) {
+			// Keep the local GPS distance visible when route drawing fails.
 		}
 	}
 
