@@ -2277,3 +2277,157 @@ html[data-theme="system"] .ui-summary {
   color: var(--ui-color-text);
 }
 
+/* ==========================================================================
+   ACCOUNT HUB — management family
+   ========================================================================== */
+
+.ddb-account-hub .ui-stack {
+  gap: var(--ui-space-xl);
+}
+
+.ddb-account-hub__hero {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--ui-color-surface) 88%, var(--ui-color-primary) 12%), var(--ui-color-surface));
+  overflow: hidden;
+}
+
+.ddb-account-hub__eyebrow,
+.ddb-account-hub__activity-meta {
+  color: var(--ui-color-primary);
+  font-size: var(--ui-text-xs);
+  font-weight: var(--ui-weight-bold);
+  letter-spacing: 0.12em;
+  margin: 0 0 var(--ui-space-xs);
+  text-transform: uppercase;
+}
+
+.ddb-account-hub__actions {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ui-space-sm);
+}
+
+.ddb-account-hub__metrics {
+  display: grid;
+  gap: var(--ui-space-md);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.ddb-account-hub__metric .ui-card__body {
+  gap: var(--ui-space-xs);
+}
+
+.ddb-account-hub__metric-label,
+.ddb-account-hub__metric-detail {
+  color: var(--ui-color-text-muted);
+  font-size: var(--ui-text-sm);
+  margin: 0;
+}
+
+.ddb-account-hub__metric-value {
+  color: var(--ui-color-text-primary);
+  display: block;
+  font-family: var(--ui-font-display);
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1;
+}
+
+.ddb-account-hub__metric--good,
+.ddb-account-hub__card--good {
+  border-color: color-mix(in srgb, var(--ui-color-success) 38%, var(--ui-color-border));
+}
+
+.ddb-account-hub__metric--warning,
+.ddb-account-hub__card--warning {
+  border-color: color-mix(in srgb, var(--ui-color-warning) 46%, var(--ui-color-border));
+}
+
+.ddb-account-hub__card--warning {
+  background: color-mix(in srgb, var(--ui-color-surface) 88%, var(--ui-color-warning) 12%);
+}
+
+.ddb-account-hub__panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-md);
+}
+
+.ddb-account-hub__panel-head {
+  align-items: end;
+  display: flex;
+  gap: var(--ui-space-md);
+  justify-content: space-between;
+}
+
+.ddb-account-hub__section-title {
+  color: var(--ui-color-text-primary);
+  font-size: clamp(1.35rem, 2vw, 1.9rem);
+  line-height: var(--ui-leading-tight);
+  margin: 0;
+}
+
+.ddb-account-hub__activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--ui-space-sm);
+}
+
+.ddb-account-hub__activity {
+  align-items: center;
+  background: var(--ui-color-surface);
+  border: 1px solid var(--ui-color-border);
+  border-radius: var(--ui-radius-xl);
+  box-shadow: var(--ui-shadow-sm);
+  display: grid;
+  gap: var(--ui-space-md);
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: var(--ui-space-md);
+}
+
+.ddb-account-hub__activity-copy {
+  min-width: 0;
+}
+
+.ddb-account-hub__activity-copy h3,
+.ddb-account-hub__activity-copy p {
+  margin: 0;
+}
+
+.ddb-account-hub__activity-copy h3 {
+  color: var(--ui-color-text-primary);
+  font-size: var(--ui-text-lg);
+  line-height: var(--ui-leading-tight);
+}
+
+.ddb-account-hub__activity-copy p {
+  color: var(--ui-color-text-secondary);
+}
+
+@media (max-width: 900px) {
+  .ddb-account-hub__metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ddb-account-hub__activity {
+    grid-template-columns: 1fr;
+  }
+
+  .ddb-account-hub__activity .ui-btn {
+    width: 100%;
+  }
+}
+
+@media (max-width: 560px) {
+  .ddb-account-hub__metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .ddb-account-hub__actions .ui-btn {
+    width: 100%;
+  }
+
+  .ddb-account-hub__panel-head {
+    display: block;
+  }
+}
+
