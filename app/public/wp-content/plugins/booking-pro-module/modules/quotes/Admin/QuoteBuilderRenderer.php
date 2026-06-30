@@ -2089,6 +2089,11 @@ final class QuoteBuilderRenderer
             .bsp-quote-admin__metric-card strong{font-size:24px;line-height:1.1}
             .bsp-quote-admin__plain-list{margin:0;padding-left:18px}
             .bsp-quote-admin__plain-list li{margin:0 0 4px}
+            .bsp-quote-admin__issue-links{margin-top:8px}
+            .bsp-quote-admin__issue-links summary{cursor:pointer;color:#2271b1;font-weight:600}
+            .bsp-quote-admin__issue-links ul{margin:8px 0 0;padding-left:18px}
+            .bsp-quote-admin__issue-links li{margin:0 0 6px}
+            .bsp-quote-admin__issue-links small{display:block;margin-top:2px}
             .bsp-quote-admin__priority-panel{border-left:5px solid #dba617}
             .bsp-quote-admin__priority-panel .bsp-quote-admin__panel-header h3{font-size:18px}
             .bsp-quote-admin__overview-next{border-left:5px solid #2271b1}
