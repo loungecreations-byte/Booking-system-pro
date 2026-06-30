@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace BSP\Bookings\Rest;
 
 use BSP\Bookings\Service\BookingService;
+use BSP\Quotes\Service\PublicQuoteProposalTokenService;
 use WP_REST_Request;
 use function function_exists;
 use function register_rest_route;
@@ -234,10 +235,12 @@ final class AccountController
     {
         $orders = self::recentWooOrders($user, 20);
         $tickets = self::privateTourTickets($user, 20);
+        $quotes = self::recentCustomerQuotes($user, 20);
         $partner = $experience === 'partner' ? self::partnerConfirmationSummary($user) : array('open' => 0);
         $activeOrders = 0;
         $pendingPayments = 0;
         $activeTickets = 0;
+        $openQuotes = 0;
 
         foreach ($orders as $order) {
             $status = (string) ($order['status'] ?? '');
@@ -255,8 +258,15 @@ final class AccountController
             }
         }
 
+        foreach ($quotes as $quote) {
+            if (! in_array((string) ($quote['status'] ?? ''), array('accepted', 'declined', 'cancelled', 'closed'), true)) {
+                $openQuotes++;
+            }
+        }
+
         $cards = array(
             array('label' => 'Actieve boekingen', 'value' => (string) $activeOrders, 'detail' => $activeOrders === 1 ? 'lopende bestelling' : 'lopende bestellingen', 'tone' => $activeOrders > 0 ? 'good' : 'neutral'),
+            array('label' => 'Aanvragen/offertes', 'value' => (string) count($quotes), 'detail' => $openQuotes > 0 ? $openQuotes . ' open' : 'geen open offerteactie', 'tone' => $openQuotes > 0 ? 'warning' : 'neutral'),
             array('label' => 'Open betaling', 'value' => (string) $pendingPayments, 'detail' => $pendingPayments > 0 ? 'actie nodig' : 'geen betaalactie', 'tone' => $pendingPayments > 0 ? 'warning' : 'neutral'),
             array('label' => 'Tour tickets', 'value' => (string) $activeTickets, 'detail' => $activeTickets > 0 ? 'klaar voor gebruik' : 'geen actieve tickets', 'tone' => $activeTickets > 0 ? 'good' : 'neutral'),
         );
@@ -278,6 +288,22 @@ final class AccountController
         foreach (self::recentWooOrders($user, 10) as $order) {
             if (in_array((string) ($order['status'] ?? ''), array('pending', 'on-hold', 'failed'), true)) {
                 $cards[] = array('title' => 'Betaling afronden', 'description' => sprintf('Bestelling #%s wacht nog op betaling of controle.', (string) ($order['number'] ?? '')), 'label' => 'Bestelling openen', 'url' => (string) ($order['url'] ?? $ordersUrl), 'tone' => 'warning');
+                break;
+            }
+        }
+        foreach (self::recentCustomerQuotes($user, 10) as $quote) {
+            $status = (string) ($quote['status'] ?? '');
+            $url = (string) ($quote['url'] ?? '');
+            if ($status === 'sent' && $url !== '') {
+                $cards[] = array('title' => 'Offerte bekijken', 'description' => sprintf('%s wacht op akkoord of wijziging.', (string) ($quote['reference'] ?? 'Je offerte')), 'label' => 'Voorstel openen', 'url' => $url, 'tone' => 'warning');
+                break;
+            }
+            if ($status === 'revision_requested' && $url !== '') {
+                $cards[] = array('title' => 'Wijziging ontvangen', 'description' => sprintf('%s staat bij ons op de opvolglijst.', (string) ($quote['reference'] ?? 'Je offerte')), 'label' => 'Status bekijken', 'url' => $url, 'tone' => 'neutral');
+                break;
+            }
+            if ($status === 'accepted' && $url !== '' && (int) ($quote['order_id'] ?? 0) <= 0) {
+                $cards[] = array('title' => 'Akkoord verwerkt', 'description' => 'Je akkoord is ontvangen. We zetten de volgende stap klaar.', 'label' => 'Status bekijken', 'url' => $url, 'tone' => 'good');
                 break;
             }
         }
@@ -308,10 +334,170 @@ final class AccountController
         foreach (self::recentWooOrders($user, 3) as $order) {
             $cards[] = array('title' => sprintf('Bestelling #%s', (string) ($order['number'] ?? '')), 'meta' => (string) ($order['date'] ?? ''), 'description' => sprintf('%s · %s', (string) ($order['status_label'] ?? 'Status onbekend'), (string) ($order['total'] ?? '')), 'label' => 'Bekijken', 'url' => (string) ($order['url'] ?? $ordersUrl));
         }
+        foreach (self::recentCustomerQuotes($user, 3) as $quote) {
+            $cards[] = array('title' => (string) ($quote['title'] ?? 'Aanvraag of offerte'), 'meta' => (string) ($quote['reference'] ?? 'Offerte'), 'description' => (string) ($quote['status_label'] ?? 'Status onbekend'), 'label' => (string) ($quote['url'] ?? '') !== '' ? 'Status bekijken' : 'In behandeling', 'url' => (string) (($quote['url'] ?? '') ?: $ordersUrl));
+        }
         foreach (self::privateTourTickets($user, 3) as $ticket) {
             $cards[] = array('title' => (string) ($ticket['tour_title'] ?? 'Private tour'), 'meta' => (string) ($ticket['status_label'] ?? 'Ticket'), 'description' => (string) ($ticket['access_label'] ?? 'Persoonlijke tourlink beschikbaar.'), 'label' => 'Tour openen', 'url' => (string) ($ticket['portal_url'] ?? home_url('/private-tour-portal/')));
         }
         return array_slice($cards, 0, 6);
+    }
+
+    /**
+     * @return array<int,array<string,string|int>>
+     */
+    private static function recentCustomerQuotes(\WP_User $user, int $limit): array
+    {
+        global $wpdb;
+        if (! $wpdb instanceof \wpdb || ! $user->exists()) {
+            return array();
+        }
+
+        $quotesTable = $wpdb->prefix . 'bsp_quotes';
+        $requestsTable = $wpdb->prefix . 'bsp_quote_requests';
+        $versionsTable = $wpdb->prefix . 'bsp_quote_versions';
+        if (! self::tableExists($quotesTable) || ! self::tableExists($requestsTable)) {
+            return array();
+        }
+
+        $email = strtolower(trim((string) $user->user_email));
+        if ($email === '') {
+            return array();
+        }
+
+        $hasVersions = self::tableExists($versionsTable);
+        $titleSelect = $hasVersions ? ', v.proposal_title AS proposal_title' : ", '' AS proposal_title";
+        $titleJoin = $hasVersions ? " LEFT JOIN {$versionsTable} v ON v.id = q.current_version_id" : '';
+        $rows = $wpdb->get_results($wpdb->prepare(
+            "SELECT q.id, q.quote_reference, q.status, q.send_status, q.current_version_id, q.approved_version_id, q.woo_order_id, q.updated_at, r.request_summary, r.preferred_date{$titleSelect}
+            FROM {$quotesTable} q
+            INNER JOIN {$requestsTable} r ON r.id = q.quote_request_id{$titleJoin}
+            WHERE (q.customer_id = %d OR r.customer_id = %d OR LOWER(r.requester_email) = %s)
+            ORDER BY q.updated_at DESC, q.id DESC
+            LIMIT %d",
+            (int) $user->ID,
+            (int) $user->ID,
+            $email,
+            max(1, $limit)
+        ), ARRAY_A);
+
+        $items = array();
+        foreach ((array) $rows as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+            $quoteId = (int) ($row['id'] ?? 0);
+            $reference = trim((string) ($row['quote_reference'] ?? ''));
+            $status = (string) ($row['status'] ?? '');
+            $versionId = self::publicQuoteVersionId($row);
+            $url = $versionId > 0 && $reference !== '' ? self::customerWorkspaceUrl($quoteId, $versionId, $reference) : '';
+            $title = trim((string) ($row['proposal_title'] ?? ''));
+            if ($title === '') {
+                $title = trim((string) ($row['request_summary'] ?? ''));
+            }
+            $items[] = array(
+                'id' => $quoteId,
+                'reference' => $reference !== '' ? $reference : 'Offerte',
+                'status' => $status,
+                'status_label' => self::customerQuoteStatusLabel($status, (string) ($row['send_status'] ?? '')),
+                'title' => $title !== '' ? $title : 'Aanvraag of offerte',
+                'date' => self::quoteDateLabel((string) ($row['preferred_date'] ?? '')),
+                'order_id' => (int) ($row['woo_order_id'] ?? 0),
+                'url' => $url,
+            );
+        }
+
+        return $items;
+    }
+
+    private static function tableExists(string $table): bool
+    {
+        global $wpdb;
+        return $wpdb instanceof \wpdb && $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table)) === $table;
+    }
+
+    /**
+     * @param array<string,mixed> $quote
+     */
+    private static function publicQuoteVersionId(array $quote): int
+    {
+        $status = (string) ($quote['status'] ?? '');
+        if ($status === 'accepted') {
+            return (int) ($quote['approved_version_id'] ?? 0);
+        }
+        if (in_array($status, array('sent', 'revision_requested', 'declined'), true)) {
+            return self::latestSentProposalVersionId((int) ($quote['id'] ?? 0));
+        }
+        return 0;
+    }
+
+    private static function latestSentProposalVersionId(int $quoteId): int
+    {
+        global $wpdb;
+        if (! $wpdb instanceof \wpdb || $quoteId <= 0) {
+            return 0;
+        }
+
+        $messagesTable = $wpdb->prefix . 'bsp_quote_messages';
+        if (! self::tableExists($messagesTable)) {
+            return 0;
+        }
+
+        return (int) $wpdb->get_var($wpdb->prepare(
+            "SELECT quote_version_id FROM {$messagesTable}
+            WHERE quote_id = %d AND direction = 'outbound' AND message_type = 'proposal' AND status = 'sent' AND quote_version_id IS NOT NULL
+            ORDER BY created_at DESC, id DESC
+            LIMIT 1",
+            $quoteId
+        ));
+    }
+
+    private static function customerWorkspaceUrl(int $quoteId, int $versionId, string $quoteReference): string
+    {
+        if ($quoteId <= 0 || $versionId <= 0 || $quoteReference === '') {
+            return '';
+        }
+
+        $token = (new PublicQuoteProposalTokenService())->create($quoteId, $versionId, $quoteReference);
+        $base = function_exists('home_url') ? (string) home_url('/') : '/';
+        return function_exists('add_query_arg')
+            ? (string) add_query_arg(array('ddb_customer_workspace' => $token), $base)
+            : $base . (str_contains($base, '?') ? '&' : '?') . http_build_query(array('ddb_customer_workspace' => $token));
+    }
+
+    private static function customerQuoteStatusLabel(string $status, string $sendStatus): string
+    {
+        if ($status === 'sent') {
+            return 'Voorstel wacht op reactie';
+        }
+        if ($status === 'accepted') {
+            return 'Akkoord ontvangen';
+        }
+        if ($status === 'revision_requested') {
+            return 'Wijziging aangevraagd';
+        }
+        if ($status === 'declined') {
+            return 'Afgewezen';
+        }
+        if ($sendStatus === 'ready_to_send') {
+            return 'Offerte klaar voor verzending';
+        }
+        return 'Aanvraag in behandeling';
+    }
+
+    private static function quoteDateLabel(string $date): string
+    {
+        $date = trim($date);
+        if ($date === '') {
+            return 'Datum in overleg';
+        }
+
+        $timestamp = strtotime($date);
+        if (! $timestamp) {
+            return $date;
+        }
+
+        return function_exists('date_i18n') ? (string) date_i18n('j M Y', $timestamp) : date('j M Y', $timestamp);
     }
 
     /**
