@@ -192,6 +192,8 @@ final class QuoteWorkspaceRenderer
         QuoteBuilderRenderer::renderAdminStyles();
         self::renderNotices();
         self::renderOperationsFilters($active, $filters);
+        $tourHealthRows = self::buildTourTicketHealthRows();
+        self::renderOperationsPriorityPanel($buckets, $tourHealthRows);
         echo '<section class="postbox bsp-quote-admin__panel"><div class="bsp-quote-admin__panel-body"><div class="bsp-quote-admin__overview-stat-grid">';
         foreach ($buckets as $key => $bucket) {
             $url = add_query_arg(array('page' => 'sbdp_quote_operations', 'ops_view' => $key), admin_url('admin.php'));
@@ -200,7 +202,7 @@ final class QuoteWorkspaceRenderer
         }
         echo '</div></div></section>';
 
-        self::renderTourTicketHealthPanel();
+        self::renderTourTicketHealthPanel($tourHealthRows);
 
         $visibleBuckets = $active === 'all' ? $buckets : array($active => $buckets[$active]);
         foreach ($visibleBuckets as $bucket) {
@@ -222,9 +224,148 @@ final class QuoteWorkspaceRenderer
         echo '</div>';
     }
 
-    private static function renderTourTicketHealthPanel(): void
+    /**
+     * @param array<string,array{label:string,rows:array<int,array<string,mixed>>}> $buckets
+     * @param array<int,array<string,mixed>> $tourHealthRows
+     */
+    private static function renderOperationsPriorityPanel(array $buckets, array $tourHealthRows): void
     {
-        $rows = self::buildTourTicketHealthRows();
+        $priorityRows = self::buildOperationsPriorityRows($buckets, $tourHealthRows);
+        $critical = count(array_filter($priorityRows, static fn (array $row): bool => (string) ($row['tone'] ?? '') === 'critical'));
+        $warning = count(array_filter($priorityRows, static fn (array $row): bool => (string) ($row['tone'] ?? '') === 'warning'));
+
+        echo '<section class="postbox bsp-quote-admin__panel bsp-quote-admin__priority-panel">';
+        echo '<div class="bsp-quote-admin__panel-header"><h3>' . esc_html__('Vandaag eerst doen', 'sbdp') . '</h3><p class="bsp-quote-admin__muted">' . esc_html__('Eén prioriteitenlijst voor organisatorische opvolging. Gebaseerd op bestaande quote-, partner-, payment- en tour-health signalen.', 'sbdp') . '</p></div>';
+        echo '<div class="bsp-quote-admin__panel-body">';
+        echo '<div class="bsp-quote-admin__overview-stat-grid">';
+        echo self::renderStatCard(__('Nu oplossen', 'sbdp'), (string) $critical);
+        echo self::renderStatCard(__('Vandaag opvolgen', 'sbdp'), (string) $warning);
+        echo self::renderStatCard(__('Totaal zichtbaar', 'sbdp'), (string) count($priorityRows));
+        echo '</div>';
+
+        echo '<div class="bsp-quote-admin__table-wrap"><table class="widefat striped"><thead><tr><th>' . esc_html__('Prioriteit', 'sbdp') . '</th><th>' . esc_html__('Onderdeel', 'sbdp') . '</th><th>' . esc_html__('Waarom', 'sbdp') . '</th><th>' . esc_html__('Actie', 'sbdp') . '</th><th>' . esc_html__('Open', 'sbdp') . '</th></tr></thead><tbody>';
+        if ($priorityRows === array()) {
+            echo '<tr><td colspan="5">' . esc_html__('Geen urgente operationele acties gevonden.', 'sbdp') . '</td></tr>';
+        } else {
+            foreach (array_slice($priorityRows, 0, 12) as $row) {
+                $tone = (string) ($row['tone'] ?? 'neutral');
+                $badgeClass = $tone === 'critical' ? 'is-bad' : ($tone === 'warning' ? 'is-warn' : 'is-neutral');
+                echo '<tr>';
+                echo '<td>' . self::renderInlineBadge((string) ($row['priority_label'] ?? ''), $badgeClass) . '<br><small class="bsp-quote-admin__muted">' . esc_html((string) ($row['age_label'] ?? '')) . '</small></td>';
+                echo '<td><strong>' . esc_html((string) ($row['title'] ?? '')) . '</strong><br><small class="bsp-quote-admin__muted">' . esc_html((string) ($row['context'] ?? '')) . '</small></td>';
+                echo '<td>' . esc_html((string) ($row['reason'] ?? '')) . '</td>';
+                echo '<td>' . esc_html((string) ($row['action'] ?? '')) . '</td>';
+                echo '<td><a class="button button-small" href="' . esc_url((string) ($row['url'] ?? '#')) . '">' . esc_html__('Open', 'sbdp') . '</a></td>';
+                echo '</tr>';
+            }
+        }
+        echo '</tbody></table></div></div></section>';
+    }
+
+    /**
+     * @param array<string,array{label:string,rows:array<int,array<string,mixed>>}> $buckets
+     * @param array<int,array<string,mixed>> $tourHealthRows
+     * @return array<int,array<string,mixed>>
+     */
+    private static function buildOperationsPriorityRows(array $buckets, array $tourHealthRows): array
+    {
+        $rows = array();
+        $seen = array();
+        $map = array(
+            'new_requests' => array('rank' => 20, 'tone' => 'warning', 'label' => __('Intake', 'sbdp'), 'reason' => __('Nieuwe aanvraag wacht op beoordeling.', 'sbdp')),
+            'waiting_supplier' => array('rank' => 10, 'tone' => 'critical', 'label' => __('Partner', 'sbdp'), 'reason' => __('Partnerbevestiging blokkeert de volgende klantstap.', 'sbdp')),
+            'ready_to_send' => array('rank' => 30, 'tone' => 'warning', 'label' => __('Versturen', 'sbdp'), 'reason' => __('Offerte staat klaar maar is nog niet naar de klant.', 'sbdp')),
+            'accepted_unpaid' => array('rank' => 15, 'tone' => 'critical', 'label' => __('Betaling', 'sbdp'), 'reason' => __('Klant is akkoord, maar betaling/orderflow is nog niet afgerond.', 'sbdp')),
+            'paid' => array('rank' => 50, 'tone' => 'neutral', 'label' => __('Uitvoering', 'sbdp'), 'reason' => __('Betaling ontvangen; controleer operationele voorbereiding.', 'sbdp')),
+        );
+
+        foreach ($map as $bucketKey => $meta) {
+            foreach ((array) ($buckets[$bucketKey]['rows'] ?? array()) as $bucketRow) {
+                if (! is_array($bucketRow)) {
+                    continue;
+                }
+                $identity = $bucketKey . '|' . (string) ($bucketRow['reference'] ?? '') . '|' . (string) ($bucketRow['url'] ?? '');
+                if (isset($seen[$identity])) {
+                    continue;
+                }
+                $seen[$identity] = true;
+                $rows[] = array(
+                    'rank' => (int) $meta['rank'],
+                    'tone' => (string) $meta['tone'],
+                    'priority_label' => (string) $meta['label'],
+                    'title' => (string) ($bucketRow['reference'] ?? __('Onbekend item', 'sbdp')),
+                    'context' => trim((string) ($bucketRow['customer'] ?? '') . ' · ' . (string) (($bucketRow['date'] ?? '') ?: __('Datum in overleg', 'sbdp'))),
+                    'reason' => (string) $meta['reason'],
+                    'action' => (string) ($bucketRow['action'] ?? ''),
+                    'url' => (string) ($bucketRow['url'] ?? '#'),
+                    'age_label' => self::operationsAgeLabel((string) ($bucketRow['last_update'] ?? '')),
+                    'last_update' => (string) ($bucketRow['last_update'] ?? ''),
+                );
+            }
+        }
+
+        foreach ($tourHealthRows as $tourRow) {
+            if (! is_array($tourRow)) {
+                continue;
+            }
+            $severity = (string) ($tourRow['severity'] ?? 'healthy');
+            if (! in_array($severity, array('critical', 'warning'), true)) {
+                continue;
+            }
+            $rows[] = array(
+                'rank' => $severity === 'critical' ? 5 : 35,
+                'tone' => $severity,
+                'priority_label' => $severity === 'critical' ? __('Tour kritisch', 'sbdp') : __('Tour aandacht', 'sbdp'),
+                'title' => (string) ($tourRow['title'] ?? __('Tour', 'sbdp')),
+                'context' => sprintf(__('Private tour #%d', 'sbdp'), (int) ($tourRow['tour_id'] ?? 0)),
+                'reason' => (string) ($tourRow['next_action'] ?? ''),
+                'action' => __('Herstel tour/ticket setup voordat klanten vastlopen.', 'sbdp'),
+                'url' => (string) ($tourRow['edit_url'] ?? '#'),
+                'age_label' => __('Health check', 'sbdp'),
+                'last_update' => '',
+            );
+        }
+
+        usort($rows, static function (array $left, array $right): int {
+            $rank = ((int) ($left['rank'] ?? 99)) <=> ((int) ($right['rank'] ?? 99));
+            if ($rank !== 0) {
+                return $rank;
+            }
+            return strcmp((string) ($right['last_update'] ?? ''), (string) ($left['last_update'] ?? ''));
+        });
+
+        return $rows;
+    }
+
+    private static function operationsAgeLabel(string $dateTime): string
+    {
+        $dateTime = trim($dateTime);
+        if ($dateTime === '') {
+            return __('Geen datum', 'sbdp');
+        }
+
+        $timestamp = strtotime($dateTime . ' UTC');
+        if (! $timestamp) {
+            return $dateTime;
+        }
+
+        $age = max(0, time() - $timestamp);
+        if ($age < HOUR_IN_SECONDS) {
+            return __('Net bijgewerkt', 'sbdp');
+        }
+        if ($age < DAY_IN_SECONDS) {
+            return sprintf(__('%d uur oud', 'sbdp'), max(1, (int) floor($age / HOUR_IN_SECONDS)));
+        }
+
+        return sprintf(__('%d dagen oud', 'sbdp'), max(1, (int) floor($age / DAY_IN_SECONDS)));
+    }
+
+    /**
+     * @param array<int,array<string,mixed>>|null $rows
+     */
+    private static function renderTourTicketHealthPanel(?array $rows = null): void
+    {
+        $rows = is_array($rows) ? $rows : self::buildTourTicketHealthRows();
         $critical = count(array_filter($rows, static fn (array $row): bool => (string) ($row['severity'] ?? '') === 'critical'));
         $warning = count(array_filter($rows, static fn (array $row): bool => (string) ($row['severity'] ?? '') === 'warning'));
         $healthy = count(array_filter($rows, static fn (array $row): bool => (string) ($row['severity'] ?? '') === 'healthy'));
