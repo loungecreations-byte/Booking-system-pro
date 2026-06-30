@@ -2096,6 +2096,7 @@ final class QuoteBuilderRenderer
             .bsp-quote-admin__issue-links small{display:block;margin-top:2px}
             .bsp-quote-admin__priority-panel{border-left:5px solid #dba617}
             .bsp-quote-admin__priority-panel .bsp-quote-admin__panel-header h3{font-size:18px}
+            .bsp-quote-admin__experience-panel{border-left:5px solid #2271b1}
             .bsp-quote-admin__overview-next{border-left:5px solid #2271b1}
             .bsp-quote-admin__overview-next strong{display:block;font-size:20px;line-height:1.3;margin:4px 0}
             .bsp-quote-admin__overview-next p{margin:0 0 12px;color:#50575e}

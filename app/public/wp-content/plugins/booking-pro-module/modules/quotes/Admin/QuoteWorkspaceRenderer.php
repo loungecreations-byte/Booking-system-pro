@@ -194,6 +194,7 @@ final class QuoteWorkspaceRenderer
         self::renderOperationsFilters($active, $filters);
         $tourHealthRows = self::buildTourTicketHealthRows();
         self::renderOperationsPriorityPanel($buckets, $tourHealthRows);
+        self::renderExperienceReadinessPanel($tourHealthRows);
         echo '<section class="postbox bsp-quote-admin__panel"><div class="bsp-quote-admin__panel-body"><div class="bsp-quote-admin__overview-stat-grid">';
         foreach ($buckets as $key => $bucket) {
             $url = add_query_arg(array('page' => 'sbdp_quote_operations', 'ops_view' => $key), admin_url('admin.php'));
@@ -358,6 +359,264 @@ final class QuoteWorkspaceRenderer
         }
 
         return sprintf(__('%d dagen oud', 'sbdp'), max(1, (int) floor($age / DAY_IN_SECONDS)));
+    }
+
+    /**
+     * @param array<int,array<string,mixed>> $tourHealthRows
+     */
+    private static function renderExperienceReadinessPanel(array $tourHealthRows): void
+    {
+        $rows = self::buildExperienceReadinessRows($tourHealthRows);
+        $critical = count(array_filter($rows, static fn (array $row): bool => (string) ($row['severity'] ?? '') === 'critical'));
+        $warning = count(array_filter($rows, static fn (array $row): bool => (string) ($row['severity'] ?? '') === 'warning'));
+        $ready = count(array_filter($rows, static fn (array $row): bool => (string) ($row['severity'] ?? '') === 'ready'));
+
+        echo '<section class="postbox bsp-quote-admin__panel bsp-quote-admin__experience-panel">';
+        echo '<div class="bsp-quote-admin__panel-header"><h3>' . esc_html__('Experience Readiness per boeking', 'sbdp') . '</h3><p class="bsp-quote-admin__muted">' . esc_html__('Read-only controle of betaalde tourboekingen, tickets en tourcontent klaar zijn voor klantgebruik.', 'sbdp') . '</p></div>';
+        echo '<div class="bsp-quote-admin__panel-body">';
+        echo '<div class="bsp-quote-admin__overview-stat-grid">';
+        echo self::renderStatCard(__('Blokkeert klant', 'sbdp'), (string) $critical);
+        echo self::renderStatCard(__('Controleren', 'sbdp'), (string) $warning);
+        echo self::renderStatCard(__('Klaar', 'sbdp'), (string) $ready);
+        echo self::renderStatCard(__('Boekingen', 'sbdp'), (string) count($rows));
+        echo '</div>';
+
+        echo '<div class="bsp-quote-admin__table-wrap"><table class="widefat striped"><thead><tr><th>' . esc_html__('Boeking', 'sbdp') . '</th><th>' . esc_html__('Readiness', 'sbdp') . '</th><th>' . esc_html__('Klant/toegang', 'sbdp') . '</th><th>' . esc_html__('Checks', 'sbdp') . '</th><th>' . esc_html__('Actie', 'sbdp') . '</th><th>' . esc_html__('Open', 'sbdp') . '</th></tr></thead><tbody>';
+        if ($rows === array()) {
+            echo '<tr><td colspan="6">' . esc_html__('Nog geen private-tour boekingen met tickets gevonden.', 'sbdp') . '</td></tr>';
+        } else {
+            foreach ($rows as $row) {
+                $severity = (string) ($row['severity'] ?? 'warning');
+                $badgeClass = $severity === 'critical' ? 'is-bad' : ($severity === 'ready' ? 'is-good' : 'is-warn');
+                echo '<tr>';
+                echo '<td><strong>' . esc_html((string) ($row['order_label'] ?? '')) . '</strong><br><small class="bsp-quote-admin__muted">' . esc_html((string) ($row['tour_title'] ?? '')) . '</small></td>';
+                echo '<td>' . self::renderInlineBadge((string) ($row['readiness_label'] ?? ''), $badgeClass) . '<br><small class="bsp-quote-admin__muted">' . esc_html((string) ($row['order_status_label'] ?? '')) . '</small></td>';
+                echo '<td>' . esc_html((string) ($row['customer_label'] ?? '')) . '<br><small class="bsp-quote-admin__muted">' . esc_html((string) ($row['ticket_label'] ?? '')) . '</small></td>';
+                echo '<td><ul class="bsp-quote-admin__plain-list">';
+                foreach ((array) ($row['checks'] ?? array()) as $check) {
+                    echo '<li>' . esc_html((string) $check) . '</li>';
+                }
+                echo '</ul></td>';
+                echo '<td>' . esc_html((string) ($row['next_action'] ?? '')) . '</td>';
+                echo '<td>';
+                if (! empty($row['order_url'])) {
+                    echo '<a class="button button-small" href="' . esc_url((string) $row['order_url']) . '">' . esc_html__('Order', 'sbdp') . '</a> ';
+                }
+                if (! empty($row['tour_url'])) {
+                    echo '<a class="button button-small" href="' . esc_url((string) $row['tour_url']) . '">' . esc_html__('Tour', 'sbdp') . '</a> ';
+                }
+                if (! empty($row['preview_url'])) {
+                    echo '<a class="button button-small" href="' . esc_url((string) $row['preview_url']) . '">' . esc_html__('Preview', 'sbdp') . '</a>';
+                }
+                echo '</td>';
+                echo '</tr>';
+            }
+        }
+        echo '</tbody></table></div></div></section>';
+    }
+
+    /**
+     * @param array<int,array<string,mixed>> $tourHealthRows
+     * @return array<int,array<string,mixed>>
+     */
+    private static function buildExperienceReadinessRows(array $tourHealthRows): array
+    {
+        $ticketGroups = self::loadPrivateTourTicketOrderGroups();
+        if ($ticketGroups === array()) {
+            return array();
+        }
+
+        $healthByTour = array();
+        foreach ($tourHealthRows as $healthRow) {
+            $tourId = (int) ($healthRow['tour_id'] ?? 0);
+            if ($tourId > 0) {
+                $healthByTour[$tourId] = $healthRow;
+            }
+        }
+
+        $rows = array();
+        foreach ($ticketGroups as $group) {
+            $orderId = (int) ($group['order_id'] ?? 0);
+            $tourId = (int) ($group['tour_id'] ?? 0);
+            $order = function_exists('wc_get_order') && $orderId > 0 ? wc_get_order($orderId) : null;
+            $health = $healthByTour[$tourId] ?? null;
+            $tourSeverity = is_array($health) ? (string) ($health['severity'] ?? 'warning') : 'warning';
+            $orderStatus = is_object($order) && method_exists($order, 'get_status') ? (string) $order->get_status() : '';
+            $orderIsPaid = is_object($order) && method_exists($order, 'is_paid') ? (bool) $order->is_paid() : false;
+            $expectedTickets = self::expectedTicketQuantityForOrderItem($order, (int) ($group['order_item_id'] ?? 0));
+            $ticketTotal = (int) ($group['total'] ?? 0);
+            $activeTickets = (int) ($group['active'] ?? 0);
+            $redeemedTickets = (int) ($group['redeemed'] ?? 0);
+            $activeAccess = (int) ($group['active_access'] ?? 0);
+            $expiredAccess = (int) ($group['expired_access'] ?? 0);
+
+            $blockers = array();
+            $warnings = array();
+            $checks = array();
+
+            if (! is_object($order)) {
+                $blockers[] = __('WooCommerce order ontbreekt of is niet laadbaar.', 'sbdp');
+            } elseif (in_array($orderStatus, array('failed', 'cancelled', 'refunded'), true)) {
+                $blockers[] = sprintf(__('Orderstatus blokkeert gebruik: %s.', 'sbdp'), $orderStatus);
+            } elseif (! $orderIsPaid) {
+                $warnings[] = __('Order is nog niet betaald.', 'sbdp');
+            } else {
+                $checks[] = __('Order is betaald.', 'sbdp');
+            }
+
+            if ($ticketTotal <= 0) {
+                $blockers[] = __('Geen tickets aangemaakt voor deze orderregel.', 'sbdp');
+            } else {
+                $checks[] = sprintf(__('Tickets aangemaakt: %d.', 'sbdp'), $ticketTotal);
+                if ($expectedTickets > 0 && $ticketTotal < $expectedTickets) {
+                    $blockers[] = sprintf(__('Aantal tickets lager dan orderaantal: %d van %d.', 'sbdp'), $ticketTotal, $expectedTickets);
+                }
+                if ($activeTickets <= 0) {
+                    $blockers[] = __('Geen actief ticket beschikbaar.', 'sbdp');
+                }
+            }
+
+            if ($redeemedTickets > 0 && $activeAccess <= 0 && $expiredAccess > 0) {
+                $warnings[] = __('Alle gestarte tickettoegangen lijken verlopen.', 'sbdp');
+            } elseif ($activeAccess > 0) {
+                $checks[] = sprintf(__('Actieve 24-uurs toegang: %d.', 'sbdp'), $activeAccess);
+            } else {
+                $checks[] = __('Ticket nog niet gestart door klant.', 'sbdp');
+            }
+
+            if ($tourSeverity === 'critical') {
+                $blockers[] = __('Tour-health is kritiek.', 'sbdp');
+            } elseif ($tourSeverity === 'warning') {
+                $warnings[] = __('Tour-health vraagt aandacht.', 'sbdp');
+            } else {
+                $checks[] = __('Tour-health is groen.', 'sbdp');
+            }
+
+            $severity = 'ready';
+            $readinessLabel = __('Klaar', 'sbdp');
+            $nextAction = __('Geen directe actie nodig.', 'sbdp');
+            if ($blockers !== array()) {
+                $severity = 'critical';
+                $readinessLabel = __('Blokkeert klant', 'sbdp');
+                $nextAction = (string) $blockers[0];
+            } elseif ($warnings !== array()) {
+                $severity = 'warning';
+                $readinessLabel = __('Controleren', 'sbdp');
+                $nextAction = (string) $warnings[0];
+            }
+
+            $rows[] = array(
+                'severity' => $severity,
+                'readiness_label' => $readinessLabel,
+                'order_label' => $orderId > 0 ? sprintf(__('Order #%d', 'sbdp'), $orderId) : __('Order onbekend', 'sbdp'),
+                'order_status_label' => $orderStatus !== '' ? sprintf(__('Status: %s', 'sbdp'), $orderStatus) : __('Status onbekend', 'sbdp'),
+                'tour_title' => $tourId > 0 ? (get_the_title($tourId) ?: sprintf(__('Tour #%d', 'sbdp'), $tourId)) : __('Tour onbekend', 'sbdp'),
+                'customer_label' => self::orderCustomerLabel($order, (string) ($group['email'] ?? '')),
+                'ticket_label' => sprintf(__('%d tickets, %d gestart, %d actief venster', 'sbdp'), $ticketTotal, $redeemedTickets, $activeAccess),
+                'checks' => array_values(array_merge($blockers, $warnings, $checks)),
+                'next_action' => $nextAction,
+                'order_url' => self::orderEditUrl($order, $orderId),
+                'tour_url' => $tourId > 0 ? (get_edit_post_link($tourId, 'raw') ?: '') : '',
+                'preview_url' => self::privateTourPreviewUrl($tourId),
+                'latest_created_at' => (string) ($group['latest_created_at'] ?? ''),
+                'rank' => $severity === 'critical' ? 0 : ($severity === 'warning' ? 1 : 2),
+            );
+        }
+
+        usort($rows, static function (array $left, array $right): int {
+            $rank = ((int) ($left['rank'] ?? 2)) <=> ((int) ($right['rank'] ?? 2));
+            if ($rank !== 0) {
+                return $rank;
+            }
+            return strcmp((string) ($right['latest_created_at'] ?? ''), (string) ($left['latest_created_at'] ?? ''));
+        });
+
+        return array_slice($rows, 0, 30);
+    }
+
+    /**
+     * @return array<int,array<string,mixed>>
+     */
+    private static function loadPrivateTourTicketOrderGroups(): array
+    {
+        global $wpdb;
+
+        if (! isset($wpdb) || ! is_object($wpdb)) {
+            return array();
+        }
+
+        $table = $wpdb->prefix . 'sbdp_private_tour_tickets';
+        $tableExists = (string) $wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $table));
+        if ($tableExists !== $table) {
+            return array();
+        }
+
+        $now = current_time('mysql', true);
+        $rows = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT order_id,
+                    tour_id,
+                    order_item_id,
+                    email,
+                    COUNT(*) AS total,
+                    SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) AS active,
+                    SUM(CASE WHEN redeemed_at IS NOT NULL THEN 1 ELSE 0 END) AS redeemed,
+                    SUM(CASE WHEN access_expires_at IS NOT NULL AND access_expires_at >= %s THEN 1 ELSE 0 END) AS active_access,
+                    SUM(CASE WHEN access_expires_at IS NOT NULL AND access_expires_at < %s THEN 1 ELSE 0 END) AS expired_access,
+                    MAX(created_at) AS latest_created_at
+                FROM {$table}
+                WHERE order_id > 0
+                GROUP BY order_id, tour_id, order_item_id, email
+                ORDER BY latest_created_at DESC
+                LIMIT 50",
+                $now,
+                $now
+            ),
+            ARRAY_A
+        );
+
+        return is_array($rows) ? $rows : array();
+    }
+
+    private static function expectedTicketQuantityForOrderItem($order, int $orderItemId): int
+    {
+        if (! is_object($order) || $orderItemId <= 0 || ! method_exists($order, 'get_item')) {
+            return 0;
+        }
+
+        $item = $order->get_item($orderItemId);
+        if (! is_object($item) || ! method_exists($item, 'get_quantity')) {
+            return 0;
+        }
+
+        return max(0, (int) $item->get_quantity());
+    }
+
+    private static function orderCustomerLabel($order, string $fallbackEmail): string
+    {
+        if (! is_object($order)) {
+            return $fallbackEmail !== '' ? $fallbackEmail : __('Klant onbekend', 'sbdp');
+        }
+
+        $name = method_exists($order, 'get_formatted_billing_full_name') ? trim((string) $order->get_formatted_billing_full_name()) : '';
+        $email = method_exists($order, 'get_billing_email') ? trim((string) $order->get_billing_email()) : $fallbackEmail;
+        if ($name !== '' && $email !== '') {
+            return $name . ' · ' . $email;
+        }
+
+        return $name !== '' ? $name : ($email !== '' ? $email : __('Klant onbekend', 'sbdp'));
+    }
+
+    private static function orderEditUrl($order, int $orderId): string
+    {
+        if (is_object($order) && method_exists($order, 'get_edit_order_url')) {
+            return (string) $order->get_edit_order_url();
+        }
+        if ($orderId <= 0) {
+            return '';
+        }
+
+        return add_query_arg(array('post' => $orderId, 'action' => 'edit'), admin_url('post.php'));
     }
 
     /**
