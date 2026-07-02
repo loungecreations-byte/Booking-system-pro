@@ -153,6 +153,22 @@ export function isHardAvailabilityBlocker(reasonCode = null) {
   ].includes(reason);
 }
 
+export function shouldAvailabilityIssueBlockDirectCheckout(routeIntent, issue, reasonCode = null) {
+  if (routeIntent !== "checkout") {
+    return Boolean(issue?.message) || reasonCode === "availability_lookup_failed";
+  }
+
+  if (isHardAvailabilityBlocker(reasonCode)) {
+    return true;
+  }
+
+  if (isNonDefinitiveAvailabilityIssue(issue, reasonCode)) {
+    return false;
+  }
+
+  return Boolean(issue?.message) || reasonCode === "availability_lookup_failed";
+}
+
 function plannerTimeToMinutes(value) {
   if (typeof value !== "string" || !/^\d{1,2}:\d{2}$/.test(value.trim())) {
     return NaN;

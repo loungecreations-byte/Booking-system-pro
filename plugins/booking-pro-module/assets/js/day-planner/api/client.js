@@ -8,8 +8,9 @@ const DEFAULT_HEADERS = {
  * @param {Object} options
  * @param {string} options.restBase
  * @param {string} options.nonce
+ * @param {string} options.nonceAction
  */
-export function createPlannerApi({ restBase, nonce }) {
+export function createPlannerApi({ restBase, nonce, nonceAction }) {
   const baseUrl = sanitiseBase(restBase);
 
   /**
@@ -19,23 +20,20 @@ export function createPlannerApi({ restBase, nonce }) {
    * @param {Object} [options.body]
    * @param {Object} [options.params]
    */
-  async function request(path, { method = "GET", body, params } = {}) {
+  async function request(path, { method = "GET", body, params, credentials = "omit" } = {}) {
     const url = buildUrl(baseUrl, path, params);
 
     const headers = {
       ...DEFAULT_HEADERS,
     };
 
-    if (typeof nonce === "string" && nonce.length > 0) {
-      headers["X-WP-Nonce"] = nonce;
-      headers["x-sbdp-nonce"] = nonce;
-    }
+    Object.assign(headers, buildNonceHeaders(nonce, nonceAction));
 
     const response = await fetch(url, {
       method,
       headers,
       body: body ? JSON.stringify(body) : undefined,
-      credentials: "omit",
+      credentials,
       referrerPolicy: "origin",
     });
 
@@ -79,7 +77,7 @@ export function createPlannerApi({ restBase, nonce }) {
 
     queueBooking(planId, options = {}) {
       const params = buildTokenParams(options.token);
-      return request(`/plan/${planId}/book`, { method: "POST", params });
+      return request(`/plan/${planId}/book`, { method: "POST", params, credentials: "same-origin" });
     },
 
     exportPlan(planId, type, options = {}) {
@@ -95,6 +93,23 @@ export function createPlannerApi({ restBase, nonce }) {
     detectConflicts(plan) {
       return request("/plan/conflicts", { method: "POST", body: plan });
     },
+  };
+}
+
+export function buildNonceHeaders(nonce, nonceAction = "") {
+  if (typeof nonce !== "string" || nonce.length === 0) {
+    return {};
+  }
+
+  if (nonceAction === "wp_rest") {
+    return {
+      "X-WP-Nonce": nonce,
+      "x-sbdp-nonce": nonce,
+    };
+  }
+
+  return {
+    "x-sbdp-nonce": nonce,
   };
 }
 

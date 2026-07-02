@@ -263,8 +263,10 @@ final class Module implements ModuleInterface
             : null;
 
         $restNonce = null;
+        $restNonceAction = \BSPModule\Core\Rest\RestService::PUBLIC_NONCE_ACTION;
         if (\function_exists('is_user_logged_in') && \is_user_logged_in()) {
             $restNonce = \wp_create_nonce('wp_rest');
+            $restNonceAction = 'wp_rest';
         }
 
         $planContext = $this->buildPlanContext();
@@ -278,6 +280,7 @@ final class Module implements ModuleInterface
         $desktopConfig = array(
             'restBase'     => trailingslashit(\rest_url('planner/v1')),
             'nonce'        => $restNonce,
+            'nonceAction'  => $restNonceAction,
             'bookingIntent'=> \BSP\Bookings\Rest\Controller::createBookingIntent(array('source' => 'day-planner')),
             'config'       => $planner_service ? $planner_service->getPlannerConfig() : array(),
             'experiments'  => $this->getFrontendExperiments(),
@@ -361,6 +364,7 @@ JS;
         $mobileConfig = array(
             'restBase'     => trailingslashit(\rest_url('planner/v1')),
             'nonce'        => $restNonce,
+            'nonceAction'  => $restNonceAction,
             'config'       => $planner_service ? $planner_service->getPlannerConfig() : array(),
             'experiments'  => $this->getFrontendExperiments(),
             'router'       => $this->getRouterConfig(),

@@ -42,6 +42,7 @@ import {
   isNonDefinitiveAvailabilityIssue,
   resolveParticipantsForItem,
   resolveUserOrder,
+  shouldAvailabilityIssueBlockDirectCheckout,
   shouldApplyAvailabilitySuggestedStart,
 } from "../app/utils/planner-state.js";
 import { createPlannerApi } from "../api/client.js";
@@ -51,6 +52,7 @@ import {
   materializeResolvedBookingPayload,
   generateArrangementItemsPayload,
 } from "../app/utils/arrangement-model.js";
+import { buildNonceHeaders } from "../api/client.js";
 import PreferenceManager from "../../shared/PreferenceManager.js";
 
 const PlannerContext = createContext(null);
@@ -1778,13 +1780,13 @@ function sanitiseBase(restBase) {
 
 async function fetchJson(
   url,
-  { method = "GET", body, nonce, referrerPolicy = "origin", credentials = "same-origin" } = {}
+  { method = "GET", body, nonce, nonceAction, referrerPolicy = "origin", credentials = "same-origin" } = {}
 ) {
   const response = await fetch(url, {
     method,
     headers: {
       "Content-Type": "application/json",
-      ...(nonce ? { "X-WP-Nonce": nonce, "x-sbdp-nonce": nonce } : {}),
+      ...buildNonceHeaders(nonce, nonceAction),
     },
     body: body ? JSON.stringify(body) : undefined,
     credentials,
@@ -2234,15 +2236,20 @@ function buildPlannerActionState({
     availabilityReasonCode
   );
   const hasHardAvailabilityBlocker = isHardAvailabilityBlocker(availabilityReasonCode);
+  const availabilityBlocksDirectCheckout = shouldAvailabilityIssueBlockDirectCheckout(
+    capability.route_intent,
+    availabilityIssue,
+    availabilityReasonCode
+  );
 
   let actionMode = "blocked";
   if (!hasItems) {
     actionMode = "empty";
   } else if (requirementsMet && !hasCriticalPlannerConflicts && !hasHardAvailabilityBlocker) {
-    if (hasNonDefinitiveAvailabilityIssue) {
-      actionMode = "request";
-    } else if (capability.route_intent === ROUTE_INTENT_CHECKOUT && !availabilityIssueVisible) {
+    if (capability.route_intent === ROUTE_INTENT_CHECKOUT && !availabilityBlocksDirectCheckout) {
       actionMode = "direct";
+    } else if (hasNonDefinitiveAvailabilityIssue) {
+      actionMode = "request";
     } else if (
       capability.route_intent === ROUTE_INTENT_QUOTE ||
       (availabilityIssueVisible && capability.route_intent !== ROUTE_INTENT_BLOCKED)
@@ -2271,7 +2278,7 @@ function buildPlannerActionState({
     actionMode === "direct" &&
     requirementsMet &&
     plannerApiAvailable &&
-    !availabilityIssueVisible &&
+    !availabilityBlocksDirectCheckout &&
     !hasCriticalPlannerConflicts;
   const secondaryQuoteEnabled =
     requirementsMet &&
@@ -3416,6 +3423,7 @@ function normalizeTotals(totals, previousSummary = createEmptySummary()) {
 export function PlannerProvider({ bootConfig, children }) {
   const restBase = sanitiseBase(bootConfig?.restBase);
   const nonce = bootConfig?.nonce || "";
+  const nonceAction = bootConfig?.nonceAction || "";
   const [state, dispatch] = useReducer(plannerReducer, initialState, (baseState) => {
     const storedFilters = readStoredFilters();
     const bootProducts = normaliseBootProducts(bootConfig?.products);
@@ -3449,8 +3457,8 @@ export function PlannerProvider({ bootConfig, children }) {
       return null;
     }
 
-    return createPlannerApi({ restBase, nonce });
-  }, [restBase, nonce]);
+    return createPlannerApi({ restBase, nonce, nonceAction });
+  }, [restBase, nonce, nonceAction]);
 
   const hasConfig = Boolean(state.config);
   const canonicalParticipants = useMemo(
@@ -3547,6 +3555,8 @@ export function PlannerProvider({ bootConfig, children }) {
 
         try {
           payload = await fetchJson(url.toString(), {
+            nonce,
+            nonceAction,
             referrerPolicy: "origin",
             credentials: "omit",
           });

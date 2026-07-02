@@ -70,37 +70,39 @@ final class AvailabilityProjectionService
         $availability = self::buildAvailabilityPayload($productId, $resourceId, $date);
         $blocks = isset($availability['blocks']) && is_array($availability['blocks']) ? $availability['blocks'] : [];
 
-        $overviewRequest = new WP_REST_Request('GET');
-        $overviewRequest->set_param('view', 'day');
-        $overviewRequest->set_param('date', $date);
-        $overview = function_exists('apply_filters')
-            ? apply_filters(
-                'sbdp_availability_projection_schedule_overview',
-                null,
-                array(
-                    'date'        => $date,
-                    'resource_id' => $resourceId,
-                    'product_id'  => $productId,
-                )
-            )
-            : null;
-        if ($overview === null) {
-            $overview = RestService::get_schedule_overview($overviewRequest);
-        }
-        $overviewData = $overview instanceof WP_REST_Response ? $overview->get_data() : (is_array($overview) ? $overview : []);
-
-        $timeline = isset($overviewData['timeline']) && is_array($overviewData['timeline']) ? $overviewData['timeline'] : [];
-        $resourceEntry = null;
-        foreach ($timeline as $entry) {
-            if (isset($entry['resource']['id']) && (int) $entry['resource']['id'] === $resourceId) {
-                $resourceEntry = $entry;
-                break;
-            }
-        }
-
         $slots = [];
-        if ($resourceEntry && isset($resourceEntry['available_slots']) && is_array($resourceEntry['available_slots'])) {
-            $slots = $resourceEntry['available_slots'];
+        if ($resourceId > 0) {
+            $overviewRequest = new WP_REST_Request('GET');
+            $overviewRequest->set_param('view', 'day');
+            $overviewRequest->set_param('date', $date);
+            $overview = function_exists('apply_filters')
+                ? apply_filters(
+                    'sbdp_availability_projection_schedule_overview',
+                    null,
+                    array(
+                        'date'        => $date,
+                        'resource_id' => $resourceId,
+                        'product_id'  => $productId,
+                    )
+                )
+                : null;
+            if ($overview === null) {
+                $overview = RestService::get_schedule_overview($overviewRequest);
+            }
+            $overviewData = $overview instanceof WP_REST_Response ? $overview->get_data() : (is_array($overview) ? $overview : []);
+
+            $timeline = isset($overviewData['timeline']) && is_array($overviewData['timeline']) ? $overviewData['timeline'] : [];
+            $resourceEntry = null;
+            foreach ($timeline as $entry) {
+                if (isset($entry['resource']['id']) && (int) $entry['resource']['id'] === $resourceId) {
+                    $resourceEntry = $entry;
+                    break;
+                }
+            }
+
+            if ($resourceEntry && isset($resourceEntry['available_slots']) && is_array($resourceEntry['available_slots'])) {
+                $slots = $resourceEntry['available_slots'];
+            }
         }
 
         if ($slots === []) {

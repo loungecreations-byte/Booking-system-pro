@@ -217,6 +217,8 @@ namespace BSP\Tests\BookingTruth {
 
 use BSP\DayPlanner\Service\ActivityService;
 use BSP\DayPlanner\Service\PlanService;
+use BSPModule\Core\Services\AvailabilityExecutionService;
+use BSPModule\Core\Services\AvailabilityProjectionService;
 use BSPModule\Core\Services\BookingTruthRuntimeService;
 use PHPUnit\Framework\TestCase;
 use ReflectionClass;
@@ -244,6 +246,9 @@ final class BookingTruthRuntimeTest extends TestCase
         }
         if (property_exists(\SBDP\Core\ProductSettings::class, 'settings')) {
             \SBDP\Core\ProductSettings::$settings = array();
+        }
+        if (property_exists(AvailabilityExecutionService::class, 'results')) {
+            AvailabilityExecutionService::$results = array();
         }
         remove_all_filters('sbdp_schedule_resource_post_types');
         add_filter('sbdp_schedule_resource_post_types', static function ($value) {
@@ -820,6 +825,183 @@ final class BookingTruthRuntimeTest extends TestCase
 
         $this->assertSame('REQUEST', $capability);
         $this->assertNotSame('DIRECT_LIMITED', $capability);
+    }
+
+    public function testNonResourceProductUsesProductSlotsInsteadOfScheduleResourceZero(): void
+    {
+        $GLOBALS['__booking_truth_meta'][116]['_sbdp_resource_ids'] = array();
+        $GLOBALS['__booking_truth_meta'][116]['_sbdp_time_slots'] = array(
+            array('start' => '09:00', 'end' => '10:00'),
+            array('start' => '10:00', 'end' => '11:00'),
+            array('start' => '11:00', 'end' => '12:00'),
+        );
+        $scheduleOverviewCalled = false;
+        add_filter(
+            'sbdp_availability_projection_schedule_overview',
+            static function ($value) use (&$scheduleOverviewCalled) {
+                unset($value);
+                $scheduleOverviewCalled = true;
+                return array(
+                    'timeline' => array(
+                        array(
+                            'resource' => array('id' => 0),
+                            'available_slots' => array(
+                                array('start' => '10:00', 'end' => '10:30'),
+                            ),
+                        ),
+                    ),
+                );
+            }
+        );
+        add_filter('sbdp_availability_projection_execution_check', static function ($value) {
+            unset($value);
+            return true;
+        });
+
+        $request = new \WP_REST_Request('GET');
+        $request->set_param('product_id', 116);
+        $request->set_param('resource_id', 0);
+        $request->set_param('date', '2026-07-02');
+        $request->set_param('participants', 10);
+
+        $payload = AvailabilityProjectionService::availabilitySlots($request);
+
+        $this->assertSame(
+            array(
+                array('start' => '09:00', 'end' => '10:00'),
+                array('start' => '10:00', 'end' => '11:00'),
+                array('start' => '11:00', 'end' => '12:00'),
+            ),
+            $payload['slots']
+        );
+        $this->assertFalse($scheduleOverviewCalled);
+    }
+
+    public function testJeroenBoschTourNonResourceHourSlotResolvesDirectCheckout(): void
+    {
+        $GLOBALS['__booking_truth_meta'][116]['_sbdp_resource_ids'] = array();
+        $GLOBALS['__booking_truth_meta'][116]['_sbdp_time_slots'] = array(
+            array('start' => '09:00', 'end' => '10:00'),
+            array('start' => '10:00', 'end' => '11:00'),
+            array('start' => '11:00', 'end' => '12:00'),
+        );
+        $scheduleOverviewCalled = false;
+        add_filter(
+            'sbdp_availability_projection_schedule_overview',
+            static function ($value) use (&$scheduleOverviewCalled) {
+                unset($value);
+                $scheduleOverviewCalled = true;
+                return array(
+                    'timeline' => array(
+                        array(
+                            'resource' => array('id' => 0),
+                            'available_slots' => array(
+                                array('start' => '10:00', 'end' => '10:30'),
+                            ),
+                        ),
+                    ),
+                );
+            }
+        );
+        add_filter('sbdp_availability_projection_execution_check', static function ($value) {
+            unset($value);
+            return true;
+        });
+        $GLOBALS['__booking_truth_meta'][116]['_ddb_booking_mode'] = 'direct';
+        $GLOBALS['__booking_truth_meta'][116]['_ddb_direct_booking_enabled'] = 'yes';
+        $GLOBALS['__booking_truth_meta'][116]['_ddb_supplier_confirmation_required'] = 'no';
+        add_filter(
+            'sbdp_planservice_availability_slots_payload',
+            static function ($value, array $context) {
+                unset($value);
+                $request = new \WP_REST_Request('GET');
+                $request->set_param('product_id', $context['product_id']);
+                $request->set_param('resource_id', $context['resource_id']);
+                $request->set_param('date', $context['date']);
+                $request->set_param('participants', $context['participants']);
+
+                return AvailabilityProjectionService::availabilitySlots($request);
+            },
+            10,
+            2
+        );
+        add_filter('sbdp_planservice_execution_check', static function ($value) {
+            unset($value);
+            return true;
+        });
+
+        $profile = (new BookingTruthRuntimeService())->resolveBookingCapabilityProfile(array(
+            'product_id' => 116,
+            'resource_id' => 0,
+            'participants' => 10,
+            'date' => '2026-07-02',
+            'start' => '2026-07-02T10:00:00',
+            'end' => '2026-07-02T11:00:00',
+        ));
+
+        $this->assertSame('DIRECT', $profile['status']);
+        $this->assertSame('checkout', $profile['route_intent']);
+        $this->assertTrue($profile['directBookable']);
+        $this->assertFalse($scheduleOverviewCalled);
+    }
+
+    public function testResourceProductStillUsesResourceScheduleAvailability(): void
+    {
+        $GLOBALS['__booking_truth_meta'][401]['_sbdp_resource_ids'] = array(9);
+        $GLOBALS['__booking_truth_meta'][401]['_sbdp_time_slots'] = array(
+            array('start' => '10:00', 'end' => '11:00'),
+        );
+        add_filter(
+            'sbdp_availability_projection_schedule_overview',
+            static function ($value) {
+                unset($value);
+                return array(
+                    'timeline' => array(
+                        array(
+                            'resource' => array('id' => 9),
+                            'available_slots' => array(
+                                array('start' => '13:00', 'end' => '14:00'),
+                            ),
+                        ),
+                    ),
+                );
+            }
+        );
+        add_filter('sbdp_availability_projection_execution_check', static function ($value) {
+            unset($value);
+            return true;
+        });
+
+        $request = new \WP_REST_Request('GET');
+        $request->set_param('product_id', 401);
+        $request->set_param('resource_id', 9);
+        $request->set_param('date', '2026-07-02');
+        $request->set_param('participants', 2);
+
+        $payload = AvailabilityProjectionService::availabilitySlots($request);
+
+        $this->assertTrue($payload['resource_valid']);
+        $this->assertSame(array(array('start' => '13:00', 'end' => '14:00')), $payload['slots']);
+    }
+
+    public function testResourceProductRejectsInvalidResourceWithoutFallingBackToResourceZero(): void
+    {
+        $GLOBALS['__booking_truth_meta'][402]['_sbdp_resource_ids'] = array(9);
+        $GLOBALS['__booking_truth_meta'][402]['_sbdp_time_slots'] = array(
+            array('start' => '10:00', 'end' => '11:00'),
+        );
+
+        $request = new \WP_REST_Request('GET');
+        $request->set_param('product_id', 402);
+        $request->set_param('resource_id', 8);
+        $request->set_param('date', '2026-07-02');
+        $request->set_param('participants', 2);
+
+        $payload = AvailabilityProjectionService::availabilitySlots($request);
+
+        $this->assertFalse($payload['resource_valid']);
+        $this->assertSame(8, $payload['resource_id']);
+        $this->assertSame(array(array('start' => '10:00', 'end' => '11:00')), $payload['slots']);
     }
 
     /**

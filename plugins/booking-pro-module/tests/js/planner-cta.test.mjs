@@ -5,6 +5,7 @@ import { buildPlannerCtaModel } from "../../assets/js/day-planner/app/utils/plan
 import {
   isHardAvailabilityBlocker,
   isNonDefinitiveAvailabilityIssue,
+  shouldAvailabilityIssueBlockDirectCheckout,
 } from "../../assets/js/day-planner/app/utils/planner-state.js";
 
 test("direct capability shows checkout as primary action", () => {
@@ -52,6 +53,17 @@ test("availability_check_needed with suggested start is classified as request-sa
       "availability_check_needed"
     ),
     true
+  );
+});
+
+test("non-definitive availability hint does not block direct checkout route", () => {
+  assert.equal(
+    shouldAvailabilityIssueBlockDirectCheckout(
+      "checkout",
+      { message: "Beschikbaarheid controleren: gekozen tijd lijkt niet beschikbaar. Mogelijke optie: 06:00." },
+      "availability_suggested_start"
+    ),
+    false
   );
 });
 
