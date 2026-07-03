@@ -331,6 +331,9 @@ function sbdp_render_product_planner_form($atts = array()) {
         $route_intent = $is_booking_mode_blocked ? 'blocked' : 'quote';
     }
     $is_direct_checkout = $route_intent === 'checkout' && ! empty($booking_mode_profile['directBookable']);
+    $planner_booking_capability = $is_direct_checkout
+        ? ((string) ($booking_profile['status'] ?? '') === 'DIRECT_LIMITED' ? 'DIRECT_LIMITED' : 'DIRECT_ELIGIBLE')
+        : 'REQUEST';
     $primary_action = $is_direct_checkout ? 'book' : 'quote';
     $primary_label = $is_direct_checkout ? 'Boek dit programma' : 'Vraag offerte aan';
     $primary_type = $is_direct_checkout ? 'submit' : 'button';
@@ -518,6 +521,9 @@ function sbdp_render_product_planner_form($atts = array()) {
             const plannerNonce = <?php echo wp_json_encode($planner_nonce); ?>;
             const cartUrl = <?php echo wp_json_encode($cart_url); ?>;
             const quoteUrl = <?php echo wp_json_encode($quote_url); ?>;
+            const plannerRouteIntent = <?php echo wp_json_encode($route_intent); ?>;
+            const plannerBookingCapability = <?php echo wp_json_encode($planner_booking_capability); ?>;
+            const plannerDirectBookable = <?php echo $is_direct_checkout ? 'true' : 'false'; ?>;
             const isEliioRequestOnly = <?php echo $is_eliio_request_only ? 'true' : 'false'; ?>;
             const eliioAvailabilityUrl = <?php echo wp_json_encode($eliio_availability_url); ?>;
             const eliioStatus = document.getElementById('sbdp_eliio_availability_status');
@@ -787,6 +793,12 @@ function sbdp_render_product_planner_form($atts = array()) {
                     lockFirstSlot: !!plannerTime,
                     traceId: traceId,
                     trace_id: traceId,
+                    route_intent: plannerRouteIntent,
+                    routeIntent: plannerRouteIntent,
+                    booking_capability: plannerBookingCapability,
+                    bookingCapability: plannerBookingCapability,
+                    directBookable: plannerDirectBookable,
+                    requestOnly: plannerRouteIntent !== 'checkout',
                     options: {
                         combiItems: Array.isArray(resolvedCombis) ? resolvedCombis : []
                     },

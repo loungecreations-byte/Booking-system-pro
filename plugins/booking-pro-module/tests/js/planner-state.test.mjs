@@ -10,6 +10,7 @@ import {
   canRemovePlannerItem,
   countCriticalPlannerItemOverlaps,
   filterStartOptionsWithinPlannerHours,
+  normalizePlannerBookingCapability,
   resolveParticipantsForItem,
   shouldApplyAvailabilitySuggestedStart,
 } from "../../assets/js/day-planner/app/utils/planner-state.js";
@@ -119,6 +120,13 @@ test("locked planner items remain removable", () => {
     }),
     true
   );
+});
+
+test("direct limited planner capability stays direct checkout capable", () => {
+  assert.equal(normalizePlannerBookingCapability("DIRECT_LIMITED"), "DIRECT_ELIGIBLE");
+  assert.equal(normalizePlannerBookingCapability("direct-limited"), "DIRECT_ELIGIBLE");
+  assert.equal(normalizePlannerBookingCapability("quote"), "REQUEST_ONLY");
+  assert.equal(normalizePlannerBookingCapability("request_only"), "REQUEST_ONLY");
 });
 
 test("availability suggested starts are filtered to planner opening hours", () => {

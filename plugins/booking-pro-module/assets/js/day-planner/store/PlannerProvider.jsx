@@ -41,6 +41,7 @@ import {
   hasManualParticipantsOverride,
   isHardAvailabilityBlocker,
   isNonDefinitiveAvailabilityIssue,
+  normalizePlannerBookingCapability,
   resolveParticipantsForItem,
   resolveUserOrder,
   shouldAvailabilityIssueBlockDirectCheckout,
@@ -1850,37 +1851,7 @@ function toPositiveInt(value) {
 }
 
 function normalizeBookingCapability(rawValue) {
-  if (typeof rawValue !== "string") {
-    return null;
-  }
-
-  const value = rawValue.trim().toLowerCase();
-  if (!value) {
-    return null;
-  }
-
-  if (
-    value === "direct" ||
-    value === "direct_eligible" ||
-    value === "direct-eligible" ||
-    value === "book" ||
-    value === "checkout"
-  ) {
-    return BOOKING_CAPABILITY_DIRECT;
-  }
-
-  if (
-    value === "request" ||
-    value === "request_only" ||
-    value === "request-only" ||
-    value === "quote" ||
-    value === "quote_only" ||
-    value === "quote-only"
-  ) {
-    return BOOKING_CAPABILITY_REQUEST;
-  }
-
-  return null;
+  return normalizePlannerBookingCapability(rawValue);
 }
 
 function resolveExplicitBookingCapability(source) {

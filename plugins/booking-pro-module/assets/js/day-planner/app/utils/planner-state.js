@@ -3,6 +3,8 @@ export const PARTICIPANTS_SOURCE_MANUAL_OVERRIDE = "manual_override";
 export const PARTICIPANTS_SOURCE_PRODUCT_DEFAULT = "product_default";
 export const TIME_SOURCE_AUTO = "auto";
 export const TIME_SOURCE_MANUAL = "manual";
+export const PLANNER_BOOKING_CAPABILITY_DIRECT = "DIRECT_ELIGIBLE";
+export const PLANNER_BOOKING_CAPABILITY_REQUEST = "REQUEST_ONLY";
 
 export function toPlannerPositiveInt(value) {
   if (typeof value === "number" && Number.isFinite(value) && value > 0) {
@@ -94,6 +96,44 @@ export function buildAutoTimeFields(source = TIME_SOURCE_AUTO) {
 
 export function canRemovePlannerItem() {
   return true;
+}
+
+export function normalizePlannerBookingCapability(rawValue) {
+  if (typeof rawValue !== "string") {
+    return null;
+  }
+
+  const value = rawValue.trim().toLowerCase();
+  if (!value) {
+    return null;
+  }
+
+  if (
+    value === "direct" ||
+    value === "direct_eligible" ||
+    value === "direct-eligible" ||
+    value === "direct_limited" ||
+    value === "direct-limited" ||
+    value === "limited_direct" ||
+    value === "limited-direct" ||
+    value === "book" ||
+    value === "checkout"
+  ) {
+    return PLANNER_BOOKING_CAPABILITY_DIRECT;
+  }
+
+  if (
+    value === "request" ||
+    value === "request_only" ||
+    value === "request-only" ||
+    value === "quote" ||
+    value === "quote_only" ||
+    value === "quote-only"
+  ) {
+    return PLANNER_BOOKING_CAPABILITY_REQUEST;
+  }
+
+  return null;
 }
 
 export function shouldApplyAvailabilitySuggestedStart(item, options = {}) {
