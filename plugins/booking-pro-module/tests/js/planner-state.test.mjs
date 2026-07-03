@@ -7,6 +7,7 @@ import {
   buildInheritedParticipants,
   buildManualParticipants,
   buildManualTimeFields,
+  canRemovePlannerItem,
   countCriticalPlannerItemOverlaps,
   filterStartOptionsWithinPlannerHours,
   resolveParticipantsForItem,
@@ -102,6 +103,19 @@ test("auto item can only be rescheduled by explicit auto optimize intent", () =>
     shouldApplyAvailabilitySuggestedStart(autoItem, {
       suggestedStart: "19:00",
       explicitAutoReschedule: true,
+    }),
+    true
+  );
+});
+
+test("locked planner items remain removable", () => {
+  assert.equal(canRemovePlannerItem({ id: "fixed", locked: true }), true);
+  assert.equal(
+    canRemovePlannerItem({
+      id: "anchor",
+      role: "anchor",
+      lockReason: "fixed",
+      meta: { is_fixed: true },
     }),
     true
   );

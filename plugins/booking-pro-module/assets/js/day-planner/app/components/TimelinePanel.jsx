@@ -572,10 +572,11 @@ function CalendarDay({
                     type="button"
                     className="sbdp-calendar-event__remove"
                     onClick={() => removeActivity(primaryItem.id)}
-                    disabled={isLocked}
                     aria-label={`Verwijder ${primaryItem.title}`}
+                    title={`Verwijder ${primaryItem.title}`}
                   >
                     <span aria-hidden="true">&times;</span>
+                    <span className="sbdp-calendar-event__remove-label">Verwijder</span>
                   </button>
                 </div>
                 )}

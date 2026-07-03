@@ -35,6 +35,7 @@ import {
   buildInheritedParticipants,
   buildManualParticipants,
   buildManualTimeFields,
+  canRemovePlannerItem,
   countCriticalPlannerItemOverlaps,
   filterStartOptionsWithinPlannerHours,
   hasManualParticipantsOverride,
@@ -1744,10 +1745,22 @@ function applyItemsUpdate(state, nextItems) {
   const participantCount = selectCanonicalParticipants(state, { allowFormFallback: true });
   const pricedItems = recalculateItems(nextItems, state.products, participantCount);
   if (nextItems.length === 0) {
+    const existingDays = Array.isArray(state.plan?.days) ? state.plan.days : [];
+    const date =
+      typeof state.form?.date === "string" && state.form.date.trim() !== ""
+        ? state.form.date.trim()
+        : getTodayIso();
+    const allowMulti = Boolean(state.config?.allow_multi_day);
+    const requestedRange = normalizePlanRange(state.planRange, allowMulti);
+    const dayCount = allowMulti
+      ? dayCountFromRange(requestedRange)
+      : dayCountFromRange(DEFAULT_PLAN_RANGE);
+
     return {
       ...state,
       plan: {
         ...state.plan,
+        days: existingDays.length > 0 ? existingDays : buildDays(date, dayCount),
         items: pricedItems,
         planCheckoutCapability: null,
       },
@@ -3646,6 +3659,7 @@ export function PlannerProvider({ bootConfig, children }) {
   const prefillProductFetchedRef = useRef(false);
   const availabilityReconciledRef = useRef(new Set());
   const addActivityRef = useRef(() => false);
+  const manualRemovalVersionRef = useRef(0);
   const availabilityCacheRef = useRef(new Map());
   const sessionPrefillRef = useRef(readSessionPrefillQueue());
   const seededSessionPrefillRef = useRef(
@@ -5116,16 +5130,17 @@ export function PlannerProvider({ bootConfig, children }) {
   const removeActivity = useCallback(
     (id) => {
       const item = state.plan.items.find((entry) => entry.id === id);
-      if (isImmutablePlannerItem(item)) {
-        showToast("Dit vaste tijdslot kan niet worden verwijderd.");
+      if (!canRemovePlannerItem(item)) {
+        showToast("Deze activiteit kan niet worden verwijderd.");
         emitPlannerEvent("sbdp:planner/activity-remove", {
           status: "blocked",
           id,
-          reason: "locked",
+          reason: "not_removable",
         });
         return;
       }
 
+      manualRemovalVersionRef.current += 1;
       dispatch({ type: ACTIONS.REMOVE_ITEM, payload: { id } });
       emitPlannerEvent("sbdp:planner/activity-remove", {
         status: "success",
@@ -5880,6 +5895,7 @@ export function PlannerProvider({ bootConfig, children }) {
         showToast("Planner is nog niet klaar om activiteiten toe te voegen.");
         return;
       }
+      const removalVersionAtStart = manualRemovalVersionRef.current;
 
       const normalizedTheme =
         typeof theme === "string" && theme.trim() !== "" ? theme.trim().toLowerCase() : "mix";
@@ -5944,6 +5960,10 @@ export function PlannerProvider({ bootConfig, children }) {
         const plannerParticipants = canonicalParticipants;
 
         for (const product of uniqueProducts) {
+          if (manualRemovalVersionRef.current !== removalVersionAtStart) {
+            return;
+          }
+
           const duration =
             getDurationMinutes(product) ?? product?.duration?.minutes ?? product?.duration_minutes ?? null;
           if (!Number.isFinite(duration) || duration <= 0) {
@@ -5960,6 +5980,9 @@ export function PlannerProvider({ bootConfig, children }) {
             resourceId: product.resource_id ?? null,
             openHours: state.config?.open_hours,
           });
+          if (manualRemovalVersionRef.current !== removalVersionAtStart) {
+            return;
+          }
           if (!resolvedStartTime) {
             continue;
           }
@@ -5973,6 +5996,10 @@ export function PlannerProvider({ bootConfig, children }) {
             const nextStartMinutes = resolvedStartTime ? timeToMinutes(resolvedStartTime) : startMinutes;
             startMinutes = nextStartMinutes + duration;
           }
+        }
+
+        if (manualRemovalVersionRef.current !== removalVersionAtStart) {
+          return;
         }
 
         if (addedCount === 0) {
@@ -6148,6 +6175,7 @@ export function PlannerProvider({ bootConfig, children }) {
         showToast("Planner is nog niet klaar om activiteiten toe te voegen.");
         return null;
       }
+      const removalVersionAtStart = manualRemovalVersionRef.current;
 
       // Build preferences from current state + provided overrides
       const requestPayload = {
@@ -6189,6 +6217,10 @@ export function PlannerProvider({ bootConfig, children }) {
         // Add each suggested activity to the plan
         let addedCount = 0;
         for (const activity of response.activities) {
+          if (manualRemovalVersionRef.current !== removalVersionAtStart) {
+            return response;
+          }
+
           const productId = activity.product_id;
           if (!productId) continue;
 
@@ -6212,6 +6244,10 @@ export function PlannerProvider({ bootConfig, children }) {
           if (added) {
             addedCount += 1;
           }
+        }
+
+        if (manualRemovalVersionRef.current !== removalVersionAtStart) {
+          return response;
         }
 
         if (addedCount > 0) {

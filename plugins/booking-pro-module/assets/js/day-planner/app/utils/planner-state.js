@@ -92,6 +92,10 @@ export function buildAutoTimeFields(source = TIME_SOURCE_AUTO) {
   };
 }
 
+export function canRemovePlannerItem() {
+  return true;
+}
+
 export function shouldApplyAvailabilitySuggestedStart(item, options = {}) {
   if (options?.explicitAutoReschedule === true) {
     return true;
