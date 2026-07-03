@@ -355,17 +355,6 @@ final class PricingService
     {
         $basePricePerPerson = $this->usesBasePricePerPerson($product->get_id());
 
-        // People types pricing: use first type price when enabled.
-        $peopleTypes = get_post_meta($product->get_id(), '_sbdp_people_types', true);
-        $peopleTypesEnabled = $this->isTruthy(get_post_meta($product->get_id(), '_sbdp_enable_person_types', true));
-        if ($peopleTypesEnabled && is_array($peopleTypes) && $peopleTypes !== array()) {
-            $first = reset($peopleTypes);
-            if (is_array($first) && isset($first['price']) && is_numeric($first['price'])) {
-                // People type prices are entered incl. BTW — return as-is.
-                return round((float) $first['price'], 2);
-            }
-        }
-
         $meta = get_post_meta($product->get_id(), '_sbdp_price_per_person', true);
         if (is_numeric($meta) && (float) $meta > 0.0) {
             $wantsGross = true; // Always gross for B2C platform as per AGENTS.md
@@ -400,6 +389,18 @@ final class PricingService
                 if ((float) $price > 0.0) {
                     return round((float) $price, 2);
                 }
+            }
+        }
+
+        // People type prices require an explicit people-type selection. Current
+        // direct/planner handoff sends only canonical participants, so for base
+        // price-per-person products Woo/base price remains the customer truth.
+        $peopleTypes = get_post_meta($product->get_id(), '_sbdp_people_types', true);
+        $peopleTypesEnabled = $this->isTruthy(get_post_meta($product->get_id(), '_sbdp_enable_person_types', true));
+        if (! $basePricePerPerson && $peopleTypesEnabled && is_array($peopleTypes) && $peopleTypes !== array()) {
+            $first = reset($peopleTypes);
+            if (is_array($first) && isset($first['price']) && is_numeric($first['price'])) {
+                return round((float) $first['price'], 2);
             }
         }
 

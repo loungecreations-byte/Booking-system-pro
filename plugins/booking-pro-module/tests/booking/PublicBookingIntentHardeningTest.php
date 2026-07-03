@@ -429,6 +429,12 @@ final class PublicBookingIntentHardeningTest extends TestCase
             $entry['value']['expires_at'] = 1;
         }
         unset($entry);
+        foreach ($GLOBALS['__test_transients'] as &$entry) {
+            if (isset($entry['value']) && is_array($entry['value'])) {
+                $entry['value']['expires_at'] = 1;
+            }
+        }
+        unset($entry);
 
         $result = Controller::create($request);
 
