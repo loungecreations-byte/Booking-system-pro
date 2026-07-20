@@ -18,7 +18,7 @@ final class ExperienceDashboardQueryService
     /** @return array<string,mixed> */
     public function forUser(WP_User $user): array
     {
-        $access = (new ExperienceAccessPolicy($this->db))->forUser($user);
+        $access = $this->uniqueTourAccess((new ExperienceAccessPolicy($this->db))->forUser($user));
         $tours = array_map(fn(array $item): array => $this->presentTour($user->ID, $item), $access);
         $progressRepo = new ProgressRepository($this->db);
         $progress = $progressRepo->progress((int) $user->ID);
@@ -43,6 +43,28 @@ final class ExperienceDashboardQueryService
             'recommendations' => $this->recommendations($tours),
             'capabilities' => array('community'=>false,'public_profile'=>false,'rewards_redemption'=>false),
         );
+    }
+
+    /**
+     * Keep ticket-level access truth intact while presenting each tour once.
+     * Prefer a currently allowed ticket over an inactive newer ticket.
+     *
+     * @param array<int,array<string,mixed>> $access
+     * @return array<int,array<string,mixed>>
+     */
+    private function uniqueTourAccess(array $access): array
+    {
+        $unique = array();
+        foreach ($access as $item) {
+            $tourId = (int) ($item['tour_id'] ?? 0);
+            if ($tourId <= 0) {
+                continue;
+            }
+            if (! isset($unique[$tourId]) || (! empty($item['allowed']) && empty($unique[$tourId]['allowed']))) {
+                $unique[$tourId] = $item;
+            }
+        }
+        return array_values($unique);
     }
 
     /** @param array<string,mixed> $access @return array<string,mixed> */

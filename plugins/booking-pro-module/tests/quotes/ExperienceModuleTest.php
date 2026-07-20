@@ -110,6 +110,7 @@ final class ExperienceModuleTest extends TestCase
 
         $GLOBALS['__test_enqueued_scripts'] = array();
         $GLOBALS['__test_localized_scripts'] = array();
+        $GLOBALS['__test_enqueued_styles'] = array();
         $GLOBALS['__test_is_account_page'] = false;
         $GLOBALS['__test_wc_endpoint'] = '';
         AccountPage::enqueueAssets();
@@ -124,6 +125,7 @@ final class ExperienceModuleTest extends TestCase
         AccountPage::enqueueAssets();
 
         self::assertCount(1, $GLOBALS['__test_enqueued_scripts']);
+        self::assertCount(1, $GLOBALS['__test_enqueued_styles']);
         self::assertCount(1, $GLOBALS['__test_localized_scripts']);
         self::assertSame('bsp-experience-account', $GLOBALS['__test_enqueued_scripts'][0]['handle']);
         self::assertSame('bspExperienceAccount', $GLOBALS['__test_localized_scripts'][0]['objectName']);

@@ -302,6 +302,7 @@ $GLOBALS['__test_is_account_page'] = false;
 $GLOBALS['__test_wc_endpoint'] = '';
 $GLOBALS['__test_enqueued_scripts'] = array();
 $GLOBALS['__test_localized_scripts'] = array();
+$GLOBALS['__test_enqueued_styles'] = array();
 
 function current_time($type = 'mysql', $gmt = false): string
 {
@@ -596,6 +597,15 @@ function wp_enqueue_script(string $handle, string $src = '', array $dependencies
 function wp_localize_script(string $handle, string $objectName, array $data): bool
 {
     $GLOBALS['__test_localized_scripts'][] = compact('handle', 'objectName', 'data');
+    return true;
+}
+
+function wp_enqueue_style(string $handle, string $src = '', array $dependencies = array(), $version = false, string $media = 'all'): bool
+{
+    $GLOBALS['__test_enqueued_styles'][] = compact('handle', 'src', 'dependencies', 'version', 'media');
+    if (isset($GLOBALS['__design_test_styles_enqueued']) && is_array($GLOBALS['__design_test_styles_enqueued'])) {
+        $GLOBALS['__design_test_styles_enqueued'][$handle] = true;
+    }
     return true;
 }
 

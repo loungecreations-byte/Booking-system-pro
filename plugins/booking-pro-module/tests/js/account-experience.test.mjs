@@ -55,8 +55,17 @@ test("successful response reaches a rendered end state", async () => {
     fetchImpl: async () => response({ progress: { xp: 12, level: { number: 2 } }, tours: [] }),
   });
   await api.pending(root);
-  assert.match(root.innerHTML, /<strong>12<\/strong> XP/);
+  assert.match(root.innerHTML, /<strong>12<\/strong><span>XP<\/span>/);
   assert.doesNotMatch(root.innerHTML, /worden geladen/);
+});
+
+test("duplicate tour records render once per tour", async () => {
+  const duplicate = { id: 42, title: "Jeroen Bosch Tour", url: "/tour/42", completion_percent: 95 };
+  const { root, api } = await loadFrontend({
+    fetchImpl: async () => response({ tours: [duplicate, { ...duplicate }] }),
+  });
+  await api.pending(root);
+  assert.equal((root.innerHTML.match(/Jeroen Bosch Tour/g) || []).length, 1);
 });
 
 test("HTTP error reaches the safe error end state", async () => {

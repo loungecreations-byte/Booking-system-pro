@@ -7,6 +7,7 @@ final class AccountPage
 {
     private const ENDPOINT = 'mijn-dagjedenbosch';
     private const SCRIPT_HANDLE = 'bsp-experience-account';
+    private const STYLE_HANDLE = 'bsp-experience-account';
 
     public static function register(): void
     {
@@ -45,6 +46,15 @@ final class AccountPage
 
         $assetPath = SBDP_DIR . 'modules/experience/assets/account.js';
         $version = is_readable($assetPath) ? (string) filemtime($assetPath) : SBDP_VERSION;
+        $stylePath = SBDP_DIR . 'modules/experience/assets/account.css';
+        $styleVersion = is_readable($stylePath) ? (string) filemtime($stylePath) : SBDP_VERSION;
+
+        wp_enqueue_style(
+            self::STYLE_HANDLE,
+            SBDP_URL . 'modules/experience/assets/account.css',
+            array('sbdp-cart-checkout'),
+            $styleVersion
+        );
 
         wp_enqueue_script(
             self::SCRIPT_HANDLE,
