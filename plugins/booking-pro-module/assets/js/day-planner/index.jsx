@@ -1,7 +1,7 @@
-import React from "react";
+import React, { Suspense } from "react";
 import { createRoot } from "react-dom/client";
 
-import PlannerApp from "./app/App";
+import PlannerApp, { PlannerSkeleton } from "./app/App";
 import PlannerProvider from "./store/PlannerProvider";
 
 const ROOT_ID = "sbdp-day-planner-root";
@@ -45,9 +45,11 @@ function bootstrap() {
   node.removeAttribute("aria-hidden");
 
   root.render(
-    <PlannerProvider bootConfig={config}>
-      <PlannerApp />
-    </PlannerProvider>
+    <Suspense fallback={<PlannerSkeleton />}>
+      <PlannerProvider bootConfig={config}>
+        <PlannerApp />
+      </PlannerProvider>
+    </Suspense>
   );
 
   node.setAttribute("data-react-root", "desktop");

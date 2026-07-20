@@ -129,6 +129,28 @@ final class PartnerConfirmationService
         if (! is_array($payload)) {
             $payload = [];
         }
+        $previousResponse = is_array($payload['partner_response'] ?? null) ? $payload['partner_response'] : array();
+        if ((string) ($row['status'] ?? '') === $status
+            && (string) ($previousResponse['action'] ?? '') === $action
+            && (string) ($previousResponse['note'] ?? '') === $note) {
+            return [
+                'booking_reference' => (string) ($row['booking_reference'] ?? ''),
+                'leg_key' => $legKey,
+                'status' => $status,
+                'scheduled_date' => (string) ($row['scheduled_date'] ?? ''),
+                'scheduled_time' => (string) ($row['scheduled_time'] ?? ''),
+                'scheduled_end_time' => (string) ($row['scheduled_end_time'] ?? ''),
+                'participants' => (int) ($row['participants'] ?? 0),
+                'note' => $note,
+                'responded_at' => (string) ($row['responded_at'] ?? ''),
+                'confirmed_at' => (string) ($row['confirmed_at'] ?? ''),
+                'title' => isset($payload['title']) ? (string) $payload['title'] : '',
+                'customer_name' => isset($payload['customer_name']) ? (string) $payload['customer_name'] : '',
+                'customer_email' => isset($payload['customer_email']) ? (string) $payload['customer_email'] : '',
+                'leg_type' => isset($payload['leg']['leg_type']) ? (string) $payload['leg']['leg_type'] : '',
+                'idempotent_replay' => true,
+            ];
+        }
         $payload['partner_response'] = [
             'action' => $action,
             'note' => $note,

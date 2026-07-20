@@ -234,20 +234,17 @@ final class Module implements ModuleInterface
             }
         }
 
-        $baseStyleUrl = SBDP_URL . 'assets/css/day-planner.css';
-        \wp_enqueue_style(
-            'sbdp-day-planner-base',
-            $baseStyleUrl,
-            array(),
-            $this->determineAssetVersion($baseStyleUrl)
-        );
-
         $refreshStyleUrl = SBDP_URL . 'assets/css/day-planner-refresh.css';
+        $refreshStylePath = SBDP_DIR . 'assets/css/day-planner-refresh.css';
+        $refreshStyleVersion = \is_readable($refreshStylePath)
+            ? (string) \filemtime($refreshStylePath)
+            : $this->determineAssetVersion($refreshStyleUrl);
+
         \wp_enqueue_style(
             'sbdp-day-planner-refresh',
             $refreshStyleUrl,
-            array('sbdp-day-planner-base'),
-            $this->determineAssetVersion($refreshStyleUrl)
+            array(),
+            $refreshStyleVersion
         );
 
         $listingCardStyleUrl = SBDP_URL . 'assets/css/ddb-shared-listing-card.css';
@@ -569,13 +566,13 @@ CSS;
         $entryData = $manifest[$entry];
         $styles    = array();
         $scriptUrl = isset($entryData['file'])
-            ? SBDP_URL . 'build/' . ltrim((string) $entryData['file'], '/')
+            ? SBDP_URL . 'assets/js/vite/' . ltrim((string) $entryData['file'], '/')
             : $fallback['script']['src'];
 
         if (! empty($entryData['css']) && is_array($entryData['css'])) {
             foreach ($entryData['css'] as $index => $cssFile) {
                 $handle = $this->buildStyleHandle($entry, (int) $index);
-                $styleUrl = SBDP_URL . 'build/' . ltrim((string) $cssFile, '/');
+                $styleUrl = SBDP_URL . 'assets/js/vite/' . ltrim((string) $cssFile, '/');
                 $styles[ $handle ] = array(
                     'src'     => $styleUrl,
                     'version' => $this->determineAssetVersion($styleUrl),
@@ -600,9 +597,9 @@ CSS;
     private function resolveFallbackAsset(string $entry): array
     {
         $fallbackMap = array(
-            'assets/js/day-planner/index.jsx'         => 'assets/js/day-planner/dist/dayPlanner.js',
-            'assets/js/mobile-dayplanner/index.jsx'   => 'assets/js/mobile-dayplanner/dist/mobileDayPlanner.js',
-            'assets/js/admin/booking-board/index.jsx' => 'assets/js/admin/booking-board/dist/bookingBoard.js',
+            'assets/js/day-planner/index.jsx'         => 'assets/js/vite/js/dayPlanner.js',
+            'assets/js/mobile-dayplanner/index.jsx'   => 'assets/js/vite/js/dayPlanner.js',
+            'assets/js/admin/booking-board/index.jsx' => 'assets/js/vite/js/bookingBoard.js',
         );
 
         if (isset($fallbackMap[$entry])) {

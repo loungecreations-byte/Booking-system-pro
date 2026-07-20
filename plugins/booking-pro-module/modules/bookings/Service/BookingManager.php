@@ -1186,6 +1186,7 @@ final class BookingManager
             'notes'              => $payload['notes'],
             'currency'           => $payload['currency'],
             'total'              => $total,
+            'booking_reference'  => $payload['booking_reference'],
             'created_at'         => $timestamp,
             'updated_at'         => $timestamp,
             'pricing_snapshot'   => [
@@ -1266,6 +1267,7 @@ final class BookingManager
         }
 
         $status = isset($payload['status']) ? $this->normalizeStatus((string) $payload['status']) : 'created';
+        $bookingReference = trim((string) ($payload['booking_reference'] ?? ''));
 
         $dateEnd = (string) ($payload['date_end'] ?? $date);
         if ($dateEnd === '') {
@@ -1324,6 +1326,7 @@ final class BookingManager
             'channel'       => $channel,
             'vendor_id'     => $vendorId,
             'status'        => $status,
+            'booking_reference' => $bookingReference,
         ];
     }
 

@@ -16,6 +16,9 @@ use function is_array;
 
 final class VendorDashboardService
 {
+    private const REVENUE_STATUSES = array('paid', 'captured', 'completed');
+    private const RECEIVABLE_STATUSES = array('pending', 'requested');
+
     /**
      * @return array<string, mixed>
      */
@@ -51,7 +54,10 @@ final class VendorDashboardService
 
         $financial = $this->buildFinancialSummary($enriched);
         $calendar  = $this->getCalendarStatus($vendorId);
-        $confirmations = $this->getPartnerConfirmations($vendorId);
+        $confirmations = array_merge(
+            $this->getPartnerConfirmations($vendorId),
+            $this->getQuoteSupplierConfirmations($vendorId)
+        );
         $dietarySummary = $this->getDietarySummaryForVendor($vendorId);
 
         return array(
@@ -110,21 +116,62 @@ final class VendorDashboardService
         $totalRevenue   = 0.0;
         $paidRevenue    = 0.0;
         $pendingRevenue = 0.0;
+        $ytdRevenue     = 0.0;
         $counts         = array();
+        $monthly        = array();
+        $ytdYear        = (int) gmdate('Y');
+        $ytdBookings    = 0;
 
         foreach ($bookings as $booking) {
-            $currency = (string) ($booking['currency'] ?? $currency);
-            $total    = (float) ($booking['total'] ?? 0.0);
-            $status   = (string) ($booking['status'] ?? '');
+            $currency  = (string) ($booking['currency'] ?? $currency);
+            $total     = (float) ($booking['total'] ?? 0.0);
+            $status    = strtolower(trim((string) ($booking['status'] ?? '')));
+            $timestamp = isset($booking['timestamp']) ? (int) $booking['timestamp'] : 0;
+            $isRevenue = in_array($status, self::REVENUE_STATUSES, true);
 
             $counts[$status] = ($counts[$status] ?? 0) + 1;
-            $totalRevenue   += $total;
 
-            if ($status === 'paid') {
+            if ($isRevenue) {
+                $totalRevenue += $total;
                 $paidRevenue += $total;
-            } else {
+            } elseif (in_array($status, self::RECEIVABLE_STATUSES, true)) {
                 $pendingRevenue += $total;
             }
+
+            if ($timestamp > 0) {
+                $monthKey  = gmdate('Y-m', $timestamp);
+                $bookYear  = (int) gmdate('Y', $timestamp);
+                if ($bookYear === $ytdYear) {
+                    $ytdBookings++;
+                }
+
+                if ($isRevenue && ! isset($monthly[$monthKey])) {
+                    $monthly[$monthKey] = array('revenue' => 0.0, 'count' => 0, 'label' => gmdate('M', $timestamp));
+                }
+
+                if ($isRevenue) {
+                    $monthly[$monthKey]['revenue'] += $total;
+                    $monthly[$monthKey]['count']++;
+                    if ($bookYear === $ytdYear) {
+                        $ytdRevenue += $total;
+                    }
+                }
+            }
+        }
+
+        // Sort monthly and keep last 12
+        ksort($monthly);
+        $monthlySlice = array_slice($monthly, -12, 12, true);
+
+        // Build ordered array for chart (month label + revenue)
+        $monthlyChart = array();
+        foreach ($monthlySlice as $key => $data) {
+            $monthlyChart[] = array(
+                'month'   => $key,
+                'label'   => $data['label'],
+                'revenue' => round($data['revenue'], 2),
+                'count'   => $data['count'],
+            );
         }
 
         return array(
@@ -132,8 +179,12 @@ final class VendorDashboardService
             'total_revenue'    => round($totalRevenue, 2),
             'paid_revenue'     => round($paidRevenue, 2),
             'pending_revenue'  => round($pendingRevenue, 2),
+            'ytd_revenue'      => round($ytdRevenue, 2),
+            'ytd_year'         => $ytdYear,
             'booking_counts'   => $counts,
             'total_bookings'   => array_sum($counts),
+            'ytd_bookings'     => $ytdBookings,
+            'monthly_breakdown' => $monthlyChart,
         );
     }
 
@@ -261,6 +312,84 @@ final class VendorDashboardService
                     ? $payload['partner_card']
                     : [],
                 'leg_type'          => isset($leg['leg_type']) ? (string) $leg['leg_type'] : '',
+            ];
+        }
+
+        return $confirmations;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function getQuoteSupplierConfirmations(int $vendorId): array
+    {
+        global $wpdb;
+        if (! $wpdb instanceof wpdb || $vendorId <= 0) {
+            return [];
+        }
+
+        $linesTable = $wpdb->prefix . 'bsp_quote_lines';
+        $versionsTable = $wpdb->prefix . 'bsp_quote_versions';
+        $quotesTable = $wpdb->prefix . 'bsp_quotes';
+        $requestsTable = $wpdb->prefix . 'bsp_quote_requests';
+
+        $rows = $wpdb->get_results(
+            $wpdb->prepare(
+                "SELECT l.id AS line_id, l.title, l.vendor_id, l.product_id, l.participants,
+                        l.service_date, l.start_time, l.end_time, l.availability_snapshot_json,
+                        q.id AS quote_id, q.quote_reference, q.status AS quote_status,
+                        q.handoff_status, q.woo_order_id, r.requester_name, r.requester_email
+                 FROM {$linesTable} l
+                 INNER JOIN {$versionsTable} v ON v.id = l.quote_version_id
+                 INNER JOIN {$quotesTable} q ON q.current_version_id = v.id
+                 LEFT JOIN {$requestsTable} r ON r.id = q.quote_request_id
+                 WHERE l.vendor_id = %d
+                 ORDER BY COALESCE(l.service_date, '9999-12-31') ASC, COALESCE(l.start_time, '') ASC, l.id DESC",
+                $vendorId
+            ),
+            ARRAY_A
+        );
+
+        if (! is_array($rows)) {
+            return [];
+        }
+
+        $confirmations = [];
+        foreach ($rows as $row) {
+            if (! is_array($row)) {
+                continue;
+            }
+
+            $snapshot = json_decode((string) ($row['availability_snapshot_json'] ?? ''), true);
+            $snapshot = is_array($snapshot) ? $snapshot : [];
+            $bookingMode = strtolower(trim((string) ($snapshot['bookingMode'] ?? $snapshot['booking_mode'] ?? '')));
+            $supplierStatus = trim((string) ($snapshot['supplierStatus'] ?? $snapshot['supplier_status'] ?? ''));
+
+            if ($bookingMode !== 'supplier_confirmation') {
+                continue;
+            }
+
+            $confirmations[] = [
+                'source'            => 'quote_line',
+                'quote_id'          => (int) ($row['quote_id'] ?? 0),
+                'quote_reference'   => (string) ($row['quote_reference'] ?? ''),
+                'booking_reference' => (string) ($row['quote_reference'] ?? ''),
+                'leg_key'           => 'quote-line-' . (int) ($row['line_id'] ?? 0),
+                'line_id'           => (int) ($row['line_id'] ?? 0),
+                'status'            => $supplierStatus !== '' ? $supplierStatus : 'supplier_option_requested',
+                'quote_status'      => (string) ($row['quote_status'] ?? ''),
+                'handoff_status'    => (string) ($row['handoff_status'] ?? ''),
+                'woo_order_id'      => (int) ($row['woo_order_id'] ?? 0),
+                'scheduled_date'    => (string) ($row['service_date'] ?? ''),
+                'scheduled_time'    => (string) ($row['start_time'] ?? ''),
+                'scheduled_end_time'=> (string) ($row['end_time'] ?? ''),
+                'participants'      => (int) ($row['participants'] ?? 0),
+                'title'             => (string) ($row['title'] ?? ''),
+                'customer_name'     => (string) ($row['requester_name'] ?? ''),
+                'customer_email'    => (string) ($row['requester_email'] ?? ''),
+                'partner_note'      => (string) ($snapshot['supplierResponseNote'] ?? ''),
+                'partner_card'      => [],
+                'leg_type'          => 'quote_supplier_confirmation',
             ];
         }
 

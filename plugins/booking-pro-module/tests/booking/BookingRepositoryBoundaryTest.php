@@ -201,6 +201,11 @@ final class BookingRepositoryBoundaryTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+        BookingRepositoryWriteGuard::allowMaintenanceReset(
+            static function (): void {
+                (new BookingRepository())->reset();
+            }
+        );
         $GLOBALS['__booking_truth_meta'] = array();
         $GLOBALS['__booking_boundary_logs'] = array();
         $GLOBALS['__booking_boundary_sync'] = array();

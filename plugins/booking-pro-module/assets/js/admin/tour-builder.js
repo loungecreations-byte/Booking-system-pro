@@ -284,10 +284,10 @@
             return `📍 ${step.locationLabel}`;
         }
 
-        const lat = Number.isFinite(step.lat) ? step.lat : null;
-        const lng = Number.isFinite(step.lng) ? step.lng : null;
+        const lat = Number.parseFloat(step.lat);
+        const lng = Number.parseFloat(step.lng);
 
-        if (lat !== null && lng !== null) {
+        if (Number.isFinite(lat) && Number.isFinite(lng)) {
             return `📍 ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
         }
 
@@ -1289,8 +1289,11 @@
             const missionLabel = step.missionChallenge || gamification.challenge ? 'Missie klaar' : 'Nog geen missie';
             const missionState = step.missionChallenge || gamification.challenge ? 'is-ready' : 'is-empty';
             const contentState = String(step.content || '').trim() !== '' ? 'Verhaal ingevuld' : 'Nog geen verhaal';
-            const locationState = Number.isFinite(step.lat) && Number.isFinite(step.lng) ? 'Locatie klaar' : 'Geen locatie';
-            const locationClass = Number.isFinite(step.lat) && Number.isFinite(step.lng) ? 'is-ready' : 'is-empty';
+            const stepLat = Number.parseFloat(step.lat);
+            const stepLng = Number.parseFloat(step.lng);
+            const hasLocation = Number.isFinite(stepLat) && Number.isFinite(stepLng);
+            const locationState = hasLocation ? 'Locatie klaar' : 'Geen locatie';
+            const locationClass = hasLocation ? 'is-ready' : 'is-empty';
             const mediaLabels = getMediaLabels(step);
             const mediaState = mediaLabels.length ? mediaLabels.join(' + ') : 'Geen media';
             const mediaClass = mediaLabels.length ? 'is-ready' : 'is-empty';

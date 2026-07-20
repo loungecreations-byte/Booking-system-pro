@@ -4,6 +4,7 @@ if (! defined('ABSPATH')) {
 }
 
 $selected_route_url = ! empty($selected_snapshot['maps_url']) ? (string) $selected_snapshot['maps_url'] : '';
+$listing_variant = isset($variant) && is_string($variant) && '' !== trim($variant) ? sanitize_html_class($variant) : 'map-first';
 $term_label_for = static function (array $terms, string $slug): string {
 	foreach ($terms as $term) {
 		if ($term instanceof WP_Term && (string) $term->slug === $slug) {
@@ -13,7 +14,7 @@ $term_label_for = static function (array $terms, string $slug): string {
 	return $slug;
 };
 ?>
-<div class="ddb-spots-shell ddb-spots-listing ddb-listing-shell" data-ddb-component="listing-shell">
+<div class="ddb-spots-shell ddb-spots-listing ddb-spots-listing--<?php echo esc_attr($listing_variant); ?> ddb-listing-shell<?php echo 'map-first' === $listing_variant ? ' is-map-open' : ''; ?>" data-ddb-component="listing-shell">
 	<form method="get" class="ddb-listing-toolbar ddb-spots-controls ui-summary ui-summary--compact ddb-summary ddb-card" aria-label="<?php esc_attr_e('Spot filters', 'ddb-spots'); ?>">
 		<div class="ui-card__body ddb-card__body">
 			<input type="hidden" name="ddb_page" value="1" />
@@ -63,7 +64,7 @@ $term_label_for = static function (array $terms, string $slug): string {
 				<?php if ((bool) apply_filters('ddb_spots_show_legacy_theme_button', false, 0, 'listing')) : ?>
 					<button type="button" class="ui-btn ui-btn--ghost ddb-button ddb-button--ghost" data-ddb-theme-toggle data-light-label="<?php echo esc_attr__('Lichte modus', 'ddb-spots'); ?>" data-dark-label="<?php echo esc_attr__('Donkere modus', 'ddb-spots'); ?>"><?php esc_html_e('Thema', 'ddb-spots'); ?></button>
 				<?php endif; ?>
-				<button type="button" class="ui-btn ui-btn--secondary ddb-button ddb-button--secondary ddb-listing-btn--map" data-ddb-map-toggle><?php esc_html_e('Kaart tonen', 'ddb-spots'); ?></button>
+				<button type="button" class="ui-btn ui-btn--secondary ddb-button ddb-button--secondary ddb-listing-btn--map" data-ddb-map-toggle><?php esc_html_e('Resultaten tonen', 'ddb-spots'); ?></button>
 			</div>
 		</div>
 	</form>

@@ -292,13 +292,13 @@
    Apply class 'ddb-premium-card' to the main container in Elementor
    ────────────────────────────────────────────────────────────────── */
 .ddb-premium-card {
-  background-color: var(--ui-color-surface) !important;
-  border-radius: var(--ui-radius-card) !important;
+  background-color: var(--ui-color-surface);
+  border-radius: var(--ui-radius-card);
   overflow: hidden; /* Zorgt dat de foto netjes de afgeronde hoeken volgt */
   border: 1px solid var(--ui-color-border-subtle);
   transition: transform var(--ui-motion-base) var(--ui-ease-standard), 
               box-shadow var(--ui-motion-base) var(--ui-ease-standard);
-  display: flex !important;
+  display: flex;
   flex-direction: column;
 }
 
@@ -312,42 +312,42 @@
 .ddb-premium-card h2, 
 .ddb-premium-card h3, 
 .ddb-premium-card h4 {
-  color: var(--ui-color-text) !important;
+  color: var(--ui-color-text);
 }
 
 .ddb-premium-card p, 
 .ddb-premium-card .elementor-widget-text-editor {
-  color: var(--ui-color-text-muted) !important;
+  color: var(--ui-color-text-muted);
 }
 
 /* Knoppen in de card netjes stijlen */
 .ddb-premium-card .elementor-button {
-  border-radius: var(--ui-radius-md) !important;
-  background-color: var(--ui-color-surface-2) !important;
-  color: var(--ui-color-text) !important;
-  border: 1px solid var(--ui-color-border-subtle) !important;
+  border-radius: var(--ui-radius-md);
+  background-color: var(--ui-color-surface-2);
+  color: var(--ui-color-text);
+  border: 1px solid var(--ui-color-border-subtle);
   font-weight: 600;
   transition: all 0.2s ease;
 }
 
 .ddb-premium-card .elementor-button:hover {
-  background-color: var(--ui-color-surface-3) !important;
+  background-color: var(--ui-color-surface-3);
 }
 
 /* Primaire reserveer-knop een gouden tint geven (voeg class 'ddb-btn-primary' toe aan specifieke button) */
 .ddb-premium-card .ddb-btn-primary .elementor-button,
 .woocommerce ul.products li.product .button,
 .elementor-widget-woocommerce-products .button {
-  background-color: var(--ui-color-primary) !important;
-  color: var(--ui-color-primary-contrast) !important;
-  border: none !important;
-  border-radius: var(--ui-radius-md) !important;
+  background-color: var(--ui-color-primary);
+  color: var(--ui-color-primary-contrast);
+  border: none;
+  border-radius: var(--ui-radius-md);
 }
 
 .ddb-premium-card .ddb-btn-primary .elementor-button:hover,
 .woocommerce ul.products li.product .button:hover,
 .elementor-widget-woocommerce-products .button:hover {
-  background-color: var(--ui-color-primary-hover) !important;
+  background-color: var(--ui-color-primary-hover);
 }
 
 /* Force WooCommerce links to inherit correct styling */
@@ -356,14 +356,14 @@
 .woocommerce ul.products li.product h2,
 .woocommerce ul.products li.product h3,
 .woocommerce ul.products li.product .woocommerce-loop-product__title {
-  color: var(--ui-color-text) !important;
-  text-decoration: none !important;
+  color: var(--ui-color-text);
+  text-decoration: none;
 }
 
 /* Fix contrast for price overlays */
 .woocommerce ul.products li.product .price,
 .elementor-widget-woocommerce-products .price {
-  color: var(--ui-color-text-muted) !important;
+  color: var(--ui-color-text-muted);
   font-weight: 600;
 }
 
@@ -1060,15 +1060,15 @@ body:not(.wp-admin) textarea:focus {
    ────────────────────────────────────────────────────────────────── */
 .ddb-premium-filters,
 .ddb-browser-bar__inner {
-  display: flex !important;
+  display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: var(--ui-space-md);
-  background: var(--ui-color-surface) !important;
-  border: 1px solid var(--ui-color-border-subtle) !important;
-  padding: 12px 24px !important;
-  border-radius: 999px !important; /* Volledig ronde pil-vormige zoekbalk */
-  box-shadow: var(--ui-shadow-sm) !important;
+  background: var(--ui-color-surface);
+  border: 1px solid var(--ui-color-border-subtle);
+  padding: 12px 24px;
+  border-radius: 999px; /* Volledig ronde pil-vormige zoekbalk */
+  box-shadow: var(--ui-shadow-sm);
   max-width: 100%;
 }
 
@@ -1076,25 +1076,25 @@ body:not(.wp-admin) textarea:focus {
 .ddb-premium-filters input[type="search"],
 .ddb-premium-filters input[type="text"],
 .ddb-browser-bar__search-input {
-  background: transparent !important;
-  border: none !important;
-  color: var(--ui-color-text) !important;
-  font-size: var(--ui-text-md) !important;
+  background: transparent;
+  border: none;
+  color: var(--ui-color-text);
+  font-size: var(--ui-text-md);
   min-width: 250px;
-  box-shadow: none !important;
-  padding: 8px 0 !important;
+  box-shadow: none;
+  padding: 8px 0;
 }
 
 .ddb-premium-filters input[type="search"]:focus,
 .ddb-premium-filters input[type="text"]:focus {
-  outline: none !important;
-  box-shadow: none !important;
+  outline: none;
+  box-shadow: none;
 }
 
 /* Verberg logge dropdowns en standaard labels */
 .ddb-premium-filters select,
 .ddb-premium-filters .elementor-field-label {
-  display: none !important;
+  display: none;
 }
 
 /* Forceer filter linkjes (Radio's/FacetWP) naar chique 'Pills' (Rechts) */
@@ -1102,13 +1102,13 @@ body:not(.wp-admin) textarea:focus {
 .ddb-premium-filters .filter-link,
 .ddb-browser-bar__chip,
 .ddb-pill {
-  background: var(--ui-color-surface-2) !important;
-  color: var(--ui-color-text-muted) !important;
-  border: 1px solid var(--ui-color-border-subtle) !important;
-  padding: 8px 20px !important;
-  border-radius: 999px !important;
-  font-size: var(--ui-text-sm) !important;
-  font-weight: 600 !important;
+  background: var(--ui-color-surface-2);
+  color: var(--ui-color-text-muted);
+  border: 1px solid var(--ui-color-border-subtle);
+  padding: 8px 20px;
+  border-radius: 999px;
+  font-size: var(--ui-text-sm);
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
   display: inline-flex;
@@ -1121,24 +1121,24 @@ body:not(.wp-admin) textarea:focus {
 .ddb-premium-filters .filter-link:hover,
 .ddb-browser-bar__chip:hover,
 .ddb-pill:hover {
-  background: var(--ui-color-surface-3) !important;
-  color: var(--ui-color-text) !important;
+  background: var(--ui-color-surface-3);
+  color: var(--ui-color-text);
 }
 
 .ddb-premium-filters .facetwp-radio.checked,
 .ddb-premium-filters .filter-link.active,
 .ddb-browser-bar__chip.is-active,
 .ddb-pill.active {
-  background: var(--ui-color-primary) !important;
-  color: var(--ui-color-primary-contrast) !important;
-  border-color: var(--ui-color-primary) !important;
+  background: var(--ui-color-primary);
+  color: var(--ui-color-primary-contrast);
+  border-color: var(--ui-color-primary);
 }
 
 /* Kaart (Map) Integratie (Forceert donkere filter op map in dark mode) */
 html[data-theme="dark"] .elementor-widget-google_maps iframe,
 html[data-theme="dark"] .wpgmp_map,
 html[data-theme="dark"] .leaflet-container {
-  filter: invert(90%) hue-rotate(180deg) brightness(85%) contrast(85%) sepia(50%) saturate(30%) !important;
+  filter: invert(90%) hue-rotate(180deg) brightness(85%) contrast(85%) sepia(50%) saturate(30%);
   border-radius: var(--ui-radius-card);
 }
 
@@ -1149,21 +1149,21 @@ html[data-theme="dark"] .leaflet-container {
 
 /* 1. Zwevende Badges (Voeg class 'ddb-badge' toe aan tekst/icon over de foto) */
 .ddb-badge {
-  position: absolute !important;
+  position: absolute;
   top: 16px;
   left: 16px;
-  background: rgba(26, 23, 20, 0.6) !important;
+  background: rgba(26, 23, 20, 0.6);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  color: var(--ui-color-primary) !important;
-  padding: 6px 14px !important;
-  border-radius: var(--ui-radius-pill) !important;
-  font-size: var(--ui-text-xs) !important;
-  font-weight: 700 !important;
+  color: var(--ui-color-primary);
+  padding: 6px 14px;
+  border-radius: var(--ui-radius-pill);
+  font-size: var(--ui-text-xs);
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   z-index: 10;
-  border: 1px solid rgba(212, 175, 55, 0.3) !important;
+  border: 1px solid rgba(212, 175, 55, 0.3);
   line-height: 1;
 }
 
@@ -1173,9 +1173,9 @@ html[data-theme="dark"] .leaflet-container {
   bottom: 16px;
   right: 16px;
   left: auto;
-  background: var(--ui-color-surface) !important;
-  color: var(--ui-color-text) !important;
-  border-color: var(--ui-color-border-subtle) !important;
+  background: var(--ui-color-surface);
+  color: var(--ui-color-text);
+  border-color: var(--ui-color-border-subtle);
 }
 
 /* 2. Premium Image Fallbacks — geen Elementor-class targeting, enkel img within ddb scope */
@@ -1200,7 +1200,7 @@ html[data-theme="dark"] .leaflet-container {
   100% { background-color: var(--ui-color-surface-2); }
 }
 
-/* 6. De Sfeer-schakelaar (Light/Dark Toggle Button) — custom class, geen !important nodig */
+/* 6. De Sfeer-schakelaar (Light/Dark Toggle Button) — custom class */
 .ddb-theme-toggle {
   background: transparent;
   border: 1px solid var(--ui-color-border-subtle);
@@ -1224,15 +1224,15 @@ html[data-theme="dark"] .leaflet-container {
 html[data-theme="dark"] .ddb-theme-toggle .ddb-icon-moon,
 html[data-theme="light"] .ddb-theme-toggle .ddb-icon-sun,
 html[data-theme="system"] .ddb-theme-toggle .ddb-icon-sun {
-  display: none !important;
+  display: none;
 }
 
 html[data-theme="system"] .ddb-theme-toggle .ddb-icon-moon {
-  display: block !important;
+  display: block;
 }
 @media (prefers-color-scheme: dark) {
   html[data-theme="system"] .ddb-theme-toggle .ddb-icon-system {
-    display: none !important;
+    display: none;
   }
 }
 

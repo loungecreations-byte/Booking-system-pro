@@ -666,8 +666,8 @@ final class Shortcodes
             }
         } elseif ($plannerUrl !== '') {
             $runtime = array(
-                'route_intent' => 'planner',
                 'planner_url'  => $plannerUrl,
+                'route_intent' => 'planner',
             );
         } elseif ($quoteUrl !== '') {
             $runtime = array(

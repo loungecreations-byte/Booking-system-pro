@@ -7,6 +7,9 @@ namespace BSP\VendorPortal\Rest;
 use BPM\Modules\Vendor\GoogleCalendarSync;
 use BSP\Bookings\Service\DietaryProfileService;
 use BSP\Bookings\Service\PartnerConfirmationService;
+use BSP\Quotes\Repository\QuoteRepository;
+use BSP\Quotes\Service\QuoteEventLogger;
+use BSP\Quotes\Service\QuoteSupplierConfirmationService;
 use BSP\VendorPortal\Service\VendorPortalAuditLogger;
 use BSP\VendorPortal\Service\VendorAuthService;
 use BSP\VendorPortal\Service\VendorDashboardService;
@@ -18,6 +21,7 @@ use function __;
 
 final class PortalController
 {
+    private const SESSION_COOKIE = 'sbdp_vendor_portal_session';
     private const LOGIN_RATE_LIMIT_WINDOW = 300;
     private const LOGIN_RATE_LIMIT_MAX    = 5;
     private const LOGIN_RATE_LIMIT_PREFIX = 'sbdp_vendor_portal_login_';
@@ -125,14 +129,20 @@ final class PortalController
         $payload = self::getJson($request);
 
         try {
-            $vendorId  = isset($payload['vendor_id']) ? (int) $payload['vendor_id'] : 0;
-            $accessKey = isset($payload['access_key']) ? (string) $payload['access_key'] : '';
+            $vendorId   = isset($payload['vendor_id']) ? (int) $payload['vendor_id'] : 0;
+            $accessKey  = isset($payload['access_key']) ? (string) $payload['access_key'] : '';
+            $rememberMe = ! empty($payload['remember_me']);
 
             $auth  = new VendorAuthService();
-            $login = $auth->login($vendorId, $accessKey);
+            $login = $auth->login($vendorId, $accessKey, $rememberMe);
+            self::setSessionCookie((string) $login['token'], (int) $login['expires_in']);
             self::resetLoginRateLimit($request);
 
-            return self::respond($login);
+            return self::respond(array(
+                'expires_in'  => (int) $login['expires_in'],
+                'vendor_id'   => (int) $login['vendor_id'],
+                'remember_me' => (bool) $login['remember_me'],
+            ));
         } catch (InvalidArgumentException $exception) {
             self::audit()->log('login_failure', array(
                 'vendor_id' => isset($payload['vendor_id']) ? (string) $payload['vendor_id'] : '',
@@ -168,11 +178,11 @@ final class PortalController
 
     public static function logout(WP_REST_Request $request)
     {
-        $payload = self::getJson($request);
-        $token   = isset($payload['token']) ? (string) $payload['token'] : '';
+        $token = self::extractToken($request, true);
 
         if ($token === '') {
             self::audit()->log('logout_missing_token');
+            self::clearSessionCookie();
             return self::respond(array('success' => true));
         }
 
@@ -184,7 +194,7 @@ final class PortalController
             $vendorId = isset($session['vendor_id']) ? (string) $session['vendor_id'] : '';
         } catch (InvalidArgumentException $exception) {
             self::audit()->log('logout_invalid_token', array(
-                'token' => $token,
+                'session' => self::tokenFingerprint($token),
                 'error' => $exception->getMessage(),
             ));
         }
@@ -194,9 +204,11 @@ final class PortalController
         if ($vendorId !== '') {
             self::audit()->log('logout_success', array(
                 'vendor_id' => $vendorId,
-                'token'     => $token,
+                'session'   => self::tokenFingerprint($token),
             ));
         }
+
+        self::clearSessionCookie();
 
         return self::respond(array('success' => true));
     }
@@ -316,12 +328,14 @@ final class PortalController
         $note = isset($payload['note']) ? (string) $payload['note'] : '';
 
         try {
-            $confirmation = (new PartnerConfirmationService())->respond(
-                (int) $session['vendor_id'],
-                $legKey,
-                $action,
-                $note
-            );
+            $confirmation = str_starts_with($legKey, 'quote-line-')
+                ? self::respondToQuoteConfirmation((int) $session['vendor_id'], $legKey, $action, $note)
+                : (new PartnerConfirmationService())->respond(
+                    (int) $session['vendor_id'],
+                    $legKey,
+                    $action,
+                    $note
+                );
         } catch (InvalidArgumentException $exception) {
             self::audit()->log('partner_confirmation_failed', array(
                 'vendor_id' => (string) $session['vendor_id'],
@@ -419,6 +433,70 @@ final class PortalController
         return $auth->validateToken($token);
     }
 
+    /**
+     * @return array<string, mixed>
+     */
+    private static function respondToQuoteConfirmation(int $vendorId, string $legKey, string $action, string $note): array
+    {
+        $lineId = (int) preg_replace('/\D+/', '', $legKey);
+        if ($vendorId <= 0 || $lineId <= 0) {
+            throw new InvalidArgumentException('Confirmation target ontbreekt.');
+        }
+
+        $repository = new QuoteRepository();
+        $line = $repository->findQuoteLine($lineId);
+        if (! is_array($line) || (int) ($line['vendor_id'] ?? 0) !== $vendorId) {
+            throw new InvalidArgumentException('Partnerbevestiging niet gevonden.');
+        }
+
+        $status = match (strtolower(trim($action))) {
+            'confirm' => 'supplier_booking_confirmed',
+            'decline' => 'supplier_unavailable',
+            'alternative' => 'supplier_alternative_proposed',
+            default => '',
+        };
+        if ($status === '') {
+            throw new InvalidArgumentException('Ongeldige partneractie.');
+        }
+        if (($status === 'supplier_unavailable' || $status === 'supplier_alternative_proposed') && trim($note) === '') {
+            throw new InvalidArgumentException('Een toelichting is verplicht voor deze partneractie.');
+        }
+
+        $version = $repository->findQuoteVersion((int) ($line['quote_version_id'] ?? 0));
+        if (! is_array($version)) {
+            throw new InvalidArgumentException('Actieve quote-versie niet gevonden.');
+        }
+
+        $quoteId = (int) ($version['quote_id'] ?? 0);
+        if ($quoteId <= 0) {
+            throw new InvalidArgumentException('Quote niet gevonden.');
+        }
+
+        $result = (new QuoteSupplierConfirmationService(
+            $repository,
+            new QuoteEventLogger($repository)
+        ))->updateStatus($quoteId, $lineId, $status, array('internal_note' => trim($note)), null);
+
+        $updatedLine = is_array($result['line'] ?? null) ? $result['line'] : $line;
+        $snapshot = is_array($updatedLine['availability_snapshot_json'] ?? null) ? $updatedLine['availability_snapshot_json'] : array();
+
+        return array(
+            'source' => 'quote_line',
+            'quote_id' => $quoteId,
+            'line_id' => $lineId,
+            'leg_key' => $legKey,
+            'booking_reference' => '',
+            'status' => (string) ($snapshot['supplierStatus'] ?? $status),
+            'scheduled_date' => (string) ($updatedLine['service_date'] ?? ''),
+            'scheduled_time' => (string) ($updatedLine['start_time'] ?? ''),
+            'scheduled_end_time' => (string) ($updatedLine['end_time'] ?? ''),
+            'participants' => (int) ($updatedLine['participants'] ?? 0),
+            'note' => trim($note),
+            'title' => (string) ($updatedLine['title'] ?? ''),
+            'leg_type' => 'quote_supplier_confirmation',
+        );
+    }
+
     private static function extractToken(WP_REST_Request $request, bool $useBody = false): string
     {
         $token = (string) $request->get_param('token');
@@ -434,7 +512,46 @@ final class PortalController
             $token = (string) $request->get_header('X-SBDP-Vendor-Token');
         }
 
+        if ($token === '' && isset($_COOKIE[self::SESSION_COOKIE])) {
+            $token = (string) $_COOKIE[self::SESSION_COOKIE];
+        }
+
         return $token;
+    }
+
+    private static function setSessionCookie(string $token, int $lifetime): void
+    {
+        if ($token === '' || headers_sent()) {
+            return;
+        }
+
+        setcookie(self::SESSION_COOKIE, $token, array(
+            'expires'  => time() + max(1, $lifetime),
+            'path'     => defined('COOKIEPATH') && COOKIEPATH ? COOKIEPATH : '/',
+            'secure'   => function_exists('is_ssl') ? is_ssl() : false,
+            'httponly' => true,
+            'samesite' => 'Strict',
+        ));
+    }
+
+    private static function clearSessionCookie(): void
+    {
+        if (headers_sent()) {
+            return;
+        }
+
+        setcookie(self::SESSION_COOKIE, '', array(
+            'expires'  => time() - 3600,
+            'path'     => defined('COOKIEPATH') && COOKIEPATH ? COOKIEPATH : '/',
+            'secure'   => function_exists('is_ssl') ? is_ssl() : false,
+            'httponly' => true,
+            'samesite' => 'Strict',
+        ));
+    }
+
+    private static function tokenFingerprint(string $token): string
+    {
+        return substr(hash('sha256', $token), 0, 12);
     }
 
     /**

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace BSP\Quotes\Service;
 
 use BSP\Quotes\Repository\QuoteRepositoryInterface;
+use BSP\Sales\Vendors\VendorService;
 use InvalidArgumentException;
 
 final class QuoteRequestService
@@ -141,9 +142,11 @@ final class QuoteRequestService
             return array();
         }
 
+        $productId = $this->normalizeInt($item['product_id'] ?? null);
+
         return array(
-            'product_id'               => $this->normalizeInt($item['product_id'] ?? null),
-            'vendor_id'                => $this->normalizeInt($item['vendor_id'] ?? null),
+            'product_id'               => $productId,
+            'vendor_id'                => $this->resolveVendorId($this->normalizeInt($item['vendor_id'] ?? null), $productId),
             'resource_id'              => $this->normalizeInt($item['resource_id'] ?? null),
             'title'                    => trim((string) ($item['title'] ?? '')),
             'selected_option_labels'   => $this->normalizeOptionLabels($item['selected_option_labels'] ?? ($item['selected_option_labels_json'] ?? array())),
@@ -174,9 +177,11 @@ final class QuoteRequestService
             ? $item['bookingresolution']['pricing']
             : array();
 
+        $productId = $this->normalizeInt($item['product_id'] ?? ($item['productid'] ?? null));
+
         return array(
-            'product_id'              => $this->normalizeInt($item['product_id'] ?? ($item['productid'] ?? null)),
-            'vendor_id'               => $this->normalizeInt($item['vendor_id'] ?? null),
+            'product_id'              => $productId,
+            'vendor_id'               => $this->resolveVendorId($this->normalizeInt($item['vendor_id'] ?? null), $productId),
             'resource_id'             => $this->normalizeInt($item['resource_id'] ?? null),
             'title'                   => trim((string) ($item['title'] ?? '')),
             'selected_option_labels'  => $this->normalizeOptionLabels($item['selected_options'] ?? ($item['selected_option_labels'] ?? array())),
@@ -280,6 +285,19 @@ final class QuoteRequestService
     {
         $int = (int) $value;
         return $int > 0 ? $int : null;
+    }
+
+    private function resolveVendorId(?int $vendorId, ?int $productId): ?int
+    {
+        if ($vendorId !== null && $vendorId > 0) {
+            return $vendorId;
+        }
+
+        if ($productId === null || $productId <= 0 || ! class_exists(VendorService::class)) {
+            return null;
+        }
+
+        return VendorService::getVendorIdForProduct($productId);
     }
 
     private function normalizeDate($value): ?string

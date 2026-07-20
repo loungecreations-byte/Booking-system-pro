@@ -107,6 +107,16 @@ final class QuoteRequestOrderBridgeService
             );
         }
 
+        $priceCheck = $this->assertProposalMatchesWooTotal($quote, $version, $executionPayload, $participants, $actorId);
+        if (! empty($priceCheck['blocked'])) {
+            throw new HandoffValidationException(
+                'bsp_quotes_handoff_price_mismatch',
+                'Woo request-order geblokkeerd: offertebedrag wijkt af van Woo-prijs.',
+                409,
+                $priceCheck
+            );
+        }
+
         $composeRequest = new \WP_REST_Request('POST', '/sbdp/v1/compose_booking');
         $composePayload = array(
             'mode' => 'request',
@@ -118,7 +128,13 @@ final class QuoteRequestOrderBridgeService
             $composeRequest->set_json_params($composePayload);
         } else {
             $composeRequest->set_header('content-type', 'application/json');
-            $composeRequest->set_body(wp_json_encode($composePayload));
+            if (method_exists($composeRequest, 'set_body')) {
+                $composeRequest->set_body(wp_json_encode($composePayload));
+            } elseif (method_exists($composeRequest, 'set_param')) {
+                foreach ($composePayload as $key => $value) {
+                    $composeRequest->set_param($key, $value);
+                }
+            }
         }
 
         $result = RestService::compose_booking($composeRequest);
@@ -154,6 +170,16 @@ final class QuoteRequestOrderBridgeService
         }
 
         $this->attachOrderQuoteMeta($orderId, $quoteId, $versionId, $quote);
+        $this->applyApprovedProposalTotalToOrder($quote, $version, $executionPayload, $orderId);
+        $createdOrderCheck = $this->assertCreatedWooOrderMatchesProposal($quote, $version, $executionPayload, $orderId, $actorId);
+        if (! empty($createdOrderCheck['blocked'])) {
+            throw new HandoffValidationException(
+                'bsp_quotes_handoff_price_mismatch',
+                'Woo request-order geblokkeerd: aangemaakte Woo order wijkt af van het approved voorstelbedrag.',
+                409,
+                $createdOrderCheck
+            );
+        }
 
         $updatedQuote = $this->repository->updateQuote($quoteId, array(
             'woo_order_id' => $orderId,
@@ -356,6 +382,438 @@ final class QuoteRequestOrderBridgeService
         if (method_exists($order, 'save')) {
             $order->save();
         }
+    }
+
+    /**
+     * WooCommerce remains the commercial truth. Quote snapshots may only create
+     * a payment request when their approved total still matches the Woo-resolved
+     * product total. We fail closed so admins can resnapshot or resend a version.
+     *
+     * @param array<string, mixed> $quote
+     * @param array<string, mixed> $version
+     * @param array<string, mixed> $executionPayload
+     * @return array<string, mixed>
+     */
+    private function assertProposalMatchesWooTotal(array $quote, array $version, array $executionPayload, int $participants, ?int $actorId): array
+    {
+        $quoteId = (int) ($quote['id'] ?? 0);
+        $versionId = (int) ($version['id'] ?? 0);
+        $proposalTotal = $this->resolveProposalTotal($version, $executionPayload);
+        if ((string) ($quote['status'] ?? '') === 'accepted' && ! $this->hasExplicitWooPricing($executionPayload)) {
+            return array(
+                'checked' => false,
+                'blocked' => false,
+                'proposal_total' => $proposalTotal,
+                'source' => 'deferred_to_created_order_total',
+            );
+        }
+
+        $wooTotal = $this->resolveExpectedWooTotal($executionPayload, $participants);
+
+        if ($proposalTotal === null || $wooTotal === null) {
+            return array('checked' => false, 'blocked' => false);
+        }
+
+        $delta = round($wooTotal - $proposalTotal, 2);
+        if (abs($delta) <= 0.01) {
+            return array(
+                'checked' => true,
+                'blocked' => false,
+                'proposal_total' => $proposalTotal,
+                'woo_total' => $wooTotal,
+                'delta' => $delta,
+                'currency' => $this->currency($executionPayload),
+            );
+        }
+
+        return $this->recordPriceMismatch($quote, $versionId, $proposalTotal, $wooTotal, $delta, $this->currency($executionPayload), $actorId);
+    }
+
+    /**
+     * The pre-compose check catches predictable product price drift. This
+     * post-compose guard checks WooCommerce's actual order grand total after tax,
+     * fee, discount and order calculation hooks have run.
+     *
+     * @param array<string, mixed> $quote
+     * @param array<string, mixed> $version
+     * @param array<string, mixed> $executionPayload
+     * @return array<string, mixed>
+     */
+    private function assertCreatedWooOrderMatchesProposal(array $quote, array $version, array $executionPayload, int $orderId, ?int $actorId): array
+    {
+        $quoteId = (int) ($quote['id'] ?? 0);
+        $versionId = (int) ($version['id'] ?? 0);
+        $proposalTotal = $this->resolveProposalTotal($version, $executionPayload);
+        $wooTotal = $this->resolveCreatedOrderTotal($orderId);
+
+        if ($proposalTotal === null || $wooTotal === null) {
+            return array('checked' => false, 'blocked' => false, 'order_id' => $orderId);
+        }
+
+        $delta = round($wooTotal - $proposalTotal, 2);
+        if (abs($delta) <= 0.01) {
+            return array(
+                'checked' => true,
+                'blocked' => false,
+                'quote_id' => $quoteId,
+                'order_id' => $orderId,
+                'approved_version_id' => $versionId,
+                'proposal_total' => $proposalTotal,
+                'woo_total' => $wooTotal,
+                'delta' => $delta,
+                'currency' => $this->currency($executionPayload),
+                'source' => 'actual_woo_order_total',
+            );
+        }
+
+        return $this->recordPriceMismatch($quote, $versionId, $proposalTotal, $wooTotal, $delta, $this->currency($executionPayload), $actorId, array(
+            'order_id' => $orderId,
+            'source' => 'actual_woo_order_total',
+        ));
+    }
+
+    /**
+     * @param array<string, mixed> $quote
+     * @param array<string, mixed> $extra
+     * @return array<string, mixed>
+     */
+    private function recordPriceMismatch(array $quote, int $versionId, float $proposalTotal, float $wooTotal, float $delta, string $currency, ?int $actorId, array $extra = array()): array
+    {
+        $quoteId = (int) ($quote['id'] ?? 0);
+        $orderId = (int) ($extra['order_id'] ?? 0);
+        $payload = array_merge(array(
+            'quote_id' => $quoteId,
+            'approved_version_id' => $versionId,
+            'proposal_total' => $proposalTotal,
+            'woo_total' => $wooTotal,
+            'delta' => $delta,
+            'currency' => $currency,
+        ), $extra);
+
+        $changes = array(
+            'handoff_status' => 'price_mismatch_requires_review',
+            'updated_at' => $this->now(),
+        );
+        if ($orderId > 0) {
+            $changes['woo_order_id'] = $orderId;
+            $this->markOrderPriceMismatch($orderId, $payload);
+        }
+
+        $this->repository->updateQuote($quoteId, $changes);
+        $this->events->log(
+            'quote_order_price_mismatch',
+            isset($quote['quote_request_id']) ? (int) $quote['quote_request_id'] : null,
+            $quoteId,
+            $versionId,
+            $actorId,
+            'Woo request-order geblokkeerd door prijsverschil tussen approved proposal en Woo.',
+            $payload
+        );
+
+        return array_merge($payload, array('checked' => true, 'blocked' => true));
+    }
+
+    private function resolveCreatedOrderTotal(int $orderId): ?float
+    {
+        if ($orderId <= 0 || ! \function_exists('wc_get_order')) {
+            return null;
+        }
+
+        $order = \wc_get_order($orderId);
+        if (! $order || ! method_exists($order, 'get_total')) {
+            return null;
+        }
+
+        $total = $order->get_total();
+        return is_numeric($total) ? round((float) $total, 2) : null;
+    }
+
+    /**
+     * Request-order creation starts from the normal Woo compose path, but an
+     * accepted quote's approved version is the contract amount for this handoff.
+     * We project that approved gross total onto the draft Woo order before the
+     * final guard compares Woo's payable total. If Woo hooks still alter the
+     * payable total afterwards, the existing mismatch guard blocks the flow.
+     *
+     * @param array<string, mixed> $quote
+     * @param array<string, mixed> $version
+     * @param array<string, mixed> $executionPayload
+     */
+    private function applyApprovedProposalTotalToOrder(array $quote, array $version, array $executionPayload, int $orderId): void
+    {
+        if ((string) ($quote['status'] ?? '') !== 'accepted' || $orderId <= 0 || ! \function_exists('wc_get_order')) {
+            return;
+        }
+
+        $proposalTotal = $this->resolveProposalTotal($version, $executionPayload);
+        if ($proposalTotal === null || $proposalTotal < 0.0) {
+            return;
+        }
+
+        $order = \wc_get_order($orderId);
+        if (! $order) {
+            return;
+        }
+
+        $lineTotals = $this->resolveProposalLineTotals($version);
+        $this->applyProposalLineTotals($order, $lineTotals, $proposalTotal);
+
+        if (method_exists($order, 'calculate_totals')) {
+            $order->calculate_totals(false);
+        }
+        if (method_exists($order, 'set_total')) {
+            $order->set_total($proposalTotal);
+        }
+        if (method_exists($order, 'update_meta_data')) {
+            $order->update_meta_data('_sbdp_quote_approved_total', $proposalTotal);
+            $order->update_meta_data('_sbdp_quote_total_source', 'approved_quote_version');
+            $order->update_meta_data('_sbdp_quote_total_normalized', 'yes');
+        }
+        if (method_exists($order, 'save')) {
+            $order->save();
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $version
+     * @return array<int, float>
+     */
+    private function resolveProposalLineTotals(array $version): array
+    {
+        $versionId = (int) ($version['id'] ?? 0);
+        if ($versionId <= 0) {
+            return array();
+        }
+
+        $totals = array();
+        foreach ($this->repository->listQuoteLines($versionId) as $line) {
+            if (! isset($line['line_total_snapshot']) || ! is_numeric($line['line_total_snapshot'])) {
+                continue;
+            }
+
+            $total = round((float) $line['line_total_snapshot'], 2);
+            if ($total < 0.0) {
+                continue;
+            }
+
+            $totals[] = $total;
+        }
+
+        return $totals;
+    }
+
+    /**
+     * @param mixed $order
+     * @param array<int, float> $lineTotals
+     */
+    private function applyProposalLineTotals($order, array $lineTotals, float $proposalTotal): void
+    {
+        if (! method_exists($order, 'get_items')) {
+            return;
+        }
+
+        $items = $order->get_items('line_item');
+        if (! is_array($items) || $items === array()) {
+            return;
+        }
+
+        $fallbackTotals = $lineTotals;
+        if ($fallbackTotals === array()) {
+            $fallbackTotals = $this->distributeTotalAcrossItems($proposalTotal, count($items));
+        }
+
+        $index = 0;
+        foreach ($items as $item) {
+            if (! is_object($item)) {
+                $index++;
+                continue;
+            }
+
+            $lineTotal = $fallbackTotals[$index] ?? null;
+            if ($lineTotal === null) {
+                $lineTotal = $this->remainingLineTotal($proposalTotal, $fallbackTotals);
+            }
+            $lineTotal = round(max(0.0, (float) $lineTotal), 2);
+
+            if (method_exists($item, 'set_subtotal')) {
+                $item->set_subtotal($lineTotal);
+            }
+            if (method_exists($item, 'set_total')) {
+                $item->set_total($lineTotal);
+            }
+            if (method_exists($item, 'add_meta_data')) {
+                $item->add_meta_data('sbdp_display_total', $lineTotal, true);
+                $item->add_meta_data('_sbdp_quote_line_total_source', 'approved_quote_version', true);
+            }
+            if (method_exists($item, 'save')) {
+                $item->save();
+            }
+
+            $index++;
+        }
+    }
+
+    /**
+     * @return array<int, float>
+     */
+    private function distributeTotalAcrossItems(float $total, int $count): array
+    {
+        if ($count <= 0) {
+            return array();
+        }
+
+        $unit = floor(($total / $count) * 100) / 100;
+        $totals = array_fill(0, $count, $unit);
+        $remainder = round($total - ($unit * $count), 2);
+        if ($remainder !== 0.0) {
+            $totals[$count - 1] = round($totals[$count - 1] + $remainder, 2);
+        }
+
+        return $totals;
+    }
+
+    /**
+     * @param array<int, float> $knownTotals
+     */
+    private function remainingLineTotal(float $proposalTotal, array $knownTotals): float
+    {
+        return round(max(0.0, $proposalTotal - array_sum($knownTotals)), 2);
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private function markOrderPriceMismatch(int $orderId, array $payload): void
+    {
+        if ($orderId <= 0 || ! \function_exists('wc_get_order')) {
+            return;
+        }
+
+        $order = \wc_get_order($orderId);
+        if (! $order) {
+            return;
+        }
+        if (method_exists($order, 'update_meta_data')) {
+            $order->update_meta_data('_sbdp_quote_price_mismatch_requires_review', 'yes');
+            $order->update_meta_data('_sbdp_quote_price_mismatch_payload', $payload);
+        }
+        if (method_exists($order, 'add_order_note')) {
+            $order->add_order_note('Quote OS: betaalverzoek geblokkeerd door prijsverschil tussen approved proposal en Woo order total.');
+        }
+        if (method_exists($order, 'save')) {
+            $order->save();
+        }
+    }
+
+    /**
+     * @param array<string, mixed> $version
+     * @param array<string, mixed> $executionPayload
+     */
+    private function resolveProposalTotal(array $version, array $executionPayload): ?float
+    {
+        $versionId = (int) ($version['id'] ?? 0);
+        $total = 0.0;
+        $priced = 0;
+        if ($versionId > 0) {
+            foreach ($this->repository->listQuoteLines($versionId) as $line) {
+                if (isset($line['line_total_snapshot']) && is_numeric($line['line_total_snapshot'])) {
+                    $total += (float) $line['line_total_snapshot'];
+                    $priced++;
+                }
+            }
+        }
+        if ($priced > 0) {
+            return round($total, 2);
+        }
+
+        $totals = is_array($executionPayload['totals'] ?? null) ? $executionPayload['totals'] : array();
+        foreach (array('display_total', 'total', 'grand_total') as $key) {
+            if (isset($totals[$key]) && is_numeric($totals[$key])) {
+                return round((float) $totals[$key], 2);
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param array<string, mixed> $executionPayload
+     */
+    private function resolveExpectedWooTotal(array $executionPayload, int $participants): ?float
+    {
+        $items = is_array($executionPayload['items'] ?? null) ? $executionPayload['items'] : array();
+        $total = 0.0;
+        $priced = 0;
+        foreach ($items as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+            $productId = (int) ($item['product_id'] ?? 0);
+            if ($productId <= 0) {
+                continue;
+            }
+            $pricing = is_array($item['sbdp_pricing'] ?? null) ? $item['sbdp_pricing'] : array();
+            $explicitWooPrice = null;
+            foreach (array('woo_unit_price', 'product_unit_price') as $key) {
+                if (isset($pricing[$key]) && is_numeric($pricing[$key])) {
+                    $explicitWooPrice = (float) $pricing[$key];
+                    break;
+                }
+            }
+
+            if ($explicitWooPrice !== null) {
+                $price = $explicitWooPrice;
+            } else {
+                $product = function_exists('wc_get_product') ? \wc_get_product($productId) : null;
+                if (! $product || ! method_exists($product, 'get_price')) {
+                    return null;
+                }
+                $price = (float) $product->get_price();
+            }
+            $quantity = (int) ($item['participants'] ?? 0);
+            if ($quantity <= 0) {
+                $quantity = $participants > 0 ? $participants : (int) ($item['quantity'] ?? 1);
+            }
+            $total += $price * max(1, $quantity);
+            $priced++;
+        }
+
+        return $priced > 0 ? round($total, 2) : null;
+    }
+
+    /**
+     * @param array<string, mixed> $executionPayload
+     */
+    private function hasExplicitWooPricing(array $executionPayload): bool
+    {
+        $items = is_array($executionPayload['items'] ?? null) ? $executionPayload['items'] : array();
+        foreach ($items as $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+            $pricing = is_array($item['sbdp_pricing'] ?? null) ? $item['sbdp_pricing'] : array();
+            foreach (array('woo_unit_price', 'product_unit_price') as $key) {
+                if (isset($pricing[$key]) && is_numeric($pricing[$key])) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * @param array<string, mixed> $executionPayload
+     */
+    private function currency(array $executionPayload): string
+    {
+        $totals = is_array($executionPayload['totals'] ?? null) ? $executionPayload['totals'] : array();
+        $currency = trim((string) ($totals['currency'] ?? ''));
+        if ($currency !== '') {
+            return $currency;
+        }
+
+        return function_exists('get_woocommerce_currency') ? (string) \get_woocommerce_currency() : 'EUR';
     }
 
     private function now(): string

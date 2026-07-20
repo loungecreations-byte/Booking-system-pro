@@ -9,6 +9,7 @@
     "build:vite": "vite build --config vite.config.js --configLoader native",
     "preview": "vite preview --config vite.config.js",
     "test:e2e:mvp": "node ./node_modules/@playwright/test/cli.js test tests/e2e/planner-combi.spec.ts tests/e2e/planner-journey.spec.ts",
+    "serve:e2e:proxy": "node ./scripts/local-e2e-proxy.mjs",
     "lint:css": "stylelint \"assets/css/ddb-ui.css\"",
     "check:no-important": "pwsh -File ./scripts/check-no-important.ps1",
     "check:app-stylesheets": "pwsh -File ./scripts/check-app-stylesheets.ps1",

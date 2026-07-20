@@ -49,11 +49,11 @@ final class AccountController
         $loginUrl = function_exists('wc_get_page_permalink') ? wc_get_page_permalink('myaccount') : home_url('/my-account/');
         $ordersUrl = function_exists('wc_get_endpoint_url') ? wc_get_endpoint_url('orders', '', $loginUrl) : home_url('/my-account/orders/');
         $accountUrl = function_exists('wc_get_endpoint_url') ? wc_get_endpoint_url('edit-account', '', $loginUrl) : home_url('/my-account/edit-account/');
-        $addressesUrl = function_exists('wc_get_endpoint_url') ? wc_get_endpoint_url('edit-address', '', $loginUrl) : home_url('/my-account/edit-address/');
         $downloadsUrl = function_exists('wc_get_endpoint_url') ? wc_get_endpoint_url('downloads', '', $loginUrl) : home_url('/my-account/downloads/');
         $logoutUrl = function_exists('wc_logout_url') ? wc_logout_url() : wp_logout_url(home_url('/'));
         $planUrl = home_url('/plan-je-dag/');
         $contactUrl = home_url('/contact/');
+        $faqUrl = home_url('/veel-gestelde-vragen/');
 
         $data = array(
             'eyebrow' => $experience === 'partner' ? 'Partner hub' : 'Mijn account',
@@ -76,99 +76,100 @@ final class AccountController
         }
 
         $user = wp_get_current_user();
-        $summaryCards = $user instanceof \WP_User ? self::hubSummaryCards($user, $experience) : array();
-        $actionCards = $user instanceof \WP_User ? self::hubActionCards($user, $experience, $ordersUrl, $planUrl) : array();
-        $activityCards = $user instanceof \WP_User ? self::hubActivityCards($user, $ordersUrl) : array();
+        $orders = $user instanceof \WP_User ? self::recentWooOrders($user, 20) : array();
+        $quotes = $user instanceof \WP_User ? self::recentCustomerQuotes($user, 20) : array();
+        $tickets = $user instanceof \WP_User ? self::privateTourTickets($user, 20) : array();
+        $summaryCards = self::dashboardSummaryCards($orders, $quotes, $tickets);
+        $actionCards = self::dashboardActionCards($orders, $quotes, $tickets, $ordersUrl, $planUrl);
+        $nextItem = self::dashboardNextItem($orders, $tickets, $planUrl);
+        $recentOrders = array_slice($orders, 0, 5);
+        $recentQuotes = array_slice($quotes, 0, 5);
+        $activeTickets = array_values(array_filter($tickets, static fn (array $ticket): bool => (string) ($ticket['status'] ?? '') === 'active'));
 
         ob_start();
         ?>
-        <section class="ui-section ui-section--tight ddb-account-hub" data-account-variant="<?php echo esc_attr($experience); ?>">
-            <div class="ui-container ui-container--lg">
-                <div class="ui-stack">
-                    <div class="ui-card ui-card--featured ddb-account-hub__hero">
-                        <div class="ui-card__body">
-                            <p class="ddb-account-hub__eyebrow"><?php echo esc_html($data['eyebrow']); ?></p>
-                            <h1 class="ui-card__title"><?php echo esc_html($data['title']); ?></h1>
-                            <p class="ui-card__desc"><?php echo esc_html($data['summary']); ?></p>
-                            <div class="ddb-account-hub__actions">
-                                <a class="ui-btn ui-btn--primary" href="<?php echo esc_url($data['primary']['url']); ?>"><?php echo esc_html($data['primary']['label']); ?></a>
-                                <a class="ui-btn ui-btn--secondary" href="<?php echo esc_url($data['secondary']['url']); ?>"><?php echo esc_html($data['secondary']['label']); ?></a>
-                                <a class="ui-btn ui-btn--ghost" href="<?php echo esc_url($logoutUrl); ?>"><?php echo esc_html('Uitloggen'); ?></a>
-                            </div>
+        <section class="ddb-account-dashboard" data-account-variant="<?php echo esc_attr($experience); ?>">
+            <div class="ddb-account-dashboard__metrics" aria-label="<?php echo esc_attr('Account status'); ?>">
+                <?php foreach ($summaryCards as $metric) : ?>
+                    <article class="ddb-account-dashboard__metric ddb-account-dashboard__metric--<?php echo esc_attr((string) ($metric['tone'] ?? 'neutral')); ?>">
+                        <strong><?php echo esc_html((string) ($metric['value'] ?? '0')); ?></strong>
+                        <span><?php echo esc_html((string) ($metric['label'] ?? '')); ?></span>
+                        <p><?php echo esc_html((string) ($metric['detail'] ?? '')); ?></p>
+                    </article>
+                <?php endforeach; ?>
+            </div>
+
+            <div class="ddb-account-dashboard__grid">
+                <?php if ($nextItem !== array()) : ?>
+                    <section class="ddb-account-dashboard__panel ddb-account-dashboard__next" aria-labelledby="ddb-account-next-title">
+                        <div>
+                            <p class="ddb-account-dashboard__eyebrow"><?php echo esc_html('Volgende stap'); ?></p>
+                            <h2 id="ddb-account-next-title"><?php echo esc_html((string) ($nextItem['title'] ?? 'Je volgende boeking')); ?></h2>
+                            <p><?php echo esc_html((string) ($nextItem['description'] ?? '')); ?></p>
+                        </div>
+                        <a class="ddb-account-dashboard__button ddb-account-dashboard__button--primary" href="<?php echo esc_url((string) ($nextItem['url'] ?? $planUrl)); ?>"><?php echo esc_html((string) ($nextItem['label'] ?? 'Bekijken')); ?></a>
+                    </section>
+                <?php endif; ?>
+
+                <section class="ddb-account-dashboard__panel ddb-account-dashboard__actions" aria-labelledby="ddb-account-actions-title">
+                    <div class="ddb-account-dashboard__panel-head">
+                        <div>
+                            <p class="ddb-account-dashboard__eyebrow"><?php echo esc_html('Nu belangrijk'); ?></p>
+                            <h2 id="ddb-account-actions-title"><?php echo esc_html('Open acties'); ?></h2>
                         </div>
                     </div>
+                    <div class="ddb-account-dashboard__action-list">
+                        <?php foreach ($actionCards as $card) : ?>
+                            <article class="ddb-account-dashboard__action ddb-account-dashboard__action--<?php echo esc_attr((string) ($card['tone'] ?? 'neutral')); ?>">
+                                <span><?php echo esc_html((string) ($card['priority'] ?? 'Status')); ?></span>
+                                <h3><?php echo esc_html((string) ($card['title'] ?? 'Actie')); ?></h3>
+                                <p><?php echo esc_html((string) ($card['description'] ?? '')); ?></p>
+                                <a class="ddb-account-dashboard__button ddb-account-dashboard__button--primary" href="<?php echo esc_url((string) ($card['url'] ?? $ordersUrl)); ?>"><?php echo esc_html((string) ($card['label'] ?? 'Openen')); ?></a>
+                            </article>
+                        <?php endforeach; ?>
+                    </div>
+                </section>
 
-                    <?php if ($summaryCards !== array()) : ?>
-                        <div class="ddb-account-hub__metrics" aria-label="<?php echo esc_attr('Account status'); ?>">
-                            <?php foreach ($summaryCards as $metric) : ?>
-                                <article class="ui-card ddb-account-hub__metric ddb-account-hub__metric--<?php echo esc_attr((string) ($metric['tone'] ?? 'neutral')); ?>">
-                                    <div class="ui-card__body">
-                                        <p class="ddb-account-hub__metric-label"><?php echo esc_html((string) ($metric['label'] ?? '')); ?></p>
-                                        <strong class="ddb-account-hub__metric-value"><?php echo esc_html((string) ($metric['value'] ?? '0')); ?></strong>
-                                        <p class="ddb-account-hub__metric-detail"><?php echo esc_html((string) ($metric['detail'] ?? '')); ?></p>
-                                    </div>
-                                </article>
-                            <?php endforeach; ?>
+                <section class="ddb-account-dashboard__panel ddb-account-dashboard__orders" aria-labelledby="ddb-account-orders-title">
+                    <div class="ddb-account-dashboard__panel-head">
+                        <div>
+                            <p class="ddb-account-dashboard__eyebrow"><?php echo esc_html('Boekingen'); ?></p>
+                            <h2 id="ddb-account-orders-title"><?php echo esc_html('Recente boekingen'); ?></h2>
                         </div>
-                    <?php endif; ?>
+                        <a href="<?php echo esc_url($ordersUrl); ?>"><?php echo esc_html('Alle boekingen bekijken'); ?></a>
+                    </div>
+                    <?php echo self::renderOrdersTable($recentOrders, $ordersUrl); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                </section>
 
-                    <section class="ddb-account-hub__panel" aria-labelledby="ddb-account-actions-title">
-                        <div class="ddb-account-hub__panel-head">
-                            <p class="ddb-account-hub__eyebrow"><?php echo esc_html('Nu belangrijk'); ?></p>
-                            <h2 id="ddb-account-actions-title" class="ddb-account-hub__section-title"><?php echo esc_html('Open acties'); ?></h2>
-                        </div>
-                        <div class="ui-grid ui-grid--3 ddb-account-hub__cards">
-                            <?php foreach ($actionCards as $card) : ?>
-                                <article class="ui-card ddb-account-hub__card ddb-account-hub__card--<?php echo esc_attr((string) ($card['tone'] ?? 'neutral')); ?>">
-                                    <div class="ui-card__body">
-                                        <h3 class="ui-card__title"><?php echo esc_html((string) ($card['title'] ?? '')); ?></h3>
-                                        <p class="ui-card__desc"><?php echo esc_html((string) ($card['description'] ?? '')); ?></p>
-                                        <a class="ui-btn ui-btn--primary" href="<?php echo esc_url((string) ($card['url'] ?? '#')); ?>"><?php echo esc_html((string) ($card['label'] ?? 'Openen')); ?></a>
-                                    </div>
-                                </article>
-                            <?php endforeach; ?>
-                        </div>
+                <?php if ($activeTickets !== array()) : ?>
+                    <?php $firstTicket = $activeTickets[0]; ?>
+                    <section class="ddb-account-dashboard__panel ddb-account-dashboard__tickets" aria-labelledby="ddb-account-tickets-title">
+                        <p class="ddb-account-dashboard__eyebrow"><?php echo esc_html('Tickets'); ?></p>
+                        <h2 id="ddb-account-tickets-title"><?php echo esc_html('Tickets beschikbaar'); ?></h2>
+                        <p><?php echo esc_html(sprintf('%d ticket(s) klaar. Eerstvolgend: %s', count($activeTickets), (string) ($firstTicket['tour_title'] ?? 'Private tour'))); ?></p>
+                        <a class="ddb-account-dashboard__button ddb-account-dashboard__button--secondary" href="<?php echo esc_url((string) ($firstTicket['portal_url'] ?? $downloadsUrl)); ?>"><?php echo esc_html('Tickets openen'); ?></a>
                     </section>
+                <?php endif; ?>
 
-                    <?php if ($activityCards !== array()) : ?>
-                        <section class="ddb-account-hub__panel" aria-labelledby="ddb-account-activity-title">
-                            <div class="ddb-account-hub__panel-head">
-                                <p class="ddb-account-hub__eyebrow"><?php echo esc_html('Overzicht'); ?></p>
-                                <h2 id="ddb-account-activity-title" class="ddb-account-hub__section-title"><?php echo esc_html('Recente boekingen en tickets'); ?></h2>
-                            </div>
-                            <div class="ddb-account-hub__activity-list">
-                                <?php foreach ($activityCards as $card) : ?>
-                                    <article class="ddb-account-hub__activity">
-                                        <div class="ddb-account-hub__activity-copy">
-                                            <p class="ddb-account-hub__activity-meta"><?php echo esc_html((string) ($card['meta'] ?? '')); ?></p>
-                                            <h3><?php echo esc_html((string) ($card['title'] ?? '')); ?></h3>
-                                            <p><?php echo esc_html((string) ($card['description'] ?? '')); ?></p>
-                                        </div>
-                                        <a class="ui-btn ui-btn--secondary" href="<?php echo esc_url((string) ($card['url'] ?? '#')); ?>"><?php echo esc_html((string) ($card['label'] ?? 'Bekijken')); ?></a>
-                                    </article>
-                                <?php endforeach; ?>
-                            </div>
-                        </section>
-                    <?php endif; ?>
+                <section class="ddb-account-dashboard__panel ddb-account-dashboard__quotes" aria-labelledby="ddb-account-quotes-title">
+                    <div class="ddb-account-dashboard__panel-head">
+                        <div>
+                            <p class="ddb-account-dashboard__eyebrow"><?php echo esc_html('Aanvragen'); ?></p>
+                            <h2 id="ddb-account-quotes-title"><?php echo esc_html('Recente aanvragen en offertes'); ?></h2>
+                        </div>
+                    </div>
+                    <?php echo self::renderQuotesList($recentQuotes); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
+                </section>
 
-                    <section class="ddb-account-hub__panel" aria-labelledby="ddb-account-tools-title">
-                        <div class="ddb-account-hub__panel-head">
-                            <p class="ddb-account-hub__eyebrow"><?php echo esc_html('Snel naar'); ?></p>
-                            <h2 id="ddb-account-tools-title" class="ddb-account-hub__section-title"><?php echo esc_html('Alles wat je kunt doen'); ?></h2>
-                        </div>
-                        <div class="ui-grid ui-grid--3 ddb-account-hub__cards">
-                            <?php foreach ($data['cards'] as $card) : ?>
-                                <article class="ui-card ddb-account-hub__card">
-                                    <div class="ui-card__body">
-                                        <h3 class="ui-card__title"><?php echo esc_html((string) $card['title']); ?></h3>
-                                        <p class="ui-card__desc"><?php echo esc_html((string) $card['description']); ?></p>
-                                        <a class="ui-btn ui-btn--secondary" href="<?php echo esc_url((string) $card['url']); ?>"><?php echo esc_html((string) $card['label']); ?></a>
-                                    </div>
-                                </article>
-                            <?php endforeach; ?>
-                        </div>
-                    </section>
-                </div>
+                <section class="ddb-account-dashboard__panel ddb-account-dashboard__support" aria-labelledby="ddb-account-support-title">
+                    <p class="ddb-account-dashboard__eyebrow"><?php echo esc_html('Hulp'); ?></p>
+                    <h2 id="ddb-account-support-title"><?php echo esc_html('Snel regelen'); ?></h2>
+                    <div class="ddb-account-dashboard__quicklinks">
+                        <a href="<?php echo esc_url($planUrl); ?>"><?php echo esc_html('Nieuwe activiteit boeken'); ?></a>
+                        <a href="<?php echo esc_url($contactUrl); ?>"><?php echo esc_html('Contact opnemen'); ?></a>
+                        <a href="<?php echo esc_url($faqUrl); ?>"><?php echo esc_html('Veelgestelde vragen'); ?></a>
+                    </div>
+                </section>
             </div>
         </section>
         <?php
@@ -225,6 +226,238 @@ final class AccountController
         </section>
         <?php
 
+        return (string) ob_get_clean();
+    }
+
+    /**
+     * @param array<int,array<string,mixed>> $orders
+     * @param array<int,array<string,mixed>> $quotes
+     * @param array<int,array<string,mixed>> $tickets
+     * @return array<int,array<string,string>>
+     */
+    private static function dashboardSummaryCards(array $orders, array $quotes, array $tickets): array
+    {
+        $activeOrders = 0;
+        $openPayments = 0;
+        foreach ($orders as $order) {
+            $status = (string) ($order['status'] ?? '');
+            if (! in_array($status, array('cancelled', 'refunded', 'failed'), true)) {
+                $activeOrders++;
+            }
+            if (! empty($order['needs_payment']) || in_array($status, array('pending', 'on-hold', 'failed'), true)) {
+                $openPayments++;
+            }
+        }
+
+        $openQuotes = 0;
+        foreach ($quotes as $quote) {
+            if (! in_array((string) ($quote['status'] ?? ''), array('accepted', 'declined', 'cancelled', 'closed'), true)) {
+                $openQuotes++;
+            }
+        }
+
+        $activeTickets = 0;
+        foreach ($tickets as $ticket) {
+            if ((string) ($ticket['status'] ?? '') === 'active') {
+                $activeTickets++;
+            }
+        }
+
+        $openActions = $openPayments + $openQuotes + $activeTickets;
+
+        return array(
+            array('label' => 'Actieve boekingen', 'value' => (string) $activeOrders, 'detail' => $activeOrders === 1 ? 'lopende boeking' : 'lopende boekingen', 'tone' => $activeOrders > 0 ? 'good' : 'neutral'),
+            array('label' => 'Open acties', 'value' => (string) $openActions, 'detail' => $openActions > 0 ? 'aandacht nodig' : 'alles bijgewerkt', 'tone' => $openActions > 0 ? 'warning' : 'good'),
+            array('label' => 'Tickets', 'value' => (string) $activeTickets, 'detail' => $activeTickets > 0 ? 'direct beschikbaar' : 'geen tickets open', 'tone' => $activeTickets > 0 ? 'good' : 'neutral'),
+            array('label' => 'Aanvragen/offertes', 'value' => (string) count($quotes), 'detail' => $openQuotes > 0 ? $openQuotes . ' open' : 'geen open aanvraag', 'tone' => $openQuotes > 0 ? 'attention' : 'neutral'),
+        );
+    }
+
+    /**
+     * @param array<int,array<string,mixed>> $orders
+     * @param array<int,array<string,mixed>> $quotes
+     * @param array<int,array<string,mixed>> $tickets
+     * @return array<int,array<string,string>>
+     */
+    private static function dashboardActionCards(array $orders, array $quotes, array $tickets, string $ordersUrl, string $planUrl): array
+    {
+        $actions = array();
+
+        foreach ($orders as $order) {
+            if (! empty($order['needs_payment'])) {
+                $actions[] = array(
+                    'title' => 'Betaling afronden',
+                    'description' => sprintf('Bestelling #%s wacht nog op betaling. %s', (string) ($order['number'] ?? ''), (string) ($order['total'] ?? '')),
+                    'label' => 'Betalen',
+                    'url' => (string) (($order['pay_url'] ?? '') ?: ($order['url'] ?? $ordersUrl)),
+                    'tone' => 'critical',
+                    'priority' => 'Actie vereist',
+                );
+                break;
+            }
+        }
+
+        foreach ($quotes as $quote) {
+            $status = (string) ($quote['status'] ?? '');
+            $url = (string) ($quote['url'] ?? '');
+            if ($status === 'sent' && $url !== '') {
+                $actions[] = array(
+                    'title' => 'Voorstel bekijken',
+                    'description' => sprintf('%s wacht op akkoord of wijziging.', (string) ($quote['reference'] ?? 'Je offerte')),
+                    'label' => 'Voorstel openen',
+                    'url' => $url,
+                    'tone' => 'warning',
+                    'priority' => 'Reactie nodig',
+                );
+                break;
+            }
+            if ($status === 'revision_requested' && $url !== '') {
+                $actions[] = array(
+                    'title' => 'Wijziging beoordelen',
+                    'description' => sprintf('%s is bijgewerkt of staat ter controle.', (string) ($quote['reference'] ?? 'Je aanvraag')),
+                    'label' => 'Status bekijken',
+                    'url' => $url,
+                    'tone' => 'attention',
+                    'priority' => 'Opvolging',
+                );
+                break;
+            }
+        }
+
+        foreach ($tickets as $ticket) {
+            if ((string) ($ticket['status'] ?? '') === 'active' && ! empty($ticket['portal_url'])) {
+                $actions[] = array(
+                    'title' => 'Tour of tickets openen',
+                    'description' => sprintf('%s staat klaar voor gebruik.', (string) ($ticket['tour_title'] ?? 'Je ticket')),
+                    'label' => 'Openen',
+                    'url' => (string) $ticket['portal_url'],
+                    'tone' => 'good',
+                    'priority' => 'Beschikbaar',
+                );
+                break;
+            }
+        }
+
+        if ($actions === array()) {
+            $actions[] = array(
+                'title' => 'Geen open acties',
+                'description' => 'Je hoeft nu niets te doen. Je kunt verder plannen of later terugkomen.',
+                'label' => 'Plan je dag',
+                'url' => $planUrl,
+                'tone' => 'neutral',
+                'priority' => 'Rustig',
+            );
+        }
+
+        return array_slice($actions, 0, 4);
+    }
+
+    /**
+     * @param array<int,array<string,mixed>> $orders
+     * @param array<int,array<string,mixed>> $tickets
+     * @return array<string,string>
+     */
+    private static function dashboardNextItem(array $orders, array $tickets, string $planUrl): array
+    {
+        foreach ($tickets as $ticket) {
+            if ((string) ($ticket['status'] ?? '') === 'active') {
+                return array(
+                    'title' => (string) ($ticket['tour_title'] ?? 'Je tour staat klaar'),
+                    'description' => (string) ($ticket['access_label'] ?? 'Je persoonlijke ticket is beschikbaar.'),
+                    'label' => 'Tour openen',
+                    'url' => (string) ($ticket['portal_url'] ?? $planUrl),
+                );
+            }
+        }
+
+        foreach ($orders as $order) {
+            if (! in_array((string) ($order['status'] ?? ''), array('cancelled', 'refunded', 'failed'), true)) {
+                return array(
+                    'title' => sprintf('Bestelling #%s', (string) ($order['number'] ?? '')),
+                    'description' => sprintf('%s · %s', (string) ($order['status_label'] ?? 'Status onbekend'), (string) ($order['total'] ?? '')),
+                    'label' => 'Boeking bekijken',
+                    'url' => (string) ($order['url'] ?? $planUrl),
+                );
+            }
+        }
+
+        return array(
+            'title' => 'Nog geen boeking gepland',
+            'description' => 'Kies een activiteit en stel je dag samen.',
+            'label' => 'Activiteit boeken',
+            'url' => $planUrl,
+        );
+    }
+
+    /**
+     * @param array<int,array<string,mixed>> $orders
+     */
+    private static function renderOrdersTable(array $orders, string $ordersUrl): string
+    {
+        if ($orders === array()) {
+            return '<div class="ddb-account-dashboard__empty"><p>' . esc_html('Je hebt nog geen boekingen.') . '</p><a href="' . esc_url(home_url('/activiteiten-den-bosch/')) . '">' . esc_html('Bekijk activiteiten') . '</a></div>';
+        }
+
+        ob_start();
+        ?>
+        <div class="ddb-account-dashboard__table-wrap">
+            <table class="ddb-account-dashboard__table">
+                <thead>
+                    <tr>
+                        <th scope="col"><?php echo esc_html('Datum'); ?></th>
+                        <th scope="col"><?php echo esc_html('Boeking'); ?></th>
+                        <th scope="col"><?php echo esc_html('Type'); ?></th>
+                        <th scope="col"><?php echo esc_html('Status'); ?></th>
+                        <th scope="col"><?php echo esc_html('Bedrag'); ?></th>
+                        <th scope="col"><?php echo esc_html('Actie'); ?></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php foreach ($orders as $order) : ?>
+                        <tr>
+                            <td data-label="<?php echo esc_attr('Datum'); ?>"><?php echo esc_html((string) ($order['date'] ?? '')); ?></td>
+                            <td data-label="<?php echo esc_attr('Boeking'); ?>"><strong><?php echo esc_html(sprintf('Bestelling #%s', (string) ($order['number'] ?? ''))); ?></strong></td>
+                            <td data-label="<?php echo esc_attr('Type'); ?>"><?php echo esc_html('Boeking'); ?></td>
+                            <td data-label="<?php echo esc_attr('Status'); ?>"><span class="ddb-account-dashboard__status"><?php echo esc_html((string) ($order['status_label'] ?? 'Onbekend')); ?></span></td>
+                            <td data-label="<?php echo esc_attr('Bedrag'); ?>" class="ddb-account-dashboard__amount"><?php echo esc_html((string) ($order['total'] ?? '')); ?></td>
+                            <td data-label="<?php echo esc_attr('Actie'); ?>"><a href="<?php echo esc_url((string) ($order['url'] ?? $ordersUrl)); ?>"><?php echo esc_html('Bekijken'); ?></a></td>
+                        </tr>
+                    <?php endforeach; ?>
+                </tbody>
+            </table>
+        </div>
+        <?php
+        return (string) ob_get_clean();
+    }
+
+    /**
+     * @param array<int,array<string,mixed>> $quotes
+     */
+    private static function renderQuotesList(array $quotes): string
+    {
+        if ($quotes === array()) {
+            return '<div class="ddb-account-dashboard__empty"><p>' . esc_html('Er zijn geen aanvragen of offertes gevonden.') . '</p></div>';
+        }
+
+        ob_start();
+        ?>
+        <div class="ddb-account-dashboard__quote-list">
+            <?php foreach ($quotes as $quote) : ?>
+                <article class="ddb-account-dashboard__quote">
+                    <div>
+                        <span><?php echo esc_html((string) ($quote['reference'] ?? 'Offerte')); ?></span>
+                        <h3><?php echo esc_html((string) ($quote['title'] ?? 'Aanvraag of offerte')); ?></h3>
+                        <p><?php echo esc_html(trim((string) ($quote['date'] ?? '') . ' · ' . (string) ($quote['status_label'] ?? 'Status onbekend'), ' ·')); ?></p>
+                    </div>
+                    <?php if ((string) ($quote['url'] ?? '') !== '') : ?>
+                        <a href="<?php echo esc_url((string) $quote['url']); ?>"><?php echo esc_html('Bekijken'); ?></a>
+                    <?php else : ?>
+                        <span class="ddb-account-dashboard__status"><?php echo esc_html('In behandeling'); ?></span>
+                    <?php endif; ?>
+                </article>
+            <?php endforeach; ?>
+        </div>
+        <?php
         return (string) ob_get_clean();
     }
 
@@ -516,7 +749,21 @@ final class AccountController
             }
             $status = (string) $order->get_status();
             $date = $order->get_date_created() ? $order->get_date_created()->date_i18n('j M Y') : '';
-            $items[] = array('id' => (int) $order->get_id(), 'number' => (string) $order->get_order_number(), 'status' => $status, 'status_label' => function_exists('wc_get_order_status_name') ? wc_get_order_status_name($status) : $status, 'date' => $date, 'total' => wp_strip_all_tags((string) $order->get_formatted_order_total()), 'url' => (string) $order->get_view_order_url());
+            $needsPayment = method_exists($order, 'needs_payment') ? (bool) $order->needs_payment() : in_array($status, array('pending', 'failed'), true);
+            $payUrl = $needsPayment && method_exists($order, 'get_checkout_payment_url')
+                ? (string) $order->get_checkout_payment_url()
+                : '';
+            $items[] = array(
+                'id' => (int) $order->get_id(),
+                'number' => (string) $order->get_order_number(),
+                'status' => $status,
+                'status_label' => function_exists('wc_get_order_status_name') ? wc_get_order_status_name($status) : $status,
+                'date' => $date,
+                'total' => wp_strip_all_tags((string) $order->get_formatted_order_total()),
+                'url' => (string) $order->get_view_order_url(),
+                'pay_url' => $payUrl,
+                'needs_payment' => $needsPayment,
+            );
         }
         return $items;
     }
@@ -643,11 +890,12 @@ final class AccountController
                 }
 
                 let rows = bookings.map(function (b) {
+                    const participants = b.participants ? b.participants : '&mdash;';
                     return '<tr>'
                         + '<td>' + esc(b.date || '&mdash;') + '</td>'
                         + '<td>' + esc(b.time || '&mdash;') + '</td>'
                         + '<td>' + esc(b.resource || b.notes || '&mdash;') + '</td>'
-                        + '<td>' + esc(b.participants || '&mdash;') + '</td>'
+                        + '<td>' + esc(participants) + '</td>'
                         + '<td><span class="sbdp-status sbdp-status--' + esc(b.status) + '">' + statusLabel(b.status) + '</span></td>'
                         + '</tr>';
                 }).join('');

@@ -37,6 +37,9 @@ class SBDP_Activation
         if (class_exists(\BSP\Bookings\Support\Installer::class)) {
             \BSP\Bookings\Support\Installer::install();
         }
+        if (class_exists(\BSP\Gamification\Support\Installer::class)) {
+            \BSP\Gamification\Support\Installer::install();
+        }
         require_once SBDP_DIR . 'includes/class-cpt.php';
         if (class_exists('SBDP_CPT')) {
             SBDP_CPT::register();

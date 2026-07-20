@@ -46,7 +46,7 @@ export default function SummaryPanel() {
       return summary.subtotal;
     }
 
-    return 0;
+    return null;
   }, [summary?.grandTotal, summary?.subtotal]);
 
   const currency = summary?.currency || "EUR";
@@ -55,10 +55,6 @@ export default function SummaryPanel() {
   const participantShare = useMemo(() => {
     if (Number.isFinite(summary?.participantShare)) {
       return summary.participantShare;
-    }
-
-    if (participantCount > 0 && Number.isFinite(grandTotal)) {
-      return grandTotal / participantCount;
     }
 
     return null;
@@ -176,7 +172,10 @@ export default function SummaryPanel() {
     const baseStats = [
       { label: "Deelnemers", value: participantCount },
       { label: "Activiteiten", value: planItems.length },
-      { label: "Totaal (indicatief)", value: formatPrice(grandTotal, currency) },
+      {
+        label: "Totaal (indicatief)",
+        value: Number.isFinite(grandTotal) ? formatPrice(grandTotal, currency) : "Prijs wordt berekend",
+      },
     ];
 
     if (participantShare !== null && participantCount > 0) {
@@ -418,10 +417,12 @@ export default function SummaryPanel() {
 
   const summaryBodyId = "sbdp-summary-bar-body";
   const toggleAssistiveLabel = isExpanded ? "Verberg jouw planning" : "Toon jouw planning";
-  const formattedTotal = formatPrice(grandTotal, currency);
+  const formattedTotal = Number.isFinite(grandTotal)
+    ? formatPrice(grandTotal, currency)
+    : "Prijs wordt berekend";
   const plannerCtaModel = buildPlannerCtaModel({
     plannerActionState,
-    formattedTotal,
+    formattedTotal: Number.isFinite(grandTotal) ? formattedTotal : "",
     queuePending,
     planPending,
   });

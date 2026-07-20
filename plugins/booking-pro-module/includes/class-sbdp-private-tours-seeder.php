@@ -15,6 +15,39 @@ if (! defined('ABSPATH')) {
  */
 class SBDP_Private_Tours_Seeder
 {
+    private const JEROEN_BOSCH_SLUG = 'jeroen-bosch-audiovideo';
+
+    /**
+     * Keep the existing Jeroen Bosch tour product direct-bookable on live sites.
+     */
+    public static function sync_jeroen_bosch_booking_defaults(): void
+    {
+        if (! function_exists('get_page_by_path')) {
+            return;
+        }
+
+        $product = get_page_by_path(self::JEROEN_BOSCH_SLUG, OBJECT, 'product');
+        if (! $product instanceof WP_Post) {
+            $tour = get_page_by_path(self::JEROEN_BOSCH_SLUG, OBJECT, SBDP_Private_Tours::POST_TYPE_TOUR);
+            if ($tour instanceof WP_Post) {
+                $linked = (int) get_post_meta((int) $tour->ID, '_sbdp_tour_product_id', true);
+                $product = $linked > 0 ? get_post($linked) : null;
+            }
+        }
+
+        if (! $product instanceof WP_Post || (int) $product->ID === 115) {
+            return;
+        }
+
+        self::sync_product_meta(
+            (int) $product->ID,
+            array(
+                'price' => get_post_meta((int) $product->ID, '_price', true) ?: 19.95,
+                'booking' => self::jeroen_bosch_booking_defaults(),
+            )
+        );
+    }
+
     /**
      * Create the default tours when missing.
      */
@@ -26,6 +59,7 @@ class SBDP_Private_Tours_Seeder
                 'summary'  => __('Interactieve tour langs het leven van Jheronimus Bosch met audio, video en stripgids.', 'sbdp'),
                 'duration' => 75,
                 'price'    => 19.95,
+                'booking'  => self::jeroen_bosch_booking_defaults(),
                 'steps'    => array(
                     array(
                         'title'       => __('Welkom en introductie', 'sbdp'),
@@ -113,6 +147,11 @@ class SBDP_Private_Tours_Seeder
         foreach ($tours as $slug => $config) {
             $existing = get_page_by_path($slug, OBJECT, SBDP_Private_Tours::POST_TYPE_TOUR);
             if ($existing instanceof WP_Post) {
+                $product_id = self::maybe_create_product($slug, $config);
+                if ($product_id > 0) {
+                    update_post_meta((int) $existing->ID, '_sbdp_tour_product_id', $product_id);
+                    self::sync_product_meta($product_id, $config);
+                }
                 continue;
             }
 
@@ -133,6 +172,7 @@ class SBDP_Private_Tours_Seeder
             $product_id = self::maybe_create_product($slug, $config);
             if ($product_id > 0) {
                 update_post_meta($tour_id, '_sbdp_tour_product_id', $product_id);
+                self::sync_product_meta($product_id, $config);
             }
 
             foreach ($config['steps'] as $order => $step) {
@@ -204,5 +244,42 @@ class SBDP_Private_Tours_Seeder
         update_post_meta($product_id, '_virtual', 'yes');
         update_post_meta($product_id, '_downloadable', 'no');
         return (int) $product_id;
+    }
+
+    /**
+     * Keep seeded tour products aligned with their booking-mode defaults.
+     *
+     * @param int                  $product_id Product ID.
+     * @param array<string, mixed> $config     Tour config.
+     */
+    private static function sync_product_meta(int $product_id, array $config): void
+    {
+        if ($product_id <= 0) {
+            return;
+        }
+
+        update_post_meta($product_id, '_price', $config['price']);
+        update_post_meta($product_id, '_regular_price', $config['price']);
+        update_post_meta($product_id, '_virtual', 'yes');
+        update_post_meta($product_id, '_downloadable', 'no');
+
+        $booking = isset($config['booking']) && is_array($config['booking']) ? $config['booking'] : array();
+        foreach ($booking as $key => $value) {
+            update_post_meta($product_id, (string) $key, (string) $value);
+        }
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    private static function jeroen_bosch_booking_defaults(): array
+    {
+        return array(
+            '_ddb_booking_mode' => 'direct',
+            '_ddb_direct_booking_enabled' => 'yes',
+            '_ddb_quote_os_enabled' => 'no',
+            '_ddb_supplier_confirmation_required' => 'no',
+            '_ddb_supplier_cancel_mode' => 'none',
+        );
     }
 }

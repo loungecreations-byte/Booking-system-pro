@@ -3,6 +3,15 @@ import { expect, test } from "@playwright/test";
 const BASE_URL = (process.env.E2E_BASE_URL || "http://dagjedenbosch.local").replace(/\/+$/, "");
 const PRODUCT_URL = `${BASE_URL}/product/bierproeverij/`;
 
+test.beforeEach(async ({ request }) => {
+  const reachable = await request
+    .get(`${BASE_URL}/`, { timeout: 5000, failOnStatusCode: false })
+    .then((response) => response.status() < 500)
+    .catch(() => false);
+
+  test.skip(!reachable, `E2E target ${BASE_URL} is not reachable.`);
+});
+
 function isoDate(daysFromNow = 1): string {
   const value = new Date();
   value.setDate(value.getDate() + daysFromNow);

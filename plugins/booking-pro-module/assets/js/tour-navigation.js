@@ -360,6 +360,7 @@
       this.routeStartedFor = null;
       this.arrivedTransitions = new Set();
       this.transitionCache = new Map();
+      this.liveRouteSummary = null;
       this.autoOpenOnArrival = false;
       this.embedDiagnostics = new Map();
       this.serverEmbedUrls = new Map();
@@ -372,6 +373,7 @@
       this.mapTiles = String(root.dataset.mapTiles || config.defaultMapTiles || "").trim();
       this.mapAttribution = String(root.dataset.mapAttribution || config.defaultMapAttribution || "").trim();
       this.restNonce = String(config.nonce || "").trim();
+      this.gamificationEndpoint = String(config.gamificationEndpoint || "").trim();
       this.googleMapsEmbedApiKey = String(root.dataset.googleMapsApiKey || config.googleMapsEmbedApiKey || "").trim();
       this.googleMapsEmbedLanguage = String(root.dataset.googleMapsLanguage || config.googleMapsEmbedLanguage || document.documentElement.lang || "nl").trim();
       this.googleMapsEmbedRegion = String(root.dataset.googleMapsRegion || config.googleMapsEmbedRegion || "").trim().toUpperCase();
@@ -396,6 +398,7 @@
       this.bindBaseEvents();
       this.initMap();
       this.render();
+      this.completed.forEach((index) => this.syncCompletion(index));
     }
 
     ensureLayoutScaffold() {
@@ -546,7 +549,9 @@
 
         tileLayer.on("load", () => {
           mapElement.classList.remove("tour-map--tileless");
-          this.updateMapStatus("Kaart geladen. Live navigatie start zodra locatie is toegestaan.");
+          if (!this.isRouteStarted(this.currentIndex)) {
+            this.updateMapStatus("Kaart geladen. Live navigatie start zodra locatie is toegestaan.");
+          }
         });
 
         tileLayer.on("tileerror", () => {
@@ -1013,7 +1018,7 @@
           return this.renderStoryRouteContext(step, progressState, true);
         }
 
-        const transition = this.getTransitionData(progressState.currentIndex);  
+        const transition = this.getActiveRouteSummary(progressState.currentIndex);
         const currentTitle = step && step.title ? step.title : "Stop " + (progressState.currentIndex + 1);
         const nextTitle = nextStep.title || "Stop " + (progressState.currentIndex + 2);
         const arrived = progressState.arrivalReady;
@@ -1021,21 +1026,23 @@
         const hasCoordinates = Boolean(this.getStepPoint(nextStep));
         const proximity = this.getDistanceToStep(nextStep);
         const zone = this.getArrivalZone(proximity);
-        const displayDistance = proximity !== null
-          ? formatDistance(proximity)
-          : transition
-            ? formatDistance(Number(transition.distance || 0))
+        const displayDistance = transition
+          ? formatDistance(Number(transition.distance || 0))
+          : proximity !== null
+            ? formatDistance(proximity)
             : "Onbekend";
-        const displayDuration = proximity !== null
-          ? formatDuration(proximity / 1.38)
-          : transition
-            ? formatDuration(Number(transition.duration || 0))
+        const displayDuration = transition
+          ? formatDuration(Number(transition.duration || 0))
+          : proximity !== null
+            ? formatDuration(proximity / 1.38)
             : "Onbekend";
-        const proximityText = proximity !== null
+        const proximityText = arrived || zone === "arrived" || zone === "almost" || zone === "near"
           ? this.getArrivalZoneLabel(zone, proximity)
-          : hasCoordinates
-            ? "Sta locatie toe om je afstand tot de volgende stop te zien."
-            : "Deze stop mist coordinaten. Gebruik het locatie-label als fallback.";
+          : transition
+            ? `Volg de wandelroute naar de volgende stop. Nog ${formatDistance(Number(transition.distance || 0))}.`
+            : hasCoordinates
+              ? "Sta locatie toe om je afstand tot de volgende stop te zien."
+              : "Deze stop mist coordinaten. Gebruik het locatie-label als fallback.";
         
         let primaryCta;
         let ctaAction;
@@ -1319,6 +1326,27 @@
     getTransitionData(index = this.currentIndex) {
       const key = this.getTransitionKey(index);
       return (key && this.transitionCache.get(key)) || this.getFallbackTransitionData(index);
+    }
+
+    getActiveRouteSummary(index = this.currentIndex) {
+      if (
+        this.liveRouteSummary &&
+        this.liveRouteSummary.index === index &&
+        this.isRouteStarted(index)
+      ) {
+        return this.liveRouteSummary;
+      }
+
+      return this.getTransitionData(index);
+    }
+
+    setLiveRouteSummary(index, distance, duration, fallback = false) {
+      this.liveRouteSummary = {
+        index,
+        distance: Number(distance || 0),
+        duration: Number(duration || 0),
+        fallback: Boolean(fallback),
+      };
     }
 
     ensureTransitionData() {
@@ -1935,6 +1963,7 @@
         link.addEventListener("click", () => {
           if (this.getNextStep(this.currentIndex) && !this.completed.has(this.currentIndex)) {
             this.completed.add(this.currentIndex);
+            this.syncCompletion(this.currentIndex);
           }
 
           this.routeStartedFor = this.currentIndex;
@@ -2276,6 +2305,7 @@
       }
 
       if (!this.currentLocation) {
+        this.liveRouteSummary = null;
         this.updateMapStatus("Sta locatie toe voor live route van punt tot punt.");
         this.updateNavigationStatus("Sta locatie toe om de live route te zien.");
         return;
@@ -2339,6 +2369,7 @@
           const distance = Number(payload.distance || 0);
           const duration = Number(payload.duration || 0);
           const fallback = Boolean(payload.fallback);
+          this.setLiveRouteSummary(this.currentIndex, distance, duration, fallback);
           const status = fallback
             ? `Fallback route • ${formatDistance(distance)} • ${formatDuration(duration)}`
             : `Nog ${formatDistance(distance)} • ${formatDuration(duration)} lopen`;
@@ -2393,6 +2424,7 @@
 
       const distance = haversineMeters(from, target);
       const duration = distance / 1.38;
+      this.setLiveRouteSummary(this.currentIndex, distance, duration, true);
       const status = `Fallback route • ${formatDistance(distance)} • ${formatDuration(duration)}`;
       this.updateMapStatus(status);
       this.updateNavigationStatus(status);
@@ -2404,6 +2436,7 @@
       }
       this.liveRoute = null;
       this.lastRouteFetch = null;
+      this.liveRouteSummary = null;
     }
 
     buildGoogleEmbedUrl(destinationStep, originStep) {
@@ -2634,18 +2667,20 @@
         return `Je bent aangekomen bij ${nextLocationLabel}. Open nu het volgende hoofdstuk.`;
       }
 
-      if (nextStep && this.currentLocation) {
-        const distance = this.getDistanceToStep(nextStep);
-        const zone = this.getArrivalZone(distance);
-        return this.getArrivalZoneLabel(zone, distance);
-      }
-
       if (nextStep && this.isRouteStarted(this.currentIndex) && this.mapStatus) {
         return this.mapStatus;
       }
 
+      if (nextStep && this.currentLocation) {
+        const distance = this.getDistanceToStep(nextStep);
+        const zone = this.getArrivalZone(distance);
+        if (zone === "arrived" || zone === "almost" || zone === "near") {
+          return this.getArrivalZoneLabel(zone, distance);
+        }
+      }
+
       if (nextStep) {
-        const transition = this.getTransitionData(this.currentIndex);
+        const transition = this.getActiveRouteSummary(this.currentIndex);
         if (transition) {
           return `Nog ${formatDistance(Number(transition.distance || 0))} • ${formatDuration(Number(transition.duration || 0))} lopen van ${currentLocationLabel} naar ${nextLocationLabel}.`;
         }
@@ -2702,10 +2737,14 @@
 
     updateNavigationStatus(message) {
       if (typeof message === "string" && message.trim() !== "") {
-        this.mapStatus = message.trim();
+        this.updateMapStatus(message.trim());
       }
 
       const status = this.getNavigationStatusText();
+      if (this.isRouteStarted(this.currentIndex) && status && this.mapStatus !== status) {
+        this.updateMapStatus(status);
+      }
+
       this.root.querySelectorAll(SELECTORS.navStatus).forEach((node) => {
         node.textContent = status;
       });
@@ -2772,6 +2811,7 @@
 
       if (completed) {
         this.completed.add(index);
+        this.syncCompletion(index);
         if (index === this.currentIndex && this.getNextStep(index)) {
           this.mode = "navigation";
         }
@@ -2781,6 +2821,27 @@
       }
 
       this.render();
+    }
+
+    syncCompletion(index) {
+      const step = this.steps[index];
+      if (!step || !this.gamificationEndpoint || !this.restNonce) return;
+      const url = `${this.gamificationEndpoint}/${encodeURIComponent(this.tourId)}/steps/${encodeURIComponent(step.id)}/complete`;
+      fetch(url, { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json", "X-WP-Nonce": this.restNonce }, body: JSON.stringify({ client_time: new Date().toISOString() }) })
+        .then((response) => response.ok ? response.json() : Promise.reject(new Error(`Completion failed (${response.status})`)))
+        .then((payload) => { (payload.collectibles || []).forEach((item) => this.showCollectibleReveal(item)); })
+        .catch(() => { this.updateMapStatus("Voortgang staat lokaal klaar en wordt bij een volgende bevestiging opnieuw gesynchroniseerd."); });
+    }
+
+    showCollectibleReveal(item) {
+      const existing = document.querySelector('[data-collectible-reveal]');
+      if (existing) existing.remove();
+      const reveal = document.createElement('aside');
+      reveal.className = `tour-collectible-reveal rarity-${String(item.rarity || 'common')}`;
+      reveal.setAttribute('data-collectible-reveal', ''); reveal.setAttribute('role', 'status');
+      reveal.innerHTML = `${item.image ? `<img src="${escapeHtml(item.image)}" alt="">` : ''}<div><small>${escapeHtml(item.rarity || 'common')} collectible</small><strong>${escapeHtml(item.title || 'Nieuw object')}</strong><p>${escapeHtml(item.description || '')}</p></div><button type="button" aria-label="Sluiten">×</button>`;
+      reveal.querySelector('button')?.addEventListener('click', () => reveal.remove());
+      document.body.appendChild(reveal); window.setTimeout(() => reveal.remove(), 6500);
     }
 
     getTotalXp() {
@@ -2829,6 +2890,7 @@
     openNavigationMode(startLive = false) {
       if (this.getNextStep(this.currentIndex) && !this.completed.has(this.currentIndex)) {
         this.completed.add(this.currentIndex);
+        this.syncCompletion(this.currentIndex);
       }
 
       if (this.getNextStep(this.currentIndex) && !this.arrivedTransitions.has(this.currentIndex)) {

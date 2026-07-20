@@ -47,6 +47,8 @@ final class Module implements ModuleInterface
             \add_action('admin_post_sbdp_quote_line_supplier_request_draft', array(AdminController::class, 'handleGenerateSupplierRequestDraft'));
             \add_action('admin_post_sbdp_quote_line_supplier_request_send', array(AdminController::class, 'handleSendSupplierRequest'));
             \add_action('admin_post_sbdp_quote_line_partner_token_revoke', array(AdminController::class, 'handleRevokePartnerConfirmationToken'));
+            \add_action('admin_post_sbdp_quote_public_proposal_token_revoke', array(AdminController::class, 'handleRevokePublicProposalTokens'));
+            \add_action('admin_post_sbdp_quote_accepted_proposal_pdf', array(AdminController::class, 'handleDownloadAcceptedProposalPdf'));
             \add_action('admin_post_sbdp_quote_generate_proposal_draft', array(AdminController::class, 'handleGenerateProposalDraft'));
             \add_action('wp_ajax_sbdp_quote_update_proposal_text', array(AdminController::class, 'handleUpdateProposalText'));
             \add_action('wp_ajax_sbdp_quote_suggest_proposal_text', array(AdminController::class, 'handleSuggestProposalText'));
@@ -60,6 +62,8 @@ final class Module implements ModuleInterface
             \add_action('admin_post_sbdp_quote_resolve_inbound_failure', array(AdminController::class, 'handleResolveInboundFailure'));
             \add_action('admin_post_sbdp_quote_followup_create', array(AdminController::class, 'handleCreateFollowup'));
             \add_action('admin_post_sbdp_quote_followup_complete', array(AdminController::class, 'handleCompleteFollowup'));
+            \add_action('admin_post_sbdp_quote_followup_reschedule', array(AdminController::class, 'handleRescheduleFollowup'));
+            \add_action('admin_post_sbdp_quote_followup_reopen', array(AdminController::class, 'handleReopenFollowup'));
             \add_action('admin_post_sbdp_quote_mark_ready_for_resnapshot', array(AdminController::class, 'handleMarkReadyForResnapshot'));
             \add_action('admin_post_sbdp_quote_prepare_resnapshot', array(AdminController::class, 'handlePrepareResnapshot'));
             \add_action('admin_post_sbdp_quote_build_handoff_package', array(AdminController::class, 'handleBuildHandoffPackage'));

@@ -866,6 +866,8 @@ function sbdp_render_product_planner_form($atts = array()) {
                 return {
                     mode: 'pay',
                     participants: plannerEntry.participants,
+                    route_intent: plannerEntry.route_intent || plannerRouteIntent,
+                    booking_capability: plannerEntry.booking_capability || plannerBookingCapability,
                     combi: combiIds.length === 1 ? String(combiIds[0]) : '',
                     combi_ids: combiIds,
                     combi_timing_map: combiTimingMap,
@@ -883,6 +885,8 @@ function sbdp_render_product_planner_form($atts = array()) {
                             combi_ids: combiIds,
                             combi_timing_map: combiTimingMap,
                             combi_label_map: combiLabelMap,
+                            route_intent: plannerEntry.route_intent || plannerRouteIntent,
+                            booking_capability: plannerEntry.booking_capability || plannerBookingCapability,
                             options: {
                                 combiItems: combiItems
                             },
@@ -917,8 +921,8 @@ function sbdp_render_product_planner_form($atts = array()) {
                         combiItems: combiItems
                     },
                     combiItems: combiItems,
-                    route_intent: 'quote',
-                    booking_capability: 'REQUEST'
+                    route_intent: plannerEntry.route_intent || plannerRouteIntent,
+                    booking_capability: plannerEntry.booking_capability || plannerBookingCapability
                 };
 
                 if (plannerEntry.plannerInput) {

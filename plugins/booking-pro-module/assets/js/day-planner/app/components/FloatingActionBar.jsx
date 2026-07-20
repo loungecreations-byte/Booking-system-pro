@@ -109,23 +109,24 @@ export default function FloatingActionBar() {
   const hasItems = planItems.length > 0;
   const itemCount = planItems.length;
 
-  // Calculate totals
   const totalPrice = useMemo(() => {
-    if (summary?.grandTotal) return summary.grandTotal;
-    if (summary?.subtotal) return summary.subtotal;
-    return planItems.reduce((sum, item) => sum + (item.totalCost || item.price || 0), 0);
-  }, [summary?.grandTotal, summary?.subtotal, planItems]);
+    if (Number.isFinite(summary?.grandTotal)) return summary.grandTotal;
+    if (Number.isFinite(summary?.subtotal)) return summary.subtotal;
+    return null;
+  }, [summary?.grandTotal, summary?.subtotal]);
   
   const participants = firstPositiveParticipant(
     selectors?.canonicalParticipants,
     form?.participants,
     config?.participants
   );
-  const perPerson = participants > 0 && totalPrice > 0 ? totalPrice / participants : 0;
+  const perPerson = Number.isFinite(summary?.participantShare) ? summary.participantShare : null;
+  const totalLabel = Number.isFinite(totalPrice) ? formatPrice(totalPrice, currency) : "Prijs wordt berekend";
+  const perPersonLabel = Number.isFinite(perPerson) ? `${formatPrice(perPerson, currency)}/pp` : "Prijs volgt";
   const availabilityMessage = availabilityIssue?.message || "";
   const plannerCtaModel = buildPlannerCtaModel({
     plannerActionState,
-    formattedTotal: formatPrice(totalPrice, currency),
+    formattedTotal: Number.isFinite(totalPrice) ? formatPrice(totalPrice, currency) : "",
     queuePending: bookingPending,
     planPending: quotePending,
   });
@@ -222,7 +223,7 @@ export default function FloatingActionBar() {
             <span className="sbdp-fab__pill-group">
               {Icons.cart}
               <span className="sbdp-fab__badge">{itemCount}</span>
-              <span>{formatPrice(totalPrice, currency)}</span>
+              <span>{totalLabel}</span>
               {pendingCount > 0 && (
                 <span className="sbdp-fab__badge sbdp-fab__badge--warning">{pendingCount}</span>
               )}
@@ -265,7 +266,7 @@ export default function FloatingActionBar() {
             <div className="sbdp-fab__header-copy">
               <div className="sbdp-fab__title">{itemCount} activiteit{itemCount !== 1 ? "en" : ""}</div>
               <div className="sbdp-fab__subtitle">
-                {participants} pers · {formatPrice(perPerson, currency)}/pp
+                {participants || "—"} pers · {perPersonLabel}
               </div>
             </div>
             <button
@@ -342,8 +343,8 @@ export default function FloatingActionBar() {
             <div className="sbdp-fab__total-row">
               <span className="sbdp-fab__total-label">Totaal</span>
               <div>
-                <span className="sbdp-fab__total-value">{formatPrice(totalPrice, currency)}</span>
-                <span className="sbdp-fab__per-person">({formatPrice(perPerson, currency)}/pp)</span>
+                <span className="sbdp-fab__total-value">{totalLabel}</span>
+                <span className="sbdp-fab__per-person">({perPersonLabel})</span>
               </div>
             </div>
             <button

@@ -84,6 +84,10 @@ HTML;
 
     public function testHomepagePage296StoredContentUsesCanonicalShortcode(): void
     {
+        if (getenv('DDB_RUN_WPCLI_CONTENT_CHECK') !== '1') {
+            $this->markTestSkipped('Set DDB_RUN_WPCLI_CONTENT_CHECK=1 to run the local WP-CLI page 296 publication hygiene check.');
+        }
+
         $pluginRoot = dirname(__DIR__, 2);
         $wpRoot = dirname($pluginRoot, 3);
         $wpCli = $wpRoot . DIRECTORY_SEPARATOR . 'wp-cli.phar';

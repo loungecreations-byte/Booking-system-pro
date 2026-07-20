@@ -27,95 +27,38 @@ export function roundCurrency(value) {
 
 function normalizeParticipantCount(participants) {
   const numeric = Number(participants);
-  return Number.isFinite(numeric) && numeric > 0 ? numeric : 1;
+  return Number.isFinite(numeric) && numeric > 0 ? numeric : null;
 }
 
 export function deriveSlotPricing(pricing, participants, options = {}) {
   const price = pricing || {};
-  const count = normalizeParticipantCount(participants);
-
-  const supportsPersons =
-    typeof price.supports_persons === "boolean"
-      ? price.supports_persons
-      : options.supportsPersons ?? true;
-
-  let base = toFloat(options.base ?? price.base);
-  let perPerson = toFloat(
-    options.pricePerPerson ??
+  normalizeParticipantCount(participants); // Validation only; never used to calculate a price.
+  const dynamic = options.dynamic ?? price.dynamic ?? null;
+  const perPerson = toFloat(
+    options.displayUnitPrice ??
+      price.display_unit_price ??
+      price.unit_price ??
+      options.pricePerPerson ??
       options.price_pp ??
       price.price_pp ??
-      options.perPerson ??
-      price.per_person
+      price.per_person ??
+      dynamic?.unit_total ??
+      dynamic?.unit?.total
   );
-  let fixed = toFloat(options.fixedFee ?? price.fixed_fee);
-  const dynamic = options.dynamic ?? price.dynamic ?? null;
-  const totalOverride = toFloat(options.totalCost);
-  const fallbackPerPerson = toFloat(dynamic ? dynamic.unit_total ?? dynamic.unit?.total : undefined);
-  // Fallback total: do NOT pull in raw price.total to avoid overriding per-person pricing.
-  const fallbackTotal = toFloat(
-    options.total ?? options.fallbackTotal ?? (dynamic ? dynamic.total : undefined) ?? 0
+  const fixedCost = toFloat(
+    options.fixedCost ?? price.adjustments_total ?? price.fixed_cost ?? price.fixed_fee
   );
-
-  // If we have a price_pp anywhere, treat this as authoritative per-person pricing
-  // and ignore base/fixed to avoid double counting legacy fields.
-  const hasPricePP =
-    Number.isFinite(perPerson) && perPerson > 0 && (options.pricePerPerson || options.price_pp || price.price_pp);
-  if (supportsPersons && hasPricePP) {
-    base = 0;
-    fixed = 0;
-  }
-
-  // If perPerson is still missing, use dynamic unit; otherwise leave as is.
-  if (perPerson <= 0 && fallbackPerPerson > 0) {
-    perPerson = fallbackPerPerson;
-  }
-
-  const dynamicBreakdown = computeDynamicBreakdown(dynamic, count, totalOverride);
-  // Only use dynamic pricing when we have no authoritative per-person pricing.
-  const hasPerPerson = supportsPersons && (perPerson > 0 || fallbackPerPerson > 0);
-  if (dynamicBreakdown && !hasPerPerson) {
-    const fixedCost = Math.max(
-      dynamicBreakdown.total - dynamicBreakdown.perPerson * count,
-      0
-    );
-
-    return finaliseSlotPricing({
-      perPerson: dynamicBreakdown.perPerson,
-      fixedCost,
-      total: dynamicBreakdown.total,
-    });
-  }
-
-  let appliedPerPerson = perPerson > 0 ? perPerson : 0;
-  let total = base + fixed;
-
-  if (supportsPersons) {
-    if (appliedPerPerson > 0) {
-      total += appliedPerPerson * count;
-    }
-  } else {
-    // Not per-person pricing; treat perPerson as a flat addition if present.
-    if (appliedPerPerson > 0) {
-      total += appliedPerPerson;
-    }
-  }
-
-  total = roundCurrency(total);
-
-  if (total <= 0 && fallbackTotal > 0) {
-    total = roundCurrency(fallbackTotal);
-    if (supportsPersons && appliedPerPerson <= 0 && count > 0) {
-      appliedPerPerson = roundCurrency(total / count);
-    }
-  }
-
-  const fixedRemainder = supportsPersons
-    ? total - (appliedPerPerson > 0 ? appliedPerPerson * count : 0)
-    : total - (appliedPerPerson > 0 ? appliedPerPerson : 0);
-  const fixedCost = roundCurrency(fixedRemainder > 0 ? fixedRemainder : base + fixed);
+  const total = toFloat(
+    options.totalCost ??
+      options.displayTotal ??
+      price.display_total ??
+      options.total ??
+      price.total ??
+      dynamic?.total
+  );
 
   return finaliseSlotPricing({
-    perPerson: appliedPerPerson,
+    perPerson,
     fixedCost,
     total,
   });
@@ -153,9 +96,6 @@ export function summarizePlan(items, currency, participantCount = null) {
       })
     : [];
 
-  const itemsSubtotal = lineItems.reduce((total, line) => total + (line.line_subtotal || 0), 0);
-  const roundedSubtotal = roundCurrency(itemsSubtotal);
-
   return {
     currency: currency || "EUR",
     participants: participantCount,
@@ -163,21 +103,21 @@ export function summarizePlan(items, currency, participantCount = null) {
     adjustments: [],
     discounts: [],
     taxes: [],
-    itemsSubtotal: roundedSubtotal,
+    itemsSubtotal: null,
     adjustmentsTotal: 0,
     discountTotal: 0,
     taxTotal: 0,
-    grandTotal: roundedSubtotal,
-    subtotal: roundedSubtotal,
+    grandTotal: null,
+    subtotal: null,
     breakdown: {
       currency: currency || "EUR",
       items_count: lineItems.length,
-      items_subtotal: roundedSubtotal,
+      items_subtotal: null,
       participants: participantCount,
       adjustments_total: 0,
       discount_total: 0,
       tax_total: 0,
-      grand_total: roundedSubtotal,
+      grand_total: null,
     },
   };
 }
@@ -196,52 +136,6 @@ export function formatCurrency(amount, currency) {
     }
     return symbol + safe.toFixed(2);
   }
-}
-
-function computeDynamicBreakdown(dynamic, count, totalOverride) {
-  if (totalOverride > 0) {
-    const total = roundCurrency(totalOverride);
-    return {
-      perPerson: roundCurrency(total / count),
-      total,
-    };
-  }
-
-  if (!dynamic) {
-    return null;
-  }
-
-  const unitTotal = toFloat(dynamic?.unit_total ?? dynamic?.unit?.total);
-  if (unitTotal > 0) {
-    const perPerson = roundCurrency(unitTotal);
-    return {
-      perPerson,
-      total: roundCurrency(perPerson * count),
-    };
-  }
-
-  const dynamicTotal = toFloat(dynamic?.total);
-  if (dynamicTotal <= 0) {
-    return null;
-  }
-
-  const dynamicParticipants = Number.isFinite(dynamic?.participants)
-    ? Number(dynamic.participants)
-    : null;
-
-  let scaledTotal = dynamicTotal;
-  if (dynamicParticipants && dynamicParticipants > 0) {
-    const multiplier = count / dynamicParticipants;
-    if (Number.isFinite(multiplier) && multiplier > 0) {
-      scaledTotal = dynamicTotal * multiplier;
-    }
-  }
-
-  const total = roundCurrency(scaledTotal);
-  return {
-    perPerson: roundCurrency(total / count),
-    total,
-  };
 }
 
 function finaliseSlotPricing({ perPerson, fixedCost, total }) {

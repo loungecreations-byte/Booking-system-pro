@@ -10,6 +10,7 @@ class DDB_Spots_Admin_Bulk_Csv_Sync_Page {
 	private const IMPORT_NONCE_ACTION = 'ddb_spots_bulk_csv_import_nonce';
 	private const POST_TYPE = 'ddb_spot';
 	private const MAX_ROWS = 5000;
+	private const MAX_FILE_BYTES = 5242880;
 	private const MAX_REPORT_ROWS = 250;
 	private const EXPORT_DELIMITER = ';';
 	private const STATUS_VALUES = array('inactive', 'trial', 'active', 'past_due', 'canceled');
@@ -148,6 +149,20 @@ class DDB_Spots_Admin_Bulk_Csv_Sync_Page {
 				'message' => sprintf(__('Upload foutcode: %d', 'ddb-spots'), $error),
 			);
 		}
+		$filename = isset($file['name']) ? sanitize_file_name((string) wp_unslash($file['name'])) : '';
+		$filesize = isset($file['size']) ? (int) $file['size'] : 0;
+		if ('' === $filename || 'csv' !== strtolower((string) pathinfo($filename, PATHINFO_EXTENSION))) {
+			return array(
+				'ok' => false,
+				'message' => __('Alleen een .csv-bestand is toegestaan.', 'ddb-spots'),
+			);
+		}
+		if ($filesize <= 0 || $filesize > self::MAX_FILE_BYTES) {
+			return array(
+				'ok' => false,
+				'message' => __('CSV is leeg of groter dan de limiet van 5 MB.', 'ddb-spots'),
+			);
+		}
 
 		$tmp = isset($file['tmp_name']) ? (string) $file['tmp_name'] : '';
 		if ('' === $tmp || ! is_uploaded_file($tmp)) {
@@ -198,6 +213,7 @@ class DDB_Spots_Admin_Bulk_Csv_Sync_Page {
 		$errors = 0;
 		$report_rows = array();
 		$limit_hit = false;
+		$seen_spot_ids = array();
 
 		while (($csv_row = fgetcsv($fh, 0, $delimiter)) !== false) {
 			$rows++;
@@ -216,6 +232,12 @@ class DDB_Spots_Admin_Bulk_Csv_Sync_Page {
 				$this->push_report_row($report_rows, array('row' => $rows + 1, 'spot_id' => 0, 'status' => 'error', 'message' => __('spot_id ontbreekt of ongeldig.', 'ddb-spots')));
 				continue;
 			}
+			if (isset($seen_spot_ids[ $spot_id ])) {
+				$errors++;
+				$this->push_report_row($report_rows, array('row' => $rows + 1, 'spot_id' => $spot_id, 'status' => 'error', 'message' => __('Dubbele spot_id in CSV; conflicterende updates zijn niet toegestaan.', 'ddb-spots')));
+				continue;
+			}
+			$seen_spot_ids[ $spot_id ] = true;
 
 			$post = get_post($spot_id);
 			if (! $post instanceof WP_Post || self::POST_TYPE !== $post->post_type) {
@@ -264,6 +286,7 @@ class DDB_Spots_Admin_Bulk_Csv_Sync_Page {
 			$ok = $this->apply_changes($spot_id, $changes);
 			if ($ok) {
 				$updated++;
+				$this->audit_import_update($spot_id, $rows + 1, $changes);
 				$this->push_report_row($report_rows, array('row' => $rows + 1, 'spot_id' => $spot_id, 'status' => 'updated', 'message' => __('Spot bijgewerkt.', 'ddb-spots')));
 			} else {
 				$errors++;
@@ -282,6 +305,26 @@ class DDB_Spots_Admin_Bulk_Csv_Sync_Page {
 			'errors' => $errors,
 			'limit_hit' => $limit_hit,
 			'report_rows' => $report_rows,
+		);
+	}
+
+	/**
+	 * @param array<string,array<string,string>> $changes
+	 */
+	private function audit_import_update(int $spot_id, int $row_number, array $changes): void {
+		if (! class_exists('DDB_Spots_Domain_Audit_Repository')) {
+			return;
+		}
+		(new DDB_Spots_Domain_Audit_Repository())->log(
+			'spot',
+			$spot_id,
+			'bulk_csv_update',
+			get_current_user_id(),
+			array(
+				'row' => $row_number,
+				'post_fields' => array_keys((array) ($changes['post'] ?? array())),
+				'meta_fields' => array_keys((array) ($changes['meta'] ?? array())),
+			)
 		);
 	}
 

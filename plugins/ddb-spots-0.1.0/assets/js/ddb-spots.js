@@ -466,23 +466,22 @@
 
   function setListingMapFocus(shell, item) {
     if (!shell || !item) return;
-    var frame = shell.querySelector('[data-ddb-map-frame]');
     var title = shell.querySelector('[data-ddb-map-title]');
     var address = shell.querySelector('[data-ddb-map-address]');
     var link = shell.querySelector('[data-ddb-map-link]');
-    var embedUrl = item.getAttribute('data-embed-url') || '';
     var mapUrl = item.getAttribute('data-map-url') || '';
     var itemTitle = item.getAttribute('data-title') || '';
     var itemAddress = item.getAttribute('data-address') || '';
+    var spotId = item.getAttribute('data-spot-id') || '';
 
     shell.querySelectorAll('[data-ddb-map-item]').forEach(function (node) {
       node.classList.remove('is-active');
     });
     item.classList.add('is-active');
 
-    if (frame && embedUrl) {
-      frame.setAttribute('src', embedUrl);
-    }
+    shell.querySelectorAll('[data-ddb-map-marker]').forEach(function (node) {
+      node.classList.toggle('is-active', node.getAttribute('data-spot-id') === spotId);
+    });
     if (title) {
       title.textContent = itemTitle;
     }
@@ -492,6 +491,159 @@
     if (link && mapUrl) {
       link.setAttribute('href', mapUrl);
     }
+    if (shell._ddbLeafletMap && shell._ddbLeafletMap.markers && shell._ddbLeafletMap.markers[spotId]) {
+      var marker = shell._ddbLeafletMap.markers[spotId];
+      shell._ddbLeafletMap.map.panTo(marker.getLatLng(), { animate: true });
+      marker.openPopup();
+    }
+  }
+
+  function getListingMapPoints(shell) {
+    var points = [];
+    shell.querySelectorAll('[data-ddb-map-item]').forEach(function (item) {
+      var lat = parseFloat(item.getAttribute('data-lat') || '');
+      var lng = parseFloat(item.getAttribute('data-lng') || '');
+      if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+      points.push({
+        id: item.getAttribute('data-spot-id') || '',
+        title: item.getAttribute('data-title') || '',
+        address: item.getAttribute('data-address') || '',
+        lat: lat,
+        lng: lng,
+        item: item
+      });
+    });
+    return points;
+  }
+
+  function renderListingMapCanvas(shell) {
+    var canvas = shell.querySelector('[data-ddb-map-canvas]');
+    if (!canvas) return;
+    var points = getListingMapPoints(shell);
+    if (!points.length) return;
+
+    if (window.L && typeof window.L.map === 'function') {
+      renderListingLeafletMap(shell, canvas, points);
+      return;
+    }
+
+    var minLat = points[0].lat;
+    var maxLat = points[0].lat;
+    var minLng = points[0].lng;
+    var maxLng = points[0].lng;
+
+    points.forEach(function (point) {
+      minLat = Math.min(minLat, point.lat);
+      maxLat = Math.max(maxLat, point.lat);
+      minLng = Math.min(minLng, point.lng);
+      maxLng = Math.max(maxLng, point.lng);
+    });
+
+    var latSpan = Math.max(maxLat - minLat, 0.004);
+    var lngSpan = Math.max(maxLng - minLng, 0.004);
+    var padding = 8;
+
+    canvas.innerHTML = '';
+    canvas.setAttribute('data-point-count', String(points.length));
+
+    var grid = document.createElement('div');
+    grid.className = 'ddb-listing-map__grid';
+    grid.setAttribute('aria-hidden', 'true');
+    canvas.appendChild(grid);
+
+    points.forEach(function (point, index) {
+      var marker = document.createElement('button');
+      var x = padding + ((point.lng - minLng) / lngSpan) * (100 - padding * 2);
+      var y = padding + ((maxLat - point.lat) / latSpan) * (100 - padding * 2);
+      marker.type = 'button';
+      marker.className = 'ddb-listing-map__marker' + (index === 0 ? ' is-active' : '');
+      marker.style.left = x + '%';
+      marker.style.top = y + '%';
+      marker.setAttribute('data-ddb-map-marker', '');
+      marker.setAttribute('data-spot-id', point.id);
+      marker.setAttribute('aria-label', point.title);
+      marker.innerHTML = '<span>' + String(index + 1) + '</span>';
+      marker.addEventListener('click', function () {
+        setListingMapFocus(shell, point.item);
+        point.item.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      });
+      marker.addEventListener('mouseenter', function () {
+        setListingMapFocus(shell, point.item);
+      });
+      canvas.appendChild(marker);
+    });
+  }
+
+  function renderListingLeafletMap(shell, canvas, points) {
+    if (shell._ddbLeafletMap) return;
+
+    canvas.innerHTML = '';
+    canvas.classList.add('ddb-listing-map__canvas--leaflet');
+    canvas.setAttribute('data-point-count', String(points.length));
+
+    var map = window.L.map(canvas, {
+      scrollWheelZoom: false,
+      zoomControl: true
+    });
+    window.L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    var bounds = window.L.latLngBounds([]);
+    var markers = {};
+
+    points.forEach(function (point) {
+      var latLng = window.L.latLng(point.lat, point.lng);
+      var marker = window.L.marker(latLng, {
+        title: point.title
+      }).addTo(map);
+
+      marker.bindPopup('<strong>' + escapeHtml(point.title) + '</strong>' + (point.address ? '<br><span>' + escapeHtml(point.address) + '</span>' : ''));
+      marker.on('click', function () {
+        setListingMapFocus(shell, point.item);
+      });
+
+      bounds.extend(latLng);
+      markers[point.id] = marker;
+    });
+
+    shell._ddbLeafletMap = {
+      map: map,
+      markers: markers,
+      bounds: bounds
+    };
+
+    if (points.length === 1) {
+      map.setView([points[0].lat, points[0].lng], 16);
+    } else {
+      map.fitBounds(bounds.pad(0.18), {
+        padding: [24, 24],
+        maxZoom: 16
+      });
+    }
+
+    setTimeout(function () {
+      map.invalidateSize();
+      if (points.length > 1) {
+        map.fitBounds(bounds.pad(0.18), {
+          padding: [24, 24],
+          maxZoom: 16
+        });
+      }
+    }, 120);
+  }
+
+  function escapeHtml(value) {
+    return String(value || '').replace(/[&<>"']/g, function (char) {
+      return {
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#039;'
+      }[char];
+    });
   }
 
   function initListingMap() {
@@ -501,11 +653,39 @@
     shells.forEach(function (shell) {
       var toggle = shell.querySelector('[data-ddb-map-toggle]');
       if (toggle) {
-        toggle.addEventListener('click', function () {
-          shell.classList.toggle('is-map-open');
+        var isMapFirst = shell.classList.contains('ddb-spots-listing--map-first');
+        var updateMapToggleLabel = function () {
+          if (isMapFirst) {
+            toggle.textContent = shell.classList.contains('is-map-collapsed') ? 'Kaart tonen' : 'Kaart verbergen';
+            toggle.setAttribute('aria-expanded', shell.classList.contains('is-map-collapsed') ? 'false' : 'true');
+            return;
+          }
           toggle.textContent = shell.classList.contains('is-map-open') ? 'Resultaten tonen' : 'Kaart tonen';
+          toggle.setAttribute('aria-expanded', shell.classList.contains('is-map-open') ? 'true' : 'false');
+        };
+        updateMapToggleLabel();
+        toggle.addEventListener('click', function () {
+          if (isMapFirst) {
+            shell.classList.toggle('is-map-collapsed');
+          } else {
+            shell.classList.toggle('is-map-open');
+          }
+          updateMapToggleLabel();
+          if (shell._ddbLeafletMap && !shell.classList.contains('is-map-collapsed')) {
+            setTimeout(function () {
+              shell._ddbLeafletMap.map.invalidateSize();
+              if (shell._ddbLeafletMap.bounds && shell._ddbLeafletMap.bounds.isValid()) {
+                shell._ddbLeafletMap.map.fitBounds(shell._ddbLeafletMap.bounds.pad(0.18), {
+                  padding: [24, 24],
+                  maxZoom: 16
+                });
+              }
+            }, 80);
+          }
         });
       }
+
+      renderListingMapCanvas(shell);
 
       var mapItems = shell.querySelectorAll('[data-ddb-map-item]');
       mapItems.forEach(function (item) {

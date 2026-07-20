@@ -228,6 +228,8 @@ use SBDP\ProductPageRefresh\Module;
 
 require_once dirname(__DIR__, 2) . '/modules/day-planner/Service/PlanService.php';
 require_once dirname(__DIR__, 2) . '/modules/day-planner/Service/ActivityService.php';
+require_once dirname(__DIR__, 2) . '/modules/day-planner/Service/AiSuggestionService.php';
+require_once dirname(__DIR__, 2) . '/modules/day-planner/Service/PriceEngine.php';
 require_once dirname(__DIR__, 2) . '/modules/core/Services/BookingModeService.php';
 require_once dirname(__DIR__, 2) . '/modules/core/Services/BookingTruthRuntimeService.php';
 require_once dirname(__DIR__, 2) . '/modules/core/Services/AvailabilityProjectionService.php';
@@ -236,6 +238,64 @@ require_once dirname(__DIR__, 2) . '/modules/planner/Rest/PlannerRoutes.php';
 
 final class BookingTruthRuntimeTest extends TestCase
 {
+    public function testSmartSuggestionsRequireCanonicalParticipants(): void
+    {
+        $service = (new ReflectionClass(\BSP\DayPlanner\Service\AiSuggestionService::class))
+            ->newInstanceWithoutConstructor();
+        $method = new ReflectionMethod($service, 'extractPeople');
+        $method->setAccessible(true);
+
+        $this->expectException(\InvalidArgumentException::class);
+        $method->invoke($service, array('people' => 2, 'count' => 2));
+    }
+
+    public function testSmartSuggestionsUseExactCanonicalParticipants(): void
+    {
+        $service = (new ReflectionClass(\BSP\DayPlanner\Service\AiSuggestionService::class))
+            ->newInstanceWithoutConstructor();
+        $method = new ReflectionMethod($service, 'extractPeople');
+        $method->setAccessible(true);
+
+        $this->assertSame(17, $method->invoke($service, array('participants' => '17', 'people' => 2)));
+    }
+
+    public function testPlannerPricingRequiresCanonicalParticipants(): void
+    {
+        $service = new \BSP\DayPlanner\Service\PriceEngine();
+        $method = new ReflectionMethod($service, 'resolveCanonicalParticipants');
+        $method->setAccessible(true);
+
+        $this->expectException(\RuntimeException::class);
+        $method->invoke($service, array());
+    }
+
+    public function testPlannerPricingUsesPlanParticipantsInsteadOfItemFallbacks(): void
+    {
+        $service = new \BSP\DayPlanner\Service\PriceEngine();
+        $method = new ReflectionMethod($service, 'resolveCanonicalParticipants');
+        $method->setAccessible(true);
+
+        $this->assertSame(12, $method->invoke($service, array('participants_count' => 12)));
+    }
+
+    public function testPlannerPricingUsesPersistedCanonicalFormParticipants(): void
+    {
+        $service = new \BSP\DayPlanner\Service\PriceEngine();
+        $method = new ReflectionMethod($service, 'resolveCanonicalParticipants');
+        $method->setAccessible(true);
+
+        $plan = array(
+            'meta' => array(
+                'form' => array('participants' => 17),
+                'participant_count' => 3,
+            ),
+            'participants_count' => 9,
+            'participants' => array(array('name' => 'Legacy participant')),
+        );
+
+        $this->assertSame(17, $method->invoke($service, $plan));
+    }
+
     protected function setUp(): void
     {
         parent::setUp();

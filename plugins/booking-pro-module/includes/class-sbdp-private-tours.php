@@ -50,6 +50,7 @@ class SBDP_Private_Tours
         add_action('init', array(__CLASS__, 'register_post_types'));
         add_action('init', array(__CLASS__, 'register_post_meta'));
         add_action('init', array(SBDP_Private_Tours_Tickets::class, 'maybe_upgrade_schema'), 20);
+        add_action('init', array(SBDP_Private_Tours_Seeder::class, 'sync_jeroen_bosch_booking_defaults'), 30);
         add_action('wp_enqueue_scripts', array(__CLASS__, 'register_assets'));
         add_filter('body_class', array(__CLASS__, 'add_tour_mode_body_class'));
 
@@ -512,6 +513,7 @@ class SBDP_Private_Tours
                 'routeEndpoint'        => esc_url_raw(rest_url('sbdp/v1/private-tours/navigation/route')),
                 'embedDiagnosticsEndpoint' => esc_url_raw(rest_url('sbdp/v1/private-tours/navigation/embed-diagnostics')),
                 'nonce'                => wp_create_nonce('wp_rest'),
+                'gamificationEndpoint' => esc_url_raw(rest_url('bsp/v1/tours')),
                 'defaultMapTiles'      => 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
                 'defaultMapAttribution' => '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
                 'googleMapsEmbedApiKey' => $google_maps_embed_api_key,

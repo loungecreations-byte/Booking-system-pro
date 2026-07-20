@@ -36,6 +36,7 @@ final class Module implements ModuleInterface
 namespace BSPModule\Data;
 
 use BSPModule\Data\Agent\DataModuleAgent;
+use BSPModule\Data\Admin\Menu;
 use BSPModule\Shared\Modules\ModuleInterface;
 
 use function class_exists;
@@ -56,6 +57,7 @@ final class LegacyModule implements ModuleInterface
         }
 
         do_action('bsp/module/register', $this->moduleName(), $this);
+        Menu::init();
 
         if (class_exists('BSP_Core_Agent')) {
             \BSP_Core_Agent::instance()->register_agent(new DataModuleAgent());

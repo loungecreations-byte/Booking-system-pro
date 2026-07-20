@@ -51,10 +51,6 @@ final class QuoteBookingBridgeService
             throw new InvalidArgumentException('Booking bridge vereist een confirmed quote.');
         }
 
-        if ((string) ($quote['handoff_status'] ?? '') !== 'woo_cart_hydrated') {
-            throw new InvalidArgumentException('Booking bridge vereist eerst een gecontroleerde Woo cart hydration.');
-        }
-
         $versionId = (int) ($quote['approved_version_id'] ?? 0);
         if ($versionId <= 0) {
             throw new InvalidArgumentException('Booking bridge vereist approved_version_id.');
@@ -70,7 +66,7 @@ final class QuoteBookingBridgeService
             throw new InvalidArgumentException('Booking bridge vereist een gekoppelde Woo order.');
         }
         $this->assertWooOrderMatchesQuote($orderId, $quoteId, $versionId);
-        $this->assertRequiredEvents($quoteId);
+        $this->assertRequiredHandoffProof($quote, $quoteId, $orderId, $versionId);
 
         $handoffPayload = is_array($version['handoff_payload_json'] ?? null)
             ? $version['handoff_payload_json']
@@ -84,7 +80,8 @@ final class QuoteBookingBridgeService
 
         $this->assertNoUnconfirmedSupplierLines($versionId, $executionPayload);
 
-        $bookingPayload = $this->buildBookingPayload($quote, $versionId, $orderId, $executionPayload);
+        $bookingReference = $this->bookingReference((int) ($quote['id'] ?? 0), $versionId, $orderId);
+        $bookingPayload = $this->buildBookingPayload($quote, $versionId, $orderId, $executionPayload, $bookingReference);
         $truthContext = $this->bookingTruthRuntime->resolveBookingWriteContext(
             $bookingPayload,
             array(
@@ -102,7 +99,7 @@ final class QuoteBookingBridgeService
         $projectionBooking['status'] = 'paid';
         (new OperationsSyncService())->sync($projectionBooking);
 
-        $masterId = $this->findBookingMasterId((int) ($booking['id'] ?? 0));
+        $masterId = $this->findBookingMasterId($bookingReference, (int) ($booking['id'] ?? 0));
         if ($masterId <= 0) {
             throw new InvalidArgumentException('Booking bridge kon geen operations booking master vinden.');
         }
@@ -160,18 +157,73 @@ final class QuoteBookingBridgeService
         }
     }
 
-    private function assertRequiredEvents(int $quoteId): void
+    /**
+     * quote_woo_cart_hydrated means a direct checkout launch token populated a
+     * customer Woo cart session. B2B request-order/payment flows do not use a
+     * customer cart session; for those, the safe proof is the request-order
+     * event plus matching quote/order/version/payment/confirmation guards.
+     *
+     * @param array<string, mixed> $quote
+     */
+    private function assertRequiredHandoffProof(array $quote, int $quoteId, int $orderId, int $versionId): void
     {
         $eventTypes = array_map(
             static fn (array $event): string => (string) ($event['event_type'] ?? ''),
             $this->repository->listQuoteEvents($quoteId)
         );
 
-        foreach (array('quote_confirmed', 'quote_woo_payment_completed', 'quote_woo_cart_hydrated') as $required) {
+        foreach (array('quote_confirmed', 'quote_woo_payment_completed') as $required) {
             if (! in_array($required, $eventTypes, true)) {
                 throw new InvalidArgumentException(sprintf('Booking bridge vereist event %s.', $required));
             }
         }
+
+        if ($this->hasDirectCartHandoff($quote, $eventTypes)) {
+            return;
+        }
+
+        if ($this->hasRequestOrderHandoff($quote, $eventTypes, $orderId, $versionId)) {
+            $this->events->log(
+                'quote_order_handoff_verified',
+                isset($quote['quote_request_id']) ? (int) $quote['quote_request_id'] : null,
+                $quoteId,
+                $versionId,
+                null,
+                'B2B request-order handoff geverifieerd voor operations booking.',
+                array(
+                    'order_id' => $orderId,
+                    'quote_version_id' => $versionId,
+                    'handoff_type' => 'request_order',
+                )
+            );
+            return;
+        }
+
+        throw new InvalidArgumentException('Booking bridge vereist een gecontroleerde Woo cart hydration of geverifieerde request-order handoff.');
+    }
+
+    /**
+     * @param array<string, mixed> $quote
+     * @param array<int, string> $eventTypes
+     */
+    private function hasDirectCartHandoff(array $quote, array $eventTypes): bool
+    {
+        return (string) ($quote['handoff_status'] ?? '') === 'woo_cart_hydrated'
+            || in_array('quote_woo_cart_hydrated', $eventTypes, true);
+    }
+
+    /**
+     * @param array<string, mixed> $quote
+     * @param array<int, string> $eventTypes
+     */
+    private function hasRequestOrderHandoff(array $quote, array $eventTypes, int $orderId, int $versionId): bool
+    {
+        return (int) ($quote['woo_order_id'] ?? 0) === $orderId
+            && $orderId > 0
+            && $versionId > 0
+            && in_array('quote_woo_request_order_created', $eventTypes, true)
+            && in_array(QuotePaymentSyncService::COMPLETED_EVENT, $eventTypes, true)
+            && in_array('quote_confirmed', $eventTypes, true);
     }
 
     /**
@@ -215,7 +267,7 @@ final class QuoteBookingBridgeService
      * @param array<string, mixed> $executionPayload
      * @return array<string, mixed>
      */
-    private function buildBookingPayload(array $quote, int $versionId, int $orderId, array $executionPayload): array
+    private function buildBookingPayload(array $quote, int $versionId, int $orderId, array $executionPayload, string $bookingReference): array
     {
         $items = array();
         $firstDate = '';
@@ -298,6 +350,7 @@ final class QuoteBookingBridgeService
             'pricing_rules' => array(),
             'vendor_id' => null,
             'status' => 'paid',
+            'booking_reference' => $bookingReference,
         );
     }
 
@@ -330,10 +383,15 @@ final class QuoteBookingBridgeService
         return $title !== '' ? $title : sprintf('Quote item %d', $index + 1);
     }
 
-    private function findBookingMasterId(int $bookingId): int
+    private function bookingReference(int $quoteId, int $versionId, int $orderId): string
+    {
+        return sprintf('quote:%d:version:%d:order:%d', $quoteId, $versionId, $orderId);
+    }
+
+    private function findBookingMasterId(string $bookingReference, int $bookingId): int
     {
         global $wpdb;
-        if (! $wpdb instanceof wpdb || $bookingId <= 0) {
+        if (! $wpdb instanceof wpdb) {
             return 0;
         }
 
@@ -346,7 +404,7 @@ final class QuoteBookingBridgeService
         return (int) $wpdb->get_var(
             $wpdb->prepare(
                 "SELECT id FROM {$table} WHERE booking_reference = %s LIMIT 1",
-                sprintf('booking:%d', $bookingId)
+                $bookingReference !== '' ? $bookingReference : sprintf('booking:%d', $bookingId)
             )
         );
     }

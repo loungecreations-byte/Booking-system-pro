@@ -91,16 +91,19 @@ export function getPricePerPerson(product) {
  */
 function normalizeParticipantCount(participants) {
   const numeric = Number(participants);
-  return Number.isFinite(numeric) && numeric > 0 ? numeric : 1;
+  return Number.isFinite(numeric) && numeric > 0 ? numeric : null;
 }
 
-export function getBasePrice(product, participants = 1, options = {}) {
+export function getBasePrice(product, participants = null, options = {}) {
   if (!product || typeof product !== "object") {
     return null;
   }
 
   const pricing = product?.pricing || product || {};
   const count = normalizeParticipantCount(participants);
+  if (count === null) {
+    return null;
+  }
 
   const breakdown = deriveSlotPricing(pricing, count, {
     ...options,
@@ -123,7 +126,7 @@ export function getBasePrice(product, participants = 1, options = {}) {
  * Returns the price per person resolved via the slot pricing breakdown for the
  * given participant count. Falls back to a direct per-person value.
  */
-export function getSlotPricePerPerson(product, participants = 1, options = {}) {
+export function getSlotPricePerPerson(product, participants = null, options = {}) {
   if (!product || typeof product !== "object") {
     return null;
   }
@@ -162,6 +165,9 @@ export function calculateTotalCost(pricing, participants, options = {}) {
  */
 export function computeSlotPricing(pricing, participants, options = {}) {
   const count = normalizeParticipantCount(participants);
+  if (count === null) {
+    return { perPerson: 0, fixedCost: 0, total: 0 };
+  }
   const resolvedPerPerson =
     options.pricePerPerson ??
     options.price_pp ??
@@ -169,13 +175,7 @@ export function computeSlotPricing(pricing, participants, options = {}) {
     pricing?.per_person ??
     (options.sourceProduct ? getPricePerPerson(options.sourceProduct) : null);
 
-  let resolvedFallbackTotal = options.total ?? options.fallbackTotal ?? null;
-  if (!Number.isFinite(resolvedFallbackTotal) && Number.isFinite(pricing?.total)) {
-    const cachedParticipants = Number(pricing?.participants ?? pricing?.people ?? pricing?.count ?? 0);
-    if (cachedParticipants > 0) {
-      resolvedFallbackTotal = (pricing.total / cachedParticipants) * count;
-    }
-  }
+  const resolvedFallbackTotal = options.total ?? options.fallbackTotal ?? pricing?.display_total ?? pricing?.total ?? null;
 
   return deriveSlotPricing(pricing || {}, count, {
     ...options,

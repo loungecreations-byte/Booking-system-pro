@@ -145,9 +145,8 @@ function syncBuiltArtifacts() {
 const buildResult = runViteBuild();
 
 if (buildResult.status !== 0) {
-  console.warn("Vite build failed in this environment; syncing existing build artifacts instead.");
-  syncBuiltArtifacts();
-  process.exit(0);
+  console.error("Vite build failed; release artifacts were not synced.");
+  process.exit(buildResult.status || 1);
 }
 
 syncBuiltArtifacts();

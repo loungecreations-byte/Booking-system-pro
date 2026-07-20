@@ -1,5 +1,5 @@
 import { addMinutes, clampMinutes, minutesToTime, timeToMinutes } from "./time";
-import { calculateTotalCost, computeSlotPricing, summarizePlan, toFloat, roundCurrency } from "./price.js";
+import { calculateTotalCost, summarizePlan, toFloat, roundCurrency } from "./price.js";
 import { getDurationMinutes } from "./products.js";
 import {
   buildAutoTimeFields,
@@ -129,13 +129,7 @@ export function createPlannedItem(product, options) {
   const duration = clampMinutes(options.durationOverride ?? getDurationMinutes(product) ?? product?.duration?.minutes ?? 60);
   const endMinutes = addMinutes(startMinutes, duration);
 
-  const pricingBreakdown = computeSlotPricing(product?.pricing || {}, participants, {
-    pricePerPerson: options.priceOverride ?? product?.price_pp,
-    sourceProduct: product,
-  });
-
-  const pricePp = (pricingBreakdown.perPerson || 0);
-  const itemTotalCost = (pricingBreakdown.fixedCost || 0) + (pricePp * participants);
+  const pricePp = options.priceOverride ?? product?.price_pp ?? null;
 
   const plannerInput = {
     schemaVersion: "1.0.0",
@@ -181,9 +175,10 @@ export function createPlannedItem(product, options) {
     endTime: minutesToTime(endMinutes),
     ...buildAutoTimeFields(),
     pricing: product.pricing || {},
-    totalCost: itemTotalCost,
+    totalCost: null,
     price_pp: pricePp,
-    fixedCost: pricingBreakdown.fixedCost,
+    fixedCost: null,
+    pricingPending: true,
     locked: Boolean(locked),
     resourceId:
       resourceId != null ? resourceId : product?.resource_id != null ? product.resource_id : null,
@@ -236,13 +231,10 @@ export function updatePlannedItem(item, updates, product, participants) {
   }
 
   if (product?.pricing) {
-    const updatedPricing = computeSlotPricing(product.pricing, next.participants, {
-      pricePerPerson: item?.price_pp ?? product?.price_pp,
-      sourceProduct: product || item,
-    });
-    next.totalCost = updatedPricing.total;
-    next.price_pp = updatedPricing.perPerson;
-    next.fixedCost = updatedPricing.fixedCost;
+    next.totalCost = null;
+    next.fixedCost = null;
+    next.pricingPending = true;
+    next.price_pp = item?.price_pp ?? product?.price_pp ?? null;
   }
 
   return next;

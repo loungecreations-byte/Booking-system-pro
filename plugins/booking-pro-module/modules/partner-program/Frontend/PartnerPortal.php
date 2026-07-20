@@ -136,7 +136,14 @@ final class PartnerPortal
         \BSP\PartnerProgram\Module::enqueuePortalStyle();
 
         if (! is_user_logged_in()) {
-            return '<p><a href="' . esc_url(wp_login_url()) . '">' . esc_html__('Inloggen om een locatie te claimen.', 'sbdp') . '</a></p>';
+            return '<div class="bsp-claim-shell"><div class="bsp-claim-card bsp-claim-card--centered">' .
+                '<p class="bsp-claim-kicker">' . esc_html__('Partnerportaal', 'sbdp') . '</p>' .
+                '<h1>' . esc_html__('Log in om je locatie te claimen', 'sbdp') . '</h1>' .
+                '<p>' . esc_html__('Na het inloggen kun je je bedrijf selecteren en een verificatielink aanvragen.', 'sbdp') . '</p>' .
+                '<a class="bsp-btn bsp-btn--primary" href="' . esc_url(wp_login_url(home_url('/partner-claim/'))) . '">' .
+                    esc_html__('Inloggen', 'sbdp') .
+                '</a>' .
+            '</div></div>';
         }
 
         $msg = sanitize_text_field($_GET['bsp_claim'] ?? '');

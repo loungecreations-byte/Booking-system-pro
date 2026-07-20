@@ -13,7 +13,9 @@ export default function ReviewStep() {
   const summaryItems = Array.isArray(state.summary.items) ? state.summary.items : [];
   const grandTotal = Number.isFinite(state.summary.grandTotal)
     ? state.summary.grandTotal
-    : state.summary.subtotal || 0;
+    : Number.isFinite(state.summary.subtotal)
+    ? state.summary.subtotal
+    : null;
 
   return (
     <section className="sbdp-review">
@@ -32,10 +34,10 @@ export default function ReviewStep() {
           <p>
             Totaal:{" "}
             <strong>
-              {new Intl.NumberFormat("nl-NL", {
+              {Number.isFinite(grandTotal) ? new Intl.NumberFormat("nl-NL", {
                 style: "currency",
                 currency,
-              }).format(grandTotal || 0)}
+              }).format(grandTotal) : "Prijs wordt berekend"}
             </strong>
           </p>
         </div>
@@ -46,7 +48,7 @@ export default function ReviewStep() {
             {state.plan.items.map((item, index) => {
               const day = state.plan.days[item.dayIndex] || {};
               const summaryItem = summaryItems[index];
-              const cost = summaryItem?.line_subtotal ?? item.totalCost ?? 0;
+              const cost = summaryItem?.line_subtotal ?? item.totalCost ?? null;
               return (
                 <li key={item.id}>
                   <h4>{item.title}</h4>
@@ -57,10 +59,10 @@ export default function ReviewStep() {
                   </p>
                   <p>
                     Kostprijs:{" "}
-                    {new Intl.NumberFormat("nl-NL", {
+                    {Number.isFinite(cost) ? new Intl.NumberFormat("nl-NL", {
                       style: "currency",
                       currency,
-                    }).format(cost)}
+                    }).format(cost) : "Prijs wordt berekend"}
                   </p>
                 </li>
               );

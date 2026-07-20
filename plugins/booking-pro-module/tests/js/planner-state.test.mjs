@@ -17,6 +17,26 @@ import {
 import {
   buildResolvedBookingPayload,
 } from "../../assets/js/day-planner/app/utils/arrangement-model.js";
+import {
+  deriveSlotPricing,
+  summarizePlan,
+} from "../../assets/js/day-planner/shared/pricing.js";
+
+test("planner pricing never multiplies a unit price by participants", () => {
+  const unresolved = deriveSlotPricing({ price_pp: 12.5 }, 8);
+  const quoted = deriveSlotPricing({ price_pp: 12.5, display_total: 117 }, 8);
+
+  assert.equal(unresolved.perPerson, 12.5);
+  assert.equal(unresolved.total, 0);
+  assert.equal(quoted.total, 117);
+});
+
+test("planner summary waits for canonical server totals", () => {
+  const summary = summarizePlan([{ productId: 10, participants: 8, totalCost: null }], "EUR", 8);
+
+  assert.equal(summary.itemsSubtotal, null);
+  assert.equal(summary.grandTotal, null);
+});
 
 test("global participants propagate to items without manual override", () => {
   const items = [

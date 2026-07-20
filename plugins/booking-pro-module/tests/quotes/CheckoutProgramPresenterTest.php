@@ -183,6 +183,7 @@ namespace BSP\Tests\Quotes {
             $this->assertStringContainsString('Overzicht van jullie dag', $output);
             $this->assertStringContainsString('Workshop worstenbroodjes', $output);
             $this->assertStringContainsString('x12', $output);
+            $this->assertStringContainsString('Direct boekbaar', $output);
             $this->assertStringContainsString('EUR 1188.00', $output);
             $this->assertStringContainsString('Totaal incl. btw', $output);
             $this->assertStringContainsString('Waarvan btw', $output);

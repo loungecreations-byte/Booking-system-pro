@@ -65,11 +65,18 @@ add_action('wp_enqueue_scripts', function() {
         || function_exists('is_account_page') && is_account_page();
 
     if (! $is_elementor_context && $is_commerce_page) {
+        $commerce_css_path = defined('SBDP_DIR')
+            ? SBDP_DIR . 'assets/css/sbdp-cart-checkout.css'
+            : '';
+        $commerce_css_version = is_string($commerce_css_path) && is_readable($commerce_css_path)
+            ? (string) filemtime($commerce_css_path)
+            : SBDP_VER;
+
         wp_enqueue_style(
             'sbdp-cart-checkout',
             SBDP_URL . 'assets/css/sbdp-cart-checkout.css',
             [$designSystemDependency, 'sbdp-flow-system'],
-            SBDP_VER
+            $commerce_css_version
         );
     }
 

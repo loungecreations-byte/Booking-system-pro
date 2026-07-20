@@ -1529,6 +1529,492 @@ body.sbdp-commercial-flow--cart .woocommerce-cart .wc-proceed-to-checkout .check
   margin-bottom: 0;
 }
 
+body.sbdp-commercial-flow--cart .ddb-commercial-flow {
+  margin-bottom: clamp(2.5rem, 5vw, 4rem);
+  padding-top: clamp(4.5rem, 8vw, 7rem);
+}
+
+body.sbdp-commercial-flow--cart .ddb-commercial-flow__intro {
+  position: relative;
+  overflow: visible;
+  padding-block: clamp(1.15rem, 2vw, 1.65rem);
+}
+
+body.sbdp-commercial-flow--cart .ddb-commercial-flow__title {
+  font-size: clamp(1.75rem, 2.6vw, 2.45rem);
+}
+
+body.sbdp-commercial-flow--cart .ddb-commercial-flow__text {
+  max-width: 38rem;
+}
+
+body.sbdp-commercial-flow--cart .ddb-cart-day-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(16rem, 0.46fr);
+  gap: clamp(0.9rem, 2vw, 1.3rem);
+  align-items: center;
+  margin: 0 0 clamp(1rem, 2vw, 1.4rem);
+  padding: clamp(1rem, 2vw, 1.35rem);
+  border: 1px solid color-mix(in srgb, var(--ddb-commerce-border) 82%, transparent);
+  border-radius: var(--ui-radius-xl, 18px);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--ddb-commerce-surface) 96%, transparent), color-mix(in srgb, var(--ddb-commerce-surface-2) 82%, transparent)),
+    var(--ddb-commerce-surface);
+  box-shadow: var(--ddb-commerce-shadow);
+}
+
+body.sbdp-commercial-flow--cart .ddb-cart-day-summary__main {
+  min-width: 0;
+}
+
+body.sbdp-commercial-flow--cart .ddb-cart-day-summary__eyebrow {
+  margin: 0 0 0.35rem;
+  color: var(--ddb-commerce-accent-gold);
+  font-size: var(--ddb-text-xs);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+body.sbdp-commercial-flow--cart .ddb-cart-day-summary__title {
+  margin: 0;
+  color: var(--ddb-commerce-text);
+  font-family: var(--ui-font-display, inherit);
+  font-size: clamp(1.25rem, 2vw, 1.7rem);
+  line-height: 1.15;
+}
+
+body.sbdp-commercial-flow--cart .ddb-cart-day-summary__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.85rem;
+}
+
+body.sbdp-commercial-flow--cart .ddb-cart-day-summary__chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.85rem;
+  padding: 0.25rem 0.65rem;
+  border: 1px solid color-mix(in srgb, var(--ddb-commerce-border) 74%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--ddb-commerce-surface-3) 70%, transparent);
+  color: var(--ddb-commerce-text);
+  font-size: var(--ddb-text-sm);
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+body.sbdp-commercial-flow--cart .ddb-cart-day-summary__notice {
+  margin: 0;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid color-mix(in srgb, var(--ddb-commerce-accent-gold) 48%, transparent);
+  border-radius: var(--ui-radius-md, 12px);
+  background: color-mix(in srgb, var(--ddb-commerce-accent-gold) 12%, transparent);
+  color: var(--ddb-commerce-text);
+  font-size: var(--ddb-text-sm);
+  line-height: 1.45;
+}
+
+body.sbdp-commercial-flow--cart .woocommerce-cart .woocommerce {
+  grid-template-columns: minmax(0, 1fr) minmax(24rem, 27rem);
+  gap: clamp(1rem, 2.3vw, 1.75rem);
+}
+
+body.sbdp-commercial-flow--cart .woocommerce-cart .woocommerce-cart-form,
+body.sbdp-commercial-flow--cart .woocommerce-cart .cart_totals {
+  border-radius: var(--ui-radius-xl, 18px);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--ddb-commerce-surface) 96%, transparent), color-mix(in srgb, var(--ddb-commerce-surface-2) 78%, transparent)),
+    var(--ddb-commerce-surface);
+}
+
+body.sbdp-commercial-flow--cart .woocommerce-cart .shop_table.cart {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+body.sbdp-commercial-flow--cart .woocommerce-cart .shop_table.cart thead th {
+  padding: 0 0 0.8rem;
+  border-bottom: 1px solid var(--ddb-commerce-border);
+  color: var(--ddb-commerce-muted);
+}
+
+body.sbdp-commercial-flow--cart .woocommerce-cart .shop_table.cart tbody tr.cart_item {
+  background: color-mix(in srgb, var(--ddb-commerce-surface-2) 74%, transparent);
+}
+
+body.sbdp-commercial-flow--cart .woocommerce-cart .shop_table.cart tbody tr.cart_item td {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+  border-top: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--ddb-commerce-border) 68%, transparent);
+}
+
+body.sbdp-commercial-flow--cart .woocommerce-cart .shop_table.cart td.product-name {
+  min-width: 0;
+  max-width: none;
+}
+
+body.sbdp-commercial-flow--cart .woocommerce-cart .shop_table.cart .product-name a {
+  display: inline-block;
+  margin-bottom: 0.45rem;
+  color: var(--ddb-commerce-text);
+  line-height: 1.25;
+}
+
+body.sbdp-commercial-flow--cart .woocommerce-cart .shop_table.cart .variation {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 0.28rem 0.75rem;
+  margin: 0.35rem 0 0;
+  color: var(--ddb-commerce-text-secondary);
+  font-size: var(--ddb-text-sm);
+}
+
+body.sbdp-commercial-flow--cart .woocommerce-cart .shop_table.cart .variation dt,
+body.sbdp-commercial-flow--cart .woocommerce-cart .shop_table.cart .variation dd {
+  min-width: 0;
+  margin: 0;
+  line-height: 1.35;
+}
+
+body.sbdp-commercial-flow--cart .woocommerce-cart .shop_table.cart .variation dt {
+  color: var(--ddb-commerce-muted);
+  font-weight: 700;
+}
+
+body.sbdp-commercial-flow--cart .woocommerce-cart .shop_table.cart .variation dd {
+  color: var(--ddb-commerce-text);
+}
+
+body.sbdp-commercial-flow--cart .woocommerce-cart .quantity input.qty {
+  width: 4.5rem;
+  min-height: 2.35rem;
+}
+
+body.sbdp-commercial-flow--cart .woocommerce-cart .actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.85rem;
+  align-items: center;
+  padding: 1.1rem 0 0;
+}
+
+body.sbdp-commercial-flow--cart .woocommerce-cart .actions .coupon {
+  display: grid;
+  grid-template-columns: minmax(11rem, 1fr) auto;
+  gap: 0.65rem;
+  width: min(100%, 30rem);
+}
+
+body.sbdp-commercial-flow--cart .woocommerce-cart .actions .coupon::before {
+  content: "Waardebon";
+  grid-column: 1 / -1;
+  color: var(--ddb-commerce-muted);
+  font-size: var(--ddb-text-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+body.sbdp-commercial-flow--cart .woocommerce-cart .actions .coupon .input-text {
+  width: 100%;
+  min-width: 0;
+}
+
+body.sbdp-commercial-flow--cart .woocommerce-cart .actions .coupon .button,
+body.sbdp-commercial-flow--cart .woocommerce-cart .actions > .button {
+  min-height: 3rem;
+  white-space: nowrap;
+}
+
+body.sbdp-commercial-flow--cart .woocommerce-cart .actions > .button {
+  justify-self: end;
+  float: none;
+}
+
+body.sbdp-commercial-flow--cart .woocommerce-cart .cart_totals {
+  padding: clamp(1.1rem, 2vw, 1.45rem);
+  align-self: start;
+}
+
+body.sbdp-commercial-flow--cart .woocommerce-cart .cart_totals h2 {
+  margin-bottom: 1rem;
+  white-space: normal;
+}
+
+body.sbdp-commercial-flow--cart .woocommerce-cart .cart_totals table {
+  table-layout: auto;
+  margin-bottom: 1.15rem;
+}
+
+body.sbdp-commercial-flow--cart .woocommerce-cart .cart_totals table tr {
+  display: grid;
+  grid-template-columns: minmax(8rem, 1fr) minmax(9rem, auto);
+  gap: 1rem;
+  align-items: baseline;
+  padding: 0.72rem 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--ddb-commerce-border) 62%, transparent);
+}
+
+body.sbdp-commercial-flow--cart .woocommerce-cart .cart_totals table th,
+body.sbdp-commercial-flow--cart .woocommerce-cart .cart_totals table td {
+  display: block;
+  padding: 0;
+  border: 0;
+  text-align: left;
+  white-space: normal;
+}
+
+body.sbdp-commercial-flow--cart .woocommerce-cart .cart_totals table td {
+  justify-self: end;
+  text-align: right;
+}
+
+body.sbdp-commercial-flow--cart .woocommerce-cart .cart_totals .order-total th,
+body.sbdp-commercial-flow--cart .woocommerce-cart .cart_totals .order-total td {
+  font-size: clamp(1rem, 1.4vw, 1.2rem);
+}
+
+body.sbdp-commercial-flow--cart .woocommerce-cart .cart_totals .includes_tax,
+body.sbdp-commercial-flow--cart .woocommerce-cart .cart_totals small {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--ddb-commerce-muted);
+  font-size: var(--ddb-text-sm);
+  line-height: 1.35;
+  white-space: normal;
+}
+
+body.sbdp-commercial-flow--cart .woocommerce-cart .wc-proceed-to-checkout {
+  display: grid;
+  gap: 0.7rem;
+}
+
+body.sbdp-commercial-flow--cart .woocommerce-cart .wc-proceed-to-checkout .checkout-button,
+body.sbdp-commercial-flow--cart .woocommerce-cart .wc-proceed-to-checkout .ddb-cart-secondary-action {
+  width: 100%;
+  text-align: center;
+}
+
+body.sbdp-commercial-flow--cart .woocommerce-cart .wc-proceed-to-checkout .ddb-cart-secondary-action {
+  min-height: 2.85rem;
+  background: transparent;
+  border: 1px solid var(--ddb-commerce-border);
+  color: var(--ddb-commerce-text-secondary);
+  box-shadow: none;
+}
+
+body.sbdp-commercial-flow--cart .woocommerce-cart .cart_totals::before {
+  content: "Afronden";
+  display: block;
+  margin-bottom: 0.5rem;
+  color: var(--ddb-commerce-accent-gold);
+  font-size: var(--ddb-text-xs);
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+/* Cart final composition: keep brand, cart and totals in one calm execution layout. */
+body.sbdp-commercial-flow--cart .ui-scope .main-nav .elementor-element.elementor-widget-theme-site-logo,
+body.sbdp-commercial-flow--cart .ui-scope .main-nav .elementor-widget-theme-site-logo,
+body.sbdp-commercial-flow--cart .ui-scope .main-nav .site-logo,
+body.sbdp-commercial-flow--cart .ui-scope .main-nav .custom-logo-link,
+body.sbdp-commercial-flow--cart .main-nav .elementor-element.elementor-widget-theme-site-logo,
+body.sbdp-commercial-flow--cart .main-nav .elementor-widget-theme-site-logo,
+body.sbdp-commercial-flow--cart .main-nav .site-logo,
+body.sbdp-commercial-flow--cart .main-nav .custom-logo-link {
+  max-width: clamp(5.25rem, 8vw, 7rem);
+  min-width: 0;
+}
+
+body.sbdp-commercial-flow--cart .ui-scope .main-nav .elementor-widget-theme-site-logo img,
+body.sbdp-commercial-flow--cart .ui-scope .main-nav .custom-logo-link img,
+body.sbdp-commercial-flow--cart .ui-scope .main-nav img.custom-logo,
+body.sbdp-commercial-flow--cart .main-nav .elementor-widget-theme-site-logo img,
+body.sbdp-commercial-flow--cart .main-nav .custom-logo-link img,
+body.sbdp-commercial-flow--cart .main-nav img.custom-logo {
+  height: clamp(3.6rem, 6vw, 5rem);
+  max-height: clamp(3.6rem, 6vw, 5rem);
+  width: auto;
+}
+
+body.sbdp-commercial-flow--cart .ddb-commercial-flow {
+  padding-top: clamp(2.75rem, 5vw, 4.25rem);
+}
+
+body.sbdp-commercial-flow--cart .woocommerce-cart .woocommerce {
+  grid-template-columns: minmax(0, 1fr) minmax(20.5rem, 22.5rem);
+  column-gap: clamp(1.15rem, 2vw, 1.5rem);
+  row-gap: clamp(0.85rem, 1.6vw, 1.15rem);
+}
+
+body.sbdp-commercial-flow--cart .woocommerce-cart .woocommerce-cart-form {
+  grid-column: 1;
+  grid-row: auto;
+}
+
+body.sbdp-commercial-flow--cart .woocommerce-cart .cart-collaterals {
+  grid-column: 2;
+  grid-row: auto;
+  align-self: start;
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+body.sbdp-commercial-flow--cart .woocommerce-cart .cart_totals {
+  position: sticky;
+  top: clamp(5.25rem, 8vh, 6.5rem);
+  display: grid;
+  gap: 0.95rem;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+  padding: clamp(1.1rem, 1.8vw, 1.35rem);
+  border-color: color-mix(in srgb, var(--ddb-commerce-accent-gold) 28%, var(--ddb-commerce-border));
+}
+
+body.sbdp-commercial-flow--cart .woocommerce-cart .cart_totals h2 {
+  margin: 0;
+  max-width: 13ch;
+  font-size: clamp(1.3rem, 1.65vw, 1.65rem);
+  line-height: 1.08;
+}
+
+body.sbdp-commercial-flow--cart .woocommerce-cart .cart_totals table {
+  margin: 0;
+  overflow: hidden;
+  border-radius: var(--ui-radius-lg, 16px);
+  background: color-mix(in srgb, var(--ddb-commerce-surface-2) 82%, transparent);
+}
+
+body.sbdp-commercial-flow--cart .woocommerce-cart .cart_totals table tr {
+  grid-template-columns: minmax(6.5rem, 1fr) minmax(7rem, auto);
+  gap: 0.75rem;
+  padding: 0.82rem 0.9rem;
+}
+
+body.sbdp-commercial-flow--cart .woocommerce-cart .cart_totals table th {
+  color: var(--ddb-commerce-muted);
+  font-size: var(--ddb-text-xs);
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+body.sbdp-commercial-flow--cart .woocommerce-cart .cart_totals table td {
+  color: var(--ddb-commerce-text);
+  font-weight: 800;
+}
+
+body.sbdp-commercial-flow--cart .woocommerce-cart .cart_totals .order-total th,
+body.sbdp-commercial-flow--cart .woocommerce-cart .cart_totals .order-total td {
+  color: var(--ddb-commerce-text);
+  font-size: clamp(1.05rem, 1.3vw, 1.2rem);
+}
+
+body.sbdp-commercial-flow--cart .woocommerce-cart .cart_totals .includes_tax,
+body.sbdp-commercial-flow--cart .woocommerce-cart .cart_totals small {
+  max-width: 12rem;
+  margin-left: auto;
+  color: var(--ddb-commerce-text-secondary);
+}
+
+body.sbdp-commercial-flow--cart .woocommerce-cart .wc-proceed-to-checkout .checkout-button {
+  min-height: 3.8rem;
+  padding-inline: 1rem;
+  font-size: clamp(1rem, 1.15vw, 1.1rem);
+  line-height: 1.08;
+}
+
+body.sbdp-commercial-flow--cart .woocommerce-cart .wc-proceed-to-checkout .ddb-cart-secondary-action {
+  min-height: 3rem;
+  font-size: var(--ddb-text-sm);
+  font-weight: 800;
+}
+
+@media (min-width: 783px) {
+  body.sbdp-commercial-flow--cart .woocommerce-cart .shop_table.cart {
+    display: block;
+  }
+
+  body.sbdp-commercial-flow--cart .woocommerce-cart .shop_table.cart thead {
+    display: none;
+  }
+
+  body.sbdp-commercial-flow--cart .woocommerce-cart .shop_table.cart tbody {
+    display: grid;
+    gap: 0.9rem;
+  }
+
+  body.sbdp-commercial-flow--cart .woocommerce-cart .shop_table.cart tbody tr.cart_item {
+    display: grid;
+    grid-template-columns: 2.25rem 5.25rem minmax(0, 1fr) minmax(5.5rem, auto) minmax(4.5rem, auto) minmax(6.5rem, auto);
+    gap: 0.8rem;
+    align-items: center;
+    padding: 1rem;
+    border: 1px solid color-mix(in srgb, var(--ddb-commerce-border) 72%, transparent);
+    border-radius: var(--ui-radius-lg, 16px);
+  }
+
+  body.sbdp-commercial-flow--cart .woocommerce-cart .shop_table.cart tbody tr.cart_item td {
+    display: block;
+    padding: 0;
+    border: 0;
+    background: transparent;
+  }
+
+  body.sbdp-commercial-flow--cart .woocommerce-cart .shop_table.cart td.product-remove,
+  body.sbdp-commercial-flow--cart .woocommerce-cart .shop_table.cart td.product-thumbnail,
+  body.sbdp-commercial-flow--cart .woocommerce-cart .shop_table.cart td.product-name,
+  body.sbdp-commercial-flow--cart .woocommerce-cart .shop_table.cart td.product-price,
+  body.sbdp-commercial-flow--cart .woocommerce-cart .shop_table.cart td.product-quantity,
+  body.sbdp-commercial-flow--cart .woocommerce-cart .shop_table.cart td.product-subtotal {
+    width: auto;
+    min-width: 0;
+    padding-right: 0;
+  }
+
+  body.sbdp-commercial-flow--cart .woocommerce-cart .shop_table.cart td.product-price::before,
+  body.sbdp-commercial-flow--cart .woocommerce-cart .shop_table.cart td.product-quantity::before,
+  body.sbdp-commercial-flow--cart .woocommerce-cart .shop_table.cart td.product-subtotal::before {
+    content: attr(data-title);
+    display: block;
+    margin-bottom: 0.25rem;
+    color: var(--ddb-commerce-muted);
+    font-size: var(--ddb-text-xs);
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  body.sbdp-commercial-flow--cart .woocommerce-cart .shop_table.cart td.product-price,
+  body.sbdp-commercial-flow--cart .woocommerce-cart .shop_table.cart td.product-subtotal {
+    text-align: right;
+  }
+
+  body.sbdp-commercial-flow--cart .woocommerce-cart .shop_table.cart td.product-quantity {
+    text-align: center;
+  }
+
+  body.sbdp-commercial-flow--cart .woocommerce-cart .shop_table.cart td.product-thumbnail img {
+    width: 5.25rem;
+  }
+
+  body.sbdp-commercial-flow--cart .woocommerce-cart .shop_table.cart td.actions {
+    display: block;
+  }
+
+  body.sbdp-commercial-flow--cart .woocommerce-cart .shop_table.cart tbody tr:not(.cart_item) {
+    display: block;
+    padding-top: 0.2rem;
+    background: transparent;
+  }
+}
+
 /* Thank-you: one status card plus clear order and address cards in controlled columns. */
 body.sbdp-commercial-flow--thankyou .ddb-commercial-flow {
   width: min(100% - clamp(1rem, 3vw, 2rem), var(--ui-container-lg, 72rem));
@@ -1900,7 +2386,7 @@ body.woocommerce-checkout .woocommerce-checkout-review-order-table tbody tr.cart
 }
 
 /* Verberg onnodige meta if needed, of stijl ze goed */
-body.woocommerce-checkout .woocommerce-checkout-review-order-table .product-name .variation { display: none !important; } 
+body.woocommerce-checkout .woocommerce-checkout-review-order-table .product-name .variation { display: none !important; }
 
   body.woocommerce-checkout .woocommerce-checkout-review-order-table .product-name .variation dt {
   display: none !important;
@@ -2054,6 +2540,1118 @@ body.woocommerce-checkout #payment .place-order .button:hover {
   body.sbdp-commercial-flow--cart .woocommerce-cart .cart-collaterals,
   body.sbdp-commercial-flow--thankyou .ddb-commercial-flow__content,
   body.sbdp-commercial-flow--thankyou .ddb-order-received-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 960px) {
+  body.sbdp-commercial-flow--cart .ddb-commercial-flow {
+    padding-top: clamp(2.5rem, 7vw, 4rem);
+  }
+
+  body.sbdp-commercial-flow--cart .ddb-cart-day-summary {
+    grid-template-columns: 1fr;
+  }
+
+  body.sbdp-commercial-flow--cart .woocommerce-cart .woocommerce {
+    grid-template-columns: 1fr;
+  }
+
+  body.sbdp-commercial-flow--cart .woocommerce-cart .cart_totals {
+    position: static;
+  }
+}
+
+@media (max-width: 782px) {
+  body.sbdp-commercial-flow--cart .woocommerce-cart .actions,
+  body.sbdp-commercial-flow--cart .woocommerce-cart .actions .coupon {
+    grid-template-columns: 1fr;
+  }
+
+  body.sbdp-commercial-flow--cart .woocommerce-cart .actions .coupon,
+  body.sbdp-commercial-flow--cart .woocommerce-cart .actions .coupon .input-text,
+  body.sbdp-commercial-flow--cart .woocommerce-cart .actions .coupon .button,
+  body.sbdp-commercial-flow--cart .woocommerce-cart .actions > .button {
+    width: 100%;
+  }
+
+  body.sbdp-commercial-flow--cart .woocommerce-cart .actions > .button {
+    justify-self: stretch;
+  }
+
+  body.sbdp-commercial-flow--cart .woocommerce-cart .cart_totals table tr {
+    grid-template-columns: 1fr;
+    gap: 0.35rem;
+  }
+
+  body.sbdp-commercial-flow--cart .woocommerce-cart .cart_totals table td {
+    justify-self: start;
+    text-align: left;
+  }
+}
+
+/* Cart route cascade guard: this must stay last because Elementor/theme/header CSS loads around Woo. */
+body.sbdp-commercial-flow--cart .ddb-mega-nav {
+  min-height: 64px;
+}
+
+body.sbdp-commercial-flow--cart .ddb-mega-nav__inner {
+  height: 64px;
+  min-height: 64px;
+  align-items: center;
+}
+
+body.sbdp-commercial-flow--cart .ddb-mega-nav__logo {
+  display: inline-flex;
+  align-items: center;
+  width: auto;
+  max-width: 96px;
+  min-width: 0;
+  line-height: 1;
+}
+
+body.sbdp-commercial-flow--cart .ddb-mega-nav__logo-img {
+  display: block;
+  width: auto;
+  height: 56px;
+  max-width: 96px;
+  max-height: 56px;
+  object-fit: contain;
+}
+
+body.sbdp-commercial-flow--cart .ddb-commercial-flow {
+  padding-top: clamp(1.75rem, 3.2vw, 3rem);
+}
+
+body.sbdp-commercial-flow--cart .woocommerce-cart .woocommerce {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(22rem, 24rem);
+  gap: clamp(1rem, 2vw, 1.5rem);
+  align-items: start;
+}
+
+body.sbdp-commercial-flow--cart .woocommerce-cart .woocommerce-notices-wrapper,
+body.sbdp-commercial-flow--cart .woocommerce-cart .woocommerce-message,
+body.sbdp-commercial-flow--cart .woocommerce-cart .woocommerce-error,
+body.sbdp-commercial-flow--cart .woocommerce-cart .woocommerce-info {
+  grid-column: 1 / -1;
+}
+
+body.sbdp-commercial-flow--cart .woocommerce-cart .woocommerce-cart-form {
+  grid-column: 1;
+  grid-row: 2;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+}
+
+body.sbdp-commercial-flow--cart .woocommerce-cart .cart-collaterals {
+  grid-column: 2;
+  grid-row: 2;
+  display: block;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+}
+
+body.sbdp-commercial-flow--cart .woocommerce-cart .cart_totals {
+  position: sticky;
+  top: 84px;
+  float: none;
+  width: 100%;
+  max-width: none;
+  margin: 0;
+}
+
+body.sbdp-commercial-flow--cart .woocommerce-cart .cart_totals h2 {
+  white-space: normal;
+}
+
+@media (max-width: 960px) {
+  body.sbdp-commercial-flow--cart .ddb-mega-nav__logo {
+    max-width: 78px;
+  }
+
+  body.sbdp-commercial-flow--cart .ddb-mega-nav__logo-img {
+    height: 44px;
+    max-width: 78px;
+    max-height: 44px;
+  }
+
+  body.sbdp-commercial-flow--cart .woocommerce-cart .woocommerce {
+    grid-template-columns: 1fr;
+  }
+
+  body.sbdp-commercial-flow--cart .woocommerce-cart .woocommerce-cart-form,
+  body.sbdp-commercial-flow--cart .woocommerce-cart .cart-collaterals {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  body.sbdp-commercial-flow--cart .woocommerce-cart .cart_totals {
+    position: static;
+  }
+}
+
+/* Checkout uses the same public header logo as cart; keep it compact in the execution flow. */
+body.sbdp-commercial-flow--checkout .ddb-mega-nav {
+  min-height: 64px;
+}
+
+body.sbdp-commercial-flow--checkout .ddb-mega-nav__inner {
+  height: 64px;
+  min-height: 64px;
+  align-items: center;
+}
+
+body.sbdp-commercial-flow--checkout .ddb-mega-nav__logo {
+  display: inline-flex;
+  align-items: center;
+  width: auto;
+  max-width: 96px;
+  min-width: 0;
+  line-height: 1;
+}
+
+body.sbdp-commercial-flow--checkout .ddb-mega-nav__logo-img {
+  display: block;
+  width: auto;
+  height: 56px;
+  max-width: 96px;
+  max-height: 56px;
+  object-fit: contain;
+}
+
+body.sbdp-commercial-flow--checkout .ddb-commercial-flow {
+  padding-top: clamp(1.75rem, 3.2vw, 3rem);
+}
+
+@media (max-width: 960px) {
+  body.sbdp-commercial-flow--checkout .ddb-mega-nav__logo {
+    max-width: 78px;
+  }
+
+  body.sbdp-commercial-flow--checkout .ddb-mega-nav__logo-img {
+    height: 44px;
+    max-width: 78px;
+    max-height: 44px;
+  }
+}
+
+/* Checkout final composition: payment belongs under the coupon in the right decision column. */
+body.sbdp-commercial-flow--checkout .woocommerce-checkout form.checkout {
+  display: grid !important;
+  grid-template-columns: minmax(0, 0.92fr) minmax(24rem, 1.08fr) !important;
+  gap: clamp(1rem, 2vw, 1.5rem) !important;
+  align-items: start !important;
+}
+
+body.sbdp-commercial-flow--checkout .woocommerce-checkout #customer_details {
+  grid-column: 1 !important;
+  grid-row: 1 / span 2 !important;
+}
+
+body.sbdp-commercial-flow--checkout .woocommerce-checkout #order_review_heading,
+body.sbdp-commercial-flow--checkout .woocommerce-checkout #order_review {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+}
+
+body.sbdp-commercial-flow--checkout .woocommerce-checkout #payment {
+  grid-column: 2 !important;
+  grid-row: 2 !important;
+  position: sticky !important;
+  top: 84px !important;
+  align-self: start !important;
+  width: 100% !important;
+  max-width: none;
+  margin: clamp(0.85rem, 1.5vw, 1.1rem) 0 0;
+  padding: clamp(0.9rem, 1.6vw, 1.15rem);
+}
+
+body.sbdp-commercial-flow--checkout .woocommerce-checkout #payment ul.payment_methods {
+  display: grid;
+  gap: 0.35rem;
+  max-height: min(34vh, 20rem);
+  overflow: auto;
+  padding-right: 0.25rem;
+}
+
+body.sbdp-commercial-flow--checkout .woocommerce-checkout #payment ul.payment_methods li.wc_payment_method {
+  margin: 0;
+  padding: 0.55rem 0;
+}
+
+body.sbdp-commercial-flow--checkout .woocommerce-checkout #payment .form-row.place-order {
+  position: sticky !important;
+  bottom: 0 !important;
+  z-index: 3;
+  margin: 0;
+  padding-top: 0.85rem;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--ui-color-surface-2) 0%, transparent), var(--ui-color-surface-2) 30%),
+    var(--ui-color-surface-2);
+}
+
+body.sbdp-commercial-flow--checkout .woocommerce-checkout #payment .place-order .button {
+  min-height: 3.4rem;
+  margin: 0;
+}
+
+body.sbdp-commercial-flow--checkout .ddb-checkout-program > #payment.sbdp-checkout-payment-embedded {
+  position: static !important;
+  display: grid;
+  gap: 0.75rem;
+  width: 100% !important;
+  margin: var(--ddb-spacing-sm) 0 0 !important;
+  padding: var(--ddb-spacing-sm) 0 0 !important;
+  border: 0 !important;
+  border-top: 1px solid var(--ddb-border-subtle) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+body.sbdp-commercial-flow--checkout .ddb-checkout-program > #payment.sbdp-checkout-payment-embedded ul.payment_methods {
+  max-height: none;
+  margin: 0 !important;
+  padding: 0 0 var(--ddb-spacing-sm) !important;
+  overflow: visible;
+  border-bottom: 1px solid var(--ddb-border-subtle) !important;
+}
+
+body.sbdp-commercial-flow--checkout .ddb-checkout-program > #payment.sbdp-checkout-payment-embedded .form-row.place-order {
+  position: sticky !important;
+  bottom: 0.75rem !important;
+  z-index: 20;
+  margin: 0 !important;
+  padding: 0.75rem 0 0 !important;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--ddb-commerce-surface) 0%, transparent), var(--ddb-commerce-surface) 35%),
+    var(--ddb-commerce-surface) !important;
+}
+
+body.sbdp-commercial-flow--checkout .ddb-checkout-program > #payment.sbdp-checkout-payment-embedded #place_order {
+  width: 100% !important;
+  min-height: 3.35rem !important;
+  margin: 0 !important;
+}
+
+@media (max-width: 960px) {
+  body.sbdp-commercial-flow--checkout .woocommerce-checkout form.checkout {
+    grid-template-columns: 1fr !important;
+  }
+
+  body.sbdp-commercial-flow--checkout .woocommerce-checkout #customer_details,
+  body.sbdp-commercial-flow--checkout .woocommerce-checkout #order_review_heading,
+  body.sbdp-commercial-flow--checkout .woocommerce-checkout #order_review,
+  body.sbdp-commercial-flow--checkout .woocommerce-checkout #payment {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  body.sbdp-commercial-flow--checkout .woocommerce-checkout #payment {
+    position: sticky !important;
+    bottom: 0 !important;
+    top: auto !important;
+    margin-top: 1rem;
+  }
+}
+
+/* Account final composition: management pages share the same compact shell and card language. */
+body.sbdp-commercial-flow--account .ddb-mega-nav,
+body.sbdp-commercial-flow--view-order .ddb-mega-nav {
+  min-height: 64px;
+}
+
+body.sbdp-commercial-flow--account .ddb-mega-nav__inner,
+body.sbdp-commercial-flow--view-order .ddb-mega-nav__inner {
+  height: 64px;
+  min-height: 64px;
+  align-items: center;
+}
+
+body.sbdp-commercial-flow--account .ddb-mega-nav__logo,
+body.sbdp-commercial-flow--view-order .ddb-mega-nav__logo {
+  display: inline-flex;
+  align-items: center;
+  width: auto;
+  max-width: 96px;
+  min-width: 0;
+  line-height: 1;
+}
+
+body.sbdp-commercial-flow--account .ddb-mega-nav__logo-img,
+body.sbdp-commercial-flow--view-order .ddb-mega-nav__logo-img {
+  display: block;
+  width: auto;
+  height: 56px;
+  max-width: 96px;
+  max-height: 56px;
+  object-fit: contain;
+}
+
+body.sbdp-commercial-flow--account .ddb-commercial-flow,
+body.sbdp-commercial-flow--view-order .ddb-commercial-flow {
+  width: min(100% - clamp(1rem, 3vw, 2.5rem), 92rem);
+  padding-top: clamp(1.75rem, 3.2vw, 3rem);
+}
+
+body.sbdp-commercial-flow--account .ddb-commercial-flow__intro {
+  padding: clamp(1.1rem, 2vw, 1.45rem);
+  border-color: color-mix(in srgb, var(--ddb-commerce-accent-gold) 24%, var(--ddb-commerce-border));
+  background:
+    radial-gradient(circle at 8% 0%, color-mix(in srgb, var(--ddb-commerce-accent-gold) 10%, transparent), transparent 32rem),
+    linear-gradient(180deg, color-mix(in srgb, #15120c 88%, transparent), color-mix(in srgb, #080808 96%, transparent));
+  box-shadow: 0 1.5rem 4rem color-mix(in srgb, #000 72%, transparent);
+}
+
+body.sbdp-commercial-flow--account .ddb-commercial-flow__title {
+  font-size: clamp(1.85rem, 2.6vw, 2.5rem);
+}
+
+body.sbdp-commercial-flow--account .ddb-commercial-flow__text {
+  max-width: 46rem;
+}
+
+body.sbdp-commercial-flow--account .ddb-commercial-flow__content {
+  display: grid;
+  grid-template-columns: minmax(13rem, 15rem) minmax(0, 1fr);
+  gap: clamp(1.1rem, 2vw, 1.6rem);
+  align-items: start;
+  width: 100%;
+}
+
+body.sbdp-commercial-flow--account .ddb-commercial-flow__content > .woocommerce-MyAccount-navigation {
+  position: sticky;
+  top: 84px;
+  width: auto;
+  min-width: 0;
+  padding: 0.75rem;
+  border-radius: var(--ui-radius-xl, 18px);
+  border-color: color-mix(in srgb, var(--ddb-commerce-border) 78%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, #181511 94%, transparent), color-mix(in srgb, #0d0d0d 96%, transparent)),
+    #101010;
+  box-shadow: 0 1.25rem 3.5rem color-mix(in srgb, #000 58%, transparent);
+}
+
+body.sbdp-commercial-flow--account .woocommerce-MyAccount-navigation ul {
+  display: grid;
+  gap: 0.25rem;
+}
+
+body.sbdp-commercial-flow--account .woocommerce-MyAccount-navigation a {
+  min-height: 2.5rem;
+  padding: 0.7rem 0.85rem;
+  color: var(--ddb-commerce-text-secondary);
+  font-size: var(--ddb-text-sm);
+  font-weight: 750;
+}
+
+body.sbdp-commercial-flow--account .woocommerce-MyAccount-navigation .is-active a,
+body.sbdp-commercial-flow--account .woocommerce-MyAccount-navigation a:hover {
+  background: color-mix(in srgb, var(--ddb-commerce-accent-gold) 15%, var(--ddb-commerce-surface-2));
+  color: var(--ddb-commerce-text);
+}
+
+body.sbdp-commercial-flow--account .ddb-commercial-flow__content > .woocommerce-MyAccount-content {
+  display: block;
+  min-width: 0;
+  padding: clamp(1.1rem, 2vw, 1.6rem);
+  border-radius: var(--ui-radius-xl, 18px);
+  background:
+    radial-gradient(circle at 72% 0%, color-mix(in srgb, var(--ddb-commerce-accent-gold) 7%, transparent), transparent 28rem),
+    linear-gradient(180deg, color-mix(in srgb, #151515 94%, transparent), color-mix(in srgb, #0a0a0a 98%, transparent)),
+    #0c0c0c;
+  border-color: color-mix(in srgb, var(--ddb-commerce-border) 74%, transparent);
+  box-shadow: 0 1.5rem 4rem color-mix(in srgb, #000 62%, transparent);
+}
+
+body.sbdp-commercial-flow--account .woocommerce-MyAccount-content > p:first-of-type {
+  margin: 0 0 clamp(1rem, 1.8vw, 1.35rem);
+  max-width: 58rem;
+  color: var(--ddb-commerce-text-secondary);
+  font-size: var(--ddb-text-sm);
+  line-height: 1.6;
+}
+
+body.sbdp-commercial-flow--account .ddb-account-hub {
+  padding: 0;
+}
+
+body.sbdp-commercial-flow--account .ddb-account-hub .ui-container {
+  width: 100%;
+  max-width: none;
+  padding: 0;
+}
+
+body.sbdp-commercial-flow--account .ddb-account-hub .ui-stack {
+  gap: clamp(1.15rem, 1.9vw, 1.55rem);
+}
+
+body.sbdp-commercial-flow--account .ddb-account-hub__hero,
+body.sbdp-commercial-flow--account .ddb-account-hub__activity,
+body.sbdp-commercial-flow--account .ddb-account-hub__card,
+body.sbdp-commercial-flow--account .ddb-account-hub__metric {
+  border-radius: var(--ui-radius-lg, 16px);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, #181511 94%, transparent), color-mix(in srgb, #0d0d0d 96%, transparent)),
+    #101010;
+  border-color: color-mix(in srgb, var(--ddb-commerce-border) 76%, transparent);
+  box-shadow: 0 1rem 2.5rem color-mix(in srgb, #000 44%, transparent);
+}
+
+body.sbdp-commercial-flow--account .ddb-account-hub__hero {
+  padding: clamp(1.25rem, 2.2vw, 1.75rem);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--ddb-commerce-accent-gold) 13%, #19140d), #101010 62%),
+    #101010;
+}
+
+body.sbdp-commercial-flow--account .ddb-account-hub__hero h1,
+body.sbdp-commercial-flow--account .ddb-account-hub__hero h2,
+body.sbdp-commercial-flow--account .ddb-account-hub__section-title {
+  font-size: clamp(1.25rem, 1.9vw, 1.75rem);
+  line-height: 1.15;
+}
+
+body.sbdp-commercial-flow--account .ddb-account-hub__metrics {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(0.75rem, 1.4vw, 1rem);
+}
+
+body.sbdp-commercial-flow--account .ddb-account-hub__metric-value {
+  font-size: clamp(1.45rem, 2.3vw, 2rem);
+  opacity: 0.9;
+}
+
+body.sbdp-commercial-flow--account .ddb-account-hub__panel {
+  gap: 0.8rem;
+}
+
+body.sbdp-commercial-flow--account .ddb-account-hub__panel-head {
+  align-items: baseline;
+}
+
+body.sbdp-commercial-flow--account .ddb-account-hub__cards.ui-grid--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(0.85rem, 1.5vw, 1.1rem);
+}
+
+body.sbdp-commercial-flow--account .ddb-account-hub__card .ui-card__body,
+body.sbdp-commercial-flow--account .ddb-account-hub__metric .ui-card__body {
+  gap: 0.55rem;
+  padding: clamp(0.9rem, 1.6vw, 1.15rem);
+}
+
+body.sbdp-commercial-flow--account .ddb-account-hub__card h3,
+body.sbdp-commercial-flow--account .ddb-account-hub__activity-copy h3 {
+  font-size: clamp(1.08rem, 1.45vw, 1.35rem);
+}
+
+body.sbdp-commercial-flow--account .ddb-account-hub__activity {
+  min-height: 4.2rem;
+  padding: 0.9rem 1rem;
+}
+
+body.sbdp-commercial-flow--account .ddb-account-hub__activity-copy h3 {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 960px) {
+  body.sbdp-commercial-flow--account .ddb-mega-nav__logo,
+  body.sbdp-commercial-flow--view-order .ddb-mega-nav__logo {
+    max-width: 78px;
+  }
+
+  body.sbdp-commercial-flow--account .ddb-mega-nav__logo-img,
+  body.sbdp-commercial-flow--view-order .ddb-mega-nav__logo-img {
+    height: 44px;
+    max-width: 78px;
+    max-height: 44px;
+  }
+
+  body.sbdp-commercial-flow--account .ddb-commercial-flow__content {
+    grid-template-columns: 1fr;
+  }
+
+  body.sbdp-commercial-flow--account .ddb-commercial-flow__content > .woocommerce-MyAccount-navigation {
+    position: static;
+  }
+
+  body.sbdp-commercial-flow--account .woocommerce-MyAccount-navigation ul {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  body.sbdp-commercial-flow--account .ddb-account-hub__metrics,
+  body.sbdp-commercial-flow--account .ddb-account-hub__cards.ui-grid--3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  body.sbdp-commercial-flow--account .woocommerce-MyAccount-navigation ul,
+  body.sbdp-commercial-flow--account .ddb-account-hub__metrics,
+  body.sbdp-commercial-flow--account .ddb-account-hub__cards.ui-grid--3 {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Account dashboard rebuild: scoped, task-first management layout. */
+body.sbdp-commercial-flow--account {
+  background: #000;
+}
+
+body.sbdp-commercial-flow--account main.site-main,
+body.sbdp-commercial-flow--account .site-main,
+body.sbdp-commercial-flow--account .site-main > .page-content,
+body.sbdp-commercial-flow--account .page-content,
+body.sbdp-commercial-flow--account .entry-content,
+body.sbdp-commercial-flow--account .content-area,
+body.sbdp-commercial-flow--account .site-content,
+body.sbdp-commercial-flow--account article,
+body.sbdp-commercial-flow--account .hentry,
+body.sbdp-commercial-flow--account .elementor,
+body.sbdp-commercial-flow--account .elementor-section,
+body.sbdp-commercial-flow--account .elementor-container,
+body.sbdp-commercial-flow--account .elementor-widget-container,
+body.sbdp-commercial-flow--account .e-con,
+body.sbdp-commercial-flow--account .e-con-inner,
+body.sbdp-commercial-flow--account .woocommerce-account .woocommerce,
+body.sbdp-commercial-flow--account .woocommerce {
+  display: block !important;
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  overflow: visible !important;
+}
+
+body.sbdp-commercial-flow--account .ddb-commercial-flow {
+  width: min(1400px, calc(100vw - 24px));
+  max-width: 1400px !important;
+  margin-inline: auto;
+  padding-top: clamp(0.85rem, 1.8vw, 1.45rem);
+  padding-inline: 0;
+  position: static;
+}
+
+body.sbdp-commercial-flow--account.elementor-page-26 .elementor-element-13eb48b7,
+body.sbdp-commercial-flow--account.elementor-page-26 .elementor-element-13eb48b7 > .e-con-inner,
+body.sbdp-commercial-flow--account.elementor-page-26 .elementor-element-39518545,
+body.sbdp-commercial-flow--account.elementor-page-26 .elementor-element-39518545 > .elementor-widget-container {
+  display: contents !important;
+}
+
+body.sbdp-commercial-flow--account .ddb-mega-nav,
+body.sbdp-commercial-flow--account .ddb-mega-nav__bar,
+body.sbdp-commercial-flow--account .site-header {
+  border-bottom-color: transparent !important;
+  box-shadow: none !important;
+}
+
+body.sbdp-commercial-flow--account .ddb-account-dashboard__header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: clamp(1rem, 2vw, 1.5rem);
+  align-items: center;
+  min-height: 84px;
+  margin-bottom: clamp(0.85rem, 1.5vw, 1.1rem);
+  padding: clamp(0.85rem, 1.45vw, 1.1rem) clamp(1rem, 1.7vw, 1.25rem);
+}
+
+body.sbdp-commercial-flow--account .ddb-account-dashboard__header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  justify-content: flex-end;
+}
+
+body.sbdp-commercial-flow--account .ddb-commercial-flow__content {
+  display: grid;
+  grid-template-columns: minmax(210px, 230px) minmax(0, 1fr);
+  gap: clamp(1.1rem, 2vw, 1.5rem);
+  align-items: start;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+body.sbdp-commercial-flow--account .ddb-commercial-flow__content > .woocommerce-MyAccount-navigation,
+body.sbdp-commercial-flow--account .ddb-commercial-flow__content > .woocommerce-MyAccount-content,
+body.sbdp-commercial-flow--account .ddb-account-dashboard__panel,
+body.sbdp-commercial-flow--account .ddb-account-dashboard__metric,
+body.sbdp-commercial-flow--account .ddb-account-dashboard__action {
+  border: 1px solid color-mix(in srgb, var(--ddb-commerce-border) 42%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, #171512 94%, transparent), color-mix(in srgb, #0b0b0b 98%, transparent)),
+    #101010;
+  box-shadow: none;
+}
+
+body.sbdp-commercial-flow--account .ddb-commercial-flow__content > .woocommerce-MyAccount-navigation {
+  position: sticky;
+  top: 84px;
+  float: none;
+  width: auto;
+  max-width: none;
+  min-width: 0;
+  padding: 0.55rem;
+  border-radius: 12px;
+}
+
+body.sbdp-commercial-flow--account .woocommerce-MyAccount-navigation ul {
+  display: grid;
+  gap: 0.15rem;
+  margin: 0;
+  padding: 0;
+}
+
+body.sbdp-commercial-flow--account .woocommerce-MyAccount-navigation li {
+  margin: 0;
+}
+
+body.sbdp-commercial-flow--account .woocommerce-MyAccount-navigation a {
+  display: flex;
+  align-items: center;
+  min-height: 42px;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  color: color-mix(in srgb, var(--ddb-commerce-text) 78%, transparent);
+  font-size: 0.95rem;
+  font-weight: 750;
+  text-decoration: none;
+}
+
+body.sbdp-commercial-flow--account .woocommerce-MyAccount-navigation .is-active a,
+body.sbdp-commercial-flow--account .woocommerce-MyAccount-navigation a:hover,
+body.sbdp-commercial-flow--account .woocommerce-MyAccount-navigation a:focus-visible {
+  border-color: color-mix(in srgb, var(--ddb-commerce-accent-gold) 36%, transparent);
+  background: color-mix(in srgb, var(--ddb-commerce-accent-gold) 12%, transparent);
+  color: var(--ddb-commerce-text);
+  outline: none;
+}
+
+body.sbdp-commercial-flow--account .ddb-commercial-flow__content > .woocommerce-MyAccount-content {
+  float: none;
+  min-width: 0;
+  width: 100%;
+  max-width: none;
+  padding: clamp(1rem, 1.8vw, 1.35rem);
+  border-color: color-mix(in srgb, var(--ddb-commerce-border) 24%, transparent);
+  border-radius: 14px;
+  overflow: visible;
+}
+
+body.sbdp-commercial-flow--account .woocommerce-MyAccount-content > .woocommerce-notices-wrapper:empty {
+  display: none;
+}
+
+body.sbdp-commercial-flow--account .woocommerce-MyAccount-content > p:first-of-type {
+  display: none;
+}
+
+body.sbdp-commercial-flow--account .ddb-account-dashboard {
+  display: grid;
+  gap: 24px;
+  width: 100%;
+}
+
+body.sbdp-commercial-flow--account .ddb-account-dashboard__metrics {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+body.sbdp-commercial-flow--account .ddb-account-dashboard__metric {
+  min-height: 92px;
+  padding: 1rem;
+  border-radius: 12px;
+}
+
+body.sbdp-commercial-flow--account .ddb-account-dashboard__metric strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: var(--ddb-commerce-text);
+  font-family: var(--ui-font-display, inherit);
+  font-size: clamp(1.75rem, 2.3vw, 2.3rem);
+  line-height: 1;
+}
+
+body.sbdp-commercial-flow--account .ddb-account-dashboard__metric span {
+  display: block;
+  color: var(--ddb-commerce-text);
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+body.sbdp-commercial-flow--account .ddb-account-dashboard__metric p {
+  margin: 0.2rem 0 0;
+  color: color-mix(in srgb, var(--ddb-commerce-text) 68%, transparent);
+  font-size: 0.86rem;
+}
+
+body.sbdp-commercial-flow--account .ddb-account-dashboard__metric--warning,
+body.sbdp-commercial-flow--account .ddb-account-dashboard__action--critical,
+body.sbdp-commercial-flow--account .ddb-account-dashboard__action--warning {
+  border-color: color-mix(in srgb, var(--ddb-commerce-accent-gold) 36%, var(--ddb-commerce-border));
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--ddb-commerce-accent-gold) 13%, #17120c), #0d0d0d),
+    #101010;
+}
+
+body.sbdp-commercial-flow--account .ddb-account-dashboard__grid {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+
+body.sbdp-commercial-flow--account .ddb-account-dashboard__next,
+body.sbdp-commercial-flow--account .ddb-account-dashboard__orders {
+  grid-column: 1;
+}
+
+body.sbdp-commercial-flow--account .ddb-account-dashboard__actions,
+body.sbdp-commercial-flow--account .ddb-account-dashboard__tickets {
+  grid-column: 2;
+}
+
+body.sbdp-commercial-flow--account .ddb-account-dashboard__actions {
+  grid-row: 1;
+}
+
+body.sbdp-commercial-flow--account .ddb-account-dashboard__tickets {
+  grid-row: 2;
+}
+
+body.sbdp-commercial-flow--account .ddb-account-dashboard__quotes,
+body.sbdp-commercial-flow--account .ddb-account-dashboard__support {
+  grid-column: 1 / -1;
+}
+
+body.sbdp-commercial-flow--account .ddb-account-dashboard__panel {
+  min-width: 0;
+  padding: clamp(1rem, 1.7vw, 1.3rem);
+  border-radius: 14px;
+}
+
+body.sbdp-commercial-flow--account .ddb-account-dashboard__panel-head,
+body.sbdp-commercial-flow--account .ddb-account-dashboard__next {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+body.sbdp-commercial-flow--account .ddb-account-dashboard__eyebrow {
+  margin: 0 0 0.35rem;
+  color: var(--ddb-commerce-accent-gold);
+  font-size: 0.78rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+body.sbdp-commercial-flow--account .ddb-account-dashboard h2,
+body.sbdp-commercial-flow--account .ddb-account-dashboard h3 {
+  margin: 0;
+  color: var(--ddb-commerce-text);
+  font-family: var(--ui-font-display, inherit);
+  line-height: 1.15;
+}
+
+body.sbdp-commercial-flow--account .ddb-account-dashboard h2 {
+  font-size: clamp(1.25rem, 1.7vw, 1.65rem);
+}
+
+body.sbdp-commercial-flow--account .ddb-account-dashboard h3 {
+  font-size: clamp(1rem, 1.25vw, 1.2rem);
+}
+
+body.sbdp-commercial-flow--account .ddb-account-dashboard p {
+  color: color-mix(in srgb, var(--ddb-commerce-text) 72%, transparent);
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+body.sbdp-commercial-flow--account .ddb-account-dashboard__button,
+body.sbdp-commercial-flow--account .ddb-account-dashboard a.ddb-account-dashboard__button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  padding: 0.72rem 1rem;
+  border-radius: 8px;
+  font-size: 0.92rem;
+  font-weight: 850;
+  text-decoration: none;
+}
+
+body.sbdp-commercial-flow--account .ddb-account-dashboard__button--primary {
+  background: var(--ddb-commerce-accent-gold);
+  color: #17120a;
+}
+
+body.sbdp-commercial-flow--account .ddb-account-dashboard__button--secondary {
+  border: 1px solid color-mix(in srgb, var(--ddb-commerce-border) 88%, transparent);
+  background: color-mix(in srgb, #171717 90%, transparent);
+  color: var(--ddb-commerce-text);
+}
+
+body.sbdp-commercial-flow--account .ddb-account-dashboard__table {
+  width: 100%;
+  min-width: 660px;
+  border-collapse: collapse;
+  border: 0;
+  font-size: 0.92rem;
+}
+
+body.sbdp-commercial-flow--account .ddb-account-dashboard__table-wrap {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+body.sbdp-commercial-flow--account .ddb-account-dashboard__table th,
+body.sbdp-commercial-flow--account .ddb-account-dashboard__table td {
+  padding: 0.78rem 0.65rem;
+  border: 0 !important;
+  border-bottom: 1px solid color-mix(in srgb, var(--ddb-commerce-border) 30%, transparent) !important;
+  text-align: left;
+  vertical-align: middle;
+}
+
+body.sbdp-commercial-flow--account .ddb-account-dashboard__table tr:last-child td {
+  border-bottom: 0 !important;
+}
+
+body.sbdp-commercial-flow--account .ddb-account-dashboard__table th {
+  color: color-mix(in srgb, var(--ddb-commerce-text) 62%, transparent);
+  font-size: 0.78rem;
+  font-weight: 850;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+body.sbdp-commercial-flow--account .ddb-account-dashboard__table td {
+  color: var(--ddb-commerce-text);
+}
+
+body.sbdp-commercial-flow--account .ddb-account-dashboard__amount {
+  text-align: right;
+  white-space: nowrap;
+}
+
+body.sbdp-commercial-flow--account .ddb-account-dashboard__status {
+  display: inline-flex;
+  align-items: center;
+  min-height: 1.8rem;
+  padding: 0.25rem 0.55rem;
+  border: 1px solid color-mix(in srgb, var(--ddb-commerce-border) 34%, transparent);
+  border-radius: 999px;
+  color: var(--ddb-commerce-text);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+body.sbdp-commercial-flow--account .ddb-account-dashboard__quote-list,
+body.sbdp-commercial-flow--account .ddb-account-dashboard__action-list,
+body.sbdp-commercial-flow--account .ddb-account-dashboard__quicklinks {
+  display: grid;
+  gap: 0.75rem;
+}
+
+body.sbdp-commercial-flow--account .ddb-account-dashboard__quote,
+body.sbdp-commercial-flow--account .ddb-account-dashboard__action {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 0.85rem 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--ddb-commerce-border) 28%, transparent);
+}
+
+body.sbdp-commercial-flow--account .ddb-account-dashboard__quote:last-child,
+body.sbdp-commercial-flow--account .ddb-account-dashboard__action:last-child {
+  border-bottom: 0;
+}
+
+body.sbdp-commercial-flow--account .ddb-account-dashboard__quote span,
+body.sbdp-commercial-flow--account .ddb-account-dashboard__action span {
+  color: var(--ddb-commerce-accent-gold);
+  font-size: 0.78rem;
+  font-weight: 850;
+}
+
+body.sbdp-commercial-flow--account .ddb-account-dashboard__action {
+  grid-template-columns: 1fr;
+  padding: 1rem;
+  border: 1px solid color-mix(in srgb, var(--ddb-commerce-border) 34%, transparent);
+  border-radius: 12px;
+}
+
+body.sbdp-commercial-flow--account .ddb-account-dashboard__empty {
+  padding: 0.95rem;
+  border: 1px dashed color-mix(in srgb, var(--ddb-commerce-border) 80%, transparent);
+  border-radius: 10px;
+}
+
+body.sbdp-commercial-flow--account .ddb-account-dashboard__quicklinks a,
+body.sbdp-commercial-flow--account .ddb-account-dashboard__panel-head a,
+body.sbdp-commercial-flow--account .ddb-account-dashboard__table a,
+body.sbdp-commercial-flow--account .ddb-account-dashboard__quote a {
+  color: var(--ddb-commerce-accent-gold);
+  font-weight: 800;
+  text-decoration: none;
+}
+
+body.sbdp-commercial-flow--account .ddb-account-dashboard__footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.8rem 1.25rem;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 72px;
+  margin-top: 24px;
+  padding: 1rem 0;
+  border-top: 1px solid color-mix(in srgb, var(--ddb-commerce-border) 28%, transparent);
+  color: color-mix(in srgb, var(--ddb-commerce-text) 66%, transparent);
+  font-size: 0.9rem;
+}
+
+body.sbdp-commercial-flow--account .ddb-account-dashboard__footer nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+body.sbdp-commercial-flow--account .ddb-account-dashboard__footer a {
+  color: color-mix(in srgb, var(--ddb-commerce-text) 72%, transparent);
+  text-decoration: none;
+}
+
+body.sbdp-commercial-flow--account .elementor-292,
+body.sbdp-commercial-flow--account .ddb-site-footer {
+  display: none;
+}
+
+@media (max-width: 1199px) {
+  body.sbdp-commercial-flow--account .ddb-commercial-flow__content {
+    grid-template-columns: minmax(185px, 210px) minmax(0, 1fr);
+  }
+
+  body.sbdp-commercial-flow--account .ddb-account-dashboard__grid {
+    grid-template-columns: 1fr;
+  }
+
+  body.sbdp-commercial-flow--account .ddb-account-dashboard__next,
+  body.sbdp-commercial-flow--account .ddb-account-dashboard__orders,
+  body.sbdp-commercial-flow--account .ddb-account-dashboard__actions,
+  body.sbdp-commercial-flow--account .ddb-account-dashboard__tickets,
+  body.sbdp-commercial-flow--account .ddb-account-dashboard__quotes,
+  body.sbdp-commercial-flow--account .ddb-account-dashboard__support {
+    grid-column: 1;
+    grid-row: auto;
+  }
+}
+
+@media (max-width: 900px) {
+  body.sbdp-commercial-flow--account .ddb-commercial-flow {
+    width: min(1400px, calc(100% - 2rem));
+  }
+
+  body.sbdp-commercial-flow--account .ddb-commercial-flow__content {
+    grid-template-columns: 1fr;
+  }
+
+  body.sbdp-commercial-flow--account .ddb-commercial-flow__content > .woocommerce-MyAccount-navigation {
+    position: static;
+  }
+
+  body.sbdp-commercial-flow--account .woocommerce-MyAccount-navigation ul {
+    display: flex;
+    gap: 0.4rem;
+    overflow-x: auto;
+    padding-bottom: 0.2rem;
+  }
+
+  body.sbdp-commercial-flow--account .woocommerce-MyAccount-navigation li {
+    flex: 0 0 auto;
+  }
+
+  body.sbdp-commercial-flow--account .ddb-account-dashboard__metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+}
+
+@media (max-width: 640px) {
+  body.sbdp-commercial-flow--account .ddb-commercial-flow {
+    width: min(1400px, calc(100% - 1.5rem));
+  }
+
+  body.sbdp-commercial-flow--account .ddb-account-dashboard__header,
+  body.sbdp-commercial-flow--account .ddb-account-dashboard__panel-head,
+  body.sbdp-commercial-flow--account .ddb-account-dashboard__next {
+    grid-template-columns: 1fr;
+    display: grid;
+    justify-items: start;
+  }
+
+  body.sbdp-commercial-flow--account .ddb-account-dashboard__header-actions {
+    width: 100%;
+    justify-content: stretch;
+  }
+
+  body.sbdp-commercial-flow--account .ddb-account-dashboard__header-actions .ddb-account-dashboard__button {
+    flex: 1 1 100%;
+  }
+
+  body.sbdp-commercial-flow--account .ddb-account-dashboard__metrics {
+    grid-template-columns: 1fr;
+  }
+
+  body.sbdp-commercial-flow--account .ddb-account-dashboard__table,
+  body.sbdp-commercial-flow--account .ddb-account-dashboard__table thead,
+  body.sbdp-commercial-flow--account .ddb-account-dashboard__table tbody,
+  body.sbdp-commercial-flow--account .ddb-account-dashboard__table tr,
+  body.sbdp-commercial-flow--account .ddb-account-dashboard__table th,
+  body.sbdp-commercial-flow--account .ddb-account-dashboard__table td {
+    display: block;
+    min-width: 0;
+  }
+
+  body.sbdp-commercial-flow--account .ddb-account-dashboard__table thead {
+    display: none;
+  }
+
+  body.sbdp-commercial-flow--account .ddb-account-dashboard__table tr {
+    padding: 0.85rem 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--ddb-commerce-border) 58%, transparent);
+  }
+
+  body.sbdp-commercial-flow--account .ddb-account-dashboard__table td {
+    display: grid;
+    grid-template-columns: 7.5rem minmax(0, 1fr);
+    gap: 0.75rem;
+    padding: 0.25rem 0;
+    border: 0;
+  }
+
+  body.sbdp-commercial-flow--account .ddb-account-dashboard__table td::before {
+    content: attr(data-label);
+    color: color-mix(in srgb, var(--ddb-commerce-text) 62%, transparent);
+    font-size: 0.78rem;
+    font-weight: 850;
+    text-transform: uppercase;
+  }
+
+  body.sbdp-commercial-flow--account .ddb-account-dashboard__quote {
     grid-template-columns: 1fr;
   }
 }

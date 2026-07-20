@@ -90,6 +90,11 @@ final class OperationsSyncService
      */
     private function deriveBookingReference(array $booking): string
     {
+        $explicit = trim((string) ($booking['booking_reference'] ?? ''));
+        if ($explicit !== '') {
+            return $explicit;
+        }
+
         $bookingId = isset($booking['id']) ? (int) $booking['id'] : 0;
 
         return $bookingId > 0 ? sprintf('booking:%d', $bookingId) : 'booking:0';

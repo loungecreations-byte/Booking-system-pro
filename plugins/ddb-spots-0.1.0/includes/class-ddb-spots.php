@@ -741,7 +741,7 @@ class DDB_Spots {
 
 		ob_start();
 		?>
-		<div class="ddb-spots-listing ddb-spots-listing--<?php echo esc_attr($variant); ?> ddb-listing-shell" data-ddb-component="listing-shell">
+		<div class="ddb-spots-listing ddb-spots-listing--<?php echo esc_attr($variant); ?> ddb-listing-shell<?php echo 'map-first' === $variant ? ' is-map-open' : ''; ?>" data-ddb-component="listing-shell">
 			<form method="get" class="ddb-listing-toolbar ui-summary ui-summary--compact" aria-label="<?php esc_attr_e('Spot filters', 'ddb-spots'); ?>">
 				<input type="hidden" name="ddb_page" value="1" />
 				<div class="ddb-listing-toolbar__row">
@@ -784,7 +784,7 @@ class DDB_Spots {
 						<button type="button" class="ui-btn ui-btn--ghost ddb-listing-btn ddb-listing-btn--theme" data-ddb-theme-toggle data-light-label="<?php echo esc_attr__('Lichte modus', 'ddb-spots'); ?>" data-dark-label="<?php echo esc_attr__('Donkere modus', 'ddb-spots'); ?>"><?php esc_html_e('Thema', 'ddb-spots'); ?></button>
 					<?php endif; ?>
 					<?php if ($show_map) : ?>
-						<button type="button" class="ui-btn ui-btn--secondary ddb-listing-btn ddb-listing-btn--map" data-ddb-map-toggle><?php esc_html_e('Kaart tonen', 'ddb-spots'); ?></button>
+						<button type="button" class="ui-btn ui-btn--secondary ddb-listing-btn ddb-listing-btn--map" data-ddb-map-toggle><?php esc_html_e('Resultaten tonen', 'ddb-spots'); ?></button>
 					<?php endif; ?>
 				</div>
 			</form>
@@ -848,13 +848,7 @@ class DDB_Spots {
 						<div class="ddb-listing-map__sticky ui-summary ui-summary--compact">
 							<h3><?php esc_html_e('Plattegrond', 'ddb-spots'); ?></h3>
 							<?php if (! empty($map_points) && null !== $active_map) : ?>
-								<iframe
-									class="ddb-listing-map__frame"
-									data-ddb-map-frame
-									title="<?php esc_attr_e('Kaart van spots', 'ddb-spots'); ?>"
-									src="<?php echo esc_url((string) $active_map['embed_url']); ?>"
-									loading="lazy"
-									referrerpolicy="no-referrer-when-downgrade"></iframe>
+								<div class="ddb-listing-map__canvas" data-ddb-map-canvas role="img" aria-label="<?php esc_attr_e('Kaart met geladen spots', 'ddb-spots'); ?>"></div>
 								<p class="ddb-listing-map__focus" data-ddb-map-focus>
 									<strong data-ddb-map-title><?php echo esc_html((string) $active_map['title']); ?></strong>
 									<span data-ddb-map-address><?php echo esc_html((string) $active_map['address']); ?></span>
@@ -869,6 +863,8 @@ class DDB_Spots {
 											data-spot-id="<?php echo esc_attr((string) $point['id']); ?>"
 											data-embed-url="<?php echo esc_attr((string) $point['embed_url']); ?>"
 											data-map-url="<?php echo esc_attr((string) $point['maps_url']); ?>"
+											data-lat="<?php echo esc_attr((string) $point['lat']); ?>"
+											data-lng="<?php echo esc_attr((string) $point['lng']); ?>"
 											data-title="<?php echo esc_attr((string) $point['title']); ?>"
 											data-address="<?php echo esc_attr((string) $point['address']); ?>">
 											<span><?php echo esc_html((string) $point['title']); ?></span>
@@ -932,7 +928,12 @@ class DDB_Spots {
 		}
 		$price_badge = '' !== $price_label ? '<span class="ui-listing-card__price ddb-spot-card__price">' . esc_html($price_label) . '</span>' : '';
 		$safe_excerpt = '' !== trim($excerpt) ? '<p class="ddb-spot-card__excerpt">' . esc_html(wp_trim_words($excerpt, 12, '...')) . '</p>' : '';
-		$cta = $this->get_cta_markup($id, 'card', 'secondary');
+		$cta = sprintf(
+			'<button type="button" class="ui-listing-card__cta ui-listing-card__cta--secondary ddb-spot-cta-button ddb-spot-cta-button--add-to-plan" data-ddb-add-to-day data-ddb-track="add_to_plan" data-ddb-context="card_add_to_plan" data-ddb-spot-id="%1$s" data-ddb-spot-type="%2$s" data-ddb-cta-type="add_to_day">%3$s</button>',
+			esc_attr((string) $id),
+			esc_attr($type_slug),
+			esc_html__('Voeg toe aan plan', 'ddb-spots')
+		);
 		$detail_variant = 'primary';
 		$detail_button = sprintf(
 			'<a class="ui-listing-card__cta ui-listing-card__cta--%5$s ddb-spot-cta-button ddb-spot-cta-button--detail" href="%1$s" data-ddb-track="card_click" data-ddb-context="card_detail" data-ddb-spot-id="%2$s" data-ddb-spot-type="%3$s">%4$s</a>',
@@ -1595,8 +1596,16 @@ class DDB_Spots {
 				wp_enqueue_style('ddb-core-ui-listing-cards');
 			}
 			// Base core styles
+			$leaflet_css_path = DDB_SPOTS_PATH . 'assets/vendor/leaflet/leaflet.css';
+			$leaflet_js_path = DDB_SPOTS_PATH . 'assets/vendor/leaflet/leaflet.js';
+			$leaflet_css_version = file_exists($leaflet_css_path) ? (string) filemtime($leaflet_css_path) : '1.9.4';
+			$leaflet_js_version = file_exists($leaflet_js_path) ? (string) filemtime($leaflet_js_path) : '1.9.4';
+			wp_enqueue_style('ddb-spots-leaflet', DDB_SPOTS_URL . 'assets/vendor/leaflet/leaflet.css', array(), $leaflet_css_version);
 			wp_enqueue_style('ddb-spots-core', DDB_SPOTS_URL . 'assets/css/ddb-spots.css', array('ddb-core-ui', 'ddb-core-ui-listing-cards'), $spots_css_version);
-			wp_enqueue_script('ddb-spots-core', DDB_SPOTS_URL . 'assets/js/ddb-spots.js', array(), DDB_SPOTS_VERSION, true);
+			wp_enqueue_script('ddb-spots-leaflet', DDB_SPOTS_URL . 'assets/vendor/leaflet/leaflet.js', array(), $leaflet_js_version, true);
+			$spots_js_path = DDB_SPOTS_PATH . 'assets/js/ddb-spots.js';
+			$spots_js_version = file_exists($spots_js_path) ? (string) filemtime($spots_js_path) : DDB_SPOTS_VERSION;
+			wp_enqueue_script('ddb-spots-core', DDB_SPOTS_URL . 'assets/js/ddb-spots.js', array('ddb-spots-leaflet'), $spots_js_version, true);
 			
 			// Component specific styles (if files existed or were split)
 			if (is_singular(DDB_Spots_Core_Schema::POST_TYPE)) {

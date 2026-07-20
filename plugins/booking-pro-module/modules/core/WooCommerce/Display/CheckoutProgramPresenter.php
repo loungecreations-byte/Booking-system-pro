@@ -14,6 +14,7 @@ final class CheckoutProgramPresenter {
 	private static bool $booted = false;
 
 	private const REQUEST_STATUS_LABEL = 'Aanvraag wordt gecontroleerd';
+	private const DIRECT_STATUS_LABEL = 'Direct boekbaar';
 	private const TIME_PENDING_LABEL = 'Tijd wordt bevestigd';
 	private const REQUEST_ONLY_LABEL = 'Op aanvraag';
 	private const PRICE_ON_REQUEST_LABEL = 'Prijs op aanvraag';
@@ -588,6 +589,10 @@ final class CheckoutProgramPresenter {
 
 		if ( in_array( $routeIntent, array( 'quote', 'request' ), true ) || $capability === 'REQUEST' ) {
 			return self::REQUEST_STATUS_LABEL;
+		}
+
+		if ( $routeIntent === 'checkout' || in_array( $capability, array( 'DIRECT', 'DIRECT_LIMITED', 'DIRECT_ELIGIBLE' ), true ) ) {
+			return self::DIRECT_STATUS_LABEL;
 		}
 
 		if ( $time === '' ) {

@@ -37,13 +37,22 @@ final class EnqueueService
         add_action('elementor/editor/before_enqueue_scripts', [__CLASS__, 'enqueue_for_elementor']);
         add_action('elementor/preview/enqueue_styles', [__CLASS__, 'enqueue_for_elementor']);
         add_action('admin_enqueue_scripts', [__CLASS__, 'enqueue_admin_assets']);
+        add_filter('wp_preload_resources', [__CLASS__, 'preload_product_page_resources']);
     }
 
     public static function register_front_assets(): void
     {
+        $commercialFlowVersion = defined('SBDP_VER') ? SBDP_VER : '1.0.0';
+        if (defined('SBDP_DIR') && function_exists('filemtime')) {
+            $commercialFlowPath = SBDP_DIR . 'assets/css/sbdp-cart-checkout.css';
+            if (is_readable($commercialFlowPath)) {
+                $commercialFlowVersion = (string) filemtime($commercialFlowPath);
+            }
+        }
+
         wp_register_style(
             self::FRONT_HANDLE_STYLE,
-            SBDP_URL . 'assets/planner.css',
+            SBDP_URL . 'assets/css/day-planner-refresh.css',
             [],
             SBDP_VER
         );
@@ -100,7 +109,7 @@ final class EnqueueService
             self::COMMERCIAL_FLOW_HANDLE,
             SBDP_URL . 'assets/css/sbdp-cart-checkout.css',
             [self::GLOBAL_THEME_HANDLE, 'sbdp-flow-system'],
-            SBDP_VER
+            $commercialFlowVersion
         );
     }
 
@@ -538,6 +547,53 @@ final class EnqueueService
                 ]
             );
         }
+    }
+
+    /**
+     * @param array<int, array<string, string>> $resources
+     * @return array<int, array<string, string>>
+     */
+    public static function preload_product_page_resources(array $resources): array
+    {
+        if (is_admin() || ! function_exists('is_product') || ! is_product()) {
+            return $resources;
+        }
+
+        $src = self::resolve_day_planner_script_url();
+        if ($src === '') {
+            return $resources;
+        }
+
+        $resources[] = [
+            'href' => $src,
+            'as'   => 'script',
+        ];
+
+        return $resources;
+    }
+
+    private static function resolve_day_planner_script_url(): string
+    {
+        if (defined('SBDP_DIR')) {
+            $manifest_path = SBDP_DIR . 'build/.vite/manifest.json';
+            if (is_readable($manifest_path)) {
+                $manifest = json_decode((string) file_get_contents($manifest_path), true);
+                if (
+                    is_array($manifest)
+                    && isset($manifest['assets/js/day-planner/index.jsx']['file'])
+                    && is_string($manifest['assets/js/day-planner/index.jsx']['file'])
+                ) {
+                    return SBDP_URL . 'build/' . ltrim($manifest['assets/js/day-planner/index.jsx']['file'], '/');
+                }
+            }
+        }
+
+        $fallback_path = 'assets/js/day-planner/dist/dayPlanner.js';
+        if (defined('SBDP_DIR') && is_readable(SBDP_DIR . $fallback_path)) {
+            return SBDP_URL . $fallback_path;
+        }
+
+        return SBDP_URL . 'build/js/dayPlanner.js';
     }
 
     private static function enqueue_front_assets(): void

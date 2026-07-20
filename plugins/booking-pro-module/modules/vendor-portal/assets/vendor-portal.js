@@ -26,6 +26,18 @@
             confirmationsSection: root.querySelector('[data-sbdp-confirmations-section]'),
             confirmationsCount: root.querySelector('[data-sbdp-confirmations-count]'),
             confirmationsList: root.querySelector('[data-sbdp-confirmations-list]'),
+            actionOpenCount: root.querySelector('[data-sbdp-action-open-count]'),
+            actionUrgentCount: root.querySelector('[data-sbdp-action-urgent-count]'),
+            actionEmpty: root.querySelector('[data-sbdp-action-empty]'),
+            actionRefresh: root.querySelector('[data-sbdp-action-refresh]'),
+            actionDialog: root.querySelector('[data-sbdp-action-dialog]'),
+            actionDialogForm: root.querySelector('[data-sbdp-action-dialog-form]'),
+            actionDialogType: root.querySelector('[data-sbdp-action-dialog-type]'),
+            actionDialogTitle: root.querySelector('[data-sbdp-action-dialog-title]'),
+            actionDialogCopy: root.querySelector('[data-sbdp-action-dialog-copy]'),
+            actionDialogNote: root.querySelector('[data-sbdp-action-dialog-note]'),
+            actionDialogError: root.querySelector('[data-sbdp-action-dialog-error]'),
+            actionDialogSubmit: root.querySelector('[data-sbdp-action-dialog-submit]'),
             vendorSection: root.querySelector('[data-sbdp-vendor]'),
             vendorName: root.querySelector('[data-sbdp-vendor-name]'),
             vendorStatus: root.querySelector('[data-sbdp-vendor-status]'),
@@ -42,10 +54,16 @@
             toggleViewBtn: root.querySelector('[data-sbdp-toggle-view]'),
             downloadCsvBtn: root.querySelector('[data-sbdp-download-csv]'),
             kpiTotalBookings: root.querySelector('[data-sbdp-kpi-total-bookings]'),
+            kpiYtdRevenue: root.querySelector('[data-sbdp-kpi-ytd-revenue]'),
             kpiMonthRevenue: root.querySelector('[data-sbdp-kpi-month-revenue]'),
+            kpiYtdYear: root.querySelector('[data-sbdp-kpi-ytd-year]'),
             kpiMonthRange: root.querySelector('[data-sbdp-kpi-month-range]'),
             kpiPending: root.querySelector('[data-sbdp-kpi-pending]'),
             kpiAverageSize: root.querySelector('[data-sbdp-kpi-average-size]'),
+            chartSvg: root.querySelector('[data-sbdp-chart]'),
+            chartEmpty: root.querySelector('[data-sbdp-chart-empty]'),
+            recentCards: root.querySelector('[data-sbdp-recent-cards]'),
+            actionsCount: root.querySelector('[data-sbdp-actions-count]'),
             googlePanel: root.querySelector('[data-sbdp-google-panel]'),
             googleStatus: root.querySelector('[data-sbdp-google-status]'),
             googleMessage: root.querySelector('[data-sbdp-google-message]'),
@@ -62,7 +80,7 @@
             networkError: 'Netwerkfout. Probeer het later opnieuw.',
             refreshSuccess: 'Dashboard bijgewerkt.',
             filterResourceAll: 'Alle resources',
-            noBookings: 'Geen boekingen gevonden.',
+            noBookings: 'Nog geen boekingen voor deze partner. Nieuwe bevestigingen en boekingen verschijnen hier zodra ze aan deze vendor gekoppeld zijn.',
             cardDate: 'Datum',
             cardTime: 'Tijd',
             cardParticipants: 'Deelnemers',
@@ -105,6 +123,11 @@
             confirmationResponded: 'Reactie verwerkt.',
             confirmationDeclinePrompt: 'Waarom kun je deze stop niet bevestigen?',
             confirmationAlternativePrompt: 'Welk alternatief stel je voor?',
+            actionConfirmationType: 'Partnerbevestiging',
+            actionNeedsResponse: 'Reactie nodig',
+            actionWithin48Hours: 'Binnen 48 uur',
+            actionConfirmCopy: 'Bevestig dat deze activiteit op het voorgestelde moment kan doorgaan.',
+            actionNoteRequired: 'Een toelichting is verplicht.',
             dietaryTitle: 'Allergieën te beoordelen',
             dietaryEmpty: 'Geen openstaande allergie-beoordelingen.',
             dietaryAccept: 'Allergieën accepteren',
@@ -134,9 +157,12 @@
             financial: null,
             calendar: null,
             vendor: null,
-            view: 'table',
+            view: window.innerWidth < 768 ? 'cards' : 'table',
+            activeTab: 'overview',
             currency: 'EUR',
-            dietaryPending: []
+            dietaryPending: [],
+            actionFilter: 'all',
+            pendingConfirmationAction: null
         };
 
         initialise();
@@ -146,6 +172,10 @@
             clearNotice();
             ensurePlaceholder();
             registerEvents();
+            initTabs();
+            if (elements.scheduleSection) {
+                elements.scheduleSection.dataset.sbdpView = state.view;
+            }
             updateViewButton();
 
             if (state.session) {
@@ -179,6 +209,25 @@
             if (elements.confirmationsList) {
                 elements.confirmationsList.addEventListener('click', handleConfirmationClick);
             }
+
+            root.querySelectorAll('[data-sbdp-action-filter]').forEach(function (button) {
+                button.addEventListener('click', function () {
+                    setActionFilter(button.getAttribute('data-sbdp-action-filter'));
+                });
+            });
+
+            if (elements.actionRefresh) {
+                elements.actionRefresh.addEventListener('click', function () {
+                    refreshDashboard().catch(function () {});
+                });
+            }
+
+            if (elements.actionDialogForm) {
+                elements.actionDialogForm.addEventListener('submit', handleActionDialogSubmit);
+            }
+            root.querySelectorAll('[data-sbdp-action-dialog-close], [data-sbdp-action-dialog-cancel]').forEach(function (button) {
+                button.addEventListener('click', closeActionDialog);
+            });
 
             if (elements.dietaryList) {
                 elements.dietaryList.addEventListener('click', handleDietaryClick);
@@ -227,6 +276,14 @@
                     });
                 });
             }
+
+            // Tab-goto buttons (e.g. "Alle boekingen →")
+            root.addEventListener('click', function (event) {
+                const btn = event.target && event.target.closest ? event.target.closest('[data-sbdp-tab-goto]') : null;
+                if (!btn) { return; }
+                const target = btn.getAttribute('data-sbdp-tab-goto');
+                if (target) { switchTab(target); }
+            });
         }
 
         function handleLogin(event) {
@@ -241,6 +298,7 @@
             const formData = new FormData(elements.loginForm);
             const vendorId = parseInt(formData.get('vendor_id'), 10) || 0;
             const accessKey = String(formData.get('access_key') || '').trim();
+            const rememberMe = !!formData.get('remember_me');
 
             if (!vendorId || !accessKey) {
                 showError(i18n.loginError);
@@ -253,18 +311,19 @@
                 method: 'POST',
                 body: {
                     vendor_id: vendorId,
-                    access_key: accessKey
+                    access_key: accessKey,
+                    remember_me: rememberMe
                 },
                 includeToken: false
             })
                 .then(function (response) {
                     state.session = {
-                        token: String(response.token || ''),
                         vendor_id: response.vendor_id,
                         expires_in: response.expires_in,
+                        remember_me: rememberMe,
                         stored_at: Date.now()
                     };
-                    storeSession(state.session);
+                    storeSession(state.session, rememberMe);
                     updateSessionLabel();
                     showDashboard(true);
                     return refreshDashboard({ silent: true, manageLoading: false });
@@ -292,9 +351,7 @@
 
             api('/logout', {
                 method: 'POST',
-                body: {
-                    token: state.session.token || ''
-                }
+                body: {}
             })
                 .catch(function () {
                     // ignore logout failures
@@ -308,7 +365,7 @@
         function refreshDashboard(options) {
             const settings = Object.assign({ silent: false, manageLoading: true }, options);
 
-            if (!state.session || !state.session.token) {
+            if (!state.session) {
                 return Promise.resolve();
             }
 
@@ -361,13 +418,13 @@
         }
 
         function refreshGoogleStatus() {
-            if (!state.session || !state.session.token) {
+            if (!state.session) {
                 return Promise.resolve();
             }
 
             setGoogleLoading(true);
 
-            return api(withToken('/google-status'))
+            return api('/google-status')
                 .then(function (response) {
                     if (response && response.status) {
                         renderGoogle(response.status);
@@ -387,7 +444,7 @@
         }
 
         function syncGoogleCalendar() {
-            if (!state.session || !state.session.token) {
+            if (!state.session) {
                 return Promise.resolve();
             }
 
@@ -395,9 +452,7 @@
 
             return api('/google-sync', {
                 method: 'POST',
-                body: {
-                    token: state.session.token
-                }
+                body: {}
             })
                 .then(function (response) {
                     if (response && response.status) {
@@ -426,6 +481,9 @@
             renderResources();
             applyFilters();
             renderGoogle(state.calendar);
+            renderRecentCards();
+            updateActionsCount();
+            applyActionFilter();
         }
 
         function renderVendorProfile() {
@@ -491,7 +549,11 @@
 
             elements.confirmationsList.innerHTML = '';
 
-            if (!Array.isArray(state.confirmations) || !state.confirmations.length) {
+            const confirmations = Array.isArray(state.confirmations)
+                ? state.confirmations.filter(function (item) { return isConfirmationActionable(item.status); }).sort(compareActionDate)
+                : [];
+
+            if (!confirmations.length) {
                 elements.confirmationsSection.hidden = true;
                 if (elements.confirmationsCount) {
                     elements.confirmationsCount.textContent = '0';
@@ -500,14 +562,14 @@
             }
 
             const fragment = document.createDocumentFragment();
-            state.confirmations.forEach(function (confirmation) {
+            confirmations.forEach(function (confirmation) {
                 fragment.appendChild(createConfirmationCard(confirmation));
             });
             elements.confirmationsList.appendChild(fragment);
             elements.confirmationsSection.hidden = false;
 
             if (elements.confirmationsCount) {
-                elements.confirmationsCount.textContent = String(state.confirmations.length);
+                elements.confirmationsCount.textContent = String(confirmations.length);
             }
         }
 
@@ -540,7 +602,7 @@
 
         function createDietaryCard(dietaryEntry) {
             const card = document.createElement('article');
-            card.className = 'sbdp-vendor-portal__card sbdp-vendor-portal__dietary-card';
+            card.className = 'sbdp-vendor-portal__card sbdp-vendor-portal__dietary-card sbdp-vp-action-card';
 
             const legKey = String(dietaryEntry.leg_key || dietaryEntry.booking_reference || '');
             const profiles = Array.isArray(dietaryEntry.profiles) ? dietaryEntry.profiles : [];
@@ -627,7 +689,7 @@
             rejectForm.appendChild(cancelBtn);
 
             const actions = document.createElement('div');
-            actions.className = 'sbdp-vendor-portal__header-actions';
+            actions.className = 'sbdp-vp-action-card__actions';
 
             const acceptBtn = document.createElement('button');
             acceptBtn.type = 'button';
@@ -660,7 +722,7 @@
 
             const legKey = String(button.getAttribute('data-sbdp-leg-key') || '').trim();
             const action = String(button.getAttribute('data-sbdp-dietary-action') || '').trim();
-            if (!legKey || !action || !state.session || !state.session.token) {
+            if (!legKey || !action || !state.session) {
                 return;
             }
 
@@ -681,7 +743,6 @@
             api('/dietary/respond', {
                 method: 'POST',
                 body: {
-                    token: state.session.token,
                     leg_key: legKey,
                     action: action,
                     note: note
@@ -709,8 +770,19 @@
             state.currency = currency;
 
             if (elements.kpiTotalBookings) {
-                const total = financial && typeof financial.total_bookings === 'number' ? financial.total_bookings : state.bookings.length;
+                const total = financial && typeof financial.ytd_bookings === 'number' ? financial.ytd_bookings : 0;
                 elements.kpiTotalBookings.textContent = String(total);
+            }
+
+            // YTD revenue
+            if (elements.kpiYtdRevenue) {
+                const ytd = financial && typeof financial.ytd_revenue === 'number' ? financial.ytd_revenue : (financial && typeof financial.paid_revenue === 'number' ? financial.paid_revenue : 0);
+                elements.kpiYtdRevenue.textContent = formatCurrency(ytd, currency);
+            }
+
+            if (elements.kpiYtdYear) {
+                const yr = financial && financial.ytd_year ? String(financial.ytd_year) : String(new Date().getFullYear());
+                elements.kpiYtdYear.textContent = yr;
             }
 
             if (elements.kpiMonthRevenue) {
@@ -732,17 +804,23 @@
                 const now = Date.now();
                 const upcoming = state.bookings.filter(function (booking) {
                     const ms = normaliseTimestamp(booking.timestamp);
-                    return ms >= now;
+                    return ms >= now && !isTerminalBookingStatus(booking.status);
                 });
 
-                const totalParticipants = upcoming.reduce(function (total, booking) {
-                    const participants = typeof booking.participants === 'number' ? booking.participants : parseInt(booking.participants, 10) || 0;
+                const participantCounts = upcoming.map(function (booking) {
+                    return canonicalParticipants(booking.participants);
+                }).filter(function (participants) { return participants !== null; });
+                const totalParticipants = participantCounts.reduce(function (total, participants) {
                     return total + participants;
                 }, 0);
 
-                const average = upcoming.length ? (totalParticipants / upcoming.length) : 0;
+                const average = participantCounts.length ? (totalParticipants / participantCounts.length) : 0;
                 elements.kpiAverageSize.textContent = average ? average.toFixed(1) : '-';
             }
+
+            // Render revenue chart
+            const monthly = financial && Array.isArray(financial.monthly_breakdown) ? financial.monthly_breakdown : [];
+            renderRevenueChart(monthly, currency);
         }
 
         function renderResources() {
@@ -894,31 +972,32 @@
 
             const legKey = String(button.getAttribute('data-sbdp-leg-key') || '').trim();
             const action = String(button.getAttribute('data-sbdp-confirm-action') || '').trim();
-            if (!legKey || !action || !state.session || !state.session.token) {
+            if (!legKey || !action || !state.session) {
                 return;
             }
 
-            let note = '';
-            if (action === 'decline') {
-                note = window.prompt(i18n.confirmationDeclinePrompt, '') || '';
-                if (!note.trim()) {
-                    return;
-                }
+            const confirmation = state.confirmations.find(function (item) {
+                return String(item.leg_key || '') === legKey;
+            }) || {};
+
+            if (action === 'alternative' || action === 'decline') {
+                openActionDialog(action, confirmation);
+                return;
             }
 
-            if (action === 'alternative') {
-                note = window.prompt(i18n.confirmationAlternativePrompt, '') || '';
-                if (!note.trim()) {
-                    return;
-                }
+            submitConfirmationAction(legKey, action, '', button);
+        }
+
+        function submitConfirmationAction(legKey, action, note, trigger) {
+            if (!state.session || !legKey || !action) { return Promise.resolve(); }
+            if (trigger) {
+                trigger.disabled = true;
+                trigger.setAttribute('aria-busy', 'true');
             }
 
-            setLoading(true);
-
-            api('/confirmations/respond', {
+            return api('/confirmations/respond', {
                 method: 'POST',
                 body: {
-                    token: state.session.token,
                     leg_key: legKey,
                     action: action,
                     note: note
@@ -926,6 +1005,7 @@
             })
                 .then(function () {
                     showNotice(i18n.confirmationResponded);
+                    closeActionDialog();
                     return refreshDashboard({ silent: true, manageLoading: false });
                 })
                 .catch(function (error) {
@@ -933,11 +1013,60 @@
                         handleUnauthorized(error.message);
                         return;
                     }
-                    showNotice(error && error.message ? error.message : i18n.networkError, true);
+                    const message = error && error.message ? error.message : i18n.networkError;
+                    if (elements.actionDialog && elements.actionDialog.open) {
+                        elements.actionDialogError.textContent = message;
+                        elements.actionDialogError.hidden = false;
+                    } else {
+                        showNotice(message, true);
+                    }
                 })
                 .finally(function () {
-                    setLoading(false);
+                    if (trigger) {
+                        trigger.disabled = false;
+                        trigger.removeAttribute('aria-busy');
+                    }
                 });
+        }
+
+        function openActionDialog(action, confirmation) {
+            if (!elements.actionDialog) { return; }
+            state.pendingConfirmationAction = {
+                action: action,
+                legKey: String(confirmation.leg_key || '')
+            };
+            elements.actionDialogType.textContent = i18n.actionConfirmationType;
+            elements.actionDialogTitle.textContent = String(confirmation.title || confirmation.booking_reference || i18n.actionNeedsResponse);
+            elements.actionDialogCopy.textContent = action === 'decline'
+                ? i18n.confirmationDeclinePrompt
+                : i18n.confirmationAlternativePrompt;
+            elements.actionDialogSubmit.textContent = action === 'decline' ? i18n.declineAction : i18n.alternativeAction;
+            elements.actionDialogSubmit.classList.toggle('sbdp-vendor-portal__button--danger', action === 'decline');
+            elements.actionDialogNote.value = '';
+            elements.actionDialogError.hidden = true;
+            if (typeof elements.actionDialog.showModal === 'function') { elements.actionDialog.showModal(); }
+            else { elements.actionDialog.setAttribute('open', ''); }
+            elements.actionDialogNote.focus();
+        }
+
+        function closeActionDialog() {
+            state.pendingConfirmationAction = null;
+            if (!elements.actionDialog) { return; }
+            if (typeof elements.actionDialog.close === 'function' && elements.actionDialog.open) { elements.actionDialog.close(); }
+            else { elements.actionDialog.removeAttribute('open'); }
+        }
+
+        function handleActionDialogSubmit(event) {
+            event.preventDefault();
+            const pending = state.pendingConfirmationAction;
+            const note = String(elements.actionDialogNote.value || '').trim();
+            if (!pending || !note) {
+                elements.actionDialogError.textContent = i18n.actionNoteRequired;
+                elements.actionDialogError.hidden = false;
+                return;
+            }
+            elements.actionDialogError.hidden = true;
+            submitConfirmationAction(pending.legKey, pending.action, note, elements.actionDialogSubmit);
         }
         function renderGoogle(calendar) {
             if (!elements.googlePanel) {
@@ -1016,7 +1145,7 @@
                     booking.date || '',
                     booking.time || '',
                     booking.customer || '',
-                    booking.participants || '',
+                    canonicalParticipants(booking.participants),
                     booking.resource || '',
                     booking.status || '',
                     booking.total || '',
@@ -1099,12 +1228,7 @@
         }
 
         function withToken(path) {
-            if (!state.session || !state.session.token) {
-                return path;
-            }
-
-            const separator = path.indexOf('?') === -1 ? '?' : '&';
-            return path + separator + 'token=' + encodeURIComponent(state.session.token);
+            return path;
         }
 
         function showDashboard(isAuthenticated) {
@@ -1218,7 +1342,7 @@
         }
 
         function resetSession(focusLogin) {
-            storeSession(null);
+            storeSession(null, false);
             state.session = null;
             state.bookings = [];
             state.confirmations = [];
@@ -1298,7 +1422,7 @@
                 booking.date || '',
                 booking.time || '',
                 booking.customer || '',
-                booking.participants || '',
+                canonicalParticipants(booking.participants),
                 booking.resource || '',
                 booking.status || ''
             ].forEach(function (value) {
@@ -1327,7 +1451,7 @@
             const list = document.createElement('ul');
             list.appendChild(createCardItem(i18n.cardDate, booking.date || ''));
             list.appendChild(createCardItem(i18n.cardTime, booking.time || ''));
-            list.appendChild(createCardItem(i18n.cardParticipants, booking.participants || ''));
+            list.appendChild(createCardItem(i18n.cardParticipants, canonicalParticipants(booking.participants)));
             list.appendChild(createCardItem(i18n.cardResource, booking.resource || ''));
             list.appendChild(createCardItem(i18n.cardTotal, formatCurrency(booking.total || 0, booking.currency || state.currency)));
             card.appendChild(list);
@@ -1337,39 +1461,72 @@
 
         function createConfirmationCard(confirmation) {
             const card = document.createElement('article');
-            card.className = 'sbdp-vendor-portal__card sbdp-vendor-portal__confirmation-card';
+            card.className = 'sbdp-vendor-portal__card sbdp-vendor-portal__confirmation-card sbdp-vp-action-card';
 
             const header = document.createElement('header');
+            const heading = document.createElement('div');
+            heading.className = 'sbdp-vp-action-card__heading';
+            const eyebrow = document.createElement('span');
+            eyebrow.className = 'sbdp-vp-action-card__eyebrow';
+            eyebrow.textContent = i18n.actionConfirmationType;
             const title = document.createElement('h4');
-            title.textContent = String(confirmation.title || confirmation.booking_reference || '');
+            title.textContent = String(confirmation.title || confirmation.booking_reference || i18n.actionNeedsResponse);
             const badge = document.createElement('span');
-            badge.className = 'sbdp-vendor-portal__badge';
-            badge.textContent = String(confirmation.status || '');
-            header.appendChild(title);
+            badge.className = 'sbdp-vendor-portal__badge sbdp-vp-action-card__status';
+            badge.textContent = i18n.actionNeedsResponse;
+            heading.appendChild(eyebrow);
+            heading.appendChild(title);
+            header.appendChild(heading);
             header.appendChild(badge);
             card.appendChild(header);
 
-            const list = document.createElement('ul');
-            list.appendChild(createCardItem(i18n.cardDate, confirmation.scheduled_date || ''));
-            list.appendChild(createCardItem(i18n.cardTime, formatTimeRange(confirmation.scheduled_time, confirmation.scheduled_end_time)));
-            list.appendChild(createCardItem(i18n.cardParticipants, confirmation.participants || ''));
-            list.appendChild(createCardItem(i18n.confirmationCustomer, confirmation.customer_name || ''));
-            list.appendChild(createCardItem(i18n.confirmationStatus, confirmation.status || ''));
+            const meta = document.createElement('p');
+            meta.className = 'sbdp-vp-action-card__meta';
+            meta.textContent = [
+                confirmation.scheduled_date || '',
+                formatTimeRange(confirmation.scheduled_time, confirmation.scheduled_end_time),
+                confirmation.participants ? String(confirmation.participants) + ' ' + i18n.cardParticipants.toLowerCase() : '',
+                confirmation.booking_reference || ''
+            ].filter(Boolean).join(' · ');
+            card.appendChild(meta);
+
+            const urgency = getActionUrgency(confirmation);
+            if (urgency) {
+                const urgencyEl = document.createElement('span');
+                urgencyEl.className = 'sbdp-vp-action-card__urgency';
+                urgencyEl.textContent = urgency;
+                card.appendChild(urgencyEl);
+            }
+
+            const list = document.createElement('dl');
+            if (confirmation.customer_name) {
+                list.appendChild(createActionDetail(i18n.confirmationCustomer, confirmation.customer_name));
+            }
             if (confirmation.partner_note) {
-                list.appendChild(createCardItem('Notitie', confirmation.partner_note));
+                list.appendChild(createActionDetail('Notitie', confirmation.partner_note));
             }
             card.appendChild(list);
 
-            if (['awaiting_partner', 'draft'].indexOf(String(confirmation.status || '')) !== -1) {
+            if (isConfirmationActionable(confirmation.status)) {
                 const actions = document.createElement('div');
-                actions.className = 'sbdp-vendor-portal__header-actions';
+                actions.className = 'sbdp-vp-action-card__actions';
                 actions.appendChild(createConfirmationButton(i18n.confirmAction, 'confirm', confirmation.leg_key));
-                actions.appendChild(createConfirmationButton(i18n.declineAction, 'decline', confirmation.leg_key));
                 actions.appendChild(createConfirmationButton(i18n.alternativeAction, 'alternative', confirmation.leg_key));
+                actions.appendChild(createConfirmationButton(i18n.declineAction, 'decline', confirmation.leg_key));
                 card.appendChild(actions);
             }
 
             return card;
+        }
+
+        function isConfirmationActionable(status) {
+            return [
+                'awaiting_partner',
+                'draft',
+                'supplier_confirmation_required',
+                'supplier_option_requested',
+                'supplier_option_held'
+            ].indexOf(String(status || '')) !== -1;
         }
 
         function createCardItem(label, value) {
@@ -1386,11 +1543,43 @@
         function createConfirmationButton(label, action, legKey) {
             const button = document.createElement('button');
             button.type = 'button';
-            button.className = 'sbdp-vendor-portal__button sbdp-vendor-portal__button--ghost';
+            button.className = 'sbdp-vendor-portal__button';
+            if (action === 'alternative') { button.classList.add('sbdp-vendor-portal__button--ghost'); }
+            if (action === 'decline') { button.classList.add('sbdp-vp-action-card__decline'); }
             button.textContent = label;
             button.setAttribute('data-sbdp-confirm-action', action);
             button.setAttribute('data-sbdp-leg-key', String(legKey || ''));
             return button;
+        }
+
+        function createActionDetail(label, value) {
+            const wrapper = document.createElement('div');
+            const term = document.createElement('dt');
+            const description = document.createElement('dd');
+            term.textContent = label;
+            description.textContent = String(value || '');
+            wrapper.appendChild(term);
+            wrapper.appendChild(description);
+            return wrapper;
+        }
+
+        function compareActionDate(left, right) {
+            return actionTimestamp(left) - actionTimestamp(right);
+        }
+
+        function actionTimestamp(item) {
+            const value = String(item && item.scheduled_date || '').trim();
+            const timestamp = value ? new Date(value + 'T00:00:00').getTime() : Number.MAX_SAFE_INTEGER;
+            return Number.isFinite(timestamp) ? timestamp : Number.MAX_SAFE_INTEGER;
+        }
+
+        function getActionUrgency(item) {
+            const timestamp = actionTimestamp(item);
+            if (!Number.isFinite(timestamp) || timestamp === Number.MAX_SAFE_INTEGER) { return ''; }
+            const difference = timestamp - Date.now();
+            if (difference < 0) { return 'Datum verstreken'; }
+            if (difference <= 48 * 60 * 60 * 1000) { return i18n.actionWithin48Hours; }
+            return '';
         }
 
         function formatCardTitle(booking) {
@@ -1400,30 +1589,49 @@
         }
 
         function loadSession() {
-            if (typeof window.sessionStorage === 'undefined') {
-                return null;
-            }
+            const key = 'sbdpVendorPortalSession';
             try {
-                const raw = window.sessionStorage.getItem('sbdpVendorPortalSession');
-                return raw ? JSON.parse(raw) : null;
-            } catch (error) {
-                return null;
-            }
+                // Try localStorage first (remember me), then sessionStorage
+                const lsRaw = typeof window.localStorage !== 'undefined' ? window.localStorage.getItem(key) : null;
+                if (lsRaw) {
+                    const parsed = JSON.parse(lsRaw);
+                    // Validate stored_at + expires_in still valid
+                    if (parsed && parsed.stored_at && parsed.expires_in) {
+                        const expiresAt = parsed.stored_at + (parsed.expires_in * 1000);
+                        if (Date.now() < expiresAt) { return parsed; }
+                        window.localStorage.removeItem(key);
+                    }
+                }
+            } catch (e) { /* ignore */ }
+            try {
+                const ssRaw = typeof window.sessionStorage !== 'undefined' ? window.sessionStorage.getItem(key) : null;
+                return ssRaw ? JSON.parse(ssRaw) : null;
+            } catch (e) { return null; }
         }
 
-        function storeSession(value) {
-            if (typeof window.sessionStorage === 'undefined') {
-                return;
-            }
+        function storeSession(value, rememberMe) {
+            const key = 'sbdpVendorPortalSession';
             try {
                 if (!value) {
-                    window.sessionStorage.removeItem('sbdpVendorPortalSession');
+                    if (typeof window.localStorage !== 'undefined') { window.localStorage.removeItem(key); }
+                    if (typeof window.sessionStorage !== 'undefined') { window.sessionStorage.removeItem(key); }
                     return;
                 }
-                window.sessionStorage.setItem('sbdpVendorPortalSession', JSON.stringify(value));
-            } catch (error) {
-                // ignore storage errors
-            }
+                const persistent = rememberMe === undefined ? !!value.remember_me : !!rememberMe;
+                const serialized = JSON.stringify({
+                    vendor_id: value.vendor_id,
+                    expires_in: value.expires_in,
+                    remember_me: persistent,
+                    stored_at: value.stored_at
+                });
+                if (persistent && typeof window.localStorage !== 'undefined') {
+                    window.localStorage.setItem(key, serialized);
+                    if (typeof window.sessionStorage !== 'undefined') { window.sessionStorage.removeItem(key); }
+                } else if (typeof window.sessionStorage !== 'undefined') {
+                    window.sessionStorage.setItem(key, serialized);
+                    if (typeof window.localStorage !== 'undefined') { window.localStorage.removeItem(key); }
+                }
+            } catch (e) { /* ignore storage errors */ }
         }
 
         function debounce(fn, wait) {
@@ -1559,6 +1767,186 @@
                 return 0;
             }
             return number < 1e12 ? number * 1000 : number;
+        }
+
+        // --- TAB SYSTEM ---
+        function initTabs() {
+            const tabs = Array.from(root.querySelectorAll('[data-sbdp-tab]'));
+            tabs.forEach(function (tab, index) {
+                tab.addEventListener('click', function () {
+                    switchTab(tab.getAttribute('data-sbdp-tab'), true);
+                });
+                tab.addEventListener('keydown', function (event) {
+                    let nextIndex = index;
+                    if (event.key === 'ArrowRight') { nextIndex = (index + 1) % tabs.length; }
+                    else if (event.key === 'ArrowLeft') { nextIndex = (index - 1 + tabs.length) % tabs.length; }
+                    else if (event.key === 'Home') { nextIndex = 0; }
+                    else if (event.key === 'End') { nextIndex = tabs.length - 1; }
+                    else { return; }
+
+                    event.preventDefault();
+                    switchTab(tabs[nextIndex].getAttribute('data-sbdp-tab'), true);
+                });
+            });
+        }
+
+        function isTerminalBookingStatus(status) {
+            return ['cancelled', 'refunded', 'failed'].indexOf(String(status || '').toLowerCase()) !== -1;
+        }
+
+        function canonicalParticipants(value) {
+            const participants = typeof value === 'number' ? value : Number.parseInt(String(value), 10);
+            return Number.isInteger(participants) && participants > 0 ? participants : null;
+        }
+
+        function switchTab(tabId, moveFocus) {
+            if (!tabId) { return; }
+            state.activeTab = tabId;
+
+            root.querySelectorAll('[data-sbdp-tab]').forEach(function (tab) {
+                const active = tab.getAttribute('data-sbdp-tab') === tabId;
+                tab.classList.toggle('is-active', active);
+                tab.setAttribute('aria-selected', active ? 'true' : 'false');
+                tab.setAttribute('tabindex', active ? '0' : '-1');
+                if (active && moveFocus) { tab.focus(); }
+            });
+
+            root.querySelectorAll('[data-sbdp-panel]').forEach(function (panel) {
+                const active = panel.getAttribute('data-sbdp-panel') === tabId;
+                panel.hidden = !active;
+                panel.classList.toggle('is-active', active);
+            });
+        }
+
+        function updateActionsCount() {
+            const confirmations = (state.confirmations || []).filter(function (item) {
+                return isConfirmationActionable(item.status);
+            });
+            const total = confirmations.length + (state.dietaryPending ? state.dietaryPending.length : 0);
+            const urgent = confirmations.filter(function (item) { return !!getActionUrgency(item); }).length;
+            if (elements.actionsCount) {
+                elements.actionsCount.textContent = String(total);
+                elements.actionsCount.hidden = total === 0;
+            }
+            if (elements.actionOpenCount) { elements.actionOpenCount.textContent = String(total); }
+            if (elements.actionUrgentCount) { elements.actionUrgentCount.textContent = String(urgent); }
+        }
+
+        function setActionFilter(filter) {
+            state.actionFilter = ['all', 'confirmations', 'dietary'].indexOf(filter) !== -1 ? filter : 'all';
+            root.querySelectorAll('[data-sbdp-action-filter]').forEach(function (button) {
+                const active = button.getAttribute('data-sbdp-action-filter') === state.actionFilter;
+                button.classList.toggle('is-active', active);
+                button.setAttribute('aria-pressed', active ? 'true' : 'false');
+            });
+            applyActionFilter();
+        }
+
+        function applyActionFilter() {
+            const confirmationCount = (state.confirmations || []).filter(function (item) {
+                return isConfirmationActionable(item.status);
+            }).length;
+            const dietaryCount = (state.dietaryPending || []).length;
+            const showConfirmations = state.actionFilter !== 'dietary' && confirmationCount > 0;
+            const showDietary = state.actionFilter !== 'confirmations' && dietaryCount > 0;
+
+            if (elements.confirmationsSection) { elements.confirmationsSection.hidden = !showConfirmations; }
+            if (elements.dietarySection) { elements.dietarySection.hidden = !showDietary; }
+            if (elements.actionEmpty) { elements.actionEmpty.hidden = showConfirmations || showDietary; }
+        }
+
+        // --- REVENUE CHART (pure SVG, no dependencies) ---
+        function renderRevenueChart(monthly, currency) {
+            if (!elements.chartSvg) { return; }
+
+            if (!monthly || !monthly.length) {
+                elements.chartSvg.innerHTML = '';
+                if (elements.chartEmpty) { elements.chartEmpty.hidden = false; }
+                return;
+            }
+
+            if (elements.chartEmpty) { elements.chartEmpty.hidden = true; }
+
+            const W = 600, H = 220, padL = 60, padR = 16, padT = 16, padB = 40;
+            const chartW = W - padL - padR;
+            const chartH = H - padT - padB;
+            const maxVal = Math.max.apply(null, monthly.map(function (d) { return d.revenue; })) || 1;
+            const barW = Math.floor(chartW / monthly.length) - 4;
+            const ns = 'http://www.w3.org/2000/svg';
+
+            elements.chartSvg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+            elements.chartSvg.setAttribute('width', '100%');
+            elements.chartSvg.setAttribute('height', String(H));
+            elements.chartSvg.innerHTML = '';
+
+            // Y-axis gridlines + labels
+            const steps = 4;
+            for (let i = 0; i <= steps; i++) {
+                const y = padT + chartH - (i / steps) * chartH;
+                const val = (maxVal * i / steps);
+                const line = document.createElementNS(ns, 'line');
+                line.setAttribute('class', 'sbdp-vp-chart__gridline');
+                line.setAttribute('x1', String(padL)); line.setAttribute('x2', String(W - padR));
+                line.setAttribute('y1', String(y)); line.setAttribute('y2', String(y));
+                line.setAttribute('stroke-width', '1');
+                elements.chartSvg.appendChild(line);
+                const label = document.createElementNS(ns, 'text');
+                label.setAttribute('class', 'sbdp-vp-chart__label');
+                label.setAttribute('x', String(padL - 8)); label.setAttribute('y', String(y + 4));
+                label.setAttribute('text-anchor', 'end'); label.setAttribute('font-size', '10');
+                label.textContent = val >= 1000 ? ('€' + Math.round(val / 1000) + 'k') : ('€' + Math.round(val));
+                elements.chartSvg.appendChild(label);
+            }
+
+            // Bars
+            monthly.forEach(function (d, idx) {
+                const barH = Math.max(2, (d.revenue / maxVal) * chartH);
+                const x = padL + idx * (chartW / monthly.length) + 2;
+                const y = padT + chartH - barH;
+                const rect = document.createElementNS(ns, 'rect');
+                rect.setAttribute('class', 'sbdp-vp-chart__bar');
+                rect.setAttribute('x', String(x)); rect.setAttribute('y', String(y));
+                rect.setAttribute('width', String(barW)); rect.setAttribute('height', String(barH));
+                rect.setAttribute('rx', '3');
+                rect.setAttribute('opacity', '0.85');
+                const title = document.createElementNS(ns, 'title');
+                title.textContent = d.label + ': ' + formatCurrency(d.revenue, currency) + ' (' + d.count + ' boeking' + (d.count !== 1 ? 'en' : '') + ')';
+                rect.appendChild(title);
+                elements.chartSvg.appendChild(rect);
+
+                // X-axis month label
+                const xLabel = document.createElementNS(ns, 'text');
+                xLabel.setAttribute('class', 'sbdp-vp-chart__label');
+                xLabel.setAttribute('x', String(x + barW / 2));
+                xLabel.setAttribute('y', String(H - padB + 14));
+                xLabel.setAttribute('text-anchor', 'middle'); xLabel.setAttribute('font-size', '9');
+                xLabel.textContent = d.label;
+                elements.chartSvg.appendChild(xLabel);
+            });
+        }
+
+        // --- RECENT CARDS (top 5 upcoming on overview tab) ---
+        function renderRecentCards() {
+            if (!elements.recentCards) { return; }
+            elements.recentCards.innerHTML = '';
+            const now = Date.now();
+            const upcoming = state.bookings
+                .filter(function (b) {
+                    return normaliseTimestamp(b.timestamp) >= now && !isTerminalBookingStatus(b.status);
+                })
+                .slice(0, 5);
+
+            if (!upcoming.length) {
+                const empty = document.createElement('p');
+                empty.className = 'sbdp-vp-empty';
+                empty.textContent = i18n.noBookings;
+                elements.recentCards.appendChild(empty);
+                return;
+            }
+
+            const frag = document.createDocumentFragment();
+            upcoming.forEach(function (booking) { frag.appendChild(createCard(booking)); });
+            elements.recentCards.appendChild(frag);
         }
     }
 })();

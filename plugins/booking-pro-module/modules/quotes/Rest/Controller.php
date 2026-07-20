@@ -131,6 +131,18 @@ final class Controller
             'permission_callback' => array(__CLASS__, 'canManageQuotes'),
         ));
 
+        register_rest_route('bsp/v1', '/quote-followups/(?P<id>\d+)/reschedule', array(
+            'methods'             => 'POST',
+            'callback'            => array(__CLASS__, 'rescheduleFollowup'),
+            'permission_callback' => array(__CLASS__, 'canManageQuotes'),
+        ));
+
+        register_rest_route('bsp/v1', '/quote-followups/(?P<id>\d+)/reopen', array(
+            'methods'             => 'POST',
+            'callback'            => array(__CLASS__, 'reopenFollowup'),
+            'permission_callback' => array(__CLASS__, 'canManageQuotes'),
+        ));
+
         register_rest_route('bsp/v1', '/quotes/messages/inbound', array(
             'methods'             => 'POST',
             'callback'            => array(__CLASS__, 'ingestInboundMessage'),
@@ -386,6 +398,36 @@ final class Controller
 
             return $service->complete(
                 (int) $request['id'],
+                function_exists('get_current_user_id') ? (int) get_current_user_id() : null
+            );
+        });
+    }
+
+    public static function rescheduleFollowup(WP_REST_Request $request)
+    {
+        return self::wrap(static function () use ($request): array {
+            $repository = new QuoteRepository();
+            $service = new QuoteFollowupService($repository, new QuoteEventLogger($repository));
+            $payload = $request->get_json_params();
+
+            return $service->reschedule(
+                (int) $request['id'],
+                is_array($payload) ? $payload : array(),
+                function_exists('get_current_user_id') ? (int) get_current_user_id() : null
+            );
+        });
+    }
+
+    public static function reopenFollowup(WP_REST_Request $request)
+    {
+        return self::wrap(static function () use ($request): array {
+            $repository = new QuoteRepository();
+            $service = new QuoteFollowupService($repository, new QuoteEventLogger($repository));
+            $payload = $request->get_json_params();
+
+            return $service->reopen(
+                (int) $request['id'],
+                is_array($payload) ? $payload : array(),
                 function_exists('get_current_user_id') ? (int) get_current_user_id() : null
             );
         });

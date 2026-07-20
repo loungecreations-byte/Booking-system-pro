@@ -174,6 +174,10 @@ if (! class_exists(__NAMESPACE__ . '\\Module', false)) {
                             'confirmationResponded' => __('Reactie verwerkt.', 'sbdp'),
                             'confirmationDeclinePrompt' => __('Waarom kun je deze stop niet bevestigen?', 'sbdp'),
                             'confirmationAlternativePrompt' => __('Welk alternatief stel je voor?', 'sbdp'),
+                            'actionConfirmationType' => __('Partnerbevestiging', 'sbdp'),
+                            'actionNeedsResponse'     => __('Reactie nodig', 'sbdp'),
+                            'actionWithin48Hours'     => __('Binnen 48 uur', 'sbdp'),
+                            'actionNoteRequired'      => __('Een toelichting is verplicht.', 'sbdp'),
                         ),
                     )
                 );

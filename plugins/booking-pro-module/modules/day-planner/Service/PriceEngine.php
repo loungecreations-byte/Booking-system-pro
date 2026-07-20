@@ -58,6 +58,7 @@ final class PriceEngine
      */
     public function calculateTotals(array $plan): array
     {
+        $plan['participants_count'] = $this->resolveCanonicalParticipants($plan);
         $plannerItems = isset($plan['meta']['planner_items']) && is_array($plan['meta']['planner_items'])
             ? $plan['meta']['planner_items']
             : [];
@@ -67,9 +68,6 @@ final class PriceEngine
 
         $slots  = $plan['days'] ?? [];
         $subtotal = 0.0;
-        if (! isset($plan['participants_count']) && isset($plan['participants']) && is_array($plan['participants'])) {
-            $plan['participants_count'] = count(array_filter($plan['participants']));
-        }
         $people = $plan['participants'] ?? [];
         $slotBreakdown = [];
 
@@ -88,7 +86,7 @@ final class PriceEngine
 
         $planFee = $this->applyPlanFeeFilter($plan, $slotBreakdown);
         $total = $subtotal + $planFee;
-        $participantCount = is_array($people) ? count(array_filter($people)) : 0;
+        $participantCount = (int) $plan['participants_count'];
 
         $participantShare = $participantCount > 0 ? $subtotal / $participantCount : 0.0;
 
@@ -114,9 +112,6 @@ final class PriceEngine
     private function calculatePlannerItemTotals(array $plan, array $plannerItems): array
     {
         $subtotal = 0.0;
-        if (! isset($plan['participants_count']) && isset($plan['participants']) && is_array($plan['participants'])) {
-            $plan['participants_count'] = count(array_filter($plan['participants']));
-        }
         $currency = $this->resolveCurrency();
         $people = $plan['participants'] ?? [];
         $quotedPlannerItems = [];
@@ -133,10 +128,7 @@ final class PriceEngine
                 continue;
             }
 
-            $participants = max(
-                1,
-                isset($item['participants']) ? (int) $item['participants'] : (int) ($plan['participants_count'] ?? 1)
-            );
+            $participants = (int) $plan['participants_count'];
             $dayIndex = isset($item['dayIndex']) ? (int) $item['dayIndex'] : 0;
             $date = isset($item['date']) && is_string($item['date']) && trim($item['date']) !== ''
                 ? trim((string) $item['date'])
@@ -189,7 +181,7 @@ final class PriceEngine
         // Do not add a second planner fee on top, or planner and cart diverge.
         $planFee = 0.0;
         $total = $subtotal;
-        $participantCount = is_array($people) ? count(array_filter($people)) : 0;
+        $participantCount = (int) $plan['participants_count'];
         $participantShare = $participantCount > 0 ? $subtotal / $participantCount : 0.0;
 
         return [
@@ -211,7 +203,7 @@ final class PriceEngine
      */
     private function calculateSlotBreakdown(array $slot, ?string $dayDate, array $plan = []): array
     {
-        $participants = max(1, (int) ($slot['people'] ?? $slot['participants'] ?? $plan['participants_count'] ?? 1));
+        $participants = $this->resolveCanonicalParticipants($plan);
         $productId    = (int) ($slot['product_id'] ?? $slot['activity_id'] ?? 0);
         $resourceId   = isset($slot['resource_id']) ? (int) $slot['resource_id'] : 0;
         $startRaw     = isset($slot['start']) ? (string) $slot['start'] : '';
@@ -269,6 +261,33 @@ final class PriceEngine
             'participants'      => $participants,
             'total'             => round($subtotal, 2),
         ];
+    }
+
+    /**
+     * @param array<string, mixed> $plan
+     */
+    private function resolveCanonicalParticipants(array $plan): int
+    {
+        $formParticipants = $plan['meta']['form']['participants'] ?? null;
+        if (is_numeric($formParticipants) && (int) $formParticipants > 0) {
+            return (int) $formParticipants;
+        }
+
+        // Internal compatibility mirror used by already-normalised runtime plans.
+        $participants = $plan['participants_count'] ?? null;
+        if (is_numeric($participants) && (int) $participants > 0) {
+            return (int) $participants;
+        }
+
+        // Compatibility for persisted plans that still store explicit participant rows.
+        if (isset($plan['participants']) && is_array($plan['participants'])) {
+            $count = count(array_filter($plan['participants']));
+            if ($count > 0) {
+                return $count;
+            }
+        }
+
+        throw new \RuntimeException(__('Canonical participants are required for planner pricing.', 'sbdp'));
     }
 
     /**

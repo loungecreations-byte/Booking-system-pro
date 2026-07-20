@@ -13,9 +13,6 @@ import PropTypes from "prop-types";
 import {
   buildDays,
   itemConflicts,
-  summarizePlan,
-  deriveSlotPricing,
-  computeSlotPricing,
 } from "../shared/booking.js";
 import {
   generateTimeOptions,
@@ -1530,6 +1527,9 @@ function plannerReducer(state, action) {
             endMinutes: newStartMinutes + (item.durationMinutes || (item.endMinutes - item.startMinutes)),
             startTime: minutesToTime(newStartMinutes),
             endTime: minutesToTime(newStartMinutes + (item.durationMinutes || (item.endMinutes - item.startMinutes))),
+            totalCost: null,
+            fixedCost: null,
+            pricingPending: true,
             ...(action.payload.changes?.time_source === TIME_SOURCE_MANUAL ? buildManualTimeFields() : {}),
           };
         }
@@ -1538,16 +1538,15 @@ function plannerReducer(state, action) {
           sourceItem.groupId &&
           item.groupId === sourceItem.groupId
         ) {
-          const itemTotalCost = resolveSlotPricing(item, nextParticipants);
           return {
             ...item,
             participants: nextParticipants,
             ...(action.payload.changes?.participants_source === "manual_override"
               ? buildManualParticipants(nextParticipants, DEFAULT_PARTICIPANTS)
               : {}),
-            totalCost: itemTotalCost.total,
-            price_pp: itemTotalCost.perPerson,
-            fixedCost: itemTotalCost.fixedCost,
+            totalCost: null,
+            fixedCost: null,
+            pricingPending: true,
           };
         }
         return item;
@@ -1769,11 +1768,6 @@ function applyItemsUpdate(state, nextItems) {
     };
   }
 
-  const recomputedSummary = summarizePlan(pricedItems, currency, participantCount);
-  const summary = state.summary
-    ? mergeSummaryWithAdjustments(state.summary, recomputedSummary)
-    : recomputedSummary;
-
   return {
     ...state,
     plan: {
@@ -1781,7 +1775,11 @@ function applyItemsUpdate(state, nextItems) {
       items: pricedItems,
       planCheckoutCapability: null,
     },
-    summary,
+    summary: {
+      ...createEmptySummary(currency),
+      participants: participantCount,
+      pricingPending: true,
+    },
   };
 }
 
@@ -2173,6 +2171,8 @@ function buildBlockingReasonMessage(reasonCode, routeIntent, messageOverride = n
     case "empty_plan":
     case "incomplete_plan":
       return "Maak je planning compleet voordat je verdergaat.";
+    case "pricing_pending":
+      return "De server berekent de actuele prijs. Wacht tot de prijscontrole is afgerond.";
     default:
       if (routeIntent === ROUTE_INTENT_QUOTE) {
         return "Deze planning vereist een offerte-aanvraag voordat je verder kunt.";
@@ -2190,6 +2190,7 @@ function buildPlannerActionState({
   form,
   products,
   availabilityIssue,
+  summary,
   canonicalParticipants,
   plannerApiAvailable,
 }) {
@@ -2208,6 +2209,7 @@ function buildPlannerActionState({
   const hasItems = Array.isArray(items) && items.length > 0;
   const hasStartTimes = hasItems && items.some((item) => Boolean(item?.startTime));
   const requirementsMet = hasDate && canonicalParticipants > 0 && hasItems && hasStartTimes;
+  const pricingPending = summary?.pricingPending === true || !Number.isFinite(summary?.grandTotal);
   const availabilityReasonCode =
     typeof availabilityIssue?.reasonCode === "string" && availabilityIssue.reasonCode.trim() !== ""
       ? availabilityIssue.reasonCode.trim()
@@ -2229,7 +2231,7 @@ function buildPlannerActionState({
   let actionMode = "blocked";
   if (!hasItems) {
     actionMode = "empty";
-  } else if (requirementsMet && !hasCriticalPlannerConflicts && !hasHardAvailabilityBlocker) {
+  } else if (requirementsMet && !pricingPending && !hasCriticalPlannerConflicts && !hasHardAvailabilityBlocker) {
     if (capability.route_intent === ROUTE_INTENT_CHECKOUT && !availabilityBlocksDirectCheckout) {
       actionMode = "direct";
     } else if (hasNonDefinitiveAvailabilityIssue) {
@@ -2245,6 +2247,8 @@ function buildPlannerActionState({
   const blockingReasonCode =
     !requirementsMet
       ? "incomplete_plan"
+      : pricingPending
+      ? "pricing_pending"
       : hasCriticalPlannerConflicts
       ? "planner_conflict_critical"
       : availabilityReasonCode ||
@@ -2261,11 +2265,13 @@ function buildPlannerActionState({
   const primaryCtaEnabled =
     actionMode === "direct" &&
     requirementsMet &&
+    !pricingPending &&
     plannerApiAvailable &&
     !availabilityBlocksDirectCheckout &&
     !hasCriticalPlannerConflicts;
   const secondaryQuoteEnabled =
     requirementsMet &&
+    !pricingPending &&
     plannerApiAvailable &&
     !hasCriticalPlannerConflicts &&
     !hasHardAvailabilityBlocker &&
@@ -2361,7 +2367,7 @@ function resolveQuotedPricingTotal(pricing, fallbackTotal = 0) {
 
 function resolveQuotedUnitPrice(pricing, totalCost, participants) {
   if (!pricing || typeof pricing !== "object") {
-    return participants > 0 ? roundCurrency(totalCost / participants) : roundCurrency(totalCost);
+    return 0;
   }
 
   const quotedUnitPrice =
@@ -2373,9 +2379,7 @@ function resolveQuotedUnitPrice(pricing, totalCost, participants) {
       ? pricing.unit_price
       : typeof pricing.per_person === "number"
       ? pricing.per_person
-      : participants > 0
-      ? totalCost / participants
-      : totalCost;
+      : 0;
 
   return roundCurrency(quotedUnitPrice);
 }
@@ -2469,57 +2473,6 @@ function sanitizePlannerItemForPersistence(item) {
   return nextItem;
 }
 
-function mergeSummaryWithAdjustments(existingSummary, recomputed) {
-  if (!existingSummary) {
-    return recomputed;
-  }
-
-  const adjustments = Array.isArray(existingSummary.adjustments) ? existingSummary.adjustments : [];
-  const discounts = Array.isArray(existingSummary.discounts) ? existingSummary.discounts : [];
-  const taxes = Array.isArray(existingSummary.taxes) ? existingSummary.taxes : [];
-
-  const adjustmentsTotal = roundCurrency(sumAmounts(adjustments));
-  const discountTotal = roundCurrency(sumAmounts(discounts));
-  const taxTotal = roundCurrency(sumAmounts(taxes));
-  const grandTotal = roundCurrency(
-    recomputed.itemsSubtotal + adjustmentsTotal + taxTotal - discountTotal
-  );
-
-  const participants =
-    Number.isFinite(recomputed.participants) && recomputed.participants > 0
-      ? recomputed.participants
-      : Number.isFinite(existingSummary.participants) && existingSummary.participants > 0
-      ? existingSummary.participants
-      : null;
-
-  const participantShare =
-    participants && participants > 0 ? roundCurrency(grandTotal / participants) : null;
-
-  return {
-    ...existingSummary,
-    ...recomputed,
-    adjustments,
-    discounts,
-    taxes,
-    participants,
-    participantShare,
-    adjustmentsTotal,
-    discountTotal,
-    taxTotal,
-    grandTotal,
-    subtotal: grandTotal,
-    breakdown: {
-      ...existingSummary.breakdown,
-      ...recomputed.breakdown,
-      adjustments_total: adjustmentsTotal,
-      discount_total: discountTotal,
-      tax_total: taxTotal,
-      grand_total: grandTotal,
-      items_subtotal: recomputed.itemsSubtotal,
-    },
-  };
-}
-
 function recalculateItems(items, products, fallbackParticipants) {
   if (!Array.isArray(items) || items.length === 0) {
     return [];
@@ -2569,20 +2522,22 @@ function recalculateItems(items, products, fallbackParticipants) {
     const productId = toPositiveInt(item?.productId ?? item?.product_id);
     const product = products?.find((entry) => entry.id === productId) || null;
     const pricingSource = product?.pricing || item?.pricing || {};
-
-    const slotPricing = computeSlotPricing(pricingSource, participants, {
-      // Prefer item-specific price_pp over product-level to avoid overwriting API-provided values.
-      pricePerPerson: item?.price_pp ?? product?.price_pp ?? product?.price_per_person,
-      sourceProduct: product || item,
-    });
+    const unitPrice = readServerAmount(
+      pricingSource?.display_unit_price ??
+        pricingSource?.unit_price ??
+        item?.price_pp ??
+        product?.price_pp ??
+        product?.price_per_person
+    );
 
     return {
       ...item,
       ...participantTruth,
       pricing: pricingSource,
-      totalCost: slotPricing.total,
-      price_pp: slotPricing.perPerson,
-      fixedCost: slotPricing.fixedCost,
+      totalCost: null,
+      price_pp: unitPrice,
+      fixedCost: null,
+      pricingPending: true,
     };
   });
 }
@@ -2667,28 +2622,6 @@ function findSuggestedPlannerStart({
   }
 
   return null;
-}
-
-function resolveSlotPricing(item, participants) {
-  if (!item) {
-    return { perPerson: 0, fixedCost: 0, total: 0 };
-  }
-
-  if (hasServerQuotedPricing(item) && item?.pricing && typeof item.pricing === "object") {
-    const total = resolveQuotedPricingTotal(item.pricing, item?.totalCost ?? 0);
-    const perPerson = resolveQuotedUnitPrice(item.pricing, total, participants);
-
-    return {
-      perPerson,
-      fixedCost: resolveQuotedAdjustment(item.pricing, item?.fixedCost ?? 0),
-      total,
-    };
-  }
-
-  return deriveSlotPricing(item?.pricing || {}, participants, {
-    totalCost: item?.totalCost,
-    pricePerPerson: item?.price_pp,
-  });
 }
 
 function buildPlanTitle(plan, form) {
@@ -2938,10 +2871,7 @@ function normalisePlanResponse(planPayload, existingState = initialState) {
       );
       const fixedFee = toFloat(slot?.fixed_cost ?? slot?.fixed_fee ?? slot?.pricing?.fixed_fee);
       const dynamicTotal = toFloat(slot?.total_cost ?? slot?.total ?? slot?.pricing?.total);
-      const totalCost =
-        dynamicTotal > 0
-          ? roundCurrency(dynamicTotal)
-          : roundCurrency(perPerson * slotParticipants + fixedFee);
+      const totalCost = dynamicTotal > 0 ? roundCurrency(dynamicTotal) : null;
 
       const currency =
         slot?.currency ||
@@ -2967,6 +2897,7 @@ function normalisePlanResponse(planPayload, existingState = initialState) {
               slotParticipants,
             ].join("|");
       const persistedPlannerItem = persistedPlannerMap.get(persistedKey) || null;
+      const serverQuotedSlot = hasServerQuotedPricing(persistedPlannerItem) || totalCost !== null;
       slotParticipants = resolveParticipantsForItem(
         persistedPlannerItem || slot,
         participants,
@@ -3008,17 +2939,13 @@ function normalisePlanResponse(planPayload, existingState = initialState) {
             : TIME_SOURCE_AUTO,
         user_order: resolveUserOrder(persistedPlannerItem || slot, slotIndex),
         pricing:
-          hasServerQuotedPricing(persistedPlannerItem) &&
+          serverQuotedSlot &&
           persistedPlannerItem?.pricing &&
           typeof persistedPlannerItem.pricing === "object"
             ? persistedPlannerItem.pricing
-            : {
-                per_person: perPerson,
-                fixed_fee: fixedFee,
-                currency,
-              },
+            : { ...(slot?.pricing || {}), per_person: perPerson, fixed_fee: fixedFee, total: totalCost, currency },
         totalCost:
-          hasServerQuotedPricing(persistedPlannerItem) &&
+          serverQuotedSlot &&
           typeof persistedPlannerItem?.totalCost === "number"
             ? persistedPlannerItem.totalCost
             : totalCost,
@@ -3039,8 +2966,9 @@ function normalisePlanResponse(planPayload, existingState = initialState) {
             ? persistedPlannerItem.source.trim()
             : "day-planner",
         pricingSource:
-          hasServerQuotedPricing(persistedPlannerItem) ? "server" : undefined,
-        serverQuoted: hasServerQuotedPricing(persistedPlannerItem),
+          serverQuotedSlot ? "server" : undefined,
+        serverQuoted: serverQuotedSlot,
+        pricingPending: !serverQuotedSlot,
         options:
           persistedPlannerItem?.options && typeof persistedPlannerItem.options === "object"
             ? {
@@ -3294,6 +3222,14 @@ function normalisePlanResponse(planPayload, existingState = initialState) {
   };
 }
 
+function readServerAmount(value) {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+  const parsed = typeof value === "number" ? value : Number(value);
+  return Number.isFinite(parsed) ? roundCurrency(parsed) : null;
+}
+
 function buildPlanPrefillQueue(plan) {
   if (!plan || !Array.isArray(plan.items)) {
     return [];
@@ -3349,30 +3285,23 @@ function normalizeTotals(totals, previousSummary = createEmptySummary()) {
   const summaryData =
     (totals?.summary && typeof totals.summary === "object" ? totals.summary : base.breakdown) || {};
 
-  const itemsSubtotalValue =
-    summaryData.items_subtotal ?? totals?.items_subtotal ?? totals?.subtotal ?? sumLineSubtotals(items);
-  const adjustmentsTotalValue =
-    summaryData.adjustments_total ?? totals?.adjustments_total ?? sumAmounts(adjustments);
-  const discountTotalValue =
-    summaryData.discount_total ?? totals?.discount_total ?? sumAmounts(discounts);
-  const taxTotalValue =
-    summaryData.tax_total ?? totals?.tax_total ?? sumAmounts(taxes);
-  const grandTotalValue =
-    summaryData.grand_total ?? totals?.total ??
-    (itemsSubtotalValue + adjustmentsTotalValue + taxTotalValue - discountTotalValue);
+  const itemsSubtotalValue = summaryData.items_subtotal ?? totals?.items_subtotal ?? totals?.subtotal;
+  const adjustmentsTotalValue = summaryData.adjustments_total ?? totals?.adjustments_total;
+  const discountTotalValue = summaryData.discount_total ?? totals?.discount_total;
+  const taxTotalValue = summaryData.tax_total ?? totals?.tax_total;
+  const grandTotalValue = summaryData.grand_total ?? totals?.total;
 
   const participantsCount =
     summaryData.participants ?? totals?.participants ?? base.participants ?? null;
 
-  const itemsSubtotal = roundCurrency(toFloat(itemsSubtotalValue));
-  const adjustmentsTotal = roundCurrency(toFloat(adjustmentsTotalValue));
-  const discountTotal = roundCurrency(toFloat(discountTotalValue));
-  const taxTotal = roundCurrency(toFloat(taxTotalValue));
-  const grandTotal = roundCurrency(toFloat(grandTotalValue));
-  const participantShare =
-    participantsCount && participantsCount > 0
-      ? roundCurrency(grandTotal / participantsCount)
-      : null;
+  const itemsSubtotal = readServerAmount(itemsSubtotalValue);
+  const adjustmentsTotal = readServerAmount(adjustmentsTotalValue);
+  const discountTotal = readServerAmount(discountTotalValue);
+  const taxTotal = readServerAmount(taxTotalValue);
+  const grandTotal = readServerAmount(grandTotalValue);
+  const participantShare = readServerAmount(
+    summaryData.participant_share ?? totals?.participant_share
+  );
 
   return {
     ...base,
@@ -3389,6 +3318,7 @@ function normalizeTotals(totals, previousSummary = createEmptySummary()) {
     subtotal: grandTotal,
     participants: participantsCount,
     participantShare,
+    pricingPending: grandTotal === null,
     breakdown: {
       ...base.breakdown,
       ...summaryData,
@@ -3461,10 +3391,11 @@ export function PlannerProvider({ bootConfig, children }) {
         form: state.form,
         products: state.products,
         availabilityIssue: state.availabilityIssue,
+        summary: state.summary,
         canonicalParticipants,
         plannerApiAvailable: Boolean(plannerApi),
       }),
-    [state.plan, state.form, state.products, state.availabilityIssue, canonicalParticipants, plannerApi]
+    [state.plan, state.form, state.summary, state.products, state.availabilityIssue, canonicalParticipants, plannerApi]
   );
 
   // Define showToast early to avoid circular reference issues in bundled output
@@ -3594,35 +3525,6 @@ export function PlannerProvider({ bootConfig, children }) {
     },
     [dispatch, nonce, restBase]
   );
-
-  /**
-   * Voeg de huidige planning toe aan de WooCommerce cart via AJAX/REST.
-   * Kan vanuit elke widget worden aangeroepen via context.
-   */
-  const addPlanToCart = useCallback(async () => {
-    // Zet de huidige planning om naar cart-items
-    const planPayload = buildPlanPayload(state.plan, state.form, state.summary, state.config);
-    try {
-      // Stuur de items naar een custom endpoint die de WooCommerce cart vult
-      const response = await fetch('/wp-json/booking-pro/v1/add-to-cart', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ plan: planPayload }),
-        credentials: 'same-origin',
-      });
-      if (!response.ok) {
-        throw new Error('Fout bij toevoegen aan winkelwagen');
-      }
-      const data = await response.json();
-      showToast('Planning toegevoegd aan winkelwagen!');
-      return data;
-    } catch (error) {
-      showToast(error.message || 'Kon niet toevoegen aan winkelwagen');
-      return null;
-    }
-  }, [state.plan, state.form, state.summary, state.config, showToast]);
 
   const prefill = useMemo(() => normalisePrefill(bootConfig?.prefill), [bootConfig?.prefill]);
   const prefillFormAppliedRef = useRef(false);
@@ -4930,11 +4832,6 @@ export function PlannerProvider({ bootConfig, children }) {
       const nextStartTime = minutesToTime(nextStart);
       const nextEndTime = minutesToTime(nextEnd);
 
-      const slotPricing = computeSlotPricing(product.pricing || {}, nextParticipants, {
-        pricePerPerson: item.price_pp ?? product.price_pp,
-        sourceProduct: product || item,
-      });
-
       dispatch({
         type: ACTIONS.UPDATE_ITEM,
         payload: {
@@ -4952,9 +4849,9 @@ export function PlannerProvider({ bootConfig, children }) {
                   participants_source: item.participants_source || PARTICIPANTS_SOURCE_INHERITED,
                 }),
             ...(hasStartTimeChange ? buildManualTimeFields() : {}),
-            totalCost: slotPricing.total,
-            price_pp: slotPricing.perPerson,
-            fixedCost: slotPricing.fixedCost,
+            totalCost: null,
+            fixedCost: null,
+            pricingPending: true,
             plannerKey: [
               item.productId,
               item.date || (state.plan.days[item.dayIndex] ? state.plan.days[item.dayIndex].date : ""),
@@ -5513,6 +5410,26 @@ export function PlannerProvider({ bootConfig, children }) {
     [plannerApi, state.plan, state.form, state.summary, state.config, dispatch]
   );
 
+  useEffect(() => {
+    if (
+      !plannerApi ||
+      !state.summary?.pricingPending ||
+      !Array.isArray(state.plan?.items) ||
+      state.plan.items.length === 0 ||
+      selectCanonicalParticipants(state, { allowFormFallback: true }) === null
+    ) {
+      return undefined;
+    }
+
+    const timer = window.setTimeout(() => {
+      savePlan({ silent: true }).catch(() => {
+        // savePlan owns the fail-closed error path; keep pricing pending.
+      });
+    }, 350);
+
+    return () => window.clearTimeout(timer);
+  }, [plannerApi, savePlan, state.plan?.items, state.summary?.pricingPending, state.form?.participants]);
+
   const submitPlan = useCallback(
     async (options = {}) => {
       const successMessage = options.successMessage || "Boekingsaanvraag verzonden.";
@@ -5524,6 +5441,7 @@ export function PlannerProvider({ bootConfig, children }) {
         form: currentState.form,
         products: currentState.products,
         availabilityIssue: currentState.availabilityIssue,
+        summary: currentState.summary,
         canonicalParticipants: selectCanonicalParticipants(currentState, { allowFormFallback: true }),
         plannerApiAvailable: Boolean(plannerApi),
       });
@@ -5674,6 +5592,7 @@ export function PlannerProvider({ bootConfig, children }) {
       form: currentState.form,
       products: currentState.products,
       availabilityIssue: currentState.availabilityIssue,
+      summary: currentState.summary,
       canonicalParticipants: selectCanonicalParticipants(currentState, { allowFormFallback: true }),
       plannerApiAvailable: Boolean(plannerApi),
     });
@@ -6130,7 +6049,7 @@ export function PlannerProvider({ bootConfig, children }) {
    * @param {Object} preferences - User preferences from home widget
    * @param {string} preferences.date - Date in Y-m-d format
    * @param {string} preferences.duration - ochtend|middag|avond|hele-dag
-   * @param {number} preferences.people - Number of participants
+   * Participants always come from planner.form.participants.
    * @param {string} preferences.audience - familie|vrienden|bedrijf|romantisch|solo
    * @param {string} preferences.vibe - Space-separated vibes: cultuur bourgondisch food actief
    */
@@ -6148,11 +6067,17 @@ export function PlannerProvider({ bootConfig, children }) {
       }
       const removalVersionAtStart = manualRemovalVersionRef.current;
 
+      const canonicalParticipants = toPositiveInt(state.form?.participants);
+      if (canonicalParticipants === null) {
+        showToast("Vul eerst een geldig aantal deelnemers in.");
+        return null;
+      }
+
       // Build preferences from current state + provided overrides
       const requestPayload = {
         date: preferences.date || state.form?.date || getTodayIso(),
         duration: preferences.duration || "middag",
-        people: preferences.people || parseInt(state.form?.participants, 10) || 2,
+        participants: canonicalParticipants,
         audience: preferences.audience || "",
         vibe: preferences.vibe || "",
       };
@@ -6179,7 +6104,7 @@ export function PlannerProvider({ bootConfig, children }) {
             type: ACTIONS.START_PLANNING,
             payload: {
               date: requestPayload.date,
-              participants: requestPayload.people,
+              participants: requestPayload.participants,
               config: state.config,
             },
           });
@@ -6205,7 +6130,7 @@ export function PlannerProvider({ bootConfig, children }) {
           const added = addFn(
             { productId, dayIndex: 0, startTime },
             {
-              quantity: activity.quantity || requestPayload.people,
+              quantity: activity.quantity || requestPayload.participants,
               resourceId: activity.resource_id ?? null,
               suggested: true,
               availabilitySource: "availability",
@@ -6447,25 +6372,6 @@ function normalizeMoneyRows(rows) {
       };
     })
     .filter(Boolean);
-}
-
-function sumAmounts(rows) {
-  if (!Array.isArray(rows)) {
-    return 0;
-  }
-
-  return rows.reduce((total, row) => total + toFloat(row?.amount), 0);
-}
-
-function sumLineSubtotals(items) {
-  if (!Array.isArray(items)) {
-    return 0;
-  }
-
-  return items.reduce(
-    (total, item) => total + toFloat(item?.line_subtotal ?? item?.total ?? 0),
-    0
-  );
 }
 
 function isWithinPlannerHours(startMinutes, endMinutes, openHours) {

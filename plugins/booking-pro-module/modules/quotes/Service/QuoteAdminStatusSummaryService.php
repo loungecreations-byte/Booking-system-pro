@@ -33,6 +33,8 @@ final class QuoteAdminStatusSummaryService
             : array();
         $events = $this->repository->listQuoteEvents($quoteId);
         $eventTypes = $this->eventTypes($events);
+        $legalAcceptance = $this->legalAcceptanceSummary($events);
+        $lifecycle = QuoteLifecycleMap::resolve($quote, $eventTypes);
         $orderId = (int) ($quote['woo_order_id'] ?? 0);
         $paymentEvent = $this->latestEvent($events, QuotePaymentSyncService::COMPLETED_EVENT);
         $readiness = $this->latestReadiness($quote, $events);
@@ -41,9 +43,11 @@ final class QuoteAdminStatusSummaryService
         $booking = $this->bookingStatus((int) ($quote['booking_master_id'] ?? 0));
         $invoice = $this->invoiceMetadata($orderId, $paymentEvent);
         $order = $this->orderStatus($orderId, $quoteId, $approvedVersionId);
+        $requestOrderVerified = $this->requestOrderHandoffVerified($quote, $eventTypes, $order['meta_matches']);
         $decision = (new QuoteProposalSendDecisionService($this->repository))->decide($quoteId);
         $sendAllowed = ! empty($context['send_allowed']) && ! empty($decision['can_send']);
         $communication = $this->communicationStatus($quoteId, $quote, $decision);
+        $acceptanceConfirmation = $this->acceptanceConfirmationStatus($quoteId);
 
         $nextAction = $this->nextAction(
             $quote,
@@ -53,7 +57,9 @@ final class QuoteAdminStatusSummaryService
             $hydration,
             $booking,
             $blockers,
-            $communication
+            $communication,
+            $lifecycle,
+            $requestOrderVerified
         );
         $ctaVisibility = array(
             'confirm_quote' => $readiness['outcome'] === QuoteConfirmationReadinessService::READY_TO_CONFIRM
@@ -61,7 +67,10 @@ final class QuoteAdminStatusSummaryService
                 && (string) ($quote['handoff_status'] ?? '') === QuoteConfirmationReadinessService::READY_TO_CONFIRM,
             'open_woo_cart' => $hydration['cart_url'] !== '',
             'create_booking_bridge' => (string) ($quote['status'] ?? '') === 'confirmed'
-                && (string) ($quote['handoff_status'] ?? '') === 'woo_cart_hydrated'
+                && (
+                    (string) ($quote['handoff_status'] ?? '') === 'woo_cart_hydrated'
+                    || $requestOrderVerified
+                )
                 && (int) ($quote['booking_master_id'] ?? 0) <= 0
                 && $blockers === array(),
         );
@@ -70,16 +79,26 @@ final class QuoteAdminStatusSummaryService
             'quote_id' => $quoteId,
             'quote_status' => (string) ($quote['status'] ?? ''),
             'handoff_status' => (string) ($quote['handoff_status'] ?? ''),
+            'lifecycle_status' => (string) ($lifecycle['status'] ?? ''),
+            'lifecycle_owner' => (string) ($lifecycle['owner'] ?? ''),
+            'lifecycle_event' => (string) ($lifecycle['event'] ?? ''),
+            'customer_status_label' => (string) ($lifecycle['customer_label'] ?? ''),
+            'admin_status_label' => $this->adminStatusLabel($lifecycle, $quote, $eventTypes, $booking, $requestOrderVerified),
             'approved_version_id' => $approvedVersionId,
             'woo_order_id' => $orderId,
             'woo_order_admin_url' => $order['admin_url'],
             'woo_order_meta_matches' => $order['meta_matches'],
+            'request_order_handoff_verified' => $requestOrderVerified,
             'payment_event_present' => in_array(QuotePaymentSyncService::COMPLETED_EVENT, $eventTypes, true),
             'invoice_available' => $invoice['invoice_available'],
             'invoice_number' => $invoice['invoice_number'],
             'readiness_outcome' => $readiness['outcome'],
             'readiness_source' => $readiness['source'],
             'confirmed_event_present' => in_array('quote_confirmed', $eventTypes, true),
+            'legal_acceptance_complete' => ! empty($legalAcceptance['complete']),
+            'legal_acceptance' => $legalAcceptance,
+            'acceptance_confirmation_status' => $acceptanceConfirmation['status'],
+            'acceptance_confirmation_message_id' => $acceptanceConfirmation['message_id'],
             'woo_cart_hydrated_event_present' => in_array('quote_woo_cart_hydrated', $eventTypes, true),
             'cart_url' => $hydration['cart_url'],
             'checkout_url' => $hydration['checkout_url'],
@@ -135,6 +154,90 @@ final class QuoteAdminStatusSummaryService
         ));
 
         return $matches !== array() ? end($matches) : null;
+    }
+
+    /**
+     * Existing acceptance flow persists legal proof in bsp_quote_events.payload_json.
+     * The public event carries the customer POST/context payload; quote_accepted mirrors
+     * it under legal_acceptance so future table migration can copy fixed keys directly.
+     *
+     * @param array<int, array<string, mixed>> $events
+     * @return array<string, mixed>
+     */
+    private function legalAcceptanceSummary(array $events): array
+    {
+        $event = $this->latestEvent($events, 'quote_public_proposal_accepted');
+        if ($event === null) {
+            $event = $this->latestEvent($events, 'quote_accepted');
+        }
+        if ($event === null) {
+            return array('complete' => false, 'missing' => array('acceptance_event'));
+        }
+
+        $payload = is_array($event['payload_json'] ?? null) ? $event['payload_json'] : array();
+        if (is_array($payload['legal_acceptance'] ?? null)) {
+            $payload = $payload['legal_acceptance'];
+        }
+
+        $summary = array(
+            'event_id' => (int) ($event['id'] ?? 0),
+            'accepted_at' => (string) (($payload['accepted_at'] ?? '') ?: ($event['created_at'] ?? '')),
+            'approved_version_id' => (int) (($payload['approved_version_id'] ?? 0) ?: ($payload['accepted_version_id'] ?? 0)),
+            'current_version_id_at_acceptance' => (int) ($payload['current_version_id_at_acceptance'] ?? 0),
+            'acceptance_name' => trim((string) ($payload['acceptance_name'] ?? '')),
+            'acceptance_email' => trim((string) ($payload['acceptance_email'] ?? '')),
+            'acceptance_company' => trim((string) ($payload['acceptance_company'] ?? '')),
+            'acceptance_role' => trim((string) ($payload['acceptance_role'] ?? '')),
+            'terms_checked' => ! empty($payload['terms_checked']),
+            'terms_version' => trim((string) ($payload['terms_version'] ?? '')),
+            'terms_url' => trim((string) ($payload['terms_url'] ?? '')),
+            'ip_address' => trim((string) (($payload['ip_address'] ?? '') ?: ($payload['ip'] ?? ''))),
+            'user_agent' => trim((string) ($payload['user_agent'] ?? '')),
+            'public_token_id' => trim((string) (($payload['public_token_id'] ?? '') ?: ($payload['token_id'] ?? ''))),
+            'quote_version_hash' => trim((string) ($payload['quote_version_hash'] ?? '')),
+            'proposal_snapshot_hash' => trim((string) ($payload['proposal_snapshot_hash'] ?? '')),
+        );
+
+        $missing = array();
+        foreach (array('acceptance_name', 'acceptance_email', 'terms_version', 'quote_version_hash', 'proposal_snapshot_hash') as $key) {
+            if ((string) ($summary[$key] ?? '') === '') {
+                $missing[] = $key;
+            }
+        }
+        if (empty($summary['terms_checked'])) {
+            $missing[] = 'terms_checked';
+        }
+        if ((int) ($summary['approved_version_id'] ?? 0) <= 0) {
+            $missing[] = 'approved_version_id';
+        }
+
+        $summary['complete'] = $missing === array();
+        $summary['missing'] = $missing;
+
+        return $summary;
+    }
+
+    /**
+     * @return array{status:string,message_id:int}
+     */
+    private function acceptanceConfirmationStatus(int $quoteId): array
+    {
+        $latest = null;
+        foreach ($this->repository->listQuoteMessages($quoteId) as $message) {
+            if ((string) ($message['message_type'] ?? '') !== 'acceptance_confirmation') {
+                continue;
+            }
+            $latest = $message;
+        }
+
+        if ($latest === null) {
+            return array('status' => 'missing', 'message_id' => 0);
+        }
+
+        return array(
+            'status' => (string) ($latest['status'] ?? 'draft'),
+            'message_id' => (int) ($latest['id'] ?? 0),
+        );
     }
 
     /**
@@ -226,6 +329,23 @@ final class QuoteAdminStatusSummaryService
     }
 
     /**
+     * A direct checkout flow proves cart handoff with quote_woo_cart_hydrated.
+     * A B2B request-order flow never needs a customer cart session; it proves
+     * handoff through request-order creation, matching order meta and payment.
+     *
+     * @param array<string, mixed> $quote
+     * @param array<int, string> $eventTypes
+     */
+    private function requestOrderHandoffVerified(array $quote, array $eventTypes, bool $orderMetaMatches): bool
+    {
+        return (int) ($quote['woo_order_id'] ?? 0) > 0
+            && $orderMetaMatches
+            && in_array('quote_woo_request_order_created', $eventTypes, true)
+            && in_array(QuotePaymentSyncService::COMPLETED_EVENT, $eventTypes, true)
+            && in_array('quote_confirmed', $eventTypes, true);
+    }
+
+    /**
      * @return array{booking_master_id:int,admin_url:string,legs_count:int,operations_status:string}
      */
     private function bookingStatus(int $bookingMasterId): array
@@ -305,7 +425,13 @@ final class QuoteAdminStatusSummaryService
         $accepted = in_array($quoteStatus, array('accepted', 'confirmed'), true);
         $paid = $handoffStatus === QuotePaymentSyncService::COMPLETED_STATUS || in_array(QuotePaymentSyncService::COMPLETED_EVENT, $eventTypes, true);
         $confirmed = $quoteStatus === 'confirmed' || in_array('quote_confirmed', $eventTypes, true);
-        $cartReady = $handoffStatus === 'woo_cart_hydrated' || in_array('quote_woo_cart_hydrated', $eventTypes, true) || $hydration['cart_url'] !== '';
+        $requestOrderReady = (int) ($quote['woo_order_id'] ?? 0) > 0
+            && in_array('quote_woo_request_order_created', $eventTypes, true)
+            && in_array(QuotePaymentSyncService::COMPLETED_EVENT, $eventTypes, true);
+        $cartReady = $handoffStatus === 'woo_cart_hydrated'
+            || in_array('quote_woo_cart_hydrated', $eventTypes, true)
+            || $hydration['cart_url'] !== ''
+            || $requestOrderReady;
         $bookingReady = $booking['booking_master_id'] > 0;
         $readinessBlocked = in_array($readinessOutcome, array(
             QuoteConfirmationReadinessService::AWAITING_SUPPLIER_CONFIRMATION,
@@ -537,13 +663,36 @@ final class QuoteAdminStatusSummaryService
      * @param array{booking_master_id:int,admin_url:string,legs_count:int,operations_status:string} $booking
      * @param array<int, string> $blockers
      */
-    private function nextAction(array $quote, bool $sendAllowed, string $readinessOutcome, array $eventTypes, array $hydration, array $booking, array $blockers, array $communication = array()): string
+    private function nextAction(array $quote, bool $sendAllowed, string $readinessOutcome, array $eventTypes, array $hydration, array $booking, array $blockers, array $communication = array(), array $lifecycle = array(), bool $requestOrderHandoffVerified = false): string
     {
         $quoteStatus = (string) ($quote['status'] ?? '');
         $handoffStatus = (string) ($quote['handoff_status'] ?? '');
+        $lifecycleStatus = (string) ($lifecycle['status'] ?? QuoteLifecycleMap::resolveStage($quote, $eventTypes));
 
-        if ($booking['booking_master_id'] > 0 || ($handoffStatus === 'operations_ready' && $booking['booking_master_id'] > 0)) {
-            return 'Geen actie nodig / operations ready';
+        if ($handoffStatus === 'price_mismatch_requires_review') {
+            return 'Prijsverschil controleren';
+        }
+        if ($lifecycleStatus === 'declined') {
+            return 'Geen actie / archiveren';
+        }
+        if (in_array($lifecycleStatus, array('cancelled', 'expired'), true)) {
+            return (string) ($lifecycle['admin_next_action'] ?? 'Geen actie');
+        }
+        if ($lifecycleStatus === 'operations_ready') {
+            return 'Geen actie';
+        }
+        if ($lifecycleStatus === 'revision_requested') {
+            return 'Wijziging verwerken';
+        }
+        if ($quoteStatus === 'confirmed' && $booking['booking_master_id'] <= 0) {
+            if ($blockers !== array()) {
+                return 'Leveranciers / operatie controleren';
+            }
+            if (! $requestOrderHandoffVerified && ! in_array('quote_woo_cart_hydrated', $eventTypes, true) && $hydration['cart_url'] === '') {
+                return 'Cart/order hydration controleren';
+            }
+
+            return 'Operations booking aanmaken / controleren';
         }
         if ($readinessOutcome === QuoteConfirmationReadinessService::AWAITING_SUPPLIER_CONFIRMATION) {
             return 'Wacht op supplier confirmation';
@@ -560,11 +709,24 @@ final class QuoteAdminStatusSummaryService
         if ($blockers !== array() && in_array('manual/custom', $blockers, true)) {
             return 'Admin bevestiging nodig';
         }
-        if ($quoteStatus === 'confirmed' && $handoffStatus === 'woo_cart_hydrated' && $booking['booking_master_id'] <= 0) {
-            return 'Maak operationele boeking';
+        if ($lifecycleStatus === 'woo_payment_completed') {
+            return 'Bevestiging afronden';
         }
-        if ($quoteStatus === 'confirmed') {
-            return 'Bereid Woo checkout/cart voor';
+        if ($lifecycleStatus === 'woo_request_order_created' || $lifecycleStatus === 'payment_pending') {
+            return 'Wachten op betaling';
+        }
+        if ($lifecycleStatus === 'accepted') {
+            return 'Woo order / betaalverzoek aanmaken';
+        }
+        if ($lifecycleStatus === 'sent' || $lifecycleStatus === 'viewed') {
+            return 'Wachten op klant';
+        }
+        if ($lifecycleStatus === 'ready_to_send') {
+            return 'Versturen naar klant';
+        }
+
+        if ($booking['booking_master_id'] > 0 || ($handoffStatus === 'operations_ready' && $booking['booking_master_id'] > 0)) {
+            return 'Gereed voor uitvoering';
         }
         if ($readinessOutcome === QuoteConfirmationReadinessService::READY_TO_CONFIRM || $handoffStatus === QuoteConfirmationReadinessService::READY_TO_CONFIRM) {
             return 'Bevestig quote';
@@ -585,7 +747,7 @@ final class QuoteAdminStatusSummaryService
             return 'Controle afronden';
         }
 
-        return 'Los blokkade op';
+        return (string) ($lifecycle['admin_next_action'] ?? 'Offerte voorbereiden');
     }
 
     /**
@@ -602,10 +764,58 @@ final class QuoteAdminStatusSummaryService
 
         return match ($nextAction) {
             'Wacht op betaling' => 'Quote is geaccepteerd; Woo payment_complete is nog niet gezien.',
+            'Wachten op betaling' => 'Woo order of betaalverzoek bestaat; Woo payment_complete is nog niet gezien.',
+            'Woo order / betaalverzoek aanmaken' => 'Quote is geaccepteerd; maak nu de Woo order of het betaalverzoek op basis van approved_version_id.',
+            'Bevestiging afronden' => 'Woo payment_complete is gezien; rond confirmation/readiness af.',
+            'Wijziging verwerken' => 'Klant heeft via de publieke proposal een wijziging aangevraagd.',
+            'Prijsverschil controleren' => 'Woo ordercreatie is geblokkeerd omdat het offertebedrag afwijkt van de Woo-prijs.',
+            'Cart/order hydration controleren' => 'Confirmed quote mist nog een aantoonbaar direct-cart of request-order handoff bewijs.',
+            'Operations booking aanmaken / controleren' => 'Quote is confirmed en order/payment zijn gecontroleerd; maak of controleer de operations booking.',
             'Bevestig quote' => 'Readiness is groen en wacht op expliciete admin bevestiging.',
             'Maak operationele boeking' => 'Woo cart is voorbereid; operations booking ontbreekt nog.',
             'Geen actie nodig / operations ready' => 'Booking master en operations projectie zijn aanwezig.',
+            'Gereed voor uitvoering' => 'Booking master en operations projectie zijn aanwezig of de quote is operationeel klaar.',
+            'Geen actie' => 'Quote is terminal of gesloten.',
             default => '',
+        };
+    }
+
+    /**
+     * @param array<string, mixed> $lifecycle
+     * @param array<string, mixed> $quote
+     * @param array<int, string> $eventTypes
+     * @param array{booking_master_id:int,admin_url:string,legs_count:int,operations_status:string} $booking
+     */
+    private function adminStatusLabel(array $lifecycle, array $quote, array $eventTypes, array $booking, bool $requestOrderHandoffVerified): string
+    {
+        $handoffStatus = (string) ($quote['handoff_status'] ?? '');
+        if ($handoffStatus === 'price_mismatch_requires_review') {
+            return 'Prijsverschil';
+        }
+        if ((string) ($lifecycle['status'] ?? '') === 'operations_ready') {
+            return 'Gereed voor uitvoering';
+        }
+        if ((string) ($quote['status'] ?? '') === 'confirmed' && $booking['booking_master_id'] <= 0) {
+            if (! $requestOrderHandoffVerified && ! in_array('quote_woo_cart_hydrated', $eventTypes, true)) {
+                return 'Bevestigd, operations geblokkeerd';
+            }
+
+            return 'Bevestigd';
+        }
+
+        return match ((string) ($lifecycle['status'] ?? 'draft')) {
+            'draft' => 'Concept',
+            'ready_to_send' => 'Klaar om te versturen',
+            'sent' => 'Verzonden',
+            'viewed' => 'Bekeken',
+            'revision_requested' => 'Wijziging aangevraagd',
+            'accepted' => 'Akkoord',
+            'woo_request_order_created', 'payment_pending' => 'Wachten op betaling',
+            'woo_payment_completed' => 'Betaald',
+            'declined' => 'Afgewezen',
+            'cancelled' => 'Geannuleerd',
+            'expired' => 'Verlopen',
+            default => (string) ($lifecycle['customer_label'] ?? 'Concept'),
         };
     }
 

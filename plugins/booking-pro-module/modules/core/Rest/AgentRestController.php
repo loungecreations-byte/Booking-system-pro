@@ -265,7 +265,10 @@ final class AgentRestController {
 
 	public function rest_chat( WP_REST_Request $request ): WP_REST_Response {
 		$payload = $this->request_payload( $request );
-		$response = $this->planner_service()->suggestActivities( $payload );
+		$response = $this->safe_suggestions( $payload );
+		if ( $response instanceof WP_REST_Response ) {
+			return $response;
+		}
 
 		return new WP_REST_Response(
 			array(
@@ -278,7 +281,10 @@ final class AgentRestController {
 
 	public function rest_plan( WP_REST_Request $request ): WP_REST_Response {
 		$payload = $this->request_payload( $request );
-		$response = $this->planner_service()->suggestActivities( $payload );
+		$response = $this->safe_suggestions( $payload );
+		if ( $response instanceof WP_REST_Response ) {
+			return $response;
+		}
 		$assistant = is_array( $response['assistant_response'] ?? null ) ? $response['assistant_response'] : array();
 
 		return new WP_REST_Response(
@@ -296,7 +302,10 @@ final class AgentRestController {
 
 	public function rest_suggestions( WP_REST_Request $request ): WP_REST_Response {
 		$payload = $request->get_params();
-		$response = $this->planner_service()->suggestActivities( is_array( $payload ) ? $payload : array() );
+		$response = $this->safe_suggestions( is_array( $payload ) ? $payload : array() );
+		if ( $response instanceof WP_REST_Response ) {
+			return $response;
+		}
 
 		return new WP_REST_Response(
 			array(
@@ -306,6 +315,26 @@ final class AgentRestController {
 				'meta'               => $response['meta'] ?? array(),
 			)
 		);
+	}
+
+	/**
+	 * Keep invalid planner input on the REST boundary instead of escalating it to a PHP fatal.
+	 *
+	 * @param array<string, mixed> $payload
+	 * @return array<string, mixed>|WP_REST_Response
+	 */
+	private function safe_suggestions( array $payload ) {
+		try {
+			return $this->planner_service()->suggestActivities( $payload );
+		} catch ( \RuntimeException $exception ) {
+			return new WP_REST_Response(
+				array(
+					'code'    => 'sbdp_invalid_planner_input',
+					'message' => $exception->getMessage(),
+				),
+				400
+			);
+		}
 	}
 
 	public function rest_events( WP_REST_Request $request ): WP_REST_Response {

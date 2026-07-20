@@ -542,7 +542,7 @@ final class OfferteForm
                 $adminMessage .= "\n" . sprintf(__('Quotereferentie: %s', 'sbdp'), $quoteReference);
             }
             if (function_exists('admin_url')) {
-                $adminMessage .= "\n" . sprintf(__('Beheer via: %s', 'sbdp'), admin_url('admin.php?page=sbdp-quotes'));
+                $adminMessage .= "\n" . sprintf(__('Beheer via: %s', 'sbdp'), admin_url('admin.php?page=sbdp_quotes'));
             }
             wp_mail($adminEmail, $adminSubject, $adminMessage, array('Content-Type: text/plain; charset=UTF-8'));
         }

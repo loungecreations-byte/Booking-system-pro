@@ -298,11 +298,20 @@ $GLOBALS['__test_actions'] = array();
 $GLOBALS['__test_shortcodes'] = array();
 $GLOBALS['__test_wp_mail_calls'] = array();
 $GLOBALS['__test_wp_remote_post'] = null;
+$GLOBALS['__test_is_account_page'] = false;
+$GLOBALS['__test_wc_endpoint'] = '';
+$GLOBALS['__test_enqueued_scripts'] = array();
+$GLOBALS['__test_localized_scripts'] = array();
 
 function current_time($type = 'mysql', $gmt = false): string
 {
     unset($type, $gmt);
     return '2026-04-13 10:00:00';
+}
+
+function absint($maybeint): int
+{
+    return abs((int) $maybeint);
 }
 
 function wp_json_encode($value): string
@@ -552,6 +561,42 @@ function esc_html__(string $text, string $domain = 'default'): string
 {
     unset($domain);
     return $text;
+}
+
+function esc_url_raw(string $url): string
+{
+    return $url;
+}
+
+function rest_url(string $path = ''): string
+{
+    return 'https://example.test/wp-json/' . ltrim($path, '/');
+}
+
+function wp_create_nonce(string $action): string
+{
+    return 'valid-nonce-' . $action;
+}
+
+function is_account_page(): bool
+{
+    return (bool) $GLOBALS['__test_is_account_page'];
+}
+
+function is_wc_endpoint_url(string $endpoint = ''): bool
+{
+    return $endpoint !== '' && $endpoint === (string) $GLOBALS['__test_wc_endpoint'];
+}
+
+function wp_enqueue_script(string $handle, string $src = '', array $dependencies = array(), $version = false, bool $inFooter = false): void
+{
+    $GLOBALS['__test_enqueued_scripts'][] = compact('handle', 'src', 'dependencies', 'version', 'inFooter');
+}
+
+function wp_localize_script(string $handle, string $objectName, array $data): bool
+{
+    $GLOBALS['__test_localized_scripts'][] = compact('handle', 'objectName', 'data');
+    return true;
 }
 
 spl_autoload_register(static function (string $class): void {

@@ -30,9 +30,12 @@ final class QuoteAcceptanceService
      *
      * @return array<string, mixed>
      */
-    public function acceptQuoteVersion(int $quoteId, int $versionId, ?int $actorId = null): array
+    /**
+     * @param array<string, mixed> $legalAcceptance
+     */
+    public function acceptQuoteVersion(int $quoteId, int $versionId, ?int $actorId = null, array $legalAcceptance = array()): array
     {
-        return $this->doAccept($quoteId, $versionId, $actorId, false);
+        return $this->doAccept($quoteId, $versionId, $actorId, false, $legalAcceptance);
     }
 
     /**
@@ -47,9 +50,10 @@ final class QuoteAcceptanceService
     }
 
     /**
+     * @param array<string, mixed> $legalAcceptance
      * @return array<string, mixed>
      */
-    private function doAccept(int $quoteId, int $versionId, ?int $actorId, bool $isAdminOverride): array
+    private function doAccept(int $quoteId, int $versionId, ?int $actorId, bool $isAdminOverride, array $legalAcceptance = array()): array
     {
         $quote = $this->repository->findQuote($quoteId);
         if ($quote === null) {
@@ -112,6 +116,21 @@ final class QuoteAcceptanceService
 
         $updatedQuote = $this->repository->updateQuote($quoteId, $changes);
 
+        $eventPayload = array(
+            'accepted_version_id' => $versionId,
+            'is_admin_override'   => $isAdminOverride,
+            'accepted_at'         => $now,
+        );
+        if ($legalAcceptance !== array()) {
+            $eventPayload['legal_acceptance'] = $legalAcceptance;
+            $eventPayload['acceptance_name'] = (string) ($legalAcceptance['acceptance_name'] ?? '');
+            $eventPayload['acceptance_email'] = (string) ($legalAcceptance['acceptance_email'] ?? '');
+            $eventPayload['terms_checked'] = ! empty($legalAcceptance['terms_checked']);
+            $eventPayload['terms_version'] = (string) ($legalAcceptance['terms_version'] ?? '');
+            $eventPayload['quote_version_hash'] = (string) ($legalAcceptance['quote_version_hash'] ?? '');
+            $eventPayload['proposal_snapshot_hash'] = (string) ($legalAcceptance['proposal_snapshot_hash'] ?? '');
+        }
+
         $this->events->log(
             $isAdminOverride ? 'quote_admin_accepted' : 'quote_accepted',
             null,
@@ -123,11 +142,7 @@ final class QuoteAcceptanceService
                 $isAdminOverride ? 'Admin' : 'Klant',
                 $versionId
             ),
-            array(
-                'accepted_version_id' => $versionId,
-                'is_admin_override'   => $isAdminOverride,
-                'accepted_at'         => $now,
-            )
+            $eventPayload
         );
 
         return $updatedQuote;

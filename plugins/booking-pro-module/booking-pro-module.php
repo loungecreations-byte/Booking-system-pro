@@ -138,7 +138,19 @@ if (! defined('SBDP_DISABLE_DEMO_SEEDS')) {
 // Hard-disable demo seeding unless explicitly overridden.
 if (function_exists('add_filter')) {
     add_filter('sbdp/demo_data/enable_seeding', '__return_false', 99);
-    add_filter('sbdp_use_legacy_bookable_product_panel', '__return_true', 20);
+    add_filter('sbdp_use_legacy_bookable_product_panel', '__return_false', 20);
+}
+
+if (function_exists('add_action')) {
+    add_action(
+        'send_headers',
+        static function (): void {
+            if (! headers_sent() && function_exists('header_remove')) {
+                header_remove('X-Powered-By');
+            }
+        },
+        0
+    );
 }
 
 require_once SBDP_DIR . 'includes/Services/DemoDataSeeder.php';
@@ -409,6 +421,8 @@ if (! defined('SBDP_AUTOLOAD_REGISTERED')) {
         'BSP\\Support\\'          => SBDP_DIR . 'modules/support/',
         'BSP\\Data\\'             => SBDP_DIR . 'modules/data/',
         'BSP\\Insights\\'         => SBDP_DIR . 'modules/insights/',
+        'BSP\\Gamification\\'     => SBDP_DIR . 'modules/gamification/',
+        'BSP\\Experience\\'       => SBDP_DIR . 'modules/experience/',
         'BSPModule\\Core\\'       => SBDP_DIR . 'modules/core/',
         'BSPModule\\Commerce\\'   => SBDP_DIR . 'modules/commerce/',
         'BSPModule\\Planner\\'    => SBDP_DIR . 'modules/planner/',
@@ -515,6 +529,7 @@ add_action(
             'geo_dashboard' => '\BSP\GeoDashboard\Module',
             'support'       => '\BSP\Support\Module',
             'activity_cta'  => '\BSP\ActivityCtaBlock\Module',
+            'gamification'  => '\BSP\Gamification\Module',
         );
 
         foreach (sbdp_discover_backend_modules() as $slug => $class) {

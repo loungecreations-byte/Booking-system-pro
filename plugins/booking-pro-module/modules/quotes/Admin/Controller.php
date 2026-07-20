@@ -33,6 +33,9 @@ use BSP\Quotes\Service\QuoteTimelineService;
 use BSP\Quotes\Service\WooCartLaunchGateway;
 use BSP\Quotes\Service\PartnerConfirmationService;
 use BSP\Quotes\Service\PartnerConfirmationTokenService;
+use BSP\Quotes\Service\PublicQuoteProposalService;
+use BSP\Quotes\Service\PublicQuoteProposalTokenService;
+use BSP\Quotes\Service\QuoteAcceptedDocumentService;
 use function add_query_arg;
 use function add_menu_page;
 use function add_submenu_page;
@@ -552,6 +555,57 @@ final class Controller
             'workspace_tab' => 'build',
             'quote_line_partner_token_revoked' => '1',
         ));
+    }
+    public static function handleRevokePublicProposalTokens(): void {
+        self::assertAccess();
+        check_admin_referer('sbdp_quote_public_proposal_token_revoke');
+        $quoteId = isset($_POST['quote_id']) ? (int) $_POST['quote_id'] : 0;
+        $repository = new QuoteRepository();
+        try {
+            (new PublicQuoteProposalService(
+                $repository,
+                new QuoteEventLogger($repository),
+                new PublicQuoteProposalTokenService()
+            ))->revokeQuotePublicTokens(
+                $quoteId,
+                function_exists('get_current_user_id') ? (int) get_current_user_id() : null,
+                sanitize_text_field((string) ($_POST['reason'] ?? ''))
+            );
+        } catch (\Throwable $exception) {
+            self::redirect('sbdp_quotes', array(
+                'quote_id' => $quoteId,
+                'workspace_tab' => 'communication',
+                'quote_error' => rawurlencode($exception->getMessage()),
+            ));
+        }
+        self::redirect('sbdp_quotes', array(
+            'quote_id' => $quoteId,
+            'workspace_tab' => 'communication',
+            'quote_public_proposal_token_revoked' => '1',
+        ));
+    }
+    public static function handleDownloadAcceptedProposalPdf(): void {
+        self::assertAccess();
+        check_admin_referer('sbdp_quote_accepted_proposal_pdf');
+        $quoteId = isset($_GET['quote_id']) ? (int) $_GET['quote_id'] : (int) ($_POST['quote_id'] ?? 0);
+        $repository = new QuoteRepository();
+        try {
+            $documents = new QuoteAcceptedDocumentService($repository);
+            $pdf = $documents->renderPdf($quoteId);
+            if (! headers_sent()) {
+                header('Content-Type: application/pdf');
+                header('Content-Disposition: attachment; filename="' . $documents->filename($quoteId) . '"');
+                header('Content-Length: ' . strlen($pdf));
+            }
+            echo $pdf;
+            exit;
+        } catch (\Throwable $exception) {
+            self::redirect('sbdp_quotes', array(
+                'quote_id' => $quoteId,
+                'workspace_tab' => 'dashboard',
+                'quote_error' => rawurlencode($exception->getMessage()),
+            ));
+        }
     }
     public static function handleGenerateProposalDraft(): void {
         self::assertAccess();
@@ -1073,7 +1127,45 @@ final class Controller
         } catch (\Throwable $exception) {
             self::redirect('sbdp_quotes', array('quote_id' => $quoteId, 'quote_error' => rawurlencode($exception->getMessage())));
         }
+        $returnTo = sanitize_key((string) ($_POST['return_to'] ?? ''));
+        if ($returnTo === 'sbdp_quote_operations') {
+            self::redirect('sbdp_quote_operations', array('followup_completed' => '1'));
+        }
         self::redirect('sbdp_quotes', array('quote_id' => $quoteId, 'followup_completed' => '1'));
+    }
+    public static function handleRescheduleFollowup(): void {
+        self::assertAccess();
+        check_admin_referer('sbdp_quote_followup_reschedule');
+        $followupId = isset($_POST['followup_id']) ? (int) $_POST['followup_id'] : 0;
+        $repository = new QuoteRepository();
+        $events     = new QuoteEventLogger($repository);
+        $service    = new QuoteFollowupService($repository, $events);
+        try {
+            $service->reschedule($followupId, array(
+                'due_at'           => sanitize_text_field((string) ($_POST['due_at'] ?? '')),
+                'priority'         => sanitize_key((string) ($_POST['priority'] ?? 'normal')),
+                'assigned_user_id' => isset($_POST['assigned_user_id']) ? (int) $_POST['assigned_user_id'] : null,
+            ), function_exists('get_current_user_id') ? (int) get_current_user_id() : null);
+        } catch (\Throwable $exception) {
+            self::redirect('sbdp_quote_operations', array('quote_error' => rawurlencode($exception->getMessage())));
+        }
+        self::redirect('sbdp_quote_operations', array('followup_rescheduled' => '1'));
+    }
+    public static function handleReopenFollowup(): void {
+        self::assertAccess();
+        check_admin_referer('sbdp_quote_followup_reopen');
+        $followupId = isset($_POST['followup_id']) ? (int) $_POST['followup_id'] : 0;
+        $repository = new QuoteRepository();
+        $events     = new QuoteEventLogger($repository);
+        $service    = new QuoteFollowupService($repository, $events);
+        try {
+            $service->reopen($followupId, array(
+                'due_at' => sanitize_text_field((string) ($_POST['due_at'] ?? '')),
+            ), function_exists('get_current_user_id') ? (int) get_current_user_id() : null);
+        } catch (\Throwable $exception) {
+            self::redirect('sbdp_quote_operations', array('quote_error' => rawurlencode($exception->getMessage())));
+        }
+        self::redirect('sbdp_quote_operations', array('followup_reopened' => '1'));
     }
     public static function handleMarkReadyForResnapshot(): void {
         self::assertAccess();

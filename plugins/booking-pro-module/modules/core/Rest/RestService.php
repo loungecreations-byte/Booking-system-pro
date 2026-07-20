@@ -1211,6 +1211,8 @@ private static function extract_public_nonce( WP_REST_Request $request ): ?strin
 	}
 
 	public static function compose_booking( WP_REST_Request $request ) {
+		do_action( 'sbdp/planner/first_action' );
+
 		$payload      = $request->get_json_params();
 		$mode         = sanitize_text_field( $payload['mode'] ?? 'pay' );
 		$items        = self::sanitize_items( $payload['items'] ?? array() );

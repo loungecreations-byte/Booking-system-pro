@@ -61,7 +61,7 @@ final class HomeOnboardingRuntimePublicationTest extends TestCase
         $GLOBALS['__home_onboarding_filters'] = array();
     }
 
-    public function testCheckoutRuntimePublishesPlannerUrl(): void
+    public function testPlanningRuntimePublishesPlannerUrlWithoutInventingCheckout(): void
     {
         $GLOBALS['__home_onboarding_options']['sbdp_booking_flow'] = 'pay';
         $GLOBALS['__home_onboarding_options']['sbdp_planner_page_id'] = 42;
@@ -69,8 +69,9 @@ final class HomeOnboardingRuntimePublicationTest extends TestCase
 
         $runtime = $this->invokeRuntimeBuilder();
 
-        $this->assertSame('checkout', $runtime['route_intent']);
-        $this->assertSame('https://dagjedenbosch.test/plan-je-dag/', $runtime['checkout_url']);
+        $this->assertSame('planner', $runtime['route_intent']);
+        $this->assertSame('https://dagjedenbosch.test/plan-je-dag/', $runtime['planner_url']);
+        $this->assertArrayNotHasKey('checkout_url', $runtime);
     }
 
     public function testRequestRuntimePublishesQuoteUrl(): void

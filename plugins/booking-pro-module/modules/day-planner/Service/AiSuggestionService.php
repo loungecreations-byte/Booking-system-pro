@@ -115,7 +115,7 @@ final class AiSuggestionService
      * @param array<string, mixed> $preferences {
      *     @type string $date       Date in Y-m-d format
      *     @type string $duration   ochtend|middag|avond|hele-dag
-     *     @type int    $people     Number of participants
+     *     @type int    $participants Canonical planner participants
      *     @type string $audience   familie|vrienden|bedrijf|school|romantisch|solo
      *     @type string $vibe       Space-separated vibes: cultuur bourgondisch food actief verrassing
      * }
@@ -207,8 +207,17 @@ final class AiSuggestionService
      */
     private function extractPeople(array $preferences): int
     {
-        $people = (int) ($preferences['people'] ?? $preferences['participants'] ?? $preferences['count'] ?? 2);
-        return max(1, min(100, $people));
+        $participants = $preferences['participants'] ?? null;
+        if (! is_numeric($participants)) {
+            throw new \InvalidArgumentException(__('Vul eerst een geldig aantal deelnemers in.', 'sbdp'));
+        }
+
+        $participants = (int) $participants;
+        if ($participants < 1 || $participants > 100) {
+            throw new \InvalidArgumentException(__('Het aantal deelnemers moet tussen 1 en 100 liggen.', 'sbdp'));
+        }
+
+        return $participants;
     }
 
     /**

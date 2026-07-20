@@ -21,7 +21,7 @@ final class FunnelTracker {
 	private const SESSION_COOKIE = 'sbdp_funnel_session';
 
 	public static function init(): void {
-		add_action( 'init', array( __CLASS__, 'ensureSession' ), 5 );
+		add_action( 'sbdp/planner/first_action', array( __CLASS__, 'ensureSession' ), 5 );
 		add_action( 'sbdp/promotions/created', array( __CLASS__, 'handlePromotionCreated' ), 10, 3 );
 		add_action( 'sbdp/promotions/updated', array( __CLASS__, 'handlePromotionUpdated' ), 10, 3 );
 		add_action( 'sbdp/promotions/status_changed', array( __CLASS__, 'handlePromotionStatusChanged' ), 10, 5 );

@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace BSP\Quotes\Service;
 
 use BSP\Quotes\Repository\QuoteRepositoryInterface;
+use BSP\Sales\Vendors\VendorService;
 use InvalidArgumentException;
 
 final class QuoteConversionService
@@ -156,6 +157,9 @@ final class QuoteConversionService
             if ($title === '') {
                 $title = sprintf('Voorstelregel %d', $lineNumber);
             }
+            $productId = $this->normalizeInt($item['product_id'] ?? null);
+            $vendorId = $this->resolveVendorId($this->normalizeInt($item['vendor_id'] ?? null), $productId);
+            $availabilitySnapshot = $this->buildAvailabilitySnapshot($item, $request, $productId, $vendorId);
 
             $lines[] = array(
                 'line_number'              => $lineNumber,
@@ -163,8 +167,8 @@ final class QuoteConversionService
                 'line_type'                => 'product',
                 'line_status'              => (int) ($item['product_id'] ?? 0) > 0 ? 'mapped' : 'directional',
                 'title'                    => $title,
-                'product_id'               => $this->normalizeInt($item['product_id'] ?? null),
-                'vendor_id'                => $this->normalizeInt($item['vendor_id'] ?? null),
+                'product_id'               => $productId,
+                'vendor_id'                => $vendorId,
                 'resource_id'              => $this->normalizeInt($item['resource_id'] ?? null),
                 'quantity'                 => max(1, (int) ($item['quantity'] ?? 1)),
                 'participants'             => max(0, (int) ($item['participants'] ?? ($request['group_size'] ?? 0))),
@@ -176,6 +180,7 @@ final class QuoteConversionService
                 'pricing_mode'             => (float) ($item['line_total_snapshot'] ?? 0.0) > 0 ? 'snapshot' : 'directional',
                 'pricing_confidence'       => (string) ($item['pricing_confidence'] ?? ($request['pricing_confidence'] ?? 'unknown')),
                 'availability_confidence'  => (string) ($item['availability_confidence'] ?? ($request['availability_confidence'] ?? 'unknown')),
+                'availability_snapshot_json' => $availabilitySnapshot,
                 'unit_amount_snapshot'     => isset($item['unit_amount_snapshot']) ? (float) $item['unit_amount_snapshot'] : null,
                 'line_total_snapshot'      => isset($item['line_total_snapshot']) ? (float) $item['line_total_snapshot'] : null,
                 'currency'                 => 'EUR',
@@ -250,6 +255,56 @@ final class QuoteConversionService
     {
         $int = (int) $value;
         return $int > 0 ? $int : null;
+    }
+
+    private function resolveVendorId(?int $vendorId, ?int $productId): ?int
+    {
+        if ($vendorId !== null && $vendorId > 0) {
+            return $vendorId;
+        }
+
+        if ($productId === null || $productId <= 0 || ! class_exists(VendorService::class)) {
+            return null;
+        }
+
+        return VendorService::getVendorIdForProduct($productId);
+    }
+
+    /**
+     * @param array<string, mixed> $item
+     * @param array<string, mixed> $request
+     * @return array<string, mixed>
+     */
+    private function buildAvailabilitySnapshot(array $item, array $request, ?int $productId, ?int $vendorId): array
+    {
+        $snapshot = is_array($item['availability_snapshot_json'] ?? null)
+            ? $item['availability_snapshot_json']
+            : (is_array($item['availability_snapshot'] ?? null) ? $item['availability_snapshot'] : array());
+
+        if (! $this->requiresSupplierConfirmation($productId)) {
+            return $snapshot;
+        }
+
+        $snapshot['bookingMode'] = 'supplier_confirmation';
+        $snapshot['supplierStatus'] = (string) ($snapshot['supplierStatus'] ?? 'supplier_option_requested');
+        $snapshot['supplierId'] = $vendorId;
+        $snapshot['availabilityStatus'] = (string) ($snapshot['availabilityStatus'] ?? 'unknown');
+        $snapshot['participants'] = max(0, (int) ($item['participants'] ?? ($request['group_size'] ?? 0)));
+        $snapshot['date'] = (string) ($item['service_date'] ?? ($request['preferred_date'] ?? ''));
+        $snapshot['startTime'] = (string) ($item['start_time'] ?? ($request['preferred_start_time'] ?? ''));
+        $snapshot['endTime'] = (string) ($item['end_time'] ?? ($request['preferred_end_time'] ?? ''));
+
+        return $snapshot;
+    }
+
+    private function requiresSupplierConfirmation(?int $productId): bool
+    {
+        if ($productId === null || $productId <= 0 || ! function_exists('get_post_meta')) {
+            return false;
+        }
+
+        return strtolower(trim((string) get_post_meta($productId, '_ddb_supplier_confirmation_required', true))) === 'yes'
+            || strtolower(trim((string) get_post_meta($productId, '_ddb_booking_mode', true))) === 'supplier_confirmation';
     }
 
     /**

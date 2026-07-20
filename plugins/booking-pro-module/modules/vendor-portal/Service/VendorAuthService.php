@@ -11,8 +11,9 @@ use Throwable;
 
 final class VendorAuthService
 {
-    private const TOKEN_PREFIX   = 'sbdp_vendor_portal_token_';
-    private const TOKEN_LIFETIME = 3600; // 1 hour
+    private const TOKEN_PREFIX        = 'sbdp_vendor_portal_token_';
+    private const TOKEN_LIFETIME        = 28800;  // 8 hours (workday)
+    private const TOKEN_LIFETIME_LONG   = 604800; // 7 days (remember me)
 
     /**
      * @var array<string, array<string, mixed>>
@@ -29,7 +30,7 @@ final class VendorAuthService
     /**
      * @return array<string, mixed>
      */
-    public function login(int $vendorId, string $accessKey): array
+    public function login(int $vendorId, string $accessKey, bool $rememberMe = false): array
     {
         if ($vendorId <= 0) {
             throw new InvalidArgumentException(__('Vendor ID ontbreekt.', 'sbdp'));
@@ -45,8 +46,9 @@ final class VendorAuthService
             throw new InvalidArgumentException(__('Ongeldige inloggegevens.', 'sbdp'));
         }
 
-        $token = bin2hex(random_bytes(16));
-        $session = $this->createSessionPayload($vendorId);
+        $token    = bin2hex(random_bytes(16));
+        $lifetime = $rememberMe ? self::TOKEN_LIFETIME_LONG : self::TOKEN_LIFETIME;
+        $session  = $this->createSessionPayload($vendorId, $lifetime);
 
         $this->persistSession($token, $session);
 
@@ -57,14 +59,15 @@ final class VendorAuthService
 
         $this->auditLogger->log('login_success', array(
             'vendor_id' => (string) $vendorId,
-            'token'     => $token,
+            'session'   => $this->tokenFingerprint($token),
             'expires_at'=> $session['expires_at'] ?? '',
         ));
 
         return array(
-            'token'      => $token,
-            'expires_in' => $session['expires_in'],
-            'vendor_id'  => $vendorId,
+            'token'       => $token,
+            'expires_in'  => $session['expires_in'],
+            'vendor_id'   => $vendorId,
+            'remember_me' => $rememberMe,
         );
     }
 
@@ -80,7 +83,7 @@ final class VendorAuthService
 
         $session = $this->readSession($token);
         if (! is_array($session) || empty($session['vendor_id'])) {
-            $this->auditLogger->log('session_invalid', array('token' => $token));
+            $this->auditLogger->log('session_invalid', array('session' => $this->tokenFingerprint($token)));
             throw new InvalidArgumentException(__('Sessie is verlopen of ongeldig.', 'sbdp'));
         }
 
@@ -88,13 +91,14 @@ final class VendorAuthService
         $expiresAt = isset($session['expires_at']) ? (int) $session['expires_at'] : ($now + self::TOKEN_LIFETIME);
         if ($expiresAt <= $now) {
             $this->destroyToken($token, false);
-            $this->auditLogger->log('session_expired', array('token' => $token));
+            $this->auditLogger->log('session_expired', array('session' => $this->tokenFingerprint($token)));
             throw new InvalidArgumentException(__('Sessie is verlopen of ongeldig.', 'sbdp'));
         }
 
+        $lifetime                = ! empty($session['remember_me']) ? self::TOKEN_LIFETIME_LONG : self::TOKEN_LIFETIME;
         $session['last_seen_at'] = gmdate('c', $now);
-        $session['expires_at']   = $now + self::TOKEN_LIFETIME;
-        $session['expires_in']   = self::TOKEN_LIFETIME;
+        $session['expires_at']   = $now + $lifetime;
+        $session['expires_in']   = $lifetime;
 
         $this->persistSession($token, $session);
 
@@ -114,7 +118,7 @@ final class VendorAuthService
         }
 
         if ($log) {
-            $this->auditLogger->log('logout', array('token' => $token));
+            $this->auditLogger->log('logout', array('session' => $this->tokenFingerprint($token)));
         }
     }
 
@@ -350,18 +354,24 @@ final class VendorAuthService
     /**
      * @return array<string, mixed>
      */
-    private function createSessionPayload(int $vendorId): array
+    private function createSessionPayload(int $vendorId, int $lifetime = self::TOKEN_LIFETIME): array
     {
         $issuedAt  = time();
-        $expiresAt = $issuedAt + self::TOKEN_LIFETIME;
+        $expiresAt = $issuedAt + $lifetime;
 
         return array(
             'vendor_id'    => $vendorId,
             'issued_at'    => gmdate('c', $issuedAt),
             'last_seen_at' => gmdate('c', $issuedAt),
             'expires_at'   => $expiresAt,
-            'expires_in'   => self::TOKEN_LIFETIME,
+            'expires_in'   => $lifetime,
+            'remember_me'  => $lifetime === self::TOKEN_LIFETIME_LONG,
         );
+    }
+
+    private function tokenFingerprint(string $token): string
+    {
+        return substr(hash('sha256', $token), 0, 12);
     }
 
     private function persistSession(string $token, array $session): void
@@ -369,7 +379,8 @@ final class VendorAuthService
         self::$runtimeSessions[$token] = $session;
 
         if (function_exists('set_transient')) {
-            set_transient($this->buildCacheKey($token), $session, self::TOKEN_LIFETIME);
+            $ttl = isset($session['expires_in']) ? (int) $session['expires_in'] : self::TOKEN_LIFETIME;
+            set_transient($this->buildCacheKey($token), $session, $ttl);
         }
     }
 

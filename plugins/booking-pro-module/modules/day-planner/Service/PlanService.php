@@ -1902,6 +1902,15 @@ final class PlanService
      */
     public function suggestActivities(array $preferences): array
     {
+        $participants = $preferences['participants'] ?? null;
+        if (! is_numeric($participants) || (int) $participants < 1 || (int) $participants > 100) {
+            throw new RuntimeException(__('Vul eerst een geldig aantal deelnemers in.', 'sbdp'));
+        }
+
+        // Compatibility projections may consume `people`, but canonical input is participants.
+        $preferences['participants'] = (int) $participants;
+        $preferences['people'] = (int) $participants;
+
         $sessionId = $this->resolveSessionId($preferences);
         $traceId = $this->resolveTraceId($sessionId);
         $context = $sessionId !== '' ? $this->sessionStore->load($sessionId) : [];

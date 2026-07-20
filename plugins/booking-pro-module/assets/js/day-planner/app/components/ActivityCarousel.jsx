@@ -84,7 +84,7 @@ function collectPriceAvailability(products) {
   };
 
   (products || []).forEach((product) => {
-    const price = getSlotPricePerPerson(product, 1, { sourceProduct: product });
+    const price = getSlotPricePerPerson(product, null, { sourceProduct: product });
     if (!Number.isFinite(price) || price <= 0) {
       return;
     }
@@ -165,7 +165,7 @@ function getSortableName(product) {
 }
 
 function getSortablePrice(product) {
-  const perPerson = getSlotPricePerPerson(product, 1, { sourceProduct: product });
+  const perPerson = getSlotPricePerPerson(product, null, { sourceProduct: product });
   if (Number.isFinite(perPerson) && perPerson > 0) {
     return perPerson;
   }
@@ -976,7 +976,7 @@ export default function ActivityCarousel({
               <div className="sbdp-activity-carousel__recommendations-grid">
                 {topRecommendations.map((product) => {
                   const pricePerPerson = formatPrice(
-                    getSlotPricePerPerson(product, 1, { sourceProduct: product }),
+                    getSlotPricePerPerson(product, null, { sourceProduct: product }),
                     currency
                   );
                   return (
@@ -1016,7 +1016,7 @@ export default function ActivityCarousel({
                     ? plan.items.filter((item) => Number(item.productId) === Number(product.id)).length
                     : 0;
                   const pricePerPerson = formatPrice(
-                    getSlotPricePerPerson(product, 1, { sourceProduct: product }),
+                    getSlotPricePerPerson(product, null, { sourceProduct: product }),
                     currency
                   );
                   return (
@@ -1062,7 +1062,7 @@ export default function ActivityCarousel({
                   sourceProduct: product,
                 });
                 const pricePerPerson = formatPrice(
-                  slotPrice.perPerson || getSlotPricePerPerson(product, 1),
+                  slotPrice.perPerson || getSlotPricePerPerson(product, null),
                   currency
                 );
                 const addedCount = Array.isArray(plan?.items)

@@ -5304,6 +5304,31 @@ body.page-id-17 .elementor-element.elementor-element-d862670 {
   display: none;
 }
 
+/* Page 17 shell alignment: keep Elementor from boxing the planner/intro. */
+body.page-id-17 .elementor-17 {
+  width: 100%;
+}
+
+body.page-id-17 .elementor-element-fff6af0,
+body.page-id-17 .elementor-element-fff6af0 > .e-con-inner,
+body.page-id-17 .elementor-element-1329bf88,
+body.page-id-17 .elementor-element-1329bf88 > .e-con-inner,
+body.page-id-17 .elementor-element-0a9ab72,
+body.page-id-17 .elementor-element-0a9ab72 > .elementor-widget-container,
+body.page-id-17 .elementor-element-0a9ab72 .elementor-shortcode {
+  display: contents !important;
+}
+
+body.page-id-17 .elementor-element-fff6af0 > .e-con-inner > .e-heading-base,
+body.page-id-17 .elementor-element-fff6af0 > .e-con-inner > .e-paragraph-base,
+body.page-id-17 .sbdp-day-planner-shell {
+  width: min(1400px, calc(100vw - 24px));
+  max-width: 1400px;
+  margin-left: auto;
+  margin-right: auto;
+  box-sizing: border-box;
+}
+
 /* Premium activity cards: image, content and action row stay in separate scan zones. */
 .sbdp-day-planner .ui-listing-card {
   position: relative;

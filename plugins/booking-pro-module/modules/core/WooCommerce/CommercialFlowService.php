@@ -27,9 +27,13 @@ final class CommercialFlowService
         add_filter('woocommerce_order_details_status', [__CLASS__, 'filterOrderDetailsStatus'], 10, 2);
         add_filter('woocommerce_cart_item_name', [__CLASS__, 'filterCartItemName'], 10, 3);
         add_filter('woocommerce_order_item_name', [__CLASS__, 'filterOrderItemName'], 10, 3);
+        add_filter('gettext', [__CLASS__, 'filterCommerceCopy'], 20, 3);
+        add_filter('woocommerce_rate_label', [__CLASS__, 'filterCommerceTaxRateLabel'], 20, 2);
+        add_filter('woocommerce_account_menu_items', [__CLASS__, 'filterAccountMenuItems'], 20, 1);
 
         add_action('woocommerce_before_cart', [__CLASS__, 'renderCartStart'], 5);
         add_action('woocommerce_after_cart', [__CLASS__, 'renderCartEnd'], 50);
+        add_action('woocommerce_proceed_to_checkout', [__CLASS__, 'renderCartPlannerLink'], 30);
 
         add_action('woocommerce_before_checkout_form', [__CLASS__, 'renderCheckoutStart'], 5);
         add_action('woocommerce_after_checkout_form', [__CLASS__, 'renderCheckoutEnd'], 50);
@@ -74,6 +78,25 @@ final class CommercialFlowService
                     return $form;
                 }
 
+                function placePaymentInProgram() {
+                    var $program = $('.ddb-checkout-program').first();
+                    var $payment = $('#payment');
+                    if (!$program.length || !$payment.length) {
+                        return;
+                    }
+                    if ($program.find('#payment').length) {
+                        return;
+                    }
+
+                    var $coupon = $program.find('.ddb-checkout-program__coupon').last();
+                    $payment.addClass('sbdp-checkout-payment-embedded');
+                    if ($coupon.length) {
+                        $payment.insertAfter($coupon);
+                    } else {
+                        $program.append($payment);
+                    }
+                }
+
                 function bridgePlaceOrder($button) {
                     var $form = resolveCheckoutForm();
                     if (!$form.length || !$button || !$button.length) {
@@ -103,6 +126,9 @@ final class CommercialFlowService
                     $form.trigger('submit');
                     return true;
                 }
+
+                placePaymentInProgram();
+                $(document.body).on('updated_checkout sbdp:checkout-program-ready', placePaymentInProgram);
 
                 // Use delegated handler so it survives Woo/Elementor fragment updates.
                 $(document).off('click.sbdp-bridge', '#place_order');
@@ -163,8 +189,9 @@ final class CommercialFlowService
         echo '<section class="ddb-commercial-flow ddb-commercial-flow--cart">';
         echo self::renderIntro(
             __('Besteloverzicht', 'sbdp'),
-            __('Controleer hieronder jullie planning en pas waar nodig nog aantallen of keuzes aan voordat je verdergaat naar afrekenen.', 'sbdp')
+            __('Controleer jullie dag voordat je afrekent. Pas alleen aan wat nog niet klopt.', 'sbdp')
         ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+        echo self::renderCartDaySummary(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
         echo '<div class="ddb-commercial-flow__content">'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
     }
 
@@ -176,6 +203,16 @@ final class CommercialFlowService
 
         self::$cartWrapperOpen = false;
         echo '</div></section>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+    }
+
+    public static function renderCartPlannerLink(): void
+    {
+        if (! function_exists('is_cart') || ! is_cart()) {
+            return;
+        }
+
+        $plannerUrl = function_exists('home_url') ? home_url('/plan-je-dag/') : '/plan-je-dag/';
+        echo '<a class="button ddb-cart-secondary-action" href="' . esc_url($plannerUrl) . '">' . esc_html__('Pas planning aan', 'sbdp') . '</a>';
     }
 
     public static function renderCheckoutStart($checkout): void // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found
@@ -308,6 +345,37 @@ final class CommercialFlowService
         return self::normalizeDisplayTitle($name);
     }
 
+    public static function filterCommerceCopy(string $translation, string $text, string $domain): string
+    {
+        unset($domain);
+
+        if (! self::isCommercialContext()) {
+            return $translation;
+        }
+
+        $copy = [
+            'Update cart' => 'Winkelwagen bijwerken',
+            'Apply coupon' => 'Waardebon toepassen',
+            'Coupon code' => 'Waardeboncode',
+            'Proceed to checkout' => 'Verder naar afrekenen',
+            'Cart totals' => 'Totalen winkelwagen',
+            'Tax' => 'btw',
+        ];
+
+        return $copy[$text] ?? $translation;
+    }
+
+    public static function filterCommerceTaxRateLabel(string $label, $rate): string // phpcs:ignore Generic.CodeAnalysis.UnusedFunctionParameter.Found
+    {
+        unset($rate);
+
+        if (! self::isCommercialContext()) {
+            return $label;
+        }
+
+        return strtolower(trim($label)) === 'tax' ? 'btw' : $label;
+    }
+
     public static function renderViewOrderCard(int $orderId): void
     {
         if (! function_exists('is_wc_endpoint_url') || ! is_wc_endpoint_url('view-order')) {
@@ -343,10 +411,7 @@ final class CommercialFlowService
         self::$accountWrapperOpen = true;
 
         echo '<section class="ddb-commercial-flow ddb-commercial-flow--account">';
-        echo self::renderIntro(
-            __('Mijn account', 'sbdp'),
-            __('Bekijk jullie boekingen, openstaande acties en accountgegevens op een plek. Vanuit hier ga je direct door naar de juiste vervolgstap.', 'sbdp')
-        ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+        echo self::renderAccountIntro(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
         echo '<div class="ddb-commercial-flow__content">'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
     }
 
@@ -357,7 +422,39 @@ final class CommercialFlowService
         }
 
         self::$accountWrapperOpen = false;
-        echo '</div></section>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+        echo '</div>' . self::renderAccountFooter() . '</section>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+    }
+
+    /**
+     * @param array<string,string> $items
+     * @return array<string,string>
+     */
+    public static function filterAccountMenuItems(array $items): array
+    {
+        $labels = [
+            'dashboard' => __('Overzicht', 'sbdp'),
+            'orders' => __('Boekingen', 'sbdp'),
+            'downloads' => __('Tickets', 'sbdp'),
+            'edit-address' => __('Adressen', 'sbdp'),
+            'edit-account' => __('Profiel', 'sbdp'),
+            'customer-logout' => __('Uitloggen', 'sbdp'),
+        ];
+
+        $order = ['dashboard', 'orders', 'downloads', 'edit-account', 'edit-address', 'customer-logout'];
+        $sorted = [];
+        foreach ($order as $key) {
+            if (isset($items[$key])) {
+                $sorted[$key] = $labels[$key] ?? $items[$key];
+            }
+        }
+
+        foreach ($items as $key => $label) {
+            if (! isset($sorted[$key])) {
+                $sorted[$key] = $labels[$key] ?? $label;
+            }
+        }
+
+        return $sorted;
     }
 
     private static function isCommercialContext(): bool
@@ -388,6 +485,59 @@ final class CommercialFlowService
         );
     }
 
+    private static function renderAccountIntro(): string
+    {
+        $user = function_exists('wp_get_current_user') ? wp_get_current_user() : null;
+        $firstName = '';
+        if ($user instanceof \WP_User && $user->exists()) {
+            $firstName = trim((string) $user->first_name);
+            if ($firstName === '') {
+                $firstName = trim((string) $user->display_name);
+            }
+        }
+
+        $accountUrl = function_exists('wc_get_page_permalink') ? wc_get_page_permalink('myaccount') : home_url('/my-account/');
+        $editUrl = function_exists('wc_get_endpoint_url') ? wc_get_endpoint_url('edit-account', '', $accountUrl) : home_url('/my-account/edit-account/');
+        $planUrl = function_exists('home_url') ? home_url('/activiteiten-den-bosch/') : '/activiteiten-den-bosch/';
+
+        $greeting = $firstName !== ''
+            ? sprintf(__('Goedemiddag, %s', 'sbdp'), $firstName)
+            : __('Goedemiddag', 'sbdp');
+
+        $html = '<header class="ddb-commercial-flow__intro ddb-account-dashboard__header">';
+        $html .= '<div>';
+        $html .= '<p class="ddb-commercial-flow__eyebrow">' . esc_html($greeting) . '</p>';
+        $html .= '<h1 class="ddb-commercial-flow__title">' . esc_html__('Mijn account', 'sbdp') . '</h1>';
+        $html .= '<p class="ddb-commercial-flow__text">' . esc_html__('Beheer je boekingen, aanvragen, tickets en accountgegevens.', 'sbdp') . '</p>';
+        $html .= '</div>';
+        $html .= '<div class="ddb-account-dashboard__header-actions">';
+        $html .= '<a class="ddb-account-dashboard__button ddb-account-dashboard__button--primary" href="' . esc_url($planUrl) . '">' . esc_html__('Activiteit boeken', 'sbdp') . '</a>';
+        $html .= '<a class="ddb-account-dashboard__button ddb-account-dashboard__button--secondary" href="' . esc_url($editUrl) . '">' . esc_html__('Profiel beheren', 'sbdp') . '</a>';
+        $html .= '</div>';
+        $html .= '</header>';
+
+        return $html;
+    }
+
+    private static function renderAccountFooter(): string
+    {
+        $privacyUrl = function_exists('get_privacy_policy_url') ? get_privacy_policy_url() : home_url('/privacy/');
+        $termsUrl = function_exists('home_url') ? home_url('/voorwaarden/') : '/voorwaarden/';
+        $contactUrl = function_exists('home_url') ? home_url('/contact/') : '/contact/';
+
+        return sprintf(
+            '<footer class="ddb-account-dashboard__footer"><span>%s</span><nav aria-label="%s"><a href="%s">%s</a><a href="%s">%s</a><a href="%s">%s</a></nav></footer>',
+            esc_html__('© DagjeDenBosch.nl', 'sbdp'),
+            esc_attr__('Account footer', 'sbdp'),
+            esc_url($privacyUrl),
+            esc_html__('Privacy', 'sbdp'),
+            esc_url($termsUrl),
+            esc_html__('Voorwaarden', 'sbdp'),
+            esc_url($contactUrl),
+            esc_html__('Contact', 'sbdp')
+        );
+    }
+
     private static function renderStatusItem(string $label, string $value): string
     {
         if ($value === '') {
@@ -399,6 +549,159 @@ final class CommercialFlowService
             esc_html($label),
             esc_html($value)
         );
+    }
+
+    private static function renderCartDaySummary(): string
+    {
+        if (! function_exists('WC') || ! WC() || ! WC()->cart) {
+            return '';
+        }
+
+        $items = WC()->cart->get_cart();
+        if (! is_array($items) || $items === []) {
+            return '';
+        }
+
+        $dates = [];
+        $participants = 0;
+        $withParticipants = 0;
+        $hasRequest = false;
+        $hasDirect = false;
+        $duplicateKeys = [];
+
+        foreach ($items as $cartItem) {
+            if (! is_array($cartItem)) {
+                continue;
+            }
+
+            $source = self::extractCartItemSource($cartItem);
+            $date = self::resolveCartDateLabel($source);
+            if ($date !== '') {
+                $dates[] = $date;
+            }
+
+            $count = self::resolveCartParticipants($source);
+            if ($count > 0) {
+                $participants += $count;
+                $withParticipants++;
+            }
+
+            $route = strtolower(trim((string) ($source['sbdp_route_intent'] ?? '')));
+            $capability = strtoupper(trim((string) ($source['sbdp_booking_capability'] ?? '')));
+            if (in_array($route, ['quote', 'request'], true) || $capability === 'REQUEST') {
+                $hasRequest = true;
+            }
+            if ($route === 'checkout' || in_array($capability, ['DIRECT', 'DIRECT_LIMITED', 'DIRECT_ELIGIBLE'], true)) {
+                $hasDirect = true;
+            }
+
+            $productId = isset($cartItem['product_id']) ? (int) $cartItem['product_id'] : 0;
+            $title = '';
+            if (isset($cartItem['data']) && is_object($cartItem['data']) && method_exists($cartItem['data'], 'get_name')) {
+                $title = (string) $cartItem['data']->get_name();
+            }
+            $duplicateKey = $productId > 0 ? 'product-' . $productId : strtolower(trim(wp_strip_all_tags($title)));
+            if ($duplicateKey !== '') {
+                $duplicateKeys[$duplicateKey] = ($duplicateKeys[$duplicateKey] ?? 0) + 1;
+            }
+        }
+
+        $uniqueDates = array_values(array_unique(array_filter($dates)));
+        $dateLabel = count($uniqueDates) === 1 ? $uniqueDates[0] : __('Meerdere data', 'sbdp');
+        $itemCount = count($items);
+        $statusLabel = $hasRequest
+            ? __('Aanvraag nodig', 'sbdp')
+            : ($hasDirect ? __('Direct boekbaar', 'sbdp') : __('Controleer planning', 'sbdp'));
+
+        $duplicateCount = 0;
+        foreach ($duplicateKeys as $count) {
+            if ((int) $count > 1) {
+                $duplicateCount++;
+            }
+        }
+
+        $chips = [
+            $dateLabel,
+            sprintf(_n('%d onderdeel', '%d onderdelen', $itemCount, 'sbdp'), $itemCount),
+            $withParticipants > 0
+                ? sprintf(_n('%d persoon totaal', '%d personen totaal', $participants, 'sbdp'), $participants)
+                : __('Aantal personen onbekend', 'sbdp'),
+            $statusLabel,
+        ];
+
+        $html = '<section class="ddb-cart-day-summary">';
+        $html .= '<div class="ddb-cart-day-summary__main">';
+        $html .= '<p class="ddb-cart-day-summary__eyebrow">' . esc_html__('Jullie dag', 'sbdp') . '</p>';
+        $html .= '<h2 class="ddb-cart-day-summary__title">' . esc_html__('Klaar om te controleren', 'sbdp') . '</h2>';
+        $html .= '<div class="ddb-cart-day-summary__chips">';
+        foreach ($chips as $chip) {
+            $html .= '<span class="ddb-cart-day-summary__chip">' . esc_html($chip) . '</span>';
+        }
+        $html .= '</div>';
+        $html .= '</div>';
+
+        if ($duplicateCount > 0) {
+            $html .= '<p class="ddb-cart-day-summary__notice">' . esc_html__('Let op: dezelfde activiteit staat meerdere keren in de winkelwagen. Controleer of dit bewust is.', 'sbdp') . '</p>';
+        }
+
+        $html .= '</section>';
+
+        return $html;
+    }
+
+    /**
+     * @param array<string, mixed> $cartItem
+     * @return array<string, mixed>
+     */
+    private static function extractCartItemSource(array $cartItem): array
+    {
+        $source = isset($cartItem['sbdp_meta']) && is_array($cartItem['sbdp_meta'])
+            ? $cartItem['sbdp_meta']
+            : [];
+
+        foreach ([
+            'sbdp_date',
+            'sbdp_plan_date',
+            'sbdp_canonical_participants',
+            'sbdp_route_intent',
+            'sbdp_booking_capability',
+        ] as $key) {
+            if (isset($cartItem[$key]) && ! isset($source[$key])) {
+                $source[$key] = $cartItem[$key];
+            }
+        }
+
+        return $source;
+    }
+
+    /**
+     * @param array<string, mixed> $source
+     */
+    private static function resolveCartParticipants(array $source): int
+    {
+        if (isset($source['sbdp_canonical_participants']) && is_numeric($source['sbdp_canonical_participants'])) {
+            return max(0, (int) $source['sbdp_canonical_participants']);
+        }
+
+        return 0;
+    }
+
+    /**
+     * @param array<string, mixed> $source
+     */
+    private static function resolveCartDateLabel(array $source): string
+    {
+        $raw = trim((string) ($source['sbdp_date'] ?? $source['sbdp_plan_date'] ?? ''));
+        if ($raw === '') {
+            return '';
+        }
+
+        try {
+            $dt = new \DateTimeImmutable($raw);
+            return function_exists('wp_date') ? wp_date('l j F Y', $dt->getTimestamp()) : $dt->format('Y-m-d');
+        } catch (\Throwable $exception) {
+            return sanitize_text_field($raw);
+        }
     }
 
     private static function normalizeDisplayTitle(string $title): string

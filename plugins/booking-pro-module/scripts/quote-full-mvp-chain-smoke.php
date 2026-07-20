@@ -360,7 +360,19 @@ try {
     $proposalContext = $publicProposal->resolveByToken($token);
     sbdp_quote_full_mvp_chain_smoke_ok(! empty($proposalContext['actionable']), 'Scenario A: public proposal should be actionable.');
 
-    $accepted = $publicProposal->accept($token, array('ip' => '127.0.0.1', 'user_agent' => 'quote-full-mvp-chain-smoke'));
+    $accepted = $publicProposal->accept(
+        $token,
+        array('ip' => '127.0.0.1', 'user_agent' => 'quote-full-mvp-chain-smoke'),
+        array(
+            'acceptance_name' => 'TEST-BSP Full MVP Akkoordgever',
+            'acceptance_email' => 'test-bsp-full-mvp@example.test',
+            'acceptance_company' => 'TEST-BSP Company',
+            'acceptance_role' => 'QA',
+            'acceptance_terms_checked' => '1',
+            'terms_version' => 'ddb-terms-smoke',
+            'terms_url' => 'https://staging.dagjedenbosch.nl/voorwaarden/',
+        )
+    );
     sbdp_quote_full_mvp_chain_smoke_ok((string) ($accepted['status'] ?? '') === 'accepted', 'Scenario A: quote was not accepted.');
     sbdp_quote_full_mvp_chain_smoke_ok((int) ($accepted['approved_version_id'] ?? 0) === $versionId, 'Scenario A: approved_version_id was not pinned.');
 
@@ -421,7 +433,7 @@ try {
     sbdp_quote_full_mvp_chain_smoke_ok(sbdp_quote_full_mvp_chain_smoke_count_events($repository, $quoteId, 'quote_booking_bridge_created') === 1, 'Scenario A/C: booking bridge event should be logged once.');
 
     $summary = (new QuoteAdminStatusSummaryService($repository))->summarize($quoteId, array('send_allowed' => false));
-    sbdp_quote_full_mvp_chain_smoke_ok((string) ($summary['next_action'] ?? '') === 'Geen actie nodig / operations ready', 'Scenario A: final next action mismatch.');
+    sbdp_quote_full_mvp_chain_smoke_ok((string) ($summary['next_action'] ?? '') === 'Geen actie', 'Scenario A: final next action mismatch.');
 
     $supplierAvailability = array(
         'bookingMode' => 'supplier_confirmation',

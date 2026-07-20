@@ -192,6 +192,7 @@ final class QuoteWorkspaceRenderer
         QuoteBuilderRenderer::renderAdminStyles();
         self::renderNotices();
         self::renderOperationsFilters($active, $filters);
+        self::renderOperationsFollowups($repository, $quotes);
         $tourHealthRows = self::buildTourTicketHealthRows();
         self::renderOperationsPriorityPanel($buckets, $tourHealthRows);
         self::renderExperienceReadinessPanel($tourHealthRows);
@@ -223,6 +224,78 @@ final class QuoteWorkspaceRenderer
             echo '</tbody></table></div></div></section>';
         }
         echo '</div>';
+    }
+
+    /**
+     * @param array<int,array<string,mixed>> $quotes
+     */
+    private static function renderOperationsFollowups(QuoteRepository $repository, array $quotes): void
+    {
+        $open = array();
+        $completed = array();
+        foreach ($quotes as $quote) {
+            if (! is_array($quote)) {
+                continue;
+            }
+            foreach ($repository->listQuoteFollowups((int) ($quote['id'] ?? 0)) as $followup) {
+                if (! is_array($followup)) {
+                    continue;
+                }
+                $followup['quote_reference'] = (string) ($quote['quote_reference'] ?? ('Q-' . (int) ($quote['id'] ?? 0)));
+                if ((string) ($followup['status'] ?? 'open') === 'open') {
+                    $open[] = $followup;
+                } else {
+                    $completed[] = $followup;
+                }
+            }
+        }
+        usort($open, static fn (array $a, array $b): int => strcmp((string) ($a['due_at'] ?? '9999'), (string) ($b['due_at'] ?? '9999')));
+        usort($completed, static fn (array $a, array $b): int => strcmp((string) ($b['completed_at'] ?? ''), (string) ($a['completed_at'] ?? '')));
+
+        echo '<section class="postbox bsp-quote-admin__panel"><div class="bsp-quote-admin__panel-header"><h3>' . esc_html__('Opvolgtaken', 'sbdp') . '</h3><p class="bsp-quote-admin__muted">' . esc_html__('Interne taken voor offerte-opvolging; deze wijzigen geen boekings- of betaalstatus.', 'sbdp') . '</p></div><div class="bsp-quote-admin__panel-body">';
+        echo '<div class="bsp-quote-admin__table-wrap"><table class="widefat striped"><thead><tr><th>' . esc_html__('Quote / taak', 'sbdp') . '</th><th>' . esc_html__('Deadline', 'sbdp') . '</th><th>' . esc_html__('Prioriteit', 'sbdp') . '</th><th>' . esc_html__('Toegewezen aan', 'sbdp') . '</th><th>' . esc_html__('Acties', 'sbdp') . '</th></tr></thead><tbody>';
+        if ($open === array()) {
+            echo '<tr><td colspan="5">' . esc_html__('Geen open opvolgtaken.', 'sbdp') . '</td></tr>';
+        }
+        foreach ($open as $task) {
+            $id = (int) ($task['id'] ?? 0);
+            $due = self::followupDateTimeInput((string) ($task['due_at'] ?? ''));
+            echo '<tr><td><strong>' . esc_html((string) ($task['quote_reference'] ?? '')) . '</strong><br>' . esc_html((string) ($task['title'] ?? '')) . '</td>';
+            echo '<td colspan="3"><form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
+            wp_nonce_field('sbdp_quote_followup_reschedule');
+            echo '<input type="hidden" name="action" value="sbdp_quote_followup_reschedule"><input type="hidden" name="followup_id" value="' . esc_attr((string) $id) . '">';
+            echo '<input type="datetime-local" name="due_at" value="' . esc_attr($due) . '" required> ';
+            echo '<select name="priority">';
+            foreach (array('low' => __('Laag', 'sbdp'), 'normal' => __('Normaal', 'sbdp'), 'high' => __('Hoog', 'sbdp'), 'urgent' => __('Urgent', 'sbdp')) as $value => $label) {
+                echo '<option value="' . esc_attr($value) . '" ' . selected((string) ($task['priority'] ?? 'normal'), $value, false) . '>' . esc_html($label) . '</option>';
+            }
+            echo '</select> <input class="small-text" type="number" min="0" name="assigned_user_id" aria-label="' . esc_attr__('Gebruikers-ID', 'sbdp') . '" value="' . esc_attr((string) ((int) ($task['assigned_user_id'] ?? 0))) . '"> ';
+            submit_button(__('Opslaan', 'sbdp'), 'secondary small', 'submit', false);
+            echo '</form></td><td><form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">';
+            wp_nonce_field('sbdp_quote_followup_complete');
+            echo '<input type="hidden" name="action" value="sbdp_quote_followup_complete"><input type="hidden" name="return_to" value="sbdp_quote_operations"><input type="hidden" name="quote_id" value="' . esc_attr((string) ((int) ($task['quote_id'] ?? 0))) . '"><input type="hidden" name="followup_id" value="' . esc_attr((string) $id) . '">';
+            submit_button(__('Afronden', 'sbdp'), 'primary small', 'submit', false);
+            echo '</form></td></tr>';
+        }
+        echo '</tbody></table></div>';
+        if ($completed !== array()) {
+            echo '<details class="bsp-quote-admin__advanced-panel"><summary>' . esc_html__('Recent afgerond', 'sbdp') . '</summary><ul>';
+            foreach (array_slice($completed, 0, 10) as $task) {
+                echo '<li><form method="post" action="' . esc_url(admin_url('admin-post.php')) . '"><strong>' . esc_html((string) ($task['quote_reference'] ?? '')) . '</strong> — ' . esc_html((string) ($task['title'] ?? '')) . ' ';
+                wp_nonce_field('sbdp_quote_followup_reopen');
+                echo '<input type="hidden" name="action" value="sbdp_quote_followup_reopen"><input type="hidden" name="followup_id" value="' . esc_attr((string) ((int) ($task['id'] ?? 0))) . '"><input type="datetime-local" name="due_at" value="' . esc_attr(gmdate('Y-m-d\\TH:i', strtotime('+1 day'))) . '" required> ';
+                submit_button(__('Heropenen', 'sbdp'), 'secondary small', 'submit', false);
+                echo '</form></li>';
+            }
+            echo '</ul></details>';
+        }
+        echo '</div></section>';
+    }
+
+    private static function followupDateTimeInput(string $value): string
+    {
+        $timestamp = strtotime($value . ' UTC');
+        return $timestamp === false ? '' : gmdate('Y-m-d\\TH:i', $timestamp);
     }
 
     /**
@@ -3979,10 +4052,16 @@ final class QuoteWorkspaceRenderer
         $bookingMasterId = (int) ($quote['booking_master_id'] ?? 0);
         if ($bookingMasterId > 0) {
             echo '<div class="bsp-quote-admin__readiness-summary"><strong>' . esc_html__('Operationele boeking aangemaakt', 'sbdp') . '</strong><p>' . esc_html(sprintf(__('Booking master #%d', 'sbdp'), $bookingMasterId)) . '</p></div>';
-        } elseif ((string) ($quote['status'] ?? '') === 'confirmed' && (string) ($quote['handoff_status'] ?? '') === 'woo_cart_hydrated') {
+        } elseif (
+            (string) ($quote['status'] ?? '') === 'confirmed'
+            && (
+                (string) ($quote['handoff_status'] ?? '') === 'woo_cart_hydrated'
+                || ((string) ($quote['handoff_status'] ?? '') === 'woo_payment_completed' && (int) ($quote['woo_order_id'] ?? 0) > 0)
+            )
+        ) {
             echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '">' . wp_nonce_field('sbdp_quote_create_booking_bridge', '_wpnonce', true, false) . '<input type="hidden" name="action" value="sbdp_quote_create_booking_bridge"><input type="hidden" name="quote_id" value="' . esc_attr((string) $quoteId) . '"><button class="button button-primary" type="submit">' . esc_html__('Maak operationele boeking', 'sbdp') . '</button></form>';
         } elseif ((string) ($quote['status'] ?? '') === 'confirmed') {
-            echo '<p class="bsp-quote-admin__muted">' . esc_html__('Operationele boeking kan pas na gecontroleerde Woo winkelwagenvoorbereiding.', 'sbdp') . '</p>';
+            echo '<p class="bsp-quote-admin__muted">' . esc_html__('Operationele boeking kan pas na gecontroleerde Woo winkelwagenvoorbereiding of geverifieerde request-order betaling.', 'sbdp') . '</p>';
         }
         echo '</div>';
         echo '<details class="bsp-quote-admin__advanced-panel"><summary>' . esc_html__('Technische handoffdetails', 'sbdp') . '</summary>';
@@ -4651,7 +4730,13 @@ final class QuoteWorkspaceRenderer
         echo '<div><span class="bsp-quote-admin__field-label">' . esc_html__('Voorstelbedrag', 'sbdp') . '</span><strong>' . esc_html((string) ($lineSummary['total_label'] ?? __('Nog niet bepaald', 'sbdp'))) . '</strong></div>';
         echo '</div>';
         if ($latestProposal !== null) {
-            echo '<p><a class="button button-secondary" href="#quote-communication-history">' . esc_html__('Bekijk voorstel', 'sbdp') . '</a></p>';
+            echo '<div class="bsp-quote-admin__actions">';
+            echo '<a class="button button-secondary" href="#quote-communication-history">' . esc_html__('Bekijk voorstel', 'sbdp') . '</a>';
+            echo '<form method="post" action="' . esc_url(admin_url('admin-post.php')) . '" class="bsp-quote-admin__inline-form">';
+            \wp_nonce_field('sbdp_quote_public_proposal_token_revoke');
+            echo '<input type="hidden" name="action" value="sbdp_quote_public_proposal_token_revoke"><input type="hidden" name="quote_id" value="' . esc_attr((string) $quoteId) . '"><input type="hidden" name="reason" value="admin_revoke">';
+            echo '<button class="button button-secondary" type="submit">' . esc_html__('Publieke link intrekken', 'sbdp') . '</button></form>';
+            echo '</div>';
         } else {
             if ($communicationState['proposal_send_ready'] !== true) {
                 echo '<div class="bsp-quote-admin__readiness-summary bsp-quote-admin__readiness-summary--compact"><strong>' . esc_html__('Voorstel verzenden nog niet beschikbaar', 'sbdp') . '</strong><p>' . esc_html((string) ($communicationState['proposal_send_block_reason'] ?? __('Vraag eerst review aan en keur de quote goed.', 'sbdp'))) . '</p></div>';
@@ -5084,6 +5169,7 @@ final class QuoteWorkspaceRenderer
             'quote_line_supplier_request_draft' => __('Partnerverzoek als draft opgeslagen.', 'sbdp'),
             'quote_line_supplier_request_sent' => __('Partnerverzoek verstuurd en vastgelegd in de thread.', 'sbdp'),
             'quote_line_partner_token_revoked' => __('Partnerlink ingetrokken.', 'sbdp'),
+            'quote_public_proposal_token_revoked' => __('Publieke voorstel-link(s) ingetrokken.', 'sbdp'),
             'quote_message_draft_generated' => __('Berichtdraft opgeslagen in de quote-thread.', 'sbdp'),
             'quote_message_summarized' => __('Inbound klantreply samengevat.', 'sbdp'),
             'quote_message_sent'    => __('Quote-mail verstuurd en vastgelegd in de thread.', 'sbdp'),
@@ -5095,6 +5181,8 @@ final class QuoteWorkspaceRenderer
             'quote_inbound_resolved' => __('Inbound inbox-item gekoppeld en verwerkt.', 'sbdp'),
             'followup_created'      => __('Follow-up aangemaakt.', 'sbdp'),
             'followup_completed'    => __('Follow-up afgerond.', 'sbdp'),
+            'followup_rescheduled'  => __('Follow-up herpland.', 'sbdp'),
+            'followup_reopened'     => __('Follow-up heropend.', 'sbdp'),
             'handoff_ready'         => __('Handoff-voorbereiding opgeslagen.', 'sbdp'),
             'resnapshot_prepared'   => __('Execution-voorbereiding gecontroleerd.', 'sbdp'),
             'handoff_package_ready' => __('Handoffpakket voorbereid.', 'sbdp'),
@@ -5404,6 +5492,7 @@ final class QuoteWorkspaceRenderer
         echo '</main>';
         echo '<aside class="bsp-qcd__side">';
         self::renderQcdReadinessCard($sendReadiness, $matrix);
+        self::renderQuoteAlertsCard($workspaceAlerts);
         self::renderQcdMessagesCard($quoteId, $communicationState, $messages);
         self::renderQcdAuditCard($quoteId, $events, $currentVersion);
         echo '</aside>';
@@ -5793,6 +5882,8 @@ final class QuoteWorkspaceRenderer
             echo '<small>' . esc_html($reason) . '</small>';
         }
         echo '</div>';
+        self::renderQcdLegalAcceptanceSummary($quoteId, is_array($summary['legal_acceptance'] ?? null) ? $summary['legal_acceptance'] : array());
+        self::renderQcdAcceptedPackageSummary($summary);
 
         echo '<div class="sbdp-qcd-chip-panel">';
         if ($metaChips !== array()) {
@@ -5826,6 +5917,103 @@ final class QuoteWorkspaceRenderer
         echo '</div>';
         echo '</div>';
         echo '</section>';
+    }
+
+    /**
+     * @param array<string, mixed> $legal
+     */
+    private static function renderQcdLegalAcceptanceSummary(int $quoteId, array $legal): void
+    {
+        $hasEvent = (int) ($legal['event_id'] ?? 0) > 0 || (string) ($legal['acceptance_name'] ?? '') !== '';
+        if (! $hasEvent) {
+            echo '<div class="sbdp-qcd-legal-acceptance"><span>' . esc_html__('Akkoord compleet', 'sbdp') . '</span><strong>' . esc_html__('Nee', 'sbdp') . '</strong></div>';
+            return;
+        }
+
+        echo '<div class="sbdp-qcd-legal-acceptance">';
+        echo '<span>' . esc_html__('Akkoordgegevens', 'sbdp') . '</span>';
+        echo '<strong>' . esc_html(! empty($legal['complete']) ? __('Akkoord compleet: ja', 'sbdp') : __('Akkoord compleet: nee', 'sbdp')) . '</strong>';
+        echo '<dl>';
+        self::renderQcdLegalAcceptanceRow(__('Naam', 'sbdp'), (string) ($legal['acceptance_name'] ?? ''));
+        self::renderQcdLegalAcceptanceRow(__('E-mail', 'sbdp'), (string) ($legal['acceptance_email'] ?? ''));
+        self::renderQcdLegalAcceptanceRow(__('Bedrijf', 'sbdp'), (string) ($legal['acceptance_company'] ?? ''));
+        self::renderQcdLegalAcceptanceRow(__('Rol', 'sbdp'), (string) ($legal['acceptance_role'] ?? ''));
+        self::renderQcdLegalAcceptanceRow(__('Akkoorddatum', 'sbdp'), (string) ($legal['accepted_at'] ?? ''));
+        self::renderQcdLegalAcceptanceRow(__('Approved version', 'sbdp'), (string) ($legal['approved_version_id'] ?? ''));
+        self::renderQcdLegalAcceptanceRow(__('Voorwaardenversie', 'sbdp'), (string) ($legal['terms_version'] ?? ''));
+        self::renderQcdLegalAcceptanceRow(__('IP', 'sbdp'), (string) ($legal['ip_address'] ?? ''));
+        self::renderQcdLegalAcceptanceRow(__('Snapshot hash', 'sbdp'), self::shortHash((string) ($legal['proposal_snapshot_hash'] ?? '')));
+        self::renderQcdLegalAcceptanceRow(__('Version hash', 'sbdp'), self::shortHash((string) ($legal['quote_version_hash'] ?? '')));
+        echo '</dl>';
+        $userAgent = trim((string) ($legal['user_agent'] ?? ''));
+        if ($userAgent !== '') {
+            echo '<details><summary>' . esc_html__('User-agent', 'sbdp') . '</summary><code>' . esc_html($userAgent) . '</code></details>';
+        }
+        $missing = array_values(array_filter((array) ($legal['missing'] ?? array()), static fn ($item): bool => is_scalar($item) && (string) $item !== ''));
+        if ($missing !== array()) {
+            echo '<small>' . esc_html__('Ontbreekt:', 'sbdp') . ' ' . esc_html(implode(', ', array_map('strval', $missing))) . '</small>';
+        }
+        if (! empty($legal['complete'])) {
+            $url = add_query_arg(
+                array('action' => 'sbdp_quote_accepted_proposal_pdf', 'quote_id' => $quoteId),
+                admin_url('admin-post.php')
+            );
+            if (function_exists('wp_nonce_url')) {
+                $url = wp_nonce_url($url, 'sbdp_quote_accepted_proposal_pdf');
+            }
+            echo '<p><a class="button button-secondary button-small" href="' . esc_url((string) $url) . '">' . esc_html__('Download geaccepteerde offerte', 'sbdp') . '</a></p>';
+        }
+        echo '</div>';
+    }
+
+    /**
+     * @param array<string, mixed> $summary
+     */
+    private static function renderQcdAcceptedPackageSummary(array $summary): void
+    {
+        if (empty($summary['legal_acceptance_complete'])) {
+            return;
+        }
+
+        echo '<div class="sbdp-qcd-legal-acceptance">';
+        echo '<span>' . esc_html__('Accepted package', 'sbdp') . '</span>';
+        echo '<strong>' . esc_html__('Akkoord, document en uitvoering', 'sbdp') . '</strong>';
+        echo '<dl>';
+        self::renderQcdLegalAcceptanceRow(__('PDF', 'sbdp'), __('Beschikbaar', 'sbdp'));
+        self::renderQcdLegalAcceptanceRow(
+            __('Bevestigingsmail', 'sbdp'),
+            self::acceptanceConfirmationLabel((string) ($summary['acceptance_confirmation_status'] ?? 'missing'))
+        );
+        self::renderQcdLegalAcceptanceRow(__('Woo order', 'sbdp'), ((int) ($summary['woo_order_id'] ?? 0)) > 0 ? '#' . (string) ((int) $summary['woo_order_id']) : __('Nog niet aangemaakt', 'sbdp'));
+        self::renderQcdLegalAcceptanceRow(__('Betaling', 'sbdp'), ! empty($summary['payment_event_present']) ? __('Ontvangen', 'sbdp') : __('Nog niet voltooid', 'sbdp'));
+        self::renderQcdLegalAcceptanceRow(__('Operations', 'sbdp'), ((int) ($summary['booking_master_id'] ?? 0)) > 0 ? __('Operationele boeking aangemaakt', 'sbdp') : __('Nog controleren', 'sbdp'));
+        echo '</dl>';
+        echo '</div>';
+    }
+
+    private static function acceptanceConfirmationLabel(string $status): string
+    {
+        return match ($status) {
+            'draft' => __('Draft klaar voor controle', 'sbdp'),
+            'sent' => __('Verzonden', 'sbdp'),
+            'failed' => __('Verzenden mislukt', 'sbdp'),
+            default => __('Nog niet aangemaakt', 'sbdp'),
+        };
+    }
+
+    private static function renderQcdLegalAcceptanceRow(string $label, string $value): void
+    {
+        if (trim($value) === '' || $value === '0') {
+            return;
+        }
+
+        echo '<div><dt>' . esc_html($label) . '</dt><dd>' . esc_html($value) . '</dd></div>';
+    }
+
+    private static function shortHash(string $hash): string
+    {
+        $hash = trim($hash);
+        return strlen($hash) > 18 ? substr($hash, 0, 18) . '...' : $hash;
     }
 
     /**

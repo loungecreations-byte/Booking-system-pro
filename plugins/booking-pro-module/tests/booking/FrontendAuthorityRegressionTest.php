@@ -44,16 +44,16 @@ final class FrontendAuthorityRegressionTest extends TestCase
         $this->assertStringNotContainsString('THE PERFECT OLED CARD SYSTEM', $contents);
     }
 
-    public function testCartTemplateUsesSummaryShellWithoutDroppingWooHooks(): void
+    public function testCommerceRuntimeEnhancesCartWithoutReplacingWooTemplateTruth(): void
     {
         $contents = $this->readRepoFile(
-            'themes/hello-biz/woocommerce/cart/cart.php'
+            'plugins/booking-pro-module/modules/core/WooCommerce/CommercialFlowService.php'
         );
 
-        $this->assertStringContainsString('class="ui-shell ui-shell--wide ui-stack-lg ddb-cart-shell"', $contents);
-        $this->assertStringContainsString("do_action( 'woocommerce_before_cart_table' );", $contents);
-        $this->assertStringContainsString("do_action( 'woocommerce_cart_collaterals' );", $contents);
-        $this->assertStringContainsString("do_action( 'woocommerce_after_cart' );", $contents);
+        $this->assertStringContainsString("add_action('woocommerce_after_cart'", $contents);
+        $this->assertStringNotContainsString("remove_action('woocommerce_before_cart_table'", $contents);
+        $this->assertStringNotContainsString("remove_action('woocommerce_cart_collaterals'", $contents);
+        $this->assertStringNotContainsString("remove_action('woocommerce_after_cart'", $contents);
     }
 
     private function readRepoFile(string $relativePath): string

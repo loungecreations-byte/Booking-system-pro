@@ -330,6 +330,19 @@ final class QuoteOverviewDashboardTest extends TestCase
         $this->assertStringNotContainsString("'workflow'", $this->extractAllowedTabsSource($source));
     }
 
+    public function testOperationsWorkspaceExposesFollowupControlsAndDashboardAlerts(): void
+    {
+        $renderer = (string) file_get_contents(dirname(__DIR__, 2) . '/modules/quotes/Admin/QuoteWorkspaceRenderer.php');
+        $module = (string) file_get_contents(dirname(__DIR__, 2) . '/modules/quotes/Module.php');
+
+        $this->assertStringContainsString('renderOperationsFollowups($repository, $quotes)', $renderer);
+        $this->assertStringContainsString('sbdp_quote_followup_reschedule', $renderer);
+        $this->assertStringContainsString('sbdp_quote_followup_reopen', $renderer);
+        $this->assertStringContainsString('self::renderQuoteAlertsCard($workspaceAlerts);', $renderer);
+        $this->assertStringContainsString('admin_post_sbdp_quote_followup_reschedule', $module);
+        $this->assertStringContainsString('admin_post_sbdp_quote_followup_reopen', $module);
+    }
+
     public function testTerminalStatusesUseAuditActionAndHumanLabels(): void
     {
         $actionMethod = new \ReflectionMethod(QuoteWorkspaceRenderer::class, 'resolveQuotePrimaryAction');

@@ -83,7 +83,7 @@ function buildPendingPrefillPreview() {
 
 function PlannerShell() {
   const {
-    state: { plan, form, loading, error, config },
+    state: { plan, form, loading, error },
     actions: { setFormField, startPlanning },
   } = usePlanner();
   const {
@@ -98,21 +98,11 @@ function PlannerShell() {
     !hasPlan &&
     planItems.length === 0 &&
     pendingPrefillPreview.isPending;
-  const defaultParticipants =
-    Number.parseInt(form?.participants, 10) ||
-    Number.parseInt(config?.default_participants, 10) ||
-    null;
-
   const bootstrapPlanning = (scrollToResults = false) => {
     const nextDate = form?.date || getLocalDateIso();
-    const nextParticipants = defaultParticipants ?? 1;
 
     if (!form?.date) {
       setFormField("date", nextDate);
-    }
-
-    if (!form?.participants) {
-      setFormField("participants", String(nextParticipants));
     }
 
     startPlanning();
@@ -264,6 +254,20 @@ class ErrorBoundary extends React.Component {
 ErrorBoundary.propTypes = {
   children: PropTypes.node.isRequired,
 };
+
+export function PlannerSkeleton() {
+  return (
+    <div className="sbdp-day-planner" aria-busy="true" aria-live="polite">
+      <section className="sbdp-planner-state-card sbdp-planner-state-card--pending" role="status">
+        <div className="sbdp-planner-state-card__body">
+          <p className="sbdp-planner-state-card__eyebrow">Planner laden</p>
+          <h3>Je dagplanner wordt klaargezet...</h3>
+          <p>We laden de activiteiten, tijden en planning zodat je direct verder kunt.</p>
+        </div>
+      </section>
+    </div>
+  );
+}
 
 export default function PlannerApp() {
   return (

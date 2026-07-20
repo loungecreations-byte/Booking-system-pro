@@ -28,6 +28,8 @@
       "BSP\\Vendors\\": "modules/vendors/",
       "BSP\\ActivityCtaBlock\\": "modules/activity-cta-block/",
       "BSP\\VendorPortal\\": "modules/vendor-portal/",
+      "BSP\\Gamification\\": "modules/gamification/",
+      "BSP\\Experience\\": "modules/experience/",
       "BSP\\GeoDashboard\\": "modules/geo-dashboard/",
       "BSP\\Support\\": "modules/support/",
       "BSPModule\\Core\\": "modules/core/",

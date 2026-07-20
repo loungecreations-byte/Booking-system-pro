@@ -187,7 +187,7 @@ export default function LayoutStep() {
       }
 
       if (priceFilter && priceFilter !== "all") {
-        const pricePerPerson = getSlotPricePerPerson(product, 1, { sourceProduct: product });
+        const pricePerPerson = getSlotPricePerPerson(product, null, { sourceProduct: product });
         if (!Number.isFinite(pricePerPerson) || pricePerPerson <= 0) {
           return false;
         }
@@ -341,9 +341,11 @@ export default function LayoutStep() {
     ? state.summary.grandTotal
     : Number.isFinite(state.summary?.subtotal)
     ? state.summary.subtotal
-    : 0;
+    : null;
   const currency = state.summary?.currency || "EUR";
-  const formattedTotal = formatPrice(totalPrice, currency);
+  const formattedTotal = Number.isFinite(totalPrice)
+    ? formatPrice(totalPrice, currency)
+    : "Prijs wordt berekend";
   const programValidItems = Array.isArray(state.plan.items)
     ? state.plan.items.filter(
         (item) => Number.isFinite(item?.startMinutes) && Number.isFinite(item?.endMinutes)
@@ -503,7 +505,7 @@ export default function LayoutStep() {
   const showPlannerEmptyState = !showPlannerPendingState && activityCount === 0;
   const plannerCtaModel = buildPlannerCtaModel({
     plannerActionState,
-    formattedTotal,
+    formattedTotal: Number.isFinite(totalPrice) ? formattedTotal : "",
     queuePending,
     planPending,
     surfaceUpdating,

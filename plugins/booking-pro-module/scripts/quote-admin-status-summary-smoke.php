@@ -287,7 +287,7 @@ try {
     $accepted = sbdp_quote_admin_status_summary_smoke_make_quote($repository, $events, $created, 'ACCEPTED', 'accepted', 'not_ready', 352, 'product', $directAvailability, true, false, false, false, array(), 'not_started', 'not_ready');
     $acceptedSummary = sbdp_quote_admin_status_summary_smoke_summarize($repository, $service, (int) $accepted['quote_id']);
     sbdp_quote_admin_status_summary_smoke_assert_view_model($acceptedSummary, 'accepted');
-    sbdp_quote_admin_status_summary_smoke_ok((string) ($acceptedSummary['next_action'] ?? '') === 'Wacht op betaling', 'Accepted quote next_action mismatch.');
+    sbdp_quote_admin_status_summary_smoke_ok((string) ($acceptedSummary['next_action'] ?? '') === 'Wachten op betaling', 'Accepted quote next_action mismatch.');
     sbdp_quote_admin_status_summary_smoke_ok((string) ($acceptedSummary['communication_status'] ?? '') === 'control_complete_available', 'Accepted communication status mismatch.');
     sbdp_quote_admin_status_summary_smoke_ok((string) ($acceptedSummary['proposal_next_action'] ?? '') === 'Controle afronden', 'Accepted proposal next_action mismatch.');
     sbdp_quote_admin_status_summary_smoke_ok(! sbdp_quote_admin_status_summary_smoke_has_chip($acceptedSummary, 'communication_chips', 'Interne review ontbreekt'), 'Accepted communication should not show review missing.');
@@ -299,7 +299,7 @@ try {
     $ready = sbdp_quote_admin_status_summary_smoke_make_quote($repository, $events, $created, 'READY', 'accepted', QuoteConfirmationReadinessService::READY_TO_CONFIRM, 352, 'product', $directAvailability, true, true, false, false);
     $readySummary = sbdp_quote_admin_status_summary_smoke_summarize($repository, $service, (int) $ready['quote_id'], true);
     sbdp_quote_admin_status_summary_smoke_assert_view_model($readySummary, 'ready');
-    sbdp_quote_admin_status_summary_smoke_ok((string) ($readySummary['next_action'] ?? '') === 'Bevestig quote', 'Ready quote next_action mismatch.');
+    sbdp_quote_admin_status_summary_smoke_ok((string) ($readySummary['next_action'] ?? '') === 'Bevestiging afronden', 'Ready quote next_action mismatch.');
     sbdp_quote_admin_status_summary_smoke_ok((string) ($readySummary['readiness_outcome'] ?? '') === QuoteConfirmationReadinessService::READY_TO_CONFIRM, 'Ready quote readiness mismatch.');
     sbdp_quote_admin_status_summary_smoke_ok((string) ($readySummary['communication_status'] ?? '') === 'send_ready', 'Ready communication status mismatch.');
     sbdp_quote_admin_status_summary_smoke_ok(! sbdp_quote_admin_status_summary_smoke_has_chip($readySummary, 'communication_chips', 'Interne review ontbreekt'), 'Ready communication should not show review missing.');
@@ -345,7 +345,7 @@ try {
     $cart = sbdp_quote_admin_status_summary_smoke_make_quote($repository, $events, $created, 'CART', 'confirmed', 'woo_cart_hydrated', 352, 'product', $directAvailability, true, true, true, true, $hydrationPayload);
     $cartSummary = sbdp_quote_admin_status_summary_smoke_summarize($repository, $service, (int) $cart['quote_id']);
     sbdp_quote_admin_status_summary_smoke_assert_view_model($cartSummary, 'cart');
-    sbdp_quote_admin_status_summary_smoke_ok((string) ($cartSummary['next_action'] ?? '') === 'Maak operationele boeking', 'Cart hydrated quote next_action mismatch.');
+    sbdp_quote_admin_status_summary_smoke_ok((string) ($cartSummary['next_action'] ?? '') === 'Operations booking aanmaken / controleren', 'Cart hydrated quote next_action mismatch.');
     sbdp_quote_admin_status_summary_smoke_ok((string) ($cartSummary['cart_url'] ?? '') !== '', 'Cart URL missing.');
     sbdp_quote_admin_status_summary_smoke_ok((string) ($cartSummary['checkout_url'] ?? '') !== '', 'Checkout URL missing.');
     sbdp_quote_admin_status_summary_smoke_ok(! empty($cartSummary['cta_visibility']['open_woo_cart']), 'Cart CTA visibility missing.');
@@ -358,7 +358,7 @@ try {
     $events->log('quote_booking_bridge_created', null, (int) $ops['quote_id'], (int) $ops['version_id'], null, 'Smoke bridge event.', array('booking_master_id' => $masterId));
     $opsSummary = sbdp_quote_admin_status_summary_smoke_summarize($repository, $service, (int) $ops['quote_id']);
     sbdp_quote_admin_status_summary_smoke_assert_view_model($opsSummary, 'operations');
-    sbdp_quote_admin_status_summary_smoke_ok((string) ($opsSummary['next_action'] ?? '') === 'Geen actie nodig / operations ready', 'Operations ready next_action mismatch.');
+    sbdp_quote_admin_status_summary_smoke_ok((string) ($opsSummary['next_action'] ?? '') === 'Geen actie', 'Operations ready next_action mismatch.');
     sbdp_quote_admin_status_summary_smoke_ok((string) ($opsSummary['operations_status'] ?? '') === 'operations_ready', 'Operations status mismatch.');
     sbdp_quote_admin_status_summary_smoke_ok((string) ($opsSummary['communication_status'] ?? '') === 'control_complete_available', 'Operations communication status mismatch.');
     sbdp_quote_admin_status_summary_smoke_ok(! sbdp_quote_admin_status_summary_smoke_has_chip($opsSummary, 'communication_chips', 'Interne review ontbreekt'), 'Operations communication should not show review missing.');
