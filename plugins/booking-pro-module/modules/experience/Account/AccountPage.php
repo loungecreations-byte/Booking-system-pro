@@ -37,6 +37,12 @@ final class AccountPage
             return;
         }
 
+        self::enqueueScript();
+    }
+
+    private static function enqueueScript(): void
+    {
+
         $assetPath = SBDP_DIR . 'modules/experience/assets/account.js';
         $version = is_readable($assetPath) ? (string) filemtime($assetPath) : SBDP_VERSION;
 
@@ -61,6 +67,7 @@ final class AccountPage
     public static function render(): void
     {
         if (! is_user_logged_in()) { return; }
+        self::enqueueScript();
         echo '<section class="bsp-experience">';
         echo '<h2>' . esc_html__('Mijn DagjeDenBosch', 'sbdp') . '</h2><p class="bsp-experience__loading">' . esc_html__('Je ervaringen worden geladen…', 'sbdp') . '</p></section>';
     }
