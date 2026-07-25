@@ -72,6 +72,7 @@ final class PhotoChallenge
                 'transcript' => sanitize_textarea_field((string) ($value['voice_intro']['transcript'] ?? '')),
             ),
             'historical_context' => wp_kses_post((string) ($value['historical_context'] ?? '')),
+            'ai_prompt' => sanitize_textarea_field((string) ($value['ai_prompt'] ?? '')),
             'mission' => sanitize_textarea_field((string) ($value['mission'] ?? '')),
             'difficulty' => $difficulty,
             'required_object' => array(
@@ -83,6 +84,21 @@ final class PhotoChallenge
             'xp_reward' => min(500, max(0, absint($value['xp_reward'] ?? 0))),
             'badge_reward' => sanitize_key((string) ($value['badge_reward'] ?? '')),
             'hidden_collectible_id' => absint($value['hidden_collectible_id'] ?? 0),
+            'reference_image_id' => absint($value['reference_image_id'] ?? 0),
+            'interaction_type' => in_array(sanitize_key((string) ($value['interaction_type'] ?? 'photo')), array('photo', 'then_now', 'hidden_discovery', 'boss'), true)
+                ? sanitize_key((string) ($value['interaction_type'] ?? 'photo'))
+                : 'photo',
+            'persona' => in_array(sanitize_key((string) ($value['persona'] ?? 'guide')), array('guide', 'bosch', 'frederik_hendrik', 'chef'), true)
+                ? sanitize_key((string) ($value['persona'] ?? 'guide'))
+                : 'guide',
+            'historical_year' => sanitize_text_field((string) ($value['historical_year'] ?? '')),
+            'boss_targets' => array_values(array_slice(array_filter(array_map(
+                static fn ($target): array => array(
+                    'label' => sanitize_text_field((string) (is_array($target) ? ($target['label'] ?? '') : '')),
+                    'count' => min(20, max(1, absint(is_array($target) ? ($target['count'] ?? 1) : 1))),
+                ),
+                is_array($value['boss_targets'] ?? null) ? $value['boss_targets'] : array()
+            ), static fn (array $target): bool => $target['label'] !== ''), 0, 12)),
             'next_unlock' => sanitize_key((string) ($value['next_unlock'] ?? 'next_chapter')),
             'pass_score' => min(100, max(1, absint($value['pass_score'] ?? 70))),
             'community_allowed' => ! empty($value['community_allowed']),

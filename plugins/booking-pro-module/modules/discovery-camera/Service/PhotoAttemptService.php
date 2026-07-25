@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace BSP\DiscoveryCamera\Service;
 
-use BSP\DiscoveryCamera\Provider\FakeVisionProvider;
+use BSP\DiscoveryCamera\Provider\ProviderFactory;
 use BSP\DiscoveryCamera\Provider\VisionProvider;
+use BSP\DiscoveryCamera\Support\FeatureFlags;
+use Throwable;
 use WP_Error;
 use wpdb;
 
@@ -18,7 +20,7 @@ final class PhotoAttemptService
     {
         global $wpdb;
         $this->db = $db ?? $wpdb;
-        $this->provider = $provider ?? new FakeVisionProvider();
+        $this->provider = $provider ?? ProviderFactory::make();
     }
 
     /** @param array<string,mixed> $challenge @return array<string,mixed> */
@@ -65,7 +67,7 @@ final class PhotoAttemptService
                 'challenge_revision' => (int) ($challenge['revision'] ?? 1),
                 'status' => 'created',
                 'upload_hash' => $normalizedHash,
-                'consent_version' => 'staging-v1',
+                'consent_version' => '2026-privacy-v1',
                 'expires_at' => $expires,
                 'created_at' => $now,
                 'updated_at' => $now,
@@ -108,7 +110,7 @@ final class PhotoAttemptService
     {
         $attempt = $this->db->get_row(
             $this->db->prepare(
-                "SELECT id,attempt_uuid,status,challenge_revision FROM {$this->db->prefix}bsp_photo_attempts WHERE attempt_uuid=%s AND user_id=%d",
+                "SELECT id,attempt_uuid,tour_id,step_id,status,challenge_revision FROM {$this->db->prefix}bsp_photo_attempts WHERE attempt_uuid=%s AND user_id=%d",
                 $uuid,
                 $userId
             ),
@@ -118,7 +120,7 @@ final class PhotoAttemptService
             return new WP_Error('photo_attempt_not_found', 'Fotopoging niet gevonden.', array('status' => 404));
         }
         if (in_array((string) $attempt['status'], array('review', 'passed', 'failed'), true)) {
-            return $this->findForUser($uuid, $userId) ?? array();
+            return $this->resultForUser($uuid, $userId) ?? array();
         }
 
         $error = (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE);
@@ -164,28 +166,12 @@ final class PhotoAttemptService
         }
 
         $hash = hash_file('sha256', $destination);
-        $analysis = $this->provider->analyze($challenge, $hash);
         $now = gmdate('Y-m-d H:i:s');
         $attemptId = (int) $attempt['id'];
-
-        $this->db->insert(
-            $this->db->prefix . 'bsp_photo_analyses',
-            array(
-                'attempt_id' => $attemptId,
-                'analysis_version' => 1,
-                'provider' => sanitize_key((string) ($analysis['provider'] ?? 'fake')),
-                'model' => 'staging-review-v1',
-                'status' => 'review',
-                'result_json' => wp_json_encode($analysis),
-                'created_at' => $now,
-                'completed_at' => $now,
-            ),
-            array('%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s')
-        );
         $this->db->update(
             $this->db->prefix . 'bsp_photo_attempts',
             array(
-                'status' => 'review',
+                'status' => 'analyzing',
                 'upload_hash' => $hash,
                 'private_object_key' => $filename,
                 'captured_at' => $now,
@@ -196,18 +182,124 @@ final class PhotoAttemptService
             array('%d')
         );
 
+        try {
+            $analysis = $this->provider->analyze($challenge, $destination);
+        } catch (Throwable $error) {
+            $analysis = array(
+                'provider' => FeatureFlags::providerMode() === 'fake' ? 'fake' : 'openai',
+                'status' => 'review',
+                'scores' => array(),
+                'total_score' => null,
+                'passed' => false,
+                'feedback' => array(
+                    'title' => 'Menselijke controle nodig',
+                    'message' => 'De automatische beoordeling is tijdelijk niet beschikbaar. Je foto is veilig ontvangen.',
+                    'coach_tip' => '',
+                ),
+                'error_code' => 'VISION_PROVIDER_UNAVAILABLE',
+            );
+        }
+
+        $mode = FeatureFlags::providerMode();
+        $score = isset($analysis['total_score']) ? (int) $analysis['total_score'] : null;
+        $passed = ! empty($analysis['passed']) && $score !== null && $score >= (int) ($challenge['pass_score'] ?? 70);
+        $status = $mode === 'live' ? ($passed ? 'passed' : 'failed') : 'review';
+        $scores = (array) ($analysis['scores'] ?? array());
+
+        $this->db->insert(
+            $this->db->prefix . 'bsp_photo_analyses',
+            array(
+                'attempt_id' => $attemptId,
+                'analysis_version' => 1,
+                'provider' => sanitize_key((string) ($analysis['provider'] ?? 'fake')),
+                'model' => sanitize_text_field((string) ($analysis['model'] ?? 'staging-review-v1')),
+                'status' => $status,
+                'object_score' => $this->decimalScore($scores['object'] ?? null),
+                'historical_score' => $this->decimalScore($scores['historical'] ?? null),
+                'composition_score' => $this->decimalScore($scores['composition'] ?? null),
+                'creativity_score' => $this->decimalScore($scores['creativity'] ?? null),
+                'perspective_score' => $this->decimalScore($scores['perspective'] ?? null),
+                'lighting_score' => $this->decimalScore($scores['lighting'] ?? null),
+                'symmetry_score' => $this->decimalScore($scores['symmetry'] ?? null),
+                'detail_score' => $this->decimalScore($scores['detail'] ?? null),
+                'total_score' => $score,
+                'result_json' => wp_json_encode($analysis),
+                'provider_request_id' => sanitize_text_field((string) ($analysis['provider_request_id'] ?? '')),
+                'latency_ms' => absint($analysis['latency_ms'] ?? 0),
+                'created_at' => $now,
+                'completed_at' => $now,
+            ),
+            array('%d', '%d', '%s', '%s', '%s', '%f', '%f', '%f', '%f', '%f', '%f', '%f', '%f', '%f', '%s', '%s', '%d', '%s', '%s')
+        );
+        $this->db->update(
+            $this->db->prefix . 'bsp_photo_attempts',
+            array(
+                'status' => $status,
+                'updated_at' => $now,
+            ),
+            array('id' => $attemptId),
+            array('%s', '%s'),
+            array('%d')
+        );
+
+        $rewards = array();
+        if ($status === 'passed') {
+            $rewards = (new PhotoChallengeCompletionService())->complete(
+                $userId,
+                (int) $attempt['tour_id'],
+                (int) $attempt['step_id'],
+                $uuid,
+                $challenge,
+                $analysis
+            );
+        }
+
+        $feedback = (array) ($analysis['feedback'] ?? array());
         return array(
             'attempt_uuid' => $uuid,
-            'status' => 'review',
+            'status' => $status,
             'challenge_revision' => (int) $attempt['challenge_revision'],
             'feedback' => array(
-                'title' => 'Foto veilig ontvangen',
-                'message' => 'De staging-provider heeft de foto klaargezet voor menselijke review.',
-                'codes' => array('STAGING_FAKE_PROVIDER'),
+                'title' => sanitize_text_field((string) ($feedback['title'] ?? ($status === 'passed' ? 'Ontdekking geslaagd' : 'Foto beoordeeld'))),
+                'message' => sanitize_textarea_field((string) ($feedback['message'] ?? '')),
+                'coach_tip' => sanitize_textarea_field((string) ($feedback['coach_tip'] ?? '')),
             ),
-            'rewarded' => false,
-            'completed' => false,
+            'scores' => $scores,
+            'total_score' => $score,
+            'extra_details' => array_values((array) ($analysis['extra_details'] ?? array())),
+            'rewarded' => ! empty($rewards['xp']['created']) || ! empty($rewards['collectibles']),
+            'completed' => $status === 'passed',
+            'rewards' => $rewards,
         );
+    }
+
+    /** @return array<string,mixed>|null */
+    public function resultForUser(string $uuid, int $userId): ?array
+    {
+        $attempt = $this->db->get_row(
+            $this->db->prepare(
+                "SELECT a.attempt_uuid,a.tour_id,a.step_id,a.status,a.challenge_revision,a.expires_at,a.created_at,a.updated_at,n.result_json "
+                . "FROM {$this->db->prefix}bsp_photo_attempts a "
+                . "LEFT JOIN {$this->db->prefix}bsp_photo_analyses n ON n.attempt_id=a.id "
+                . "WHERE a.attempt_uuid=%s AND a.user_id=%d ORDER BY n.analysis_version DESC LIMIT 1",
+                $uuid,
+                $userId
+            ),
+            ARRAY_A
+        );
+        if (! is_array($attempt)) {
+            return null;
+        }
+        $result = $this->present($attempt, false);
+        $analysis = json_decode((string) ($attempt['result_json'] ?? ''), true);
+        if (is_array($analysis)) {
+            $result['scores'] = (array) ($analysis['scores'] ?? array());
+            $result['total_score'] = $analysis['total_score'] ?? null;
+            $result['feedback'] = (array) ($analysis['feedback'] ?? array());
+            $result['extra_details'] = (array) ($analysis['extra_details'] ?? array());
+            $result['completed'] = (string) $attempt['status'] === 'passed';
+        }
+        return $result;
     }
 
     /** @param array<string,mixed> $row @return array<string,mixed> */
@@ -224,7 +316,13 @@ final class PhotoAttemptService
             'expires_at' => $row['expires_at'] ?? null,
             'created_at' => $row['created_at'] ?? null,
             'updated_at' => $row['updated_at'] ?? null,
-            'provider_mode' => 'fake',
+            'provider_mode' => FeatureFlags::providerMode(),
         );
+    }
+
+    /** @return float|null */
+    private function decimalScore($score): ?float
+    {
+        return is_numeric($score) ? min(1, max(0, ((float) $score) / 100)) : null;
     }
 }

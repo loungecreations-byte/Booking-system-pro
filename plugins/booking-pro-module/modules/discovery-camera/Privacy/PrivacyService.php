@@ -10,6 +10,10 @@ final class PrivacyService
     {
         add_filter('wp_privacy_personal_data_exporters', array(__CLASS__, 'exporters'));
         add_filter('wp_privacy_personal_data_erasers', array(__CLASS__, 'erasers'));
+        add_action('ddb_discovery_camera_cleanup', array(__CLASS__, 'cleanupExpired'));
+        if (! wp_next_scheduled('ddb_discovery_camera_cleanup')) {
+            wp_schedule_event(time() + HOUR_IN_SECONDS, 'daily', 'ddb_discovery_camera_cleanup');
+        }
     }
 
     public static function exporters(array $items): array
@@ -88,5 +92,35 @@ final class PrivacyService
         $wpdb->delete($wpdb->prefix . 'bsp_photo_attempts', array('user_id' => $user->ID), array('%d'));
 
         return array('items_removed' => true, 'items_retained' => false, 'messages' => array(), 'done' => true);
+    }
+
+    public static function cleanupExpired(): void
+    {
+        global $wpdb;
+        $rows = $wpdb->get_results(
+            "SELECT id,private_object_key FROM {$wpdb->prefix}bsp_photo_attempts "
+            . "WHERE expires_at IS NOT NULL AND expires_at < UTC_TIMESTAMP() AND private_object_key IS NOT NULL LIMIT 500",
+            ARRAY_A
+        );
+        $privateDir = (string) apply_filters(
+            'ddb/discovery_camera/private_directory',
+            dirname(rtrim(ABSPATH, '/\\')) . DIRECTORY_SEPARATOR . 'ddb-private-media'
+        );
+        foreach ((array) $rows as $row) {
+            $key = sanitize_file_name((string) ($row['private_object_key'] ?? ''));
+            if ($key !== '' && $key === basename($key)) {
+                $path = trailingslashit($privateDir) . $key;
+                if (is_file($path)) {
+                    wp_delete_file($path);
+                }
+            }
+            $wpdb->update(
+                $wpdb->prefix . 'bsp_photo_attempts',
+                array('private_object_key' => null, 'updated_at' => gmdate('Y-m-d H:i:s')),
+                array('id' => absint($row['id'] ?? 0)),
+                array('%s', '%s'),
+                array('%d')
+            );
+        }
     }
 }

@@ -53,7 +53,12 @@ final class Controller
             return $context;
         }
 
-        $response = rest_ensure_response(array('challenge' => $context['challenge']));
+        $challenge = $context['challenge'];
+        $referenceId = absint($challenge['reference_image_id'] ?? 0);
+        $voiceId = absint($challenge['voice_intro']['attachment_id'] ?? 0);
+        $challenge['reference_image_url'] = $referenceId > 0 ? (string) wp_get_attachment_image_url($referenceId, 'large') : '';
+        $challenge['voice_intro']['url'] = $voiceId > 0 ? (string) wp_get_attachment_url($voiceId) : '';
+        $response = rest_ensure_response(array('challenge' => $challenge));
         $response->header('Cache-Control', 'private, no-store, max-age=0');
 
         return $response;
@@ -62,11 +67,18 @@ final class Controller
     public static function createAttempt(WP_REST_Request $request)
     {
         $payload = (array) $request->get_json_params();
+        if (empty($payload['consent'])) {
+            return new WP_Error('photo_consent_required', 'Toestemming voor privéfotoanalyse is verplicht.', array('status' => 400));
+        }
         $tourId = absint($payload['tour_id'] ?? 0);
         $stepId = absint($payload['step_id'] ?? 0);
         $context = self::resolveContext($tourId, $stepId);
         if (is_wp_error($context)) {
             return $context;
+        }
+        $rate = self::consumeRateLimit(get_current_user_id());
+        if (is_wp_error($rate)) {
+            return $rate;
         }
 
         $key = trim($request->get_header('Idempotency-Key'));
@@ -95,7 +107,7 @@ final class Controller
 
     public static function attempt(WP_REST_Request $request)
     {
-        $attempt = (new PhotoAttemptService())->findForUser(
+        $attempt = (new PhotoAttemptService())->resultForUser(
             sanitize_text_field((string) $request['uuid']),
             get_current_user_id()
         );
@@ -173,6 +185,9 @@ final class Controller
 
     private static function canAccessTour(int $tourId): bool
     {
+        if (current_user_can('edit_post', $tourId)) {
+            return true;
+        }
         foreach ((new ExperienceAccessPolicy())->forUser(wp_get_current_user()) as $access) {
             if ((int) ($access['tour_id'] ?? 0) === $tourId && ! empty($access['allowed'])) {
                 return true;
@@ -180,5 +195,20 @@ final class Controller
         }
 
         return false;
+    }
+
+    private static function consumeRateLimit(int $userId)
+    {
+        $window = (int) floor(time() / MINUTE_IN_SECONDS);
+        $key = 'ddb_photo_rate_' . hash('sha256', $userId . '|' . $window);
+        $count = (int) get_transient($key);
+        if ($count >= 10) {
+            return new WP_Error('photo_rate_limited', 'Even rustig aan: probeer het over een minuut opnieuw.', array(
+                'status' => 429,
+                'retry_after' => MINUTE_IN_SECONDS - (time() % MINUTE_IN_SECONDS),
+            ));
+        }
+        set_transient($key, $count + 1, 2 * MINUTE_IN_SECONDS);
+        return true;
     }
 }

@@ -3,21 +3,20 @@
 
   const config = window.ddbDiscoveryCamera || {};
   if (!config.featureEnabled) return;
-
-  const stateByRoot = new WeakMap();
+  const roots = new WeakMap();
 
   const parseSteps = (root) => {
     try {
-      const value = JSON.parse(root.dataset.tourSteps || "[]");
-      return Array.isArray(value) ? value : [];
+      const steps = JSON.parse(root.dataset.tourSteps || "[]");
+      return Array.isArray(steps) ? steps : [];
     } catch {
       return [];
     }
   };
 
   const currentIndex = (root, steps) => {
-    const hashValue = Number.parseInt(location.hash.replace("#step-", ""), 10);
-    if (Number.isFinite(hashValue) && hashValue >= 0 && hashValue < steps.length) return hashValue;
+    const hash = Number.parseInt(location.hash.replace("#step-", ""), 10);
+    if (Number.isFinite(hash) && hash >= 0 && hash < steps.length) return hash;
     const saved = Number.parseInt(localStorage.getItem(`sbdp_tour_step_${root.dataset.tourId || "0"}`) || "0", 10);
     return Number.isFinite(saved) && saved >= 0 && saved < steps.length ? saved : 0;
   };
@@ -26,51 +25,128 @@
     const response = await fetch(`${String(config.restBase || "").replace(/\/$/, "")}${path}`, {
       credentials: "same-origin",
       ...options,
-      headers: {
-        "X-WP-Nonce": String(config.nonce || ""),
-        ...(options.headers || {}),
-      },
+      headers: { "X-WP-Nonce": String(config.nonce || ""), ...(options.headers || {}) },
     });
     const payload = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(payload.message || "De cameraverbinding is tijdelijk niet beschikbaar.");
+    if (!response.ok) {
+      const error = new Error(payload.message || "De cameraverbinding is tijdelijk niet beschikbaar.");
+      error.status = response.status;
+      throw error;
+    }
     return payload;
   };
 
-  const stopCamera = (state) => {
-    if (state?.stream) state.stream.getTracks().forEach((track) => track.stop());
-    if (state) state.stream = null;
-  };
-
-  const button = (label, className = "") => {
+  const button = (label, variant = "") => {
     const element = document.createElement("button");
     element.type = "button";
-    element.className = `ddb-camera__button ${className}`.trim();
+    element.className = `ddb-camera__button ${variant}`.trim();
     element.textContent = label;
     return element;
   };
 
-  const renderFeedback = (mount, title, message, variant = "info") => {
-    const feedback = mount.querySelector("[data-camera-feedback]");
-    if (!feedback) return;
-    feedback.dataset.variant = variant;
-    feedback.replaceChildren();
+  const stopCamera = (state) => {
+    state?.stream?.getTracks().forEach((track) => track.stop());
+    if (state) state.stream = null;
+  };
+
+  const lockNavigation = (root, locked, message = "") => {
+    root.querySelectorAll("[data-tour-start-route], [data-tour-complete], [data-tour-mobile-next]").forEach((control) => {
+      control.disabled = locked;
+      control.setAttribute("aria-disabled", locked ? "true" : "false");
+      control.title = locked ? message : "";
+    });
+  };
+
+  const feedback = (mount, title, message, variant = "info", tip = "") => {
+    const target = mount.querySelector("[data-camera-feedback]");
+    if (!target) return;
+    target.dataset.variant = variant;
+    target.replaceChildren();
     const heading = document.createElement("strong");
     heading.textContent = title;
     const copy = document.createElement("span");
     copy.textContent = message;
-    feedback.append(heading, copy);
+    target.append(heading, copy);
+    if (tip) {
+      const coach = document.createElement("small");
+      coach.textContent = tip;
+      target.append(coach);
+    }
   };
 
-  const upload = async (root, mount, step, file) => {
-    if (!file || file.size > Number(config.maxUploadBytes || 8388608)) {
-      renderFeedback(mount, "Foto te groot", "Gebruik een foto van maximaal 8 MB.", "error");
+  const setBusy = (mount, busy) => {
+    mount.dataset.busy = busy ? "1" : "0";
+    mount.querySelectorAll("button, input").forEach((control) => { control.disabled = busy; });
+    mount.querySelector("[data-camera-progress]")?.toggleAttribute("hidden", !busy);
+  };
+
+  const renderScores = (mount, result) => {
+    const target = mount.querySelector("[data-camera-result]");
+    if (!target) return;
+    target.replaceChildren();
+    if (!Number.isFinite(Number(result.total_score))) {
+      target.hidden = true;
       return;
     }
+    target.hidden = false;
+    const score = document.createElement("strong");
+    score.className = "ddb-camera__total";
+    score.textContent = `${Number(result.total_score)} / 100`;
+    const list = document.createElement("dl");
+    const labels = {
+      object: "Object", historical: "Historie", composition: "Compositie", creativity: "Creativiteit",
+      perspective: "Perspectief", lighting: "Belichting", symmetry: "Symmetrie", detail: "Details",
+    };
+    Object.entries(result.scores || {}).forEach(([key, value]) => {
+      const term = document.createElement("dt");
+      term.textContent = labels[key] || key;
+      const description = document.createElement("dd");
+      description.textContent = `${Number(value)}%`;
+      list.append(term, description);
+    });
+    target.append(score, list);
+  };
 
-    const controls = mount.querySelectorAll("button, input");
-    controls.forEach((control) => { control.disabled = true; });
-    renderFeedback(mount, "Foto wordt beveiligd", "Uploaden en voorbereiden voor staging-review…", "loading");
+  const showPreview = (state, mount, file) => {
+    if (!file) return;
+    if (state.previewUrl) URL.revokeObjectURL(state.previewUrl);
+    state.pendingFile = file;
+    state.previewUrl = URL.createObjectURL(file);
+    const preview = mount.querySelector("[data-camera-preview]");
+    preview.src = state.previewUrl;
+    preview.hidden = false;
+    mount.querySelector("video").hidden = true;
+    mount.querySelector("[data-camera-confirm]").hidden = false;
+    mount.querySelector("[data-camera-retake]").hidden = false;
+    mount.querySelector("[data-camera-shutter]").hidden = true;
+    feedback(mount, "Foto klaar", "Controleer de foto voordat je hem laat beoordelen.", "info");
+  };
 
+  const resetPreview = (state, mount) => {
+    if (state.previewUrl) URL.revokeObjectURL(state.previewUrl);
+    state.previewUrl = "";
+    state.pendingFile = null;
+    const preview = mount.querySelector("[data-camera-preview]");
+    preview.removeAttribute("src");
+    preview.hidden = true;
+    mount.querySelector("video").hidden = false;
+    mount.querySelector("[data-camera-confirm]").hidden = true;
+    mount.querySelector("[data-camera-retake]").hidden = true;
+    mount.querySelector("[data-camera-shutter]").hidden = false;
+    startCamera(state, mount);
+  };
+
+  const upload = async (root, state, mount, step, file) => {
+    if (!file || file.size > Number(config.maxUploadBytes || 8388608)) {
+      feedback(mount, "Foto te groot", "Gebruik een foto van maximaal 8 MB.", "error");
+      return;
+    }
+    if (!mount.querySelector("[data-camera-consent]")?.checked) {
+      feedback(mount, "Toestemming nodig", "Bevestig dat je deze foto voor de opdracht wilt laten analyseren.", "error");
+      return;
+    }
+    setBusy(mount, true);
+    feedback(mount, "AI kijkt mee…", "Je foto wordt beveiligd, gecomprimeerd en beoordeeld.", "loading");
     try {
       const attempt = await request("/photo-attempts", {
         method: "POST",
@@ -78,10 +154,7 @@
           "Content-Type": "application/json",
           "Idempotency-Key": crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`,
         },
-        body: JSON.stringify({
-          tour_id: Number(root.dataset.tourId || 0),
-          step_id: Number(step.id || 0),
-        }),
+        body: JSON.stringify({ tour_id: Number(root.dataset.tourId || 0), step_id: Number(step.id || 0), consent: true }),
       });
       const data = new FormData();
       data.append("photo", file, file.name || "discovery-photo.jpg");
@@ -89,24 +162,42 @@
         method: "POST",
         body: data,
       });
-      renderFeedback(
-        mount,
-        result.feedback?.title || "Foto ontvangen",
-        result.feedback?.message || "Deze foto wacht op menselijke review.",
-        "review"
-      );
       mount.dataset.attemptStatus = String(result.status || "review");
+      renderScores(mount, result);
+      feedback(
+        mount,
+        result.feedback?.title || "Foto beoordeeld",
+        result.feedback?.message || "Je foto is veilig ontvangen.",
+        result.status === "passed" ? "success" : result.status === "failed" ? "error" : "review",
+        result.feedback?.coach_tip || ""
+      );
+      if (result.status === "passed") {
+        lockNavigation(root, false);
+        mount.dataset.completed = "1";
+        root.dispatchEvent(new CustomEvent("ddb:photo-challenge-passed", { detail: result }));
+      } else if (result.status === "review") {
+        lockNavigation(root, false);
+      } else {
+        lockNavigation(root, true, "Maak een nieuwe foto om dit hoofdstuk te voltooien.");
+      }
+      mount.querySelector("[data-camera-retry]").hidden = result.status === "passed";
     } catch (error) {
-      renderFeedback(mount, "Upload niet gelukt", error.message || "Probeer het opnieuw.", "error");
+      feedback(
+        mount,
+        error.status === 401 || error.status === 403 ? "Tourtoegang nodig" : "Upload niet gelukt",
+        error.message || "Probeer het opnieuw zodra je verbinding hebt.",
+        "error"
+      );
+      mount.querySelector("[data-camera-retry]").hidden = false;
     } finally {
-      controls.forEach((control) => { control.disabled = false; });
+      setBusy(mount, false);
     }
   };
 
   const startCamera = async (state, mount) => {
     const video = mount.querySelector("video");
     if (!video || !navigator.mediaDevices?.getUserMedia) {
-      renderFeedback(mount, "Camera niet beschikbaar", "Gebruik ‘Kies foto’ als toegankelijke fallback.", "error");
+      feedback(mount, "Camera niet beschikbaar", "Gebruik ‘Kies foto’ als toegankelijke fallback.", "error");
       return;
     }
     stopCamera(state);
@@ -118,16 +209,17 @@
       video.srcObject = state.stream;
       await video.play();
       mount.dataset.cameraActive = "1";
-      renderFeedback(mount, "Camera gereed", "Breng het gevraagde object rustig in beeld.", "success");
+      mount.dataset.fullscreen = "1";
+      feedback(mount, "Camera gereed", state.challenge.voice_intro?.transcript || "Breng het gevraagde object rustig in beeld.", "success");
     } catch {
-      renderFeedback(mount, "Geen cameratoegang", "Geef cameratoestemming of kies een bestaande foto.", "error");
+      feedback(mount, "Geen cameratoegang", "Geef cameratoestemming of kies een bestaande foto.", "error");
     }
   };
 
-  const capture = async (root, state, mount, step) => {
+  const capture = async (state, mount) => {
     const video = mount.querySelector("video");
-    if (!video || !video.videoWidth) {
-      renderFeedback(mount, "Camera nog niet gereed", "Open eerst de camera.", "error");
+    if (!video?.videoWidth) {
+      feedback(mount, "Camera nog niet gereed", "Open eerst de camera.", "error");
       return;
     }
     const scale = Math.min(1, 1600 / video.videoWidth);
@@ -137,59 +229,73 @@
     canvas.getContext("2d", { alpha: false }).drawImage(video, 0, 0, canvas.width, canvas.height);
     const blob = await new Promise((resolve) => canvas.toBlob(resolve, "image/jpeg", 0.84));
     if (!blob) {
-      renderFeedback(mount, "Foto mislukt", "Maak de foto opnieuw.", "error");
+      feedback(mount, "Foto mislukt", "Maak de foto opnieuw.", "error");
       return;
     }
     stopCamera(state);
     mount.dataset.cameraActive = "0";
-    await upload(root, mount, step, new File([blob], "discovery-photo.jpg", { type: "image/jpeg" }));
+    showPreview(state, mount, new File([blob], "discovery-photo.jpg", { type: "image/jpeg" }));
   };
 
   const createChallenge = (root, step, challenge, state) => {
+    state.challenge = challenge;
     const mount = document.createElement("section");
     mount.className = "ddb-camera";
     mount.dataset.photoChallenge = String(step.id);
     mount.setAttribute("aria-labelledby", `ddb-camera-title-${step.id}`);
+    mount.innerHTML = `
+      <header class="ddb-camera__head">
+        <span class="ddb-camera__eyebrow"></span>
+        <h3 id="ddb-camera-title-${step.id}"></h3>
+        <p data-camera-mission></p>
+      </header>
+      <div class="ddb-camera__historical" data-camera-historical hidden></div>
+      <div class="ddb-camera__viewport">
+        <video playsinline muted aria-label="Live camera"></video>
+        <img data-camera-preview alt="Voorbeeld van je gemaakte foto" hidden>
+        <div class="ddb-camera__frame" aria-hidden="true"></div>
+        <div class="ddb-camera__progress" data-camera-progress role="progressbar" aria-label="Foto wordt beoordeeld" hidden></div>
+      </div>
+      <details class="ddb-camera__hints"><summary>Hint gebruiken</summary><ol></ol></details>
+      <label class="ddb-camera__consent">
+        <input type="checkbox" data-camera-consent>
+        <span>Ik geef toestemming om deze foto privé te analyseren. De foto wordt automatisch verwijderd na de bewaartermijn.</span>
+      </label>
+      <div class="ddb-camera__controls"></div>
+      <div class="ddb-camera__feedback" data-camera-feedback role="status" aria-live="polite"></div>
+      <div class="ddb-camera__result" data-camera-result hidden></div>`;
 
-    const head = document.createElement("header");
-    head.className = "ddb-camera__head";
-    const eyebrow = document.createElement("span");
-    eyebrow.className = "ddb-camera__eyebrow";
-    eyebrow.textContent = `Photo Challenge · ${challenge.difficulty || "medium"}`;
-    const title = document.createElement("h3");
-    title.id = `ddb-camera-title-${step.id}`;
-    title.textContent = challenge.title || step.title || "Ontdek met je camera";
-    const mission = document.createElement("p");
-    mission.textContent = challenge.mission || "";
-    head.append(eyebrow, title, mission);
-
-    const viewport = document.createElement("div");
-    viewport.className = "ddb-camera__viewport";
-    const video = document.createElement("video");
-    video.playsInline = true;
-    video.muted = true;
-    video.setAttribute("aria-label", "Live camera");
-    const frame = document.createElement("div");
-    frame.className = "ddb-camera__frame";
-    frame.setAttribute("aria-hidden", "true");
-    viewport.append(video, frame);
-
-    const hints = document.createElement("details");
-    hints.className = "ddb-camera__hints";
-    const summary = document.createElement("summary");
-    summary.textContent = "Hints bekijken";
-    const hintList = document.createElement("ol");
+    mount.querySelector(".ddb-camera__eyebrow").textContent =
+      `${challenge.interaction_type === "then_now" ? `Toen & Nu ${challenge.historical_year || ""}` : "Photo Challenge"} · ${challenge.difficulty || "medium"}`;
+    mount.querySelector("h3").textContent = challenge.title || step.title || "Ontdek met je camera";
+    mount.querySelector("[data-camera-mission]").textContent = challenge.mission || "";
+    const historical = mount.querySelector("[data-camera-historical]");
+    if (challenge.historical_context) {
+      historical.textContent = challenge.historical_context.replace(/<[^>]+>/g, " ");
+      historical.hidden = false;
+    }
+    const hintList = mount.querySelector(".ddb-camera__hints ol");
     (challenge.hints || []).filter(Boolean).forEach((hint) => {
       const item = document.createElement("li");
       item.textContent = hint;
       hintList.append(item);
     });
-    hints.append(summary, hintList);
+    if (!hintList.children.length) mount.querySelector(".ddb-camera__hints").hidden = true;
 
-    const controls = document.createElement("div");
-    controls.className = "ddb-camera__controls";
+    const controls = mount.querySelector(".ddb-camera__controls");
     const open = button("Open camera", "ddb-camera__button--secondary");
     const shutter = button("Maak foto", "ddb-camera__button--primary");
+    shutter.dataset.cameraShutter = "";
+    const confirm = button("Gebruik deze foto", "ddb-camera__button--primary");
+    confirm.dataset.cameraConfirm = "";
+    confirm.hidden = true;
+    const retake = button("Opnieuw", "ddb-camera__button--secondary");
+    retake.dataset.cameraRetake = "";
+    retake.hidden = true;
+    const retry = button("Nieuwe poging", "ddb-camera__button--secondary");
+    retry.dataset.cameraRetry = "";
+    retry.hidden = true;
+    const close = button("Camera sluiten", "ddb-camera__button--ghost");
     const uploadLabel = document.createElement("label");
     uploadLabel.className = "ddb-camera__button ddb-camera__button--secondary";
     uploadLabel.textContent = "Kies foto";
@@ -198,50 +304,46 @@
     input.accept = "image/jpeg,image/png,image/webp";
     input.setAttribute("capture", "environment");
     uploadLabel.append(input);
-    controls.append(open, shutter, uploadLabel);
-
-    const feedback = document.createElement("div");
-    feedback.className = "ddb-camera__feedback";
-    feedback.dataset.cameraFeedback = "";
-    feedback.setAttribute("role", "status");
-    feedback.setAttribute("aria-live", "polite");
+    controls.append(open, shutter, confirm, retake, retry, uploadLabel, close);
 
     open.addEventListener("click", () => startCamera(state, mount));
-    shutter.addEventListener("click", () => capture(root, state, mount, step));
-    input.addEventListener("change", () => upload(root, mount, step, input.files?.[0]));
-
-    mount.append(head, viewport, hints, controls, feedback);
+    shutter.addEventListener("click", () => capture(state, mount));
+    confirm.addEventListener("click", () => upload(root, state, mount, step, state.pendingFile));
+    retake.addEventListener("click", () => resetPreview(state, mount));
+    retry.addEventListener("click", () => resetPreview(state, mount));
+    close.addEventListener("click", () => {
+      stopCamera(state);
+      mount.dataset.fullscreen = "0";
+      document.body.classList.remove("ddb-camera-is-open");
+    });
+    input.addEventListener("change", () => {
+      const file = input.files?.[0];
+      if (file) showPreview(state, mount, file);
+    });
+    open.addEventListener("click", () => document.body.classList.add("ddb-camera-is-open"));
     return mount;
   };
 
   const sync = async (root) => {
-    const state = stateByRoot.get(root);
-    const steps = state.steps;
-    const index = currentIndex(root, steps);
-    const step = steps[index];
+    const state = roots.get(root);
+    const step = state.steps[currentIndex(root, state.steps)];
     if (!step || step.type !== "photo_challenge") {
       stopCamera(state);
       root.querySelector("[data-photo-challenge]")?.remove();
+      lockNavigation(root, false);
       state.stepId = null;
       return;
     }
     if (state.stepId === String(step.id) && root.querySelector(`[data-photo-challenge="${step.id}"]`)) return;
-
     state.stepId = String(step.id);
     stopCamera(state);
     root.querySelector("[data-photo-challenge]")?.remove();
     const flow = root.querySelector(".tour-story-flow");
     if (!flow) return;
-
     try {
       const result = await request(`/tours/${encodeURIComponent(root.dataset.tourId || "")}/chapters/${encodeURIComponent(step.id)}/photo-challenge`);
-      const challenge = createChallenge(root, step, result.challenge || {}, state);
-      flow.prepend(challenge);
-      root.querySelectorAll("[data-tour-start-route], [data-tour-complete], [data-tour-mobile-next]").forEach((control) => {
-        control.disabled = true;
-        control.setAttribute("aria-disabled", "true");
-        control.title = "Deze stagingchallenge wacht op menselijke review.";
-      });
+      flow.prepend(createChallenge(root, step, result.challenge || {}, state));
+      lockNavigation(root, true, "Voltooi eerst de Photo Challenge.");
     } catch (error) {
       const fallback = document.createElement("div");
       fallback.className = "ddb-camera__feedback";
@@ -249,26 +351,33 @@
       fallback.setAttribute("role", "alert");
       fallback.textContent = error.message || "Photo Challenge niet beschikbaar.";
       flow.prepend(fallback);
+      lockNavigation(root, false);
     }
   };
 
   const mountRoot = (root) => {
-    if (stateByRoot.has(root)) return;
-    const state = { steps: parseSteps(root), stream: null, stepId: null, syncing: false };
-    stateByRoot.set(root, state);
-    const observer = new MutationObserver(() => {
+    if (roots.has(root)) return;
+    const state = { steps: parseSteps(root), stream: null, stepId: null, syncing: false, pendingFile: null, previewUrl: "", challenge: {} };
+    roots.set(root, state);
+    new MutationObserver(() => {
       if (state.syncing) return;
       state.syncing = true;
       queueMicrotask(() => {
         state.syncing = false;
         sync(root);
       });
-    });
-    observer.observe(root, { childList: true, subtree: true });
+    }).observe(root, { childList: true, subtree: true });
     sync(root);
   };
 
   const init = () => document.querySelectorAll("[data-tour-navigation]").forEach(mountRoot);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) return;
+    document.querySelectorAll("[data-photo-challenge]").forEach((mount) => {
+      const root = mount.closest("[data-tour-navigation]");
+      if (root) stopCamera(roots.get(root));
+    });
+  });
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init, { once: true });
   else init();
 })();

@@ -41,6 +41,12 @@
   gap: 6px;
 }
 
+.ddb-photo-builder__media-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .ddb-chapter-chooser {
   position: fixed;
   z-index: 100100;

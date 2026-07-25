@@ -6,9 +6,9 @@ namespace BSP\DiscoveryCamera\Provider;
 
 final class FakeVisionProvider implements VisionProvider
 {
-    public function analyze(array $challenge, string $uploadHash): array
+    public function analyze(array $challenge, string $imagePath): array
     {
-        unset($uploadHash);
+        unset($imagePath);
 
         return array(
             'provider' => 'fake',

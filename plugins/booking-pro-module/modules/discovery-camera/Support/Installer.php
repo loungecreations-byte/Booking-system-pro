@@ -9,7 +9,7 @@ use wpdb;
 final class Installer
 {
     private const OPTION = 'bsp_discovery_camera_schema_version';
-    private const VERSION = '2026-07-25-2';
+    private const VERSION = '2026-07-25-3';
 
     public static function maybeInstall(): void
     {
@@ -37,6 +37,7 @@ final class Installer
         add_option(FeatureFlags::OPTION_ENABLED, '0', '', false);
         add_option(FeatureFlags::OPTION_TOUR_ALLOWLIST, array(), '', false);
         add_option(FeatureFlags::OPTION_PROVIDER_MODE, 'fake', '', false);
+        add_option('ddb_discovery_camera_model', 'gpt-4o', '', false);
         update_option(self::OPTION, self::VERSION, false);
     }
 

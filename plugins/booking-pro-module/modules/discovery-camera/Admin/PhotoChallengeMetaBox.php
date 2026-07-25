@@ -114,6 +114,17 @@ final class PhotoChallengeMetaBox
         );
 
         if ($screen->post_type !== 'sbdp_private_tour') {
+            if ($screen->post_type === 'sbdp_tour_step') {
+                wp_enqueue_media();
+                $builderFile = dirname(__DIR__) . '/Assets/photo-builder.js';
+                wp_enqueue_script(
+                    'ddb-photo-builder',
+                    SBDP_URL . 'modules/discovery-camera/Assets/photo-builder.js',
+                    array('jquery'),
+                    is_readable($builderFile) ? (string) filemtime($builderFile) : SBDP_VERSION,
+                    true
+                );
+            }
             return;
         }
 
@@ -170,12 +181,35 @@ final class PhotoChallengeMetaBox
                 <?php self::numberField('xp_reward', __('XP na validatie', 'sbdp'), (int) ($challenge['xp_reward'] ?? 0), 0, 500); ?>
                 <?php self::textField('badge_reward', __('Badge-slug', 'sbdp'), $challenge['badge_reward'] ?? '', false, 'architect-hunter'); ?>
                 <?php self::numberField('hidden_collectible_id', __('Verborgen collectible-ID', 'sbdp'), (int) ($challenge['hidden_collectible_id'] ?? 0), 0, PHP_INT_MAX); ?>
+                <?php self::numberField('reference_image_id', __('Voorbeeldfoto attachment-ID', 'sbdp'), (int) ($challenge['reference_image_id'] ?? 0), 0, PHP_INT_MAX); ?>
                 <?php self::numberField('voice_attachment_id', __('Voice intro attachment-ID', 'sbdp'), (int) ($challenge['voice_intro']['attachment_id'] ?? 0), 0, PHP_INT_MAX); ?>
+                <?php self::selectField('interaction_type', __('Interactietype', 'sbdp'), $challenge['interaction_type'] ?? 'photo', array(
+                    'photo' => __('Photo Challenge', 'sbdp'),
+                    'then_now' => __('Toen & Nu', 'sbdp'),
+                    'hidden_discovery' => __('Hidden Discovery', 'sbdp'),
+                    'boss' => __('Boss Battle', 'sbdp'),
+                )); ?>
+                <?php self::selectField('persona', __('AI-gids', 'sbdp'), $challenge['persona'] ?? 'guide', array(
+                    'guide' => __('DagjeDenBosch gids', 'sbdp'),
+                    'bosch' => __('Jeroen Bosch', 'sbdp'),
+                    'frederik_hendrik' => __('Frederik Hendrik', 'sbdp'),
+                    'chef' => __('Chef', 'sbdp'),
+                )); ?>
+                <?php self::textField('historical_year', __('Historisch jaar', 'sbdp'), $challenge['historical_year'] ?? '', false, '1629'); ?>
+            </div>
+            <div class="ddb-photo-builder__media-actions">
+                <button type="button" class="button" data-ddb-select-media="image" data-ddb-target="reference_image_id">
+                    <?php esc_html_e('Selecteer voorbeeldfoto', 'sbdp'); ?>
+                </button>
+                <button type="button" class="button" data-ddb-select-media="audio" data-ddb-target="voice_attachment_id">
+                    <?php esc_html_e('Selecteer voice intro', 'sbdp'); ?>
+                </button>
             </div>
 
             <?php self::textareaField('mission', __('Missie', 'sbdp'), $challenge['mission'] ?? '', true); ?>
             <?php self::textareaField('historical_context', __('Historische context', 'sbdp'), $challenge['historical_context'] ?? ''); ?>
             <?php self::textareaField('voice_transcript', __('Voice intro transcript', 'sbdp'), $challenge['voice_intro']['transcript'] ?? ''); ?>
+            <?php self::textareaField('ai_prompt', __('Aanvullende AI-instructie', 'sbdp'), $challenge['ai_prompt'] ?? ''); ?>
 
             <fieldset class="ddb-photo-builder__types">
                 <legend><?php esc_html_e('Validatietypes', 'sbdp'); ?> *</legend>
