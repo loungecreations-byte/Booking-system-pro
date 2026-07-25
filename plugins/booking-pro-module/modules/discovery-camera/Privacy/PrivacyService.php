@@ -66,12 +66,24 @@ final class PrivacyService
         }
 
         global $wpdb;
-        $attemptIds = $wpdb->get_col($wpdb->prepare(
-            "SELECT id FROM {$wpdb->prefix}bsp_photo_attempts WHERE user_id=%d",
+        $attempts = $wpdb->get_results($wpdb->prepare(
+            "SELECT id,private_object_key FROM {$wpdb->prefix}bsp_photo_attempts WHERE user_id=%d",
             $user->ID
-        ));
-        foreach (array_map('absint', (array) $attemptIds) as $attemptId) {
+        ), ARRAY_A);
+        $privateDir = (string) apply_filters(
+            'ddb/discovery_camera/private_directory',
+            dirname(rtrim(ABSPATH, '/\\')) . DIRECTORY_SEPARATOR . 'ddb-private-media'
+        );
+        foreach ((array) $attempts as $attempt) {
+            $attemptId = absint($attempt['id'] ?? 0);
             $wpdb->delete($wpdb->prefix . 'bsp_photo_analyses', array('attempt_id' => $attemptId), array('%d'));
+            $objectKey = sanitize_file_name((string) ($attempt['private_object_key'] ?? ''));
+            if ($objectKey !== '' && $objectKey === basename($objectKey)) {
+                $path = trailingslashit($privateDir) . $objectKey;
+                if (is_file($path)) {
+                    wp_delete_file($path);
+                }
+            }
         }
         $wpdb->delete($wpdb->prefix . 'bsp_photo_attempts', array('user_id' => $user->ID), array('%d'));
 
