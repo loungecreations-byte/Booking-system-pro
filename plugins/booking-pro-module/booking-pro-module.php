@@ -423,6 +423,7 @@ if (! defined('SBDP_AUTOLOAD_REGISTERED')) {
         'BSP\\Insights\\'         => SBDP_DIR . 'modules/insights/',
         'BSP\\Gamification\\'     => SBDP_DIR . 'modules/gamification/',
         'BSP\\Experience\\'       => SBDP_DIR . 'modules/experience/',
+        'BSP\\DiscoveryCamera\\'  => SBDP_DIR . 'modules/discovery-camera/',
         'BSPModule\\Core\\'       => SBDP_DIR . 'modules/core/',
         'BSPModule\\Commerce\\'   => SBDP_DIR . 'modules/commerce/',
         'BSPModule\\Planner\\'    => SBDP_DIR . 'modules/planner/',

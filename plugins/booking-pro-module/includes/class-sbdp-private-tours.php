@@ -655,6 +655,7 @@ class SBDP_Private_Tours
             'video' => __('Video', 'sbdp'),
             'vr'    => __('VR/AR ervaring', 'sbdp'),
             'game'  => __('Gamification', 'sbdp'),
+            'photo_challenge' => __('Photo Challenge', 'sbdp'),
         );
     }
 

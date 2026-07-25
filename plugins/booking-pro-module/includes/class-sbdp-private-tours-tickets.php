@@ -622,6 +622,13 @@ class SBDP_Private_Tours_Tickets
                 $spot_name = $location_label;
             }
             $content_type = (string) get_post_meta($post->ID, '_sbdp_step_type', true);
+            $photo_challenge = array();
+            if (
+                'photo_challenge' === $content_type
+                && class_exists('\BSP\DiscoveryCamera\Content\PhotoChallengeMeta')
+            ) {
+                $photo_challenge = \BSP\DiscoveryCamera\Content\PhotoChallengeMeta::forStep((int) $post->ID);
+            }
             $steps[] = array(
                 'id'          => (int) $post->ID,
                 'index'       => $index,
@@ -653,6 +660,7 @@ class SBDP_Private_Tours_Tickets
                 'templateId'  => $template_id,
                 'vrAsset'     => (string) get_post_meta($post->ID, '_sbdp_step_vr_asset', true),
                 'gamification' => self::decode_gamification((string) get_post_meta($post->ID, '_sbdp_step_gamification', true)),
+                'photoChallenge' => $photo_challenge,
                 'points'      => (int) get_post_meta($post->ID, '_sbdp_step_points', true),
                 'menuOrder'   => (int) $post->menu_order,
             );

@@ -30,6 +30,7 @@
       "BSP\\VendorPortal\\": "modules/vendor-portal/",
       "BSP\\Gamification\\": "modules/gamification/",
       "BSP\\Experience\\": "modules/experience/",
+      "BSP\\DiscoveryCamera\\": "modules/discovery-camera/",
       "BSP\\GeoDashboard\\": "modules/geo-dashboard/",
       "BSP\\Support\\": "modules/support/",
       "BSPModule\\Core\\": "modules/core/",
