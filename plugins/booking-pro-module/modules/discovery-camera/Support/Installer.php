@@ -9,7 +9,7 @@ use wpdb;
 final class Installer
 {
     private const OPTION = 'bsp_discovery_camera_schema_version';
-    private const VERSION = '2026-07-25-1';
+    private const VERSION = '2026-07-25-2';
 
     public static function maybeInstall(): void
     {
@@ -56,6 +56,7 @@ challenge_revision INT UNSIGNED NOT NULL DEFAULT 1,
 status VARCHAR(24) NOT NULL DEFAULT 'created',
 upload_hash CHAR(64) NULL,
 media_attachment_id BIGINT UNSIGNED NULL,
+private_object_key VARCHAR(255) NULL,
 consent_version VARCHAR(32) NOT NULL DEFAULT '',
 captured_at DATETIME NULL,
 expires_at DATETIME NULL,

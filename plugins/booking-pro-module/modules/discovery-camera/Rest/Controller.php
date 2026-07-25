@@ -32,6 +32,11 @@ final class Controller
             'callback' => array(__CLASS__, 'attempt'),
             'permission_callback' => array(__CLASS__, 'authorize'),
         ));
+        register_rest_route('bsp/v1', '/photo-attempts/(?P<uuid>[a-f0-9-]{36})/complete-upload', array(
+            'methods' => 'POST',
+            'callback' => array(__CLASS__, 'completeUpload'),
+            'permission_callback' => array(__CLASS__, 'authorize'),
+        ));
     }
 
     public static function authorize()
@@ -99,6 +104,38 @@ final class Controller
         }
 
         $response = rest_ensure_response($attempt);
+        $response->header('Cache-Control', 'private, no-store, max-age=0');
+
+        return $response;
+    }
+
+    public static function completeUpload(WP_REST_Request $request)
+    {
+        $service = new PhotoAttemptService();
+        $attempt = $service->findForUser(
+            sanitize_text_field((string) $request['uuid']),
+            get_current_user_id()
+        );
+        if ($attempt === null) {
+            return new WP_Error('photo_attempt_not_found', 'Fotopoging niet gevonden.', array('status' => 404));
+        }
+
+        $context = self::resolveContext((int) $attempt['tour_id'], (int) $attempt['step_id']);
+        if (is_wp_error($context)) {
+            return $context;
+        }
+        $file = isset($_FILES['photo']) && is_array($_FILES['photo']) ? $_FILES['photo'] : array();
+        $result = $service->completeUpload(
+            (string) $request['uuid'],
+            get_current_user_id(),
+            $file,
+            $context['challenge']
+        );
+        if (is_wp_error($result)) {
+            return $result;
+        }
+
+        $response = rest_ensure_response($result);
         $response->header('Cache-Control', 'private, no-store, max-age=0');
 
         return $response;

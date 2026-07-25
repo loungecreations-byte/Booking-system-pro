@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace BSP\DiscoveryCamera;
 
+use BSP\DiscoveryCamera\Admin\PhotoChallengeMetaBox;
+use BSP\DiscoveryCamera\Assets\AssetService;
 use BSP\Core\Interfaces\ModuleInterface;
 use BSP\DiscoveryCamera\Content\PhotoChallengeMeta;
 use BSP\DiscoveryCamera\Privacy\PrivacyService;
@@ -25,6 +27,8 @@ final class Module implements ModuleInterface
         add_action('init', array(Installer::class, 'maybeInstall'), 5);
         add_action('init', array(PhotoChallengeMeta::class, 'register'));
         add_action('rest_api_init', array(Controller::class, 'register'));
+        PhotoChallengeMetaBox::register();
+        AssetService::register();
         PrivacyService::register();
     }
 }

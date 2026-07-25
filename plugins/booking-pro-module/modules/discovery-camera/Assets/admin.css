@@ -1,0 +1,42 @@
+.ddb-photo-builder {
+  display: grid;
+  gap: 16px;
+}
+
+.ddb-photo-builder__grid,
+.ddb-photo-builder__hints {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.ddb-photo-builder__field {
+  display: grid;
+  gap: 6px;
+  font-weight: 600;
+}
+
+.ddb-photo-builder__field input,
+.ddb-photo-builder__field select,
+.ddb-photo-builder__field textarea {
+  width: 100%;
+}
+
+.ddb-photo-builder__field--wide {
+  grid-column: 1 / -1;
+}
+
+.ddb-photo-builder__types {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid #dcdcde;
+}
+
+.ddb-photo-builder__types label,
+.ddb-photo-builder__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
