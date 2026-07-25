@@ -42,10 +42,10 @@ final class PhotoChallengeMetaBox
             return;
         }
 
-        $file = dirname(__DIR__) . '/assets/admin.css';
+        $file = dirname(__DIR__) . '/Assets/admin.css';
         wp_enqueue_style(
             'ddb-discovery-camera-admin',
-            SBDP_URL . 'modules/discovery-camera/assets/admin.css',
+            SBDP_URL . 'modules/discovery-camera/Assets/admin.css',
             array(),
             is_readable($file) ? (string) filemtime($file) : SBDP_VERSION
         );

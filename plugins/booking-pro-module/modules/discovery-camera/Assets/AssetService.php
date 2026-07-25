@@ -17,18 +17,18 @@ final class AssetService
             return;
         }
 
-        $script = dirname(__DIR__) . '/assets/discovery-camera.js';
-        $style = dirname(__DIR__) . '/assets/discovery-camera.css';
+        $script = dirname(__DIR__) . '/Assets/discovery-camera.js';
+        $style = dirname(__DIR__) . '/Assets/discovery-camera.css';
 
         wp_enqueue_style(
             'ddb-discovery-camera',
-            SBDP_URL . 'modules/discovery-camera/assets/discovery-camera.css',
+            SBDP_URL . 'modules/discovery-camera/Assets/discovery-camera.css',
             array('sbdp-tour-navigation'),
             is_readable($style) ? (string) filemtime($style) : SBDP_VERSION
         );
         wp_enqueue_script(
             'ddb-discovery-camera',
-            SBDP_URL . 'modules/discovery-camera/assets/discovery-camera.js',
+            SBDP_URL . 'modules/discovery-camera/Assets/discovery-camera.js',
             array('sbdp-tour-navigation'),
             is_readable($script) ? (string) filemtime($script) : SBDP_VERSION,
             true
