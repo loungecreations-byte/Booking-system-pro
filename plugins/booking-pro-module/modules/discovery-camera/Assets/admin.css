@@ -40,3 +40,23 @@
   align-items: center;
   gap: 6px;
 }
+
+.ddb-photo-launcher__create {
+  width: 100%;
+  justify-content: center;
+  text-align: center;
+}
+
+.ddb-photo-launcher__list {
+  display: grid;
+  gap: 8px;
+  margin-block-end: 0;
+}
+
+.ddb-photo-launcher__list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0;
+}

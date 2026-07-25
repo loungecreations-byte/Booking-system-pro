@@ -16,7 +16,9 @@ final class PhotoChallengeMetaBox
     public static function register(): void
     {
         add_action('add_meta_boxes_sbdp_tour_step', array(__CLASS__, 'add'));
+        add_action('add_meta_boxes_sbdp_private_tour', array(__CLASS__, 'addTourLauncher'));
         add_action('save_post_sbdp_tour_step', array(__CLASS__, 'save'), 20, 2);
+        add_action('admin_post_ddb_create_photo_challenge', array(__CLASS__, 'createForTour'));
         add_action('admin_enqueue_scripts', array(__CLASS__, 'enqueue'));
     }
 
@@ -32,13 +34,129 @@ final class PhotoChallengeMetaBox
         );
     }
 
+    public static function addTourLauncher(): void
+    {
+        add_meta_box(
+            'ddb-photo-challenge-launcher',
+            __('AI Photo Challenges', 'sbdp'),
+            array(__CLASS__, 'renderTourLauncher'),
+            'sbdp_private_tour',
+            'side',
+            'high'
+        );
+    }
+
+    public static function renderTourLauncher(WP_Post $tour): void
+    {
+        $steps = get_posts(array(
+            'post_type' => 'sbdp_tour_step',
+            'post_parent' => (int) $tour->ID,
+            'post_status' => array('publish', 'draft', 'private'),
+            'numberposts' => -1,
+            'orderby' => array('menu_order' => 'ASC', 'ID' => 'ASC'),
+            'meta_key' => '_sbdp_step_type',
+            'meta_value' => 'photo_challenge',
+        ));
+        $createUrl = wp_nonce_url(
+            add_query_arg(
+                array('action' => 'ddb_create_photo_challenge', 'tour_id' => (int) $tour->ID),
+                admin_url('admin-post.php')
+            ),
+            'ddb_create_photo_challenge_' . (int) $tour->ID
+        );
+        ?>
+        <div class="ddb-photo-launcher">
+            <p><?php esc_html_e('Voeg een Photo Challenge toe als normaal hoofdstuk binnen deze bestaande tour.', 'sbdp'); ?></p>
+            <a class="button button-primary button-large ddb-photo-launcher__create" href="<?php echo esc_url($createUrl); ?>">
+                <?php esc_html_e('Nieuwe foto-opdracht', 'sbdp'); ?>
+            </a>
+            <?php if ($steps) : ?>
+                <hr>
+                <strong><?php esc_html_e('Foto-opdrachten in deze tour', 'sbdp'); ?></strong>
+                <ul class="ddb-photo-launcher__list">
+                    <?php foreach ($steps as $step) : ?>
+                        <li>
+                            <a href="<?php echo esc_url(get_edit_post_link((int) $step->ID, '')); ?>">
+                                <?php echo esc_html(get_the_title($step) ?: __('Naamloze foto-opdracht', 'sbdp')); ?>
+                            </a>
+                            <small><?php echo esc_html((string) get_post_status($step)); ?></small>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php endif; ?>
+        </div>
+        <?php
+    }
+
+    public static function createForTour(): void
+    {
+        $tourId = isset($_GET['tour_id']) ? absint($_GET['tour_id']) : 0;
+        if (
+            $tourId <= 0
+            || get_post_type($tourId) !== 'sbdp_private_tour'
+            || ! current_user_can('edit_post', $tourId)
+        ) {
+            wp_die(
+                esc_html__('Je mag aan deze tour geen foto-opdracht toevoegen.', 'sbdp'),
+                '',
+                array('response' => 403)
+            );
+        }
+        check_admin_referer('ddb_create_photo_challenge_' . $tourId);
+
+        $orders = get_posts(array(
+            'post_type' => 'sbdp_tour_step',
+            'post_parent' => $tourId,
+            'post_status' => array('publish', 'draft', 'private'),
+            'numberposts' => -1,
+            'fields' => 'ids',
+            'orderby' => 'menu_order',
+            'order' => 'DESC',
+        ));
+        $highestOrder = 0;
+        foreach ($orders as $stepId) {
+            $step = get_post((int) $stepId);
+            $highestOrder = max($highestOrder, $step ? (int) $step->menu_order : 0);
+        }
+
+        $stepId = wp_insert_post(array(
+            'post_type' => 'sbdp_tour_step',
+            'post_status' => 'draft',
+            'post_parent' => $tourId,
+            'menu_order' => $highestOrder + 1,
+            'post_title' => __('Nieuwe foto-opdracht', 'sbdp'),
+            'post_content' => '',
+        ), true);
+        if (is_wp_error($stepId)) {
+            wp_die(esc_html($stepId->get_error_message()), '', array('response' => 500));
+        }
+
+        update_post_meta((int) $stepId, '_sbdp_step_type', 'photo_challenge');
+        update_post_meta((int) $stepId, PhotoChallengeMeta::KEY, PhotoChallenge::sanitize(array(
+            'revision' => 1,
+            'title' => __('Nieuwe foto-opdracht', 'sbdp'),
+            'mission' => __('Beschrijf hier wat de bezoeker moet fotograferen.', 'sbdp'),
+            'required_object' => array('type' => 'object', 'label' => __('object', 'sbdp')),
+            'validation_type' => array('composition'),
+            'difficulty' => 'medium',
+            'pass_score' => 70,
+            'xp_reward' => 0,
+        )));
+
+        wp_safe_redirect(add_query_arg(
+            array('post' => (int) $stepId, 'action' => 'edit', 'ddb_photo_created' => 1),
+            admin_url('post.php')
+        ));
+        exit;
+    }
+
     public static function enqueue(string $hook): void
     {
         if (! in_array($hook, array('post.php', 'post-new.php'), true)) {
             return;
         }
         $screen = get_current_screen();
-        if (! $screen || $screen->post_type !== 'sbdp_tour_step') {
+        if (! $screen || ! in_array($screen->post_type, array('sbdp_tour_step', 'sbdp_private_tour'), true)) {
             return;
         }
 
