@@ -16,7 +16,6 @@ final class PhotoChallengeMetaBox
     public static function register(): void
     {
         add_action('add_meta_boxes_sbdp_tour_step', array(__CLASS__, 'add'));
-        add_action('add_meta_boxes_sbdp_private_tour', array(__CLASS__, 'addTourLauncher'));
         add_action('save_post_sbdp_tour_step', array(__CLASS__, 'save'), 20, 2);
         add_action('admin_post_ddb_create_photo_challenge', array(__CLASS__, 'createForTour'));
         add_action('admin_enqueue_scripts', array(__CLASS__, 'enqueue'));
@@ -32,60 +31,6 @@ final class PhotoChallengeMetaBox
             'normal',
             'high'
         );
-    }
-
-    public static function addTourLauncher(): void
-    {
-        add_meta_box(
-            'ddb-photo-challenge-launcher',
-            __('AI Photo Challenges', 'sbdp'),
-            array(__CLASS__, 'renderTourLauncher'),
-            'sbdp_private_tour',
-            'side',
-            'high'
-        );
-    }
-
-    public static function renderTourLauncher(WP_Post $tour): void
-    {
-        $steps = get_posts(array(
-            'post_type' => 'sbdp_tour_step',
-            'post_parent' => (int) $tour->ID,
-            'post_status' => array('publish', 'draft', 'private'),
-            'numberposts' => -1,
-            'orderby' => array('menu_order' => 'ASC', 'ID' => 'ASC'),
-            'meta_key' => '_sbdp_step_type',
-            'meta_value' => 'photo_challenge',
-        ));
-        $createUrl = wp_nonce_url(
-            add_query_arg(
-                array('action' => 'ddb_create_photo_challenge', 'tour_id' => (int) $tour->ID),
-                admin_url('admin-post.php')
-            ),
-            'ddb_create_photo_challenge_' . (int) $tour->ID
-        );
-        ?>
-        <div class="ddb-photo-launcher">
-            <p><?php esc_html_e('Voeg een Photo Challenge toe als normaal hoofdstuk binnen deze bestaande tour.', 'sbdp'); ?></p>
-            <a class="button button-primary button-large ddb-photo-launcher__create" href="<?php echo esc_url($createUrl); ?>">
-                <?php esc_html_e('Nieuwe foto-opdracht', 'sbdp'); ?>
-            </a>
-            <?php if ($steps) : ?>
-                <hr>
-                <strong><?php esc_html_e('Foto-opdrachten in deze tour', 'sbdp'); ?></strong>
-                <ul class="ddb-photo-launcher__list">
-                    <?php foreach ($steps as $step) : ?>
-                        <li>
-                            <a href="<?php echo esc_url(get_edit_post_link((int) $step->ID, '')); ?>">
-                                <?php echo esc_html(get_the_title($step) ?: __('Naamloze foto-opdracht', 'sbdp')); ?>
-                            </a>
-                            <small><?php echo esc_html((string) get_post_status($step)); ?></small>
-                        </li>
-                    <?php endforeach; ?>
-                </ul>
-            <?php endif; ?>
-        </div>
-        <?php
     }
 
     public static function createForTour(): void
@@ -167,6 +112,34 @@ final class PhotoChallengeMetaBox
             array(),
             is_readable($file) ? (string) filemtime($file) : SBDP_VERSION
         );
+
+        if ($screen->post_type !== 'sbdp_private_tour') {
+            return;
+        }
+
+        $tourId = isset($_GET['post']) ? absint($_GET['post']) : 0;
+        if ($tourId <= 0 || get_post_type($tourId) !== 'sbdp_private_tour') {
+            return;
+        }
+
+        $scriptFile = dirname(__DIR__) . '/Assets/chapter-type-chooser.js';
+        wp_enqueue_script(
+            'ddb-photo-chapter-chooser',
+            SBDP_URL . 'modules/discovery-camera/Assets/chapter-type-chooser.js',
+            array('sbdp-tour-builder'),
+            is_readable($scriptFile) ? (string) filemtime($scriptFile) : SBDP_VERSION,
+            true
+        );
+        wp_localize_script('ddb-photo-chapter-chooser', 'ddbPhotoChapterChooser', array(
+            'createUrl' => wp_nonce_url(
+                add_query_arg(
+                    array('action' => 'ddb_create_photo_challenge', 'tour_id' => $tourId),
+                    admin_url('admin-post.php')
+                ),
+                'ddb_create_photo_challenge_' . $tourId
+            ),
+            'editBaseUrl' => admin_url('post.php?action=edit&post='),
+        ));
     }
 
     public static function render(WP_Post $post): void
