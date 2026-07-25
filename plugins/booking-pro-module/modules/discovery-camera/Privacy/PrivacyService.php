@@ -11,9 +11,6 @@ final class PrivacyService
         add_filter('wp_privacy_personal_data_exporters', array(__CLASS__, 'exporters'));
         add_filter('wp_privacy_personal_data_erasers', array(__CLASS__, 'erasers'));
         add_action('ddb_discovery_camera_cleanup', array(__CLASS__, 'cleanupExpired'));
-        if (! wp_next_scheduled('ddb_discovery_camera_cleanup')) {
-            wp_schedule_event(time() + HOUR_IN_SECONDS, 'daily', 'ddb_discovery_camera_cleanup');
-        }
     }
 
     public static function exporters(array $items): array

@@ -38,6 +38,9 @@ final class Installer
         add_option(FeatureFlags::OPTION_TOUR_ALLOWLIST, array(), '', false);
         add_option(FeatureFlags::OPTION_PROVIDER_MODE, 'fake', '', false);
         add_option('ddb_discovery_camera_model', 'gpt-4o', '', false);
+        if (! wp_next_scheduled('ddb_discovery_camera_cleanup')) {
+            wp_schedule_event(time() + HOUR_IN_SECONDS, 'daily', 'ddb_discovery_camera_cleanup');
+        }
         update_option(self::OPTION, self::VERSION, false);
     }
 
