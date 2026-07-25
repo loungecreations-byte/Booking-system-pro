@@ -302,6 +302,93 @@ final class PhotoAttemptService
         return $result;
     }
 
+    /** @return array<int,array<string,mixed>> */
+    public function recentForAdmin(int $limit = 50): array
+    {
+        $rows = $this->db->get_results(
+            $this->db->prepare(
+                "SELECT a.id,a.attempt_uuid,a.user_id,a.tour_id,a.step_id,a.status,a.private_object_key,a.created_at,a.updated_at,"
+                . "n.total_score,n.result_json FROM {$this->db->prefix}bsp_photo_attempts a "
+                . "LEFT JOIN {$this->db->prefix}bsp_photo_analyses n ON n.attempt_id=a.id "
+                . "ORDER BY a.id DESC LIMIT %d",
+                max(1, min(100, $limit))
+            ),
+            ARRAY_A
+        );
+        return is_array($rows) ? $rows : array();
+    }
+
+    /** @return array<string,mixed>|WP_Error */
+    public function manualReview(string $uuid, bool $approved, int $reviewerId)
+    {
+        $attempt = $this->db->get_row(
+            $this->db->prepare(
+                "SELECT id,attempt_uuid,user_id,tour_id,step_id,status FROM {$this->db->prefix}bsp_photo_attempts WHERE attempt_uuid=%s",
+                $uuid
+            ),
+            ARRAY_A
+        );
+        if (! is_array($attempt)) {
+            return new WP_Error('photo_attempt_not_found', 'Fotopoging niet gevonden.', array('status' => 404));
+        }
+        if ((string) $attempt['status'] === 'passed' && $approved) {
+            return array('status' => 'passed', 'replayed' => true);
+        }
+
+        $status = $approved ? 'passed' : 'failed';
+        $now = gmdate('Y-m-d H:i:s');
+        $this->db->update(
+            $this->db->prefix . 'bsp_photo_attempts',
+            array('status' => $status, 'updated_at' => $now),
+            array('id' => (int) $attempt['id']),
+            array('%s', '%s'),
+            array('%d')
+        );
+
+        $analysis = array(
+            'provider' => 'human',
+            'model' => 'admin-review-v1',
+            'status' => $status,
+            'total_score' => $approved ? 100 : 0,
+            'passed' => $approved,
+            'scores' => array(),
+            'feedback' => array(
+                'title' => $approved ? 'Handmatig goedgekeurd' : 'Nieuwe poging nodig',
+                'message' => $approved ? 'Een beheerder heeft deze ontdekking goedgekeurd.' : 'Een beheerder heeft om een nieuwe foto gevraagd.',
+                'coach_tip' => '',
+            ),
+            'reviewer_id' => $reviewerId,
+        );
+        $this->db->query($this->db->prepare(
+            "INSERT INTO {$this->db->prefix}bsp_photo_analyses "
+            . "(attempt_id,analysis_version,provider,model,status,total_score,result_json,created_at,completed_at) "
+            . "VALUES (%d,(SELECT COALESCE(MAX(x.analysis_version),0)+1 FROM {$this->db->prefix}bsp_photo_analyses x WHERE x.attempt_id=%d),%s,%s,%s,%d,%s,%s,%s)",
+            (int) $attempt['id'],
+            (int) $attempt['id'],
+            'human',
+            'admin-review-v1',
+            $status,
+            $approved ? 100 : 0,
+            wp_json_encode($analysis),
+            $now,
+            $now
+        ));
+
+        $rewards = array();
+        if ($approved) {
+            $challenge = \BSP\DiscoveryCamera\Content\PhotoChallengeMeta::forStep((int) $attempt['step_id']);
+            $rewards = (new PhotoChallengeCompletionService())->complete(
+                (int) $attempt['user_id'],
+                (int) $attempt['tour_id'],
+                (int) $attempt['step_id'],
+                $uuid,
+                $challenge,
+                $analysis
+            );
+        }
+        return array('status' => $status, 'rewards' => $rewards, 'replayed' => false);
+    }
+
     /** @param array<string,mixed> $row @return array<string,mixed> */
     private function present(array $row, bool $replayed): array
     {

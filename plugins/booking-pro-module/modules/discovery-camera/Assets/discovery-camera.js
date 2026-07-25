@@ -4,6 +4,63 @@
   const config = window.ddbDiscoveryCamera || {};
   if (!config.featureEnabled) return;
   const roots = new WeakMap();
+  const queueDatabase = "ddb-discovery-camera";
+
+  const openQueue = () => new Promise((resolve, reject) => {
+    if (!window.indexedDB) {
+      reject(new Error("Offline opslag niet beschikbaar."));
+      return;
+    }
+    const request = indexedDB.open(queueDatabase, 1);
+    request.onupgradeneeded = () => {
+      const database = request.result;
+      if (!database.objectStoreNames.contains("uploads")) {
+        database.createObjectStore("uploads", { keyPath: "id" });
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+
+  const queueUpload = async (root, step, file) => {
+    const database = await openQueue();
+    const record = {
+      id: crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`,
+      tourId: Number(root.dataset.tourId || 0),
+      stepId: Number(step.id || 0),
+      file,
+      createdAt: Date.now(),
+    };
+    await new Promise((resolve, reject) => {
+      const transaction = database.transaction("uploads", "readwrite");
+      transaction.objectStore("uploads").put(record);
+      transaction.oncomplete = resolve;
+      transaction.onerror = () => reject(transaction.error);
+    });
+    database.close();
+  };
+
+  const queuedUploads = async () => {
+    const database = await openQueue();
+    const records = await new Promise((resolve, reject) => {
+      const request = database.transaction("uploads", "readonly").objectStore("uploads").getAll();
+      request.onsuccess = () => resolve(request.result || []);
+      request.onerror = () => reject(request.error);
+    });
+    database.close();
+    return records;
+  };
+
+  const removeQueuedUpload = async (id) => {
+    const database = await openQueue();
+    await new Promise((resolve, reject) => {
+      const transaction = database.transaction("uploads", "readwrite");
+      transaction.objectStore("uploads").delete(id);
+      transaction.oncomplete = resolve;
+      transaction.onerror = () => reject(transaction.error);
+    });
+    database.close();
+  };
 
   const parseSteps = (root) => {
     try {
@@ -136,7 +193,7 @@
     startCamera(state, mount);
   };
 
-  const upload = async (root, state, mount, step, file) => {
+  const upload = async (root, state, mount, step, file, queuedId = "") => {
     if (!file || file.size > Number(config.maxUploadBytes || 8388608)) {
       feedback(mount, "Foto te groot", "Gebruik een foto van maximaal 8 MB.", "error");
       return;
@@ -181,7 +238,19 @@
         lockNavigation(root, true, "Maak een nieuwe foto om dit hoofdstuk te voltooien.");
       }
       mount.querySelector("[data-camera-retry]").hidden = result.status === "passed";
+      if (queuedId) await removeQueuedUpload(queuedId);
+      return true;
     } catch (error) {
+      if (!queuedId && (!navigator.onLine || error instanceof TypeError)) {
+        try {
+          await queueUpload(root, step, file);
+          feedback(mount, "Foto veilig in wachtrij", "Zodra je weer online bent, hervatten we de upload automatisch.", "review");
+          lockNavigation(root, false);
+          return false;
+        } catch {
+          // Fall through to the normal network error.
+        }
+      }
       feedback(
         mount,
         error.status === 401 || error.status === 403 ? "Tourtoegang nodig" : "Upload niet gelukt",
@@ -189,8 +258,28 @@
         "error"
       );
       mount.querySelector("[data-camera-retry]").hidden = false;
+      return false;
     } finally {
       setBusy(mount, false);
+    }
+  };
+
+  const flushQueue = async () => {
+    if (!navigator.onLine) return;
+    let records = [];
+    try {
+      records = await queuedUploads();
+    } catch {
+      return;
+    }
+    for (const record of records) {
+      const root = Array.from(document.querySelectorAll("[data-tour-navigation]"))
+        .find((candidate) => Number(candidate.dataset.tourId || 0) === Number(record.tourId));
+      const state = root ? roots.get(root) : null;
+      const step = state?.steps.find((item) => Number(item.id) === Number(record.stepId));
+      const mount = root?.querySelector(`[data-photo-challenge="${record.stepId}"]`);
+      if (!root || !state || !step || !mount) continue;
+      await upload(root, state, mount, step, record.file, record.id);
     }
   };
 
@@ -371,6 +460,7 @@
   };
 
   const init = () => document.querySelectorAll("[data-tour-navigation]").forEach(mountRoot);
+  window.addEventListener("online", flushQueue);
   document.addEventListener("visibilitychange", () => {
     if (!document.hidden) return;
     document.querySelectorAll("[data-photo-challenge]").forEach((mount) => {
@@ -380,4 +470,5 @@
   });
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init, { once: true });
   else init();
+  window.setTimeout(flushQueue, 500);
 })();
