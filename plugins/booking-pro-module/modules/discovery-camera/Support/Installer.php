@@ -33,10 +33,18 @@ final class Installer
         foreach (self::schemas($wpdb->prefix, $wpdb->get_charset_collate()) as $sql) {
             dbDelta($sql);
         }
+        $reactionTable = $wpdb->prefix . 'bsp_photo_community_reactions';
         $wpdb->query(
-            "UPDATE {$wpdb->prefix}bsp_photo_community_reactions "
+            "UPDATE {$reactionTable} "
             . "SET actor_key=CONCAT('user:',user_id) WHERE actor_key='' AND user_id>0"
         );
+        $primaryColumns = $wpdb->get_col("SHOW INDEX FROM {$reactionTable} WHERE Key_name='PRIMARY'", 4);
+        if (is_array($primaryColumns) && $primaryColumns !== array('post_id', 'actor_key', 'reaction_type')) {
+            $wpdb->query(
+                "ALTER TABLE {$reactionTable} DROP PRIMARY KEY, "
+                . "ADD PRIMARY KEY (post_id,actor_key,reaction_type)"
+            );
+        }
 
         add_option(FeatureFlags::OPTION_ENABLED, '0', '', false);
         add_option(FeatureFlags::OPTION_TOUR_ALLOWLIST, array(), '', false);
