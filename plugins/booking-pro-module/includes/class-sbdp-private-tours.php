@@ -29,6 +29,13 @@ class SBDP_Private_Tours
     private static $booted = false;
 
     /**
+     * Validated preview ticket for the current canonical tour request.
+     *
+     * @var array<string,mixed>|null
+     */
+    private static $preview_ticket = null;
+
+    /**
      * Hook plugin lifecycle for private tours.
      */
     public static function init(): void
@@ -52,6 +59,7 @@ class SBDP_Private_Tours
         add_action('init', array(SBDP_Private_Tours_Tickets::class, 'maybe_upgrade_schema'), 20);
         add_action('init', array(SBDP_Private_Tours_Seeder::class, 'sync_jeroen_bosch_booking_defaults'), 30);
         add_action('wp_enqueue_scripts', array(__CLASS__, 'register_assets'));
+        add_action('template_redirect', array(__CLASS__, 'validate_canonical_preview_request'), 1);
         add_filter('body_class', array(__CLASS__, 'add_tour_mode_body_class'));
 
         add_shortcode('sbdp_private_tour_portal', array(__CLASS__, 'render_portal_shortcode'));
@@ -76,6 +84,72 @@ class SBDP_Private_Tours
             $classes[] = 'sbdp-is-tour-mode';
         }
         return $classes;
+    }
+
+    /**
+     * Validate a passwordless preview before the canonical tour template renders.
+     */
+    public static function validate_canonical_preview_request(): void
+    {
+        if (! is_singular(self::POST_TYPE_TOUR) || ! isset($_GET['sbdp_preview_token'])) {
+            return;
+        }
+
+        $token = SBDP_Private_Tours_REST::sanitize_token((string) wp_unslash($_GET['sbdp_preview_token']));
+        $ticket = $token !== '' ? SBDP_Private_Tours_Tickets::get_ticket_by_token($token) : null;
+        $expires = is_array($ticket) && ! empty($ticket['expires_at'])
+            ? strtotime((string) $ticket['expires_at'] . ' UTC')
+            : false;
+        $valid = is_array($ticket)
+            && (string) ($ticket['status'] ?? '') === 'preview'
+            && (int) ($ticket['tour_id'] ?? 0) === get_queried_object_id()
+            && preg_match('/^user:\d+$/', (string) ($ticket['issued_to'] ?? ''))
+            && (! $expires || $expires >= time());
+
+        if (! $valid) {
+            status_header(403);
+            nocache_headers();
+            wp_die(
+                esc_html__('Deze mobiele tourlink is ongeldig of verlopen. Vraag een nieuwe previewlink aan.', 'sbdp'),
+                esc_html__('Tourlink verlopen', 'sbdp'),
+                array('response' => 403)
+            );
+        }
+
+        self::$preview_ticket = $ticket;
+    }
+
+    /**
+     * Exchange the validated preview for the canonical ticket session.
+     *
+     * @return array{session:string,api_base:string,progress:array<mixed>}|null
+     */
+    public static function canonical_preview_session(int $tour_id): ?array
+    {
+        $ticket = self::$preview_ticket;
+        if (! is_array($ticket) || (int) ($ticket['tour_id'] ?? 0) !== $tour_id) {
+            return null;
+        }
+
+        $request = new WP_REST_Request('POST', '/sbdp/v1/private-tours/session');
+        $request->set_param('token', (string) ($ticket['token'] ?? ''));
+        $request->set_param('email', '');
+        $response = SBDP_Private_Tours_REST::rest_create_session($request);
+        if (is_wp_error($response) || ! $response instanceof WP_REST_Response) {
+            return null;
+        }
+        $data = $response->get_data();
+        $session = sanitize_text_field((string) ($data['session'] ?? ''));
+        $session_ticket = $session !== '' ? SBDP_Private_Tours_Tickets::get_ticket_by_session($session) : null;
+        if (! is_array($session_ticket) || (int) ($session_ticket['tour_id'] ?? 0) !== $tour_id) {
+            return null;
+        }
+
+        return array(
+            'session' => $session,
+            'api_base' => esc_url_raw(rest_url('sbdp/v1/private-tours')),
+            'progress' => SBDP_Private_Tours_Tickets::decode_progress($session_ticket['progress'] ?? null),
+        );
     }
 
     /**
@@ -461,7 +535,7 @@ class SBDP_Private_Tours
         wp_register_script(
             'sbdp-private-tour-portal',
             SBDP_URL . 'assets/js/private-tour-portal.js',
-            array(),
+            array('sbdp-tour-navigation'),
             $portal_script_version,
             true
         );
@@ -508,7 +582,7 @@ class SBDP_Private_Tours
             $navigation_style_version
         );
 
-        wp_register_script('sbdp-tour-navigation', SBDP_URL . 'assets/js/tour-navigation.js', array(), $navigation_script_version, true);
+        wp_register_script('sbdp-tour-navigation', SBDP_URL . 'assets/js/tour-navigation.js', array('leaflet'), $navigation_script_version, true);
         wp_localize_script('sbdp-tour-navigation', 'sbdpTourNavigation', array(
                 'routeEndpoint'        => esc_url_raw(rest_url('sbdp/v1/private-tours/navigation/route')),
                 'embedDiagnosticsEndpoint' => esc_url_raw(rest_url('sbdp/v1/private-tours/navigation/embed-diagnostics')),
@@ -538,6 +612,8 @@ class SBDP_Private_Tours
      */
     public static function render_portal_shortcode(): string
     {
+        wp_enqueue_style('sbdp-tour-navigation');
+        wp_enqueue_script('sbdp-tour-navigation');
         wp_enqueue_script('sbdp-private-tour-portal');
         wp_enqueue_style('sbdp-private-tour-portal');
         wp_enqueue_style('dashicons');
