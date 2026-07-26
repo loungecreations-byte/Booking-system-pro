@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace BSP\DiscoveryCamera\Rest;
 
 use BSP\DiscoveryCamera\Service\CommunityService;
-use WP_Error;
 use WP_REST_Request;
 
 final class CommunityController
@@ -20,18 +19,13 @@ final class CommunityController
         register_rest_route('bsp/v1', '/photo-attempts/(?P<uuid>[a-f0-9-]{36})/community', array(
             'methods' => 'POST',
             'callback' => array(__CLASS__, 'submit'),
-            'permission_callback' => array(__CLASS__, 'loggedIn'),
+            'permission_callback' => array(Controller::class, 'authorize'),
         ));
         register_rest_route('bsp/v1', '/photo-community/(?P<id>\d+)/reaction', array(
             'methods' => 'POST',
             'callback' => array(__CLASS__, 'react'),
-            'permission_callback' => array(__CLASS__, 'loggedIn'),
+            'permission_callback' => array(Controller::class, 'authorize'),
         ));
-    }
-
-    public static function loggedIn()
-    {
-        return is_user_logged_in() ? true : new WP_Error('rest_forbidden', 'Log in voor deze communityactie.', array('status' => 401));
     }
 
     public static function feed(WP_REST_Request $request)
@@ -48,8 +42,9 @@ final class CommunityController
         $payload = (array) $request->get_json_params();
         return rest_ensure_response((new CommunityService())->submit(
             sanitize_text_field((string) $request['uuid']),
-            get_current_user_id(),
-            (string) ($payload['caption'] ?? '')
+            self::actorUserId($request),
+            (string) ($payload['caption'] ?? ''),
+            self::actorTicketId($request)
         ));
     }
 
@@ -58,9 +53,20 @@ final class CommunityController
         $payload = (array) $request->get_json_params();
         return rest_ensure_response((new CommunityService())->react(
             absint($request['id']),
-            get_current_user_id(),
-            sanitize_key((string) ($payload['type'] ?? 'like'))
+            self::actorUserId($request),
+            sanitize_key((string) ($payload['type'] ?? 'like')),
+            self::actorTicketId($request)
         ));
+    }
+
+    private static function actorUserId(WP_REST_Request $request): int
+    {
+        return is_user_logged_in() ? get_current_user_id() : absint($request->get_param('ddb_actor_user_id'));
+    }
+
+    private static function actorTicketId(WP_REST_Request $request): int
+    {
+        return is_user_logged_in() ? 0 : absint($request->get_param('ddb_actor_ticket_id'));
     }
 
     public static function serveImage(): void

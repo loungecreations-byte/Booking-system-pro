@@ -17,7 +17,7 @@ final class BossProgressService
     }
 
     /** @param array<int,array<string,mixed>> $targets @param array<int,array<string,mixed>> $detected @return array<string,mixed> */
-    public function record(int $userId, int $tourId, int $stepId, array $targets, array $detected): array
+    public function record(int $userId, int $tourId, int $stepId, array $targets, array $detected, int $ticketId = 0): array
     {
         $detectedByKey = array();
         foreach ($detected as $item) {
@@ -36,11 +36,12 @@ final class BossProgressService
             $found = min($required, max(0, (int) ($detectedByKey[$key] ?? 0)));
             $this->db->query($this->db->prepare(
                 "INSERT INTO {$this->db->prefix}bsp_photo_boss_progress "
-                . "(user_id,tour_id,step_id,target_key,target_label,required_count,found_count,updated_at) "
-                . "VALUES (%d,%d,%d,%s,%s,%d,%d,UTC_TIMESTAMP()) "
+                . "(user_id,ticket_id,tour_id,step_id,target_key,target_label,required_count,found_count,updated_at) "
+                . "VALUES (%d,NULLIF(%d,0),%d,%d,%s,%s,%d,%d,UTC_TIMESTAMP()) "
                 . "ON DUPLICATE KEY UPDATE target_label=VALUES(target_label),required_count=VALUES(required_count),"
                 . "found_count=LEAST(required_count,GREATEST(found_count,VALUES(found_count))),updated_at=UTC_TIMESTAMP()",
                 $userId,
+                $ticketId,
                 $tourId,
                 $stepId,
                 $key,
@@ -49,15 +50,18 @@ final class BossProgressService
                 $found
             ));
         }
-        return $this->get($userId, $stepId);
+        return $this->get($userId, $stepId, $ticketId);
     }
 
     /** @return array<string,mixed> */
-    public function get(int $userId, int $stepId): array
+    public function get(int $userId, int $stepId, int $ticketId = 0): array
     {
         $rows = $this->db->get_results($this->db->prepare(
             "SELECT target_key,target_label,required_count,found_count FROM {$this->db->prefix}bsp_photo_boss_progress "
-            . "WHERE user_id=%d AND step_id=%d ORDER BY id ASC",
+            . "WHERE ((%d>0 AND ticket_id=%d) OR (%d=0 AND user_id=%d)) AND step_id=%d ORDER BY id ASC",
+            $ticketId,
+            $ticketId,
+            $ticketId,
             $userId,
             $stepId
         ), ARRAY_A);

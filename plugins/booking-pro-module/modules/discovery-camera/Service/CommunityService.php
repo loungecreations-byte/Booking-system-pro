@@ -19,11 +19,15 @@ final class CommunityService
     }
 
     /** @return array<string,mixed>|WP_Error */
-    public function submit(string $uuid, int $userId, string $caption)
+    public function submit(string $uuid, int $userId, string $caption, int $ticketId = 0)
     {
         $attempt = $this->db->get_row($this->db->prepare(
-            "SELECT id,user_id,tour_id,step_id,status,private_object_key FROM {$this->db->prefix}bsp_photo_attempts WHERE attempt_uuid=%s AND user_id=%d",
+            "SELECT id,user_id,ticket_id,tour_id,step_id,status,private_object_key FROM {$this->db->prefix}bsp_photo_attempts "
+            . "WHERE attempt_uuid=%s AND ((%d>0 AND ticket_id=%d) OR (%d=0 AND user_id=%d))",
             $uuid,
+            $ticketId,
+            $ticketId,
+            $ticketId,
             $userId
         ), ARRAY_A);
         if (! is_array($attempt) || (string) $attempt['status'] !== 'passed') {
@@ -34,11 +38,12 @@ final class CommunityService
             return new WP_Error('community_not_allowed', 'Communitypublicatie staat voor deze opdracht uit.', array('status' => 403));
         }
         $this->db->query($this->db->prepare(
-            "INSERT INTO {$this->db->prefix}bsp_photo_community (attempt_id,user_id,tour_id,step_id,status,caption,created_at) "
-            . "VALUES (%d,%d,%d,%d,'pending',%s,UTC_TIMESTAMP()) "
+            "INSERT INTO {$this->db->prefix}bsp_photo_community (attempt_id,user_id,ticket_id,tour_id,step_id,status,caption,created_at) "
+            . "VALUES (%d,%d,NULLIF(%d,0),%d,%d,'pending',%s,UTC_TIMESTAMP()) "
             . "ON DUPLICATE KEY UPDATE caption=VALUES(caption),status=IF(status='rejected','pending',status)",
             (int) $attempt['id'],
             $userId,
+            $ticketId,
             (int) $attempt['tour_id'],
             (int) $attempt['step_id'],
             mb_substr(sanitize_text_field($caption), 0, 280)
@@ -67,13 +72,14 @@ final class CommunityService
             $row['likes_count'] = (int) $row['likes_count'];
             $row['favorites_count'] = (int) $row['favorites_count'];
             $row['views_count'] = (int) $row['views_count'];
+            $row['display_name'] = trim((string) ($row['display_name'] ?? '')) ?: 'Ontdekker';
             $row['image_url'] = add_query_arg(array('action' => 'ddb_community_photo', 'photo_id' => $row['id']), admin_url('admin-post.php'));
             return $row;
         }, is_array($rows) ? $rows : array());
     }
 
     /** @return array<string,mixed>|WP_Error */
-    public function react(int $postId, int $userId, string $type)
+    public function react(int $postId, int $userId, string $type, int $ticketId = 0)
     {
         if (! in_array($type, array('like', 'favorite'), true)) {
             return new WP_Error('invalid_reaction', 'Ongeldige reactie.', array('status' => 400));
@@ -86,17 +92,25 @@ final class CommunityService
             return new WP_Error('community_photo_not_found', 'Communityfoto niet gevonden.', array('status' => 404));
         }
         $table = $this->db->prefix . 'bsp_photo_community_reactions';
+        $actorKey = $ticketId > 0 ? 'ticket:' . $ticketId : 'user:' . $userId;
         $exists = (int) $this->db->get_var($this->db->prepare(
-            "SELECT COUNT(*) FROM {$table} WHERE post_id=%d AND user_id=%d AND reaction_type=%s",
+            "SELECT COUNT(*) FROM {$table} WHERE post_id=%d AND actor_key=%s AND reaction_type=%s",
             $postId,
-            $userId,
+            $actorKey,
             $type
         ));
         if ($exists) {
-            $this->db->delete($table, array('post_id' => $postId, 'user_id' => $userId, 'reaction_type' => $type), array('%d', '%d', '%s'));
+            $this->db->delete($table, array('post_id' => $postId, 'actor_key' => $actorKey, 'reaction_type' => $type), array('%d', '%s', '%s'));
             $active = false;
         } else {
-            $this->db->insert($table, array('post_id' => $postId, 'user_id' => $userId, 'reaction_type' => $type, 'created_at' => gmdate('Y-m-d H:i:s')), array('%d', '%d', '%s', '%s'));
+            $this->db->insert($table, array(
+                'post_id' => $postId,
+                'user_id' => $userId,
+                'ticket_id' => $ticketId > 0 ? $ticketId : null,
+                'actor_key' => $actorKey,
+                'reaction_type' => $type,
+                'created_at' => gmdate('Y-m-d H:i:s'),
+            ), array('%d', '%d', '%d', '%s', '%s', '%s'));
             $active = true;
         }
         $column = $type === 'like' ? 'likes_count' : 'favorites_count';

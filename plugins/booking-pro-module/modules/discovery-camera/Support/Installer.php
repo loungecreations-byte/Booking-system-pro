@@ -9,7 +9,7 @@ use wpdb;
 final class Installer
 {
     private const OPTION = 'bsp_discovery_camera_schema_version';
-    private const VERSION = '2026-07-26-5';
+    private const VERSION = '2026-07-26-6';
 
     public static function maybeInstall(): void
     {
@@ -33,6 +33,10 @@ final class Installer
         foreach (self::schemas($wpdb->prefix, $wpdb->get_charset_collate()) as $sql) {
             dbDelta($sql);
         }
+        $wpdb->query(
+            "UPDATE {$wpdb->prefix}bsp_photo_community_reactions "
+            . "SET actor_key=CONCAT('user:',user_id) WHERE actor_key='' AND user_id>0"
+        );
 
         add_option(FeatureFlags::OPTION_ENABLED, '0', '', false);
         add_option(FeatureFlags::OPTION_TOUR_ALLOWLIST, array(), '', false);
@@ -70,7 +74,9 @@ PRIMARY KEY  (id),
 UNIQUE KEY attempt_uuid (attempt_uuid),
 UNIQUE KEY idempotency_key (idempotency_key),
 UNIQUE KEY user_step_hash (user_id,step_id,upload_hash),
+UNIQUE KEY ticket_step_hash (ticket_id,step_id,upload_hash),
 KEY user_created (user_id,created_at),
+KEY ticket_created (ticket_id,created_at),
 KEY step_status (step_id,status),
 KEY status_updated (status,updated_at)
 ) {$collation};",
@@ -104,6 +110,7 @@ KEY status_created (status,created_at)
 id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 attempt_id BIGINT UNSIGNED NOT NULL,
 user_id BIGINT UNSIGNED NOT NULL,
+ticket_id BIGINT UNSIGNED NULL,
 tour_id BIGINT UNSIGNED NOT NULL,
 step_id BIGINT UNSIGNED NOT NULL,
 status VARCHAR(20) NOT NULL DEFAULT 'pending',
@@ -123,14 +130,17 @@ KEY tour_status (tour_id,status)
             "CREATE TABLE {$prefix}bsp_photo_community_reactions (
 post_id BIGINT UNSIGNED NOT NULL,
 user_id BIGINT UNSIGNED NOT NULL,
+ticket_id BIGINT UNSIGNED NULL,
+actor_key VARCHAR(80) NOT NULL DEFAULT '',
 reaction_type VARCHAR(16) NOT NULL,
 created_at DATETIME NOT NULL,
-PRIMARY KEY  (post_id,user_id,reaction_type),
+PRIMARY KEY  (post_id,actor_key,reaction_type),
 KEY user_type (user_id,reaction_type)
 ) {$collation};",
             "CREATE TABLE {$prefix}bsp_photo_boss_progress (
 id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 user_id BIGINT UNSIGNED NOT NULL,
+ticket_id BIGINT UNSIGNED NULL,
 tour_id BIGINT UNSIGNED NOT NULL,
 step_id BIGINT UNSIGNED NOT NULL,
 target_key VARCHAR(120) NOT NULL,
@@ -140,6 +150,7 @@ found_count INT UNSIGNED NOT NULL DEFAULT 0,
 updated_at DATETIME NOT NULL,
 PRIMARY KEY  (id),
 UNIQUE KEY user_step_target (user_id,step_id,target_key),
+UNIQUE KEY ticket_step_target (ticket_id,step_id,target_key),
 KEY tour_step (tour_id,step_id)
 ) {$collation};",
         );

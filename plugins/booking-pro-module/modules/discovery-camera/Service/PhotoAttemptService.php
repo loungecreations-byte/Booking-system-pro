@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace BSP\DiscoveryCamera\Service;
 
+use BSP\DiscoveryCamera\Domain\ExperienceState;
 use BSP\DiscoveryCamera\Provider\ProviderFactory;
 use BSP\DiscoveryCamera\Provider\VisionProvider;
 use BSP\DiscoveryCamera\Support\FeatureFlags;
@@ -30,11 +31,12 @@ final class PhotoAttemptService
         int $stepId,
         array $challenge,
         string $idempotencyKey,
-        string $uploadHash = ''
+        string $uploadHash = '',
+        int $ticketId = 0
     ): array {
         $table = $this->db->prefix . 'bsp_photo_attempts';
         $idempotencyKey = hash('sha256', implode('|', array(
-            $userId,
+            $ticketId > 0 ? 'ticket:' . $ticketId : 'user:' . $userId,
             $tourId,
             $stepId,
             sanitize_text_field($idempotencyKey),
@@ -62,6 +64,7 @@ final class PhotoAttemptService
                 'attempt_uuid' => $uuid,
                 'idempotency_key' => $idempotencyKey,
                 'user_id' => $userId,
+                'ticket_id' => $ticketId > 0 ? $ticketId : null,
                 'tour_id' => $tourId,
                 'step_id' => $stepId,
                 'challenge_revision' => (int) ($challenge['revision'] ?? 1),
@@ -72,7 +75,7 @@ final class PhotoAttemptService
                 'created_at' => $now,
                 'updated_at' => $now,
             ),
-            array('%s', '%s', '%d', '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s')
+            array('%s', '%s', '%d', '%d', '%d', '%d', '%d', '%s', '%s', '%s', '%s', '%s', '%s')
         );
 
         if ($inserted !== 1) {
@@ -91,12 +94,16 @@ final class PhotoAttemptService
     }
 
     /** @return array<string,mixed>|null */
-    public function findForUser(string $uuid, int $userId): ?array
+    public function findForUser(string $uuid, int $userId, int $ticketId = 0): ?array
     {
         $row = $this->db->get_row(
             $this->db->prepare(
-                "SELECT attempt_uuid,tour_id,step_id,status,challenge_revision,expires_at,created_at,updated_at FROM {$this->db->prefix}bsp_photo_attempts WHERE attempt_uuid=%s AND user_id=%d",
+                "SELECT attempt_uuid,tour_id,step_id,status,challenge_revision,expires_at,created_at,updated_at FROM {$this->db->prefix}bsp_photo_attempts "
+                . "WHERE attempt_uuid=%s AND ((%d>0 AND ticket_id=%d) OR (%d=0 AND user_id=%d))",
                 $uuid,
+                $ticketId,
+                $ticketId,
+                $ticketId,
                 $userId
             ),
             ARRAY_A
@@ -106,12 +113,16 @@ final class PhotoAttemptService
     }
 
     /** @param array<string,mixed> $file @param array<string,mixed> $challenge @return array<string,mixed>|WP_Error */
-    public function completeUpload(string $uuid, int $userId, array $file, array $challenge)
+    public function completeUpload(string $uuid, int $userId, array $file, array $challenge, int $ticketId = 0)
     {
         $attempt = $this->db->get_row(
             $this->db->prepare(
-                "SELECT id,attempt_uuid,tour_id,step_id,status,challenge_revision FROM {$this->db->prefix}bsp_photo_attempts WHERE attempt_uuid=%s AND user_id=%d",
+                "SELECT id,attempt_uuid,tour_id,step_id,status,challenge_revision FROM {$this->db->prefix}bsp_photo_attempts "
+                . "WHERE attempt_uuid=%s AND ((%d>0 AND ticket_id=%d) OR (%d=0 AND user_id=%d))",
                 $uuid,
+                $ticketId,
+                $ticketId,
+                $ticketId,
                 $userId
             ),
             ARRAY_A
@@ -120,7 +131,7 @@ final class PhotoAttemptService
             return new WP_Error('photo_attempt_not_found', 'Fotopoging niet gevonden.', array('status' => 404));
         }
         if (in_array((string) $attempt['status'], array('review', 'passed', 'failed'), true)) {
-            return $this->resultForUser($uuid, $userId) ?? array();
+            return $this->resultForUser($uuid, $userId, $ticketId) ?? array();
         }
 
         $error = (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE);
@@ -168,10 +179,13 @@ final class PhotoAttemptService
         $hash = hash_file('sha256', $destination);
         $now = gmdate('Y-m-d H:i:s');
         $attemptId = (int) $attempt['id'];
+        if (! ExperienceState::canTransition((string) $attempt['status'], ExperienceState::ANALYZING)) {
+            return new WP_Error('photo_state_conflict', 'Deze fotopoging kan niet opnieuw worden geanalyseerd.', array('status' => 409));
+        }
         $this->db->update(
             $this->db->prefix . 'bsp_photo_attempts',
             array(
-                'status' => 'analyzing',
+                'status' => ExperienceState::ANALYZING,
                 'upload_hash' => $hash,
                 'private_object_key' => $filename,
                 'captured_at' => $now,
@@ -211,13 +225,17 @@ final class PhotoAttemptService
                 (int) $attempt['tour_id'],
                 (int) $attempt['step_id'],
                 (array) $challenge['boss_targets'],
-                (array) ($analysis['detected_targets'] ?? array())
+                (array) ($analysis['detected_targets'] ?? array()),
+                $ticketId
             );
             $passed = ! empty($bossProgress['completed']);
         }
         $status = $mode === 'live'
-            ? ($passed ? 'passed' : ($isBoss ? 'partial' : 'failed'))
-            : 'review';
+            ? ($passed ? ExperienceState::PASSED : ($isBoss ? ExperienceState::PARTIAL : ExperienceState::FAILED))
+            : ExperienceState::REVIEW;
+        if (! ExperienceState::canTransition(ExperienceState::ANALYZING, $status)) {
+            return new WP_Error('photo_state_conflict', 'De beoordelingsstatus is ongeldig.', array('status' => 409));
+        }
         $scores = (array) ($analysis['scores'] ?? array());
 
         $this->db->insert(
@@ -257,7 +275,7 @@ final class PhotoAttemptService
         );
 
         $rewards = array();
-        if ($status === 'passed') {
+        if ($status === 'passed' && $userId > 0) {
             $rewards = (new PhotoChallengeCompletionService())->complete(
                 $userId,
                 (int) $attempt['tour_id'],
@@ -266,6 +284,8 @@ final class PhotoAttemptService
                 $challenge,
                 $analysis
             );
+        } elseif ($status === 'passed' && $ticketId > 0) {
+            $rewards = $this->completeTicket($ticketId, (int) $attempt['step_id'], $challenge);
         }
 
         $feedback = (array) ($analysis['feedback'] ?? array());
@@ -289,15 +309,19 @@ final class PhotoAttemptService
     }
 
     /** @return array<string,mixed>|null */
-    public function resultForUser(string $uuid, int $userId): ?array
+    public function resultForUser(string $uuid, int $userId, int $ticketId = 0): ?array
     {
         $attempt = $this->db->get_row(
             $this->db->prepare(
                 "SELECT a.attempt_uuid,a.tour_id,a.step_id,a.status,a.challenge_revision,a.expires_at,a.created_at,a.updated_at,n.result_json "
                 . "FROM {$this->db->prefix}bsp_photo_attempts a "
                 . "LEFT JOIN {$this->db->prefix}bsp_photo_analyses n ON n.attempt_id=a.id "
-                . "WHERE a.attempt_uuid=%s AND a.user_id=%d ORDER BY n.analysis_version DESC LIMIT 1",
+                . "WHERE a.attempt_uuid=%s AND ((%d>0 AND a.ticket_id=%d) OR (%d=0 AND a.user_id=%d)) "
+                . "ORDER BY n.analysis_version DESC LIMIT 1",
                 $uuid,
+                $ticketId,
+                $ticketId,
+                $ticketId,
                 $userId
             ),
             ARRAY_A
@@ -316,7 +340,7 @@ final class PhotoAttemptService
         }
         $challenge = \BSP\DiscoveryCamera\Content\PhotoChallengeMeta::forStep((int) ($attempt['step_id'] ?? 0));
         if ((string) ($challenge['interaction_type'] ?? '') === 'boss') {
-            $result['boss_progress'] = (new BossProgressService())->get($userId, (int) $attempt['step_id']);
+            $result['boss_progress'] = (new BossProgressService())->get($userId, (int) $attempt['step_id'], $ticketId);
         }
         return $result;
     }
@@ -342,7 +366,7 @@ final class PhotoAttemptService
     {
         $attempt = $this->db->get_row(
             $this->db->prepare(
-                "SELECT id,attempt_uuid,user_id,tour_id,step_id,status FROM {$this->db->prefix}bsp_photo_attempts WHERE attempt_uuid=%s",
+                "SELECT id,attempt_uuid,user_id,ticket_id,tour_id,step_id,status FROM {$this->db->prefix}bsp_photo_attempts WHERE attempt_uuid=%s",
                 $uuid
             ),
             ARRAY_A
@@ -355,6 +379,9 @@ final class PhotoAttemptService
         }
 
         $status = $approved ? 'passed' : 'failed';
+        if (! ExperienceState::canTransition((string) $attempt['status'], $status)) {
+            return new WP_Error('photo_state_conflict', 'Deze beoordeling kan niet meer worden gewijzigd.', array('status' => 409));
+        }
         $now = gmdate('Y-m-d H:i:s');
         $this->db->update(
             $this->db->prefix . 'bsp_photo_attempts',
@@ -394,7 +421,7 @@ final class PhotoAttemptService
         ));
 
         $rewards = array();
-        if ($approved) {
+        if ($approved && (int) $attempt['user_id'] > 0) {
             $challenge = \BSP\DiscoveryCamera\Content\PhotoChallengeMeta::forStep((int) $attempt['step_id']);
             $rewards = (new PhotoChallengeCompletionService())->complete(
                 (int) $attempt['user_id'],
@@ -404,8 +431,43 @@ final class PhotoAttemptService
                 $challenge,
                 $analysis
             );
+        } elseif ($approved && (int) ($attempt['ticket_id'] ?? 0) > 0) {
+            $challenge = \BSP\DiscoveryCamera\Content\PhotoChallengeMeta::forStep((int) $attempt['step_id']);
+            $rewards = $this->completeTicket((int) $attempt['ticket_id'], (int) $attempt['step_id'], $challenge);
         }
         return array('status' => $status, 'rewards' => $rewards, 'replayed' => false);
+    }
+
+    /** @param array<string,mixed> $challenge @return array<string,mixed> */
+    private function completeTicket(int $ticketId, int $stepId, array $challenge): array
+    {
+        $table = $this->db->prefix . 'sbdp_private_tour_tickets';
+        $ticket = $this->db->get_row($this->db->prepare(
+            "SELECT id,progress FROM {$table} WHERE id=%d AND status IN ('active','preview')",
+            $ticketId
+        ), ARRAY_A);
+        if (! is_array($ticket) || ! class_exists('\SBDP_Private_Tours_Tickets')) {
+            return array('ticket_progress' => array(), 'xp' => array('created' => false));
+        }
+
+        $progress = \SBDP_Private_Tours_Tickets::decode_progress($ticket['progress'] ?? null);
+        $progress[$stepId] = array(
+            'completed' => true,
+            'updatedAt' => current_time('mysql', true),
+            'payload' => array(
+                'source' => 'photo_challenge',
+                'pending_xp' => (int) ($challenge['xp_reward'] ?? 0),
+                'pending_badge' => sanitize_key((string) ($challenge['badge_reward'] ?? '')),
+            ),
+        );
+        \SBDP_Private_Tours_Tickets::store_progress($ticketId, $progress);
+
+        return array(
+            'ticket_progress' => $progress[$stepId],
+            'xp' => array('created' => false, 'pending_claim' => true, 'amount' => (int) ($challenge['xp_reward'] ?? 0)),
+            'collectibles' => array(),
+            'next_unlock' => sanitize_key((string) ($challenge['next_unlock'] ?? 'next_chapter')),
+        );
     }
 
     /** @param array<string,mixed> $row @return array<string,mixed> */

@@ -55,16 +55,15 @@ final class Controller
             return new WP_Error('rest_forbidden', 'Je toursessie is ongeldig of verlopen.', array('status' => 401));
         }
 
-        if (! preg_match('/^user:(\d+)$/', (string) ($ticket['issued_to'] ?? ''), $match)) {
-            return new WP_Error('rest_forbidden', 'Deze toursessie kan geen foto-opdrachten opslaan.', array('status' => 403));
-        }
-        $userId = absint($match[1]);
-        if ($userId <= 0 || ! get_user_by('id', $userId)) {
-            return new WP_Error('rest_forbidden', 'De testgebruiker van deze toursessie bestaat niet.', array('status' => 403));
+        $userId = 0;
+        if (preg_match('/^user:(\d+)$/', (string) ($ticket['issued_to'] ?? ''), $match)) {
+            $candidate = absint($match[1]);
+            $userId = $candidate > 0 && get_user_by('id', $candidate) ? $candidate : 0;
         }
 
         $request->set_param('ddb_ticket_record', $ticket);
         $request->set_param('ddb_actor_user_id', $userId);
+        $request->set_param('ddb_actor_ticket_id', absint($ticket['id'] ?? 0));
         return true;
     }
 
@@ -81,7 +80,11 @@ final class Controller
         $challenge['reference_image_url'] = $referenceId > 0 ? (string) wp_get_attachment_image_url($referenceId, 'large') : '';
         $challenge['voice_intro']['url'] = $voiceId > 0 ? (string) wp_get_attachment_url($voiceId) : '';
         $bossProgress = (string) ($challenge['interaction_type'] ?? '') === 'boss'
-            ? (new \BSP\DiscoveryCamera\Service\BossProgressService())->get(self::actorUserId($request), absint($request['step_id']))
+            ? (new \BSP\DiscoveryCamera\Service\BossProgressService())->get(
+                self::actorUserId($request),
+                absint($request['step_id']),
+                self::actorTicketId($request)
+            )
             : array();
         $response = rest_ensure_response(array('challenge' => $challenge, 'boss_progress' => $bossProgress));
         $response->header('Cache-Control', 'private, no-store, max-age=0');
@@ -118,7 +121,8 @@ final class Controller
             $stepId,
             $context['challenge'],
             $key,
-            strtolower(sanitize_text_field((string) ($payload['upload_hash'] ?? '')))
+            strtolower(sanitize_text_field((string) ($payload['upload_hash'] ?? ''))),
+            self::actorTicketId($request)
         );
         if (isset($result['error'])) {
             return new WP_Error((string) $result['error'], 'De fotopoging kon niet worden gestart.', array('status' => 500));
@@ -135,7 +139,8 @@ final class Controller
     {
         $attempt = (new PhotoAttemptService())->resultForUser(
             sanitize_text_field((string) $request['uuid']),
-            self::actorUserId($request)
+            self::actorUserId($request),
+            self::actorTicketId($request)
         );
         if ($attempt === null) {
             return new WP_Error('photo_attempt_not_found', 'Fotopoging niet gevonden.', array('status' => 404));
@@ -152,7 +157,8 @@ final class Controller
         $service = new PhotoAttemptService();
         $attempt = $service->findForUser(
             sanitize_text_field((string) $request['uuid']),
-            self::actorUserId($request)
+            self::actorUserId($request),
+            self::actorTicketId($request)
         );
         if ($attempt === null) {
             return new WP_Error('photo_attempt_not_found', 'Fotopoging niet gevonden.', array('status' => 404));
@@ -167,7 +173,8 @@ final class Controller
             (string) $request['uuid'],
             self::actorUserId($request),
             $file,
-            $context['challenge']
+            $context['challenge'],
+            self::actorTicketId($request)
         );
         if (is_wp_error($result)) {
             return $result;
@@ -232,6 +239,11 @@ final class Controller
         return is_user_logged_in()
             ? get_current_user_id()
             : absint($request->get_param('ddb_actor_user_id'));
+    }
+
+    private static function actorTicketId(WP_REST_Request $request): int
+    {
+        return is_user_logged_in() ? 0 : absint($request->get_param('ddb_actor_ticket_id'));
     }
 
     private static function consumeRateLimit(int $userId)
