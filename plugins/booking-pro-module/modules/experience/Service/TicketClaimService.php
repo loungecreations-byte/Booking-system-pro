@@ -23,9 +23,39 @@ final class TicketClaimService
             $owner=(int)$this->db->get_var($this->db->prepare("SELECT user_id FROM {$this->db->prefix}bsp_experience_access_claims WHERE ticket_id=%d AND revoked_at IS NULL",$ticket['id']));
             if ($owner!==$user->ID) return new WP_Error('already_claimed','Dit ticket is al door een ander account geclaimd.',array('status'=>409));
         }
-        $progress=json_decode((string)($ticket['progress']??''),true); $steps=is_array($progress)?(array)($progress['completed_steps']??$progress['completed']??array()):array();
-        if ($steps!==array() && array_keys($steps)!==range(0,count($steps)-1)) $steps=array_keys(array_filter($steps));
-        (new ExperienceProgressService($this->db))->merge((int)$user->ID,(int)$ticket['tour_id'],$steps);
+        $progress=class_exists('\SBDP_Private_Tours_Tickets')
+            ? \SBDP_Private_Tours_Tickets::decode_progress($ticket['progress']??null)
+            : (json_decode((string)($ticket['progress']??''),true)?:array());
+        $steps=array();
+        foreach ((array)$progress as $stepId=>$entry) {
+            if (!is_array($entry) || empty($entry['completed']) || absint($stepId)<=0) continue;
+            $stepId=absint($stepId);
+            $steps[]=$stepId;
+            $payload=is_array($entry['payload']??null)?$entry['payload']:array();
+            $pendingXp=absint($payload['pending_xp']??0);
+            $pendingBadge=sanitize_key((string)($payload['pending_badge']??''));
+            if ($pendingXp<=0 && $pendingBadge==='') continue;
+            $xp=(new \BSP\Gamification\Service\XpLedgerService())->award(
+                (int)$user->ID,
+                'photo_challenge.passed',
+                'ticket_claim',
+                (string)$ticket['id'].':'.$stepId,
+                array('tour_id'=>(int)$ticket['tour_id'],'step_id'=>$stepId,'badge_reward'=>$pendingBadge),
+                $pendingXp
+            );
+            $eventId=(int)($xp['event_id']??0);
+            if ($eventId>0) {
+                (new \BSP\Gamification\Service\CollectibleUnlockService())->consume(
+                    'photo_challenge.passed',
+                    (int)$user->ID,
+                    (int)$ticket['tour_id'],
+                    (string)$stepId,
+                    $eventId,
+                    array('source'=>'ticket_claim','ticket_id'=>(int)$ticket['id'])
+                );
+            }
+        }
+        (new ExperienceProgressService($this->db))->merge((int)$user->ID,(int)$ticket['tour_id'],array_values(array_unique($steps)));
         return array('success'=>true,'tour_id'=>(int)$ticket['tour_id']);
     }
 }

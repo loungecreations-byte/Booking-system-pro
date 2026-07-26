@@ -616,6 +616,7 @@ function mountPortal(root) {
 	const params = new URLSearchParams(window.location.search);
 	const previewToken = params.get('sbdp_preview_token');
 	const ticketToken = params.get('ticket');
+	const sessionStorageKey = 'sbdp_private_tour_session';
 
 	state.ui.prevButton.addEventListener('click', () => {
 		setActiveIndex(state.activeIndex - 1);
@@ -691,6 +692,16 @@ function mountPortal(root) {
 		renderMessage(messages, 'Ticketlink geladen. Vul indien gevraagd het e-mailadres van je bestelling in en start de tour.', 'success');
 	}
 
+	if (!previewToken && !ticketToken) {
+		const storedSession = String(window.sessionStorage.getItem(sessionStorageKey) || '');
+		if (storedSession) {
+			state.session = storedSession;
+			loadSession(root, stepsContainer, messages, state).catch(() => {
+				window.sessionStorage.removeItem(sessionStorageKey);
+			});
+		}
+	}
+
 	form.addEventListener('submit', async (event) => {
 		event.preventDefault();
 		clearMessage(messages);
@@ -718,6 +729,7 @@ function mountPortal(root) {
 			});
 
 			state.session = session.session;
+			window.sessionStorage.setItem(sessionStorageKey, state.session);
 			await loadSession(root, stepsContainer, messages, state);
 			renderMessage(messages, 'Ticket gevalideerd. Veel plezier met de tour!', 'success');
 			form.reset();
@@ -741,20 +753,22 @@ function mountPortal(root) {
 			localState.activeIndex = determineInitialIndex();
 
 			renderSession(rootEl, payload);
-			updateWizard();
+			renderCanonicalExperience(stepsEl, payload, localState);
 			clearMessage(messageEl);
 
-			if (localState.previewTokenUsed) {
+			if (localState.previewTokenUsed || ticketToken) {
 				const localParams = new URLSearchParams(window.location.search);
-				if (localParams.has('sbdp_preview_token')) {
-					localParams.delete('sbdp_preview_token');
-					const newQuery = localParams.toString();
-					const newUrl = `${window.location.pathname}${newQuery ? `?${newQuery}` : ''}${window.location.hash}`;
-					window.history.replaceState({}, '', newUrl);
-				}
+				localParams.delete('sbdp_preview_token');
+				localParams.delete('ticket');
+				const newQuery = localParams.toString();
+				const newUrl = `${window.location.pathname}${newQuery ? `?${newQuery}` : ''}${window.location.hash}`;
+				window.history.replaceState({}, '', newUrl);
 				localState.previewTokenUsed = false;
 			}
 		} catch (error) {
+			if (localState.session) {
+				window.sessionStorage.removeItem(sessionStorageKey);
+			}
 			renderMessage(messageEl, error.message || 'Kon sessie niet laden.', 'error');
 		}
 	}
@@ -823,6 +837,54 @@ function mountPortal(root) {
 		renderActiveStep();
 		updateControls();
 		updateProgressSummary(root, state);
+	}
+
+	function renderCanonicalExperience(container, payload, localState) {
+		const tour = payload && payload.tour ? payload.tour : {};
+		root.classList.add('sbdp-private-tour-portal--canonical');
+		document.body.classList.add('sbdp-is-tour-mode');
+		const legacyHeader = root.querySelector('.sbdp-portal__header');
+		if (legacyHeader) legacyHeader.hidden = true;
+		const experience = document.createElement('div');
+		experience.className = 'sbdp-tour-navigation sbdp-tour-navigation--experience';
+		experience.setAttribute('data-tour-navigation', '');
+		experience.dataset.tourId = String(tour.id || 0);
+		experience.dataset.tourTitle = String(tour.title || 'Privétour');
+		experience.dataset.tourSummary = String(tour.summary || '');
+		experience.dataset.tourDuration = String(tour.duration || 0);
+		experience.dataset.tourSupportEmail = String(tour.supportMail || '');
+		experience.dataset.tourStepCount = String(localState.steps.length);
+		experience.dataset.tourSteps = JSON.stringify(localState.steps);
+		experience.dataset.ticketSession = String(localState.session);
+		experience.dataset.ticketSessionApiBase = API_BASE;
+		experience.dataset.ticketProgress = JSON.stringify(localState.progress || {});
+		experience.innerHTML = `
+			<div class="tour-shell tour-shell--guided">
+				<section class="tour-summary-panel" data-tour-summary-panel></section>
+				<div class="tour-shell__body">
+					<aside class="tour-route-rail" data-tour-step-list></aside>
+					<section class="tour-stage" aria-live="polite">
+						<section class="tour-stage__panel tour-stage__panel--story" data-tour-story-panel></section>
+						<section class="tour-stage__panel tour-stage__panel--navigation" data-tour-navigation-panel hidden>
+							<div class="tour-navigation-layout">
+								<section class="tour-navigation-map-panel" data-tour-map-panel>
+									<div class="tour-map-meta" data-tour-map-meta></div>
+									<div class="tour-map" data-tour-map></div>
+									<p class="tour-map-status" data-tour-map-status aria-live="polite"></p>
+								</section>
+								<aside class="tour-navigation-sidebar" data-tour-navigation-copy></aside>
+							</div>
+						</section>
+					</section>
+				</div>
+			</div>`;
+		container.replaceChildren(experience);
+
+		if (window.SBDPTourNavigation && typeof window.SBDPTourNavigation.mount === 'function') {
+			window.SBDPTourNavigation.mount();
+		} else {
+			document.dispatchEvent(new CustomEvent('sbdp:tour-navigation:mount'));
+		}
 	}
 
 	function renderActiveStep() {
