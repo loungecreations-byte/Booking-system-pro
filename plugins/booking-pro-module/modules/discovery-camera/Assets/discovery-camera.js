@@ -633,7 +633,12 @@
       if (root) stopCamera(roots.get(root));
     });
   });
-  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", init, { once: true });
-  else init();
+  const observeTourRoots = () => {
+    init();
+    if (!document.body) return;
+    new MutationObserver(init).observe(document.body, { childList: true, subtree: true });
+  };
+  if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", observeTourRoots, { once: true });
+  else observeTourRoots();
   window.setTimeout(flushQueue, 500);
 })();
