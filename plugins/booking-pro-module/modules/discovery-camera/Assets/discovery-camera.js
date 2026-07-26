@@ -219,6 +219,7 @@
         method: "POST",
         body: data,
       });
+      localStorage.setItem(`ddb_photo_attempt_${root.dataset.tourId || "0"}_${step.id}`, String(result.attempt_uuid || attempt.attempt_uuid));
       mount.dataset.attemptStatus = String(result.status || "review");
       renderScores(mount, result);
       feedback(
@@ -335,6 +336,36 @@
       target.append(heading, grid);
     } catch {
       target.hidden = true;
+    }
+  };
+
+  const restoreAttempt = async (root, step, state, mount) => {
+    const uuid = localStorage.getItem(`ddb_photo_attempt_${root.dataset.tourId || "0"}_${step.id}`) || "";
+    if (!uuid) return;
+    try {
+      const result = await request(`/photo-attempts/${encodeURIComponent(uuid)}`);
+      mount.dataset.attemptStatus = String(result.status || "");
+      renderScores(mount, result);
+      if (result.feedback?.message) {
+        feedback(
+          mount,
+          result.feedback.title || "Eerdere poging",
+          result.feedback.message,
+          result.status === "passed" ? "success" : result.status === "failed" ? "error" : "review",
+          result.feedback.coach_tip || ""
+        );
+      }
+      if (result.status === "passed") {
+        lockNavigation(root, false);
+        mount.dataset.completed = "1";
+        if (state.challenge.community_allowed) {
+          const community = mount.querySelector("[data-camera-community-submit]");
+          community.hidden = false;
+          community.dataset.attemptUuid = uuid;
+        }
+      }
+    } catch {
+      localStorage.removeItem(`ddb_photo_attempt_${root.dataset.tourId || "0"}_${step.id}`);
     }
   };
 
@@ -518,6 +549,7 @@
     open.addEventListener("click", () => document.body.classList.add("ddb-camera-is-open"));
     mount.querySelector("[data-camera-community-submit] button").addEventListener("click", () => submitCommunity(mount));
     renderCommunityFeed(root, mount);
+    restoreAttempt(root, step, state, mount);
     return mount;
   };
 
