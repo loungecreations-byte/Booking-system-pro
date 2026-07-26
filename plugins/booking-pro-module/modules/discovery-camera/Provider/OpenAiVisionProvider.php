@@ -66,7 +66,8 @@ final class OpenAiVisionProvider implements VisionProvider
         $status = (int) wp_remote_retrieve_response_code($response);
         $payload = json_decode((string) wp_remote_retrieve_body($response), true);
         if ($status < 200 || $status >= 300 || ! is_array($payload)) {
-            throw new RuntimeException('Vision-provider gaf geen geldige beoordeling.');
+            $code = is_array($payload) ? sanitize_key((string) ($payload['error']['code'] ?? $payload['error']['type'] ?? 'unknown')) : 'invalid_json';
+            throw new RuntimeException(sprintf('Vision-provider fout HTTP %d (%s).', $status, $code));
         }
 
         $text = $this->outputText($payload);
