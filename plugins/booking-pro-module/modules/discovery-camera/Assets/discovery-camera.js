@@ -216,6 +216,12 @@
       item.dataset.completed = target.completed ? "1" : "0";
       list.append(item);
     });
+    const found = progress.targets.reduce((total, target) => total + Math.min(Number(target.found || 0), Number(target.required || 1)), 0);
+    const required = progress.targets.reduce((total, target) => total + Number(target.required || 1), 0);
+    const summary = mount.querySelector("[data-camera-boss-summary]");
+    if (summary) summary.textContent = progress.completed
+      ? `Meesterproef voltooid · ${required}/${required} ontdekkingen`
+      : `${found}/${required} ontdekkingen verzameld`;
     mount.dataset.bossCompleted = progress.completed ? "1" : "0";
     list.hidden = false;
   };
@@ -559,14 +565,22 @@
         <img alt="Historisch referentiebeeld">
         <figcaption>Richt je camera en maak dezelfde compositie.</figcaption>
       </figure>
-      <ul class="ddb-camera__boss-targets" data-camera-boss-targets hidden></ul>
+      <section class="ddb-camera__boss" data-camera-boss hidden>
+        <strong data-camera-boss-summary>Meesterproef starten</strong>
+        <ul class="ddb-camera__boss-targets" data-camera-boss-targets></ul>
+      </section>
       <div class="ddb-camera__viewport">
         <video playsinline muted aria-label="Live camera"></video>
         <img data-camera-preview alt="Voorbeeld van je gemaakte foto" hidden>
+        <img class="ddb-camera__then-now-overlay" data-camera-overlay alt="" hidden>
         <div class="ddb-camera__frame" aria-hidden="true"></div>
         <div class="ddb-camera__progress" data-camera-progress role="progressbar" aria-label="Foto wordt beoordeeld" hidden></div>
         <p class="ddb-camera__analysis-stage" data-camera-analysis-stage aria-live="polite" hidden></p>
       </div>
+      <label class="ddb-camera__overlay-control" data-camera-overlay-control hidden>
+        <span>Historische overlay</span>
+        <input type="range" min="25" max="75" step="25" value="50">
+      </label>
       <section class="ddb-camera__hints" data-camera-hints hidden>
         <button type="button" class="ddb-camera__hint-button">Toon een hint</button>
         <p data-camera-hint-output aria-live="polite"></p>
@@ -606,9 +620,19 @@
       const reference = mount.querySelector("[data-camera-reference]");
       reference.querySelector("img").src = challenge.reference_image_url;
       reference.hidden = false;
+      const overlay = mount.querySelector("[data-camera-overlay]");
+      const overlayControl = mount.querySelector("[data-camera-overlay-control]");
+      overlay.src = challenge.reference_image_url;
+      overlay.hidden = false;
+      overlayControl.hidden = false;
+      mount.dataset.overlayLevel = "50";
+      overlayControl.querySelector("input").addEventListener("input", (event) => {
+        mount.dataset.overlayLevel = String(event.target.value);
+      });
     }
     if (challenge.interaction_type === "boss" && Array.isArray(challenge.boss_targets) && challenge.boss_targets.length) {
       const targets = mount.querySelector("[data-camera-boss-targets]");
+      mount.querySelector("[data-camera-boss]").hidden = false;
       challenge.boss_targets.forEach((target) => {
         const item = document.createElement("li");
         item.textContent = `${target.count || 1}× ${target.label || ""}`;

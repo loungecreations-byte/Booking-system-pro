@@ -103,6 +103,41 @@
   object-fit: cover;
 }
 
+.ddb-camera__then-now-overlay {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.5;
+  mix-blend-mode: screen;
+}
+
+.ddb-camera[data-overlay-level="25"] .ddb-camera__then-now-overlay {
+  opacity: 0.25;
+}
+
+.ddb-camera[data-overlay-level="75"] .ddb-camera__then-now-overlay {
+  opacity: 0.75;
+}
+
+.ddb-camera__overlay-control {
+  display: grid;
+  grid-template-columns: 1fr minmax(9rem, 1fr);
+  gap: var(--ddb-spacing-sm);
+  align-items: center;
+  min-height: 48px;
+  color: var(--ddb-color-text-secondary);
+}
+
+.ddb-camera__overlay-control[hidden] {
+  display: none;
+}
+
+.ddb-camera__overlay-control input {
+  width: 100%;
+  accent-color: var(--ddb-accent-gold);
+}
+
 .ddb-camera__frame {
   position: absolute;
   inset: 12%;
@@ -257,6 +292,19 @@
   background: var(--ddb-color-surface-3);
   border: 1px solid var(--ddb-accent-gold);
   border-radius: var(--ddb-radius-md);
+}
+
+.ddb-camera__boss {
+  display: grid;
+  gap: var(--ddb-spacing-xs);
+}
+
+.ddb-camera__boss[hidden] {
+  display: none;
+}
+
+.ddb-camera__boss > strong {
+  color: var(--ddb-accent-gold);
 }
 
 .ddb-camera__boss-targets li[data-completed="1"] {
@@ -517,7 +565,7 @@
   .ddb-camera[data-fullscreen="1"] .ddb-camera__mission,
   .ddb-camera[data-fullscreen="1"] .ddb-camera__historical,
   .ddb-camera[data-fullscreen="1"] .ddb-camera__reference,
-  .ddb-camera[data-fullscreen="1"] .ddb-camera__boss-targets,
+  .ddb-camera[data-fullscreen="1"] .ddb-camera__boss,
   .ddb-camera[data-fullscreen="1"] .ddb-camera__community {
     display: none;
   }
