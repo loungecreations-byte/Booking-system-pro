@@ -134,6 +134,14 @@ final class CommunityService
                 return false;
             }
         }
+        if (! $approved && $publicKey !== '') {
+            $upload = wp_upload_dir();
+            $publishedPath = trailingslashit((string) $upload['basedir']) . 'ddb-community/' . sanitize_file_name($publicKey);
+            if (is_file($publishedPath)) {
+                wp_delete_file($publishedPath);
+            }
+            $publicKey = '';
+        }
         return false !== $this->db->update(
             $this->db->prefix . 'bsp_photo_community',
             array(
