@@ -175,6 +175,15 @@
   border-radius: var(--ddb-radius-md);
 }
 
+.ddb-camera__boss-targets li[data-completed="1"] {
+  color: var(--ddb-color-success);
+  text-decoration: line-through;
+}
+
+.ddb-camera[data-boss-completed="1"] {
+  animation: ddb-boss-complete 700ms ease-out both;
+}
+
 .ddb-camera__consent {
   display: grid;
   grid-template-columns: auto 1fr;
@@ -293,6 +302,22 @@
 @keyframes ddb-camera-spin {
   to {
     rotate: 1turn;
+  }
+}
+
+@keyframes ddb-boss-complete {
+  0% {
+    box-shadow: 0 0 0 rgb(0 0 0 / 0%);
+  }
+
+  45% {
+    box-shadow: 0 0 48px rgb(212 168 74 / 65%);
+    scale: 1.01;
+  }
+
+  100% {
+    box-shadow: var(--ddb-shadow-md);
+    scale: 1;
   }
 }
 

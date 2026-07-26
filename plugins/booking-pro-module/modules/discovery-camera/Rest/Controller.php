@@ -58,7 +58,10 @@ final class Controller
         $voiceId = absint($challenge['voice_intro']['attachment_id'] ?? 0);
         $challenge['reference_image_url'] = $referenceId > 0 ? (string) wp_get_attachment_image_url($referenceId, 'large') : '';
         $challenge['voice_intro']['url'] = $voiceId > 0 ? (string) wp_get_attachment_url($voiceId) : '';
-        $response = rest_ensure_response(array('challenge' => $challenge));
+        $bossProgress = (string) ($challenge['interaction_type'] ?? '') === 'boss'
+            ? (new \BSP\DiscoveryCamera\Service\BossProgressService())->get(get_current_user_id(), absint($request['step_id']))
+            : array();
+        $response = rest_ensure_response(array('challenge' => $challenge, 'boss_progress' => $bossProgress));
         $response->header('Cache-Control', 'private, no-store, max-age=0');
 
         return $response;

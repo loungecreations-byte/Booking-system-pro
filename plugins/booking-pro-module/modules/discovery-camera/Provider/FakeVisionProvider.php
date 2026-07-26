@@ -18,6 +18,7 @@ final class FakeVisionProvider implements VisionProvider
             'passed' => false,
             'feedback_codes' => array('STAGING_FAKE_PROVIDER'),
             'required_object' => (string) ($challenge['required_object']['type'] ?? ''),
+            'detected_targets' => array(),
         );
     }
 }

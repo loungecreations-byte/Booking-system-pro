@@ -203,7 +203,21 @@ final class PhotoAttemptService
         $mode = FeatureFlags::providerMode();
         $score = isset($analysis['total_score']) ? (int) $analysis['total_score'] : null;
         $passed = ! empty($analysis['passed']) && $score !== null && $score >= (int) ($challenge['pass_score'] ?? 70);
-        $status = $mode === 'live' ? ($passed ? 'passed' : 'failed') : 'review';
+        $bossProgress = array();
+        $isBoss = (string) ($challenge['interaction_type'] ?? '') === 'boss' && (array) ($challenge['boss_targets'] ?? array()) !== array();
+        if ($isBoss && $mode !== 'fake') {
+            $bossProgress = (new BossProgressService())->record(
+                $userId,
+                (int) $attempt['tour_id'],
+                (int) $attempt['step_id'],
+                (array) $challenge['boss_targets'],
+                (array) ($analysis['detected_targets'] ?? array())
+            );
+            $passed = ! empty($bossProgress['completed']);
+        }
+        $status = $mode === 'live'
+            ? ($passed ? 'passed' : ($isBoss ? 'partial' : 'failed'))
+            : 'review';
         $scores = (array) ($analysis['scores'] ?? array());
 
         $this->db->insert(
@@ -267,6 +281,7 @@ final class PhotoAttemptService
             'scores' => $scores,
             'total_score' => $score,
             'extra_details' => array_values((array) ($analysis['extra_details'] ?? array())),
+            'boss_progress' => $bossProgress,
             'rewarded' => ! empty($rewards['xp']['created']) || ! empty($rewards['collectibles']),
             'completed' => $status === 'passed',
             'rewards' => $rewards,
@@ -298,6 +313,10 @@ final class PhotoAttemptService
             $result['feedback'] = (array) ($analysis['feedback'] ?? array());
             $result['extra_details'] = (array) ($analysis['extra_details'] ?? array());
             $result['completed'] = (string) $attempt['status'] === 'passed';
+        }
+        $challenge = \BSP\DiscoveryCamera\Content\PhotoChallengeMeta::forStep((int) ($attempt['step_id'] ?? 0));
+        if ((string) ($challenge['interaction_type'] ?? '') === 'boss') {
+            $result['boss_progress'] = (new BossProgressService())->get($userId, (int) $attempt['step_id']);
         }
         return $result;
     }

@@ -164,6 +164,21 @@
     target.append(score, list);
   };
 
+  const renderBossProgress = (mount, progress) => {
+    if (!Array.isArray(progress?.targets)) return;
+    const list = mount.querySelector("[data-camera-boss-targets]");
+    if (!list) return;
+    list.replaceChildren();
+    progress.targets.forEach((target) => {
+      const item = document.createElement("li");
+      item.textContent = `${target.found || 0}/${target.required || 1} ${target.label || ""}`;
+      item.dataset.completed = target.completed ? "1" : "0";
+      list.append(item);
+    });
+    mount.dataset.bossCompleted = progress.completed ? "1" : "0";
+    list.hidden = false;
+  };
+
   const showPreview = (state, mount, file) => {
     if (!file) return;
     if (state.previewUrl) URL.revokeObjectURL(state.previewUrl);
@@ -222,6 +237,7 @@
       localStorage.setItem(`ddb_photo_attempt_${root.dataset.tourId || "0"}_${step.id}`, String(result.attempt_uuid || attempt.attempt_uuid));
       mount.dataset.attemptStatus = String(result.status || "review");
       renderScores(mount, result);
+      renderBossProgress(mount, result.boss_progress);
       feedback(
         mount,
         result.feedback?.title || "Foto beoordeeld",
@@ -346,6 +362,7 @@
       const result = await request(`/photo-attempts/${encodeURIComponent(uuid)}`);
       mount.dataset.attemptStatus = String(result.status || "");
       renderScores(mount, result);
+      renderBossProgress(mount, result.boss_progress);
       if (result.feedback?.message) {
         feedback(
           mount,
@@ -431,7 +448,7 @@
     showPreview(state, mount, new File([blob], "discovery-photo.jpg", { type: "image/jpeg" }));
   };
 
-  const createChallenge = (root, step, challenge, state) => {
+  const createChallenge = (root, step, challenge, state, bossProgress = {}) => {
     state.challenge = challenge;
     const mount = document.createElement("section");
     mount.className = "ddb-camera";
@@ -492,6 +509,7 @@
         targets.append(item);
       });
       targets.hidden = false;
+      renderBossProgress(mount, bossProgress);
     }
     const hintList = mount.querySelector(".ddb-camera__hints ol");
     (challenge.hints || []).filter(Boolean).forEach((hint) => {
@@ -571,7 +589,7 @@
     if (!flow) return;
     try {
       const result = await request(`/tours/${encodeURIComponent(root.dataset.tourId || "")}/chapters/${encodeURIComponent(step.id)}/photo-challenge`);
-      flow.prepend(createChallenge(root, step, result.challenge || {}, state));
+      flow.prepend(createChallenge(root, step, result.challenge || {}, state, result.boss_progress || {}));
       lockNavigation(root, true, "Voltooi eerst de Photo Challenge.");
     } catch (error) {
       const fallback = document.createElement("div");

@@ -9,7 +9,7 @@ use wpdb;
 final class Installer
 {
     private const OPTION = 'bsp_discovery_camera_schema_version';
-    private const VERSION = '2026-07-26-4';
+    private const VERSION = '2026-07-26-5';
 
     public static function maybeInstall(): void
     {
@@ -127,6 +127,20 @@ reaction_type VARCHAR(16) NOT NULL,
 created_at DATETIME NOT NULL,
 PRIMARY KEY  (post_id,user_id,reaction_type),
 KEY user_type (user_id,reaction_type)
+) {$collation};",
+            "CREATE TABLE {$prefix}bsp_photo_boss_progress (
+id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+user_id BIGINT UNSIGNED NOT NULL,
+tour_id BIGINT UNSIGNED NOT NULL,
+step_id BIGINT UNSIGNED NOT NULL,
+target_key VARCHAR(120) NOT NULL,
+target_label VARCHAR(191) NOT NULL,
+required_count INT UNSIGNED NOT NULL DEFAULT 1,
+found_count INT UNSIGNED NOT NULL DEFAULT 0,
+updated_at DATETIME NOT NULL,
+PRIMARY KEY  (id),
+UNIQUE KEY user_step_target (user_id,step_id,target_key),
+KEY tour_step (tour_id,step_id)
 ) {$collation};",
         );
     }

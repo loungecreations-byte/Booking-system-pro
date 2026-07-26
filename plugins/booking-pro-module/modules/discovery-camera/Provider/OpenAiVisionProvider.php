@@ -102,6 +102,13 @@ final class OpenAiVisionProvider implements VisionProvider
             'object_found' => ! empty($result['object_found']),
             'historically_correct' => ! empty($result['historically_correct']),
             'extra_details' => array_values(array_slice(array_map('sanitize_text_field', (array) ($result['extra_details'] ?? array())), 0, 5)),
+            'detected_targets' => array_values(array_slice(array_map(
+                static fn ($target): array => array(
+                    'label' => sanitize_text_field((string) (is_array($target) ? ($target['label'] ?? '') : '')),
+                    'count' => min(20, max(0, absint(is_array($target) ? ($target['count'] ?? 0) : 0))),
+                ),
+                (array) ($result['detected_targets'] ?? array())
+            ), 0, 20)),
             'feedback' => array(
                 'title' => sanitize_text_field((string) ($result['feedback_title'] ?? 'Foto beoordeeld')),
                 'message' => sanitize_textarea_field((string) ($result['feedback_message'] ?? '')),
@@ -125,6 +132,7 @@ final class OpenAiVisionProvider implements VisionProvider
             . "Missie: %s\nVereist object: %s\nValidaties: %s\nHistorische context: %s\n"
             . "Pass score: %d.\nBoss-doelen: %s\nInteractietype: %s\n%s\n"
             . "Wees eerlijk maar speels. Een foto slaagt alleen als het vereiste object echt zichtbaar is. "
+            . "Vul detected_targets uitsluitend met labels uit Boss-doelen, exact gespeld, en tel alleen wat in deze foto zichtbaar is. "
             . "Geef concrete Nederlandstalige feedback en één korte tip voor een betere herkansing.",
             wp_strip_all_tags((string) ($challenge['mission'] ?? '')),
             wp_strip_all_tags((string) ($challenge['required_object']['label'] ?? $challenge['required_object']['type'] ?? '')),
@@ -148,7 +156,7 @@ final class OpenAiVisionProvider implements VisionProvider
         return array(
             'type' => 'object',
             'additionalProperties' => false,
-            'required' => array('object_found', 'historically_correct', 'passed', 'total_score', 'scores', 'extra_details', 'feedback_title', 'feedback_message', 'coach_tip'),
+            'required' => array('object_found', 'historically_correct', 'passed', 'total_score', 'scores', 'extra_details', 'detected_targets', 'feedback_title', 'feedback_message', 'coach_tip'),
             'properties' => array(
                 'object_found' => array('type' => 'boolean'),
                 'historically_correct' => array('type' => 'boolean'),
@@ -161,6 +169,19 @@ final class OpenAiVisionProvider implements VisionProvider
                     'properties' => $scoreProperties,
                 ),
                 'extra_details' => array('type' => 'array', 'maxItems' => 5, 'items' => array('type' => 'string')),
+                'detected_targets' => array(
+                    'type' => 'array',
+                    'maxItems' => 20,
+                    'items' => array(
+                        'type' => 'object',
+                        'additionalProperties' => false,
+                        'required' => array('label', 'count'),
+                        'properties' => array(
+                            'label' => array('type' => 'string'),
+                            'count' => array('type' => 'integer', 'minimum' => 0, 'maximum' => 20),
+                        ),
+                    ),
+                ),
                 'feedback_title' => array('type' => 'string'),
                 'feedback_message' => array('type' => 'string'),
                 'coach_tip' => array('type' => 'string'),
