@@ -768,7 +768,7 @@
       state.stepId = null;
       return;
     }
-    if (state.stepId === String(step.id) && root.querySelector(`[data-photo-challenge="${step.id}"]`)) return;
+    if (state.stepId === String(step.id)) return;
     state.stepId = String(step.id);
     stopCamera(state);
     root.querySelector("[data-photo-challenge]")?.remove();

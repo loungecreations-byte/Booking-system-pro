@@ -86,6 +86,21 @@ final class Controller
                 self::actorTicketId($request)
             )
             : array();
+        if (
+            (string) ($challenge['interaction_type'] ?? '') === 'boss'
+            && empty($bossProgress['targets'])
+        ) {
+            $bossProgress = array(
+                'targets' => array_map(static fn (array $target): array => array(
+                    'key' => sanitize_title(remove_accents((string) ($target['label'] ?? ''))),
+                    'label' => sanitize_text_field((string) ($target['label'] ?? '')),
+                    'required' => max(1, absint($target['count'] ?? 1)),
+                    'found' => 0,
+                    'completed' => false,
+                ), (array) ($challenge['boss_targets'] ?? array())),
+                'completed' => false,
+            );
+        }
         $response = rest_ensure_response(array('challenge' => $challenge, 'boss_progress' => $bossProgress));
         $response->header('Cache-Control', 'private, no-store, max-age=0');
 
