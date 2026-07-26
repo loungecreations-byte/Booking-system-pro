@@ -639,7 +639,7 @@
     }
 
     const controls = mount.querySelector(".ddb-camera__controls");
-    const open = button("Open camera", "ddb-camera__button--secondary");
+    const open = button("Open camera", "ddb-camera__button--primary");
     open.dataset.cameraOpen = "";
     const shutter = button("Maak foto", "ddb-camera__button--primary");
     shutter.dataset.cameraShutter = "";
@@ -724,7 +724,12 @@
     }
     renderCommunityFeed(root, mount);
     restoreAttempt(root, step, state, mount);
-    updateNetworkStatus();
+    if (navigator.onLine) {
+      setSyncMessage(mount, "Online · voortgang wordt automatisch opgeslagen", "saved");
+    } else {
+      setStatus(mount, "Offline beschikbaar", "offline");
+      setSyncMessage(mount, "Offline · foto’s blijven veilig op dit apparaat", "offline");
+    }
     return mount;
   };
 
