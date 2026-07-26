@@ -232,6 +232,11 @@
         lockNavigation(root, false);
         mount.dataset.completed = "1";
         root.dispatchEvent(new CustomEvent("ddb:photo-challenge-passed", { detail: result }));
+        if (state.challenge.community_allowed) {
+          const community = mount.querySelector("[data-camera-community-submit]");
+          community.hidden = false;
+          community.dataset.attemptUuid = String(result.attempt_uuid || "");
+        }
       } else if (result.status === "review") {
         lockNavigation(root, false);
       } else {
@@ -261,6 +266,75 @@
       return false;
     } finally {
       setBusy(mount, false);
+    }
+  };
+
+  const submitCommunity = async (mount) => {
+    const panel = mount.querySelector("[data-camera-community-submit]");
+    const uuid = panel?.dataset.attemptUuid || "";
+    if (!uuid) return;
+    const caption = panel.querySelector("input")?.value || "";
+    const action = panel.querySelector("button");
+    action.disabled = true;
+    try {
+      await request(`/photo-attempts/${encodeURIComponent(uuid)}/community`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ caption }),
+      });
+      panel.replaceChildren();
+      const message = document.createElement("p");
+      message.textContent = "Ingestuurd voor communitymoderatie.";
+      panel.append(message);
+    } catch (error) {
+      feedback(mount, "Community-inzending mislukt", error.message, "error");
+      action.disabled = false;
+    }
+  };
+
+  const renderCommunityFeed = async (root, mount) => {
+    const target = mount.querySelector("[data-camera-community-feed]");
+    if (!target) return;
+    try {
+      const result = await request(`/photo-community?tour_id=${encodeURIComponent(root.dataset.tourId || "0")}&limit=6`);
+      const photos = Array.isArray(result.photos) ? result.photos : [];
+      if (!photos.length) return;
+      target.hidden = false;
+      const heading = document.createElement("h4");
+      heading.textContent = "Topfoto’s van ontdekkers";
+      const grid = document.createElement("div");
+      grid.className = "ddb-camera__community-grid";
+      photos.forEach((photo) => {
+        const card = document.createElement("article");
+        const image = document.createElement("img");
+        image.src = photo.image_url;
+        image.alt = photo.caption || "Communityfoto";
+        image.loading = "lazy";
+        const copy = document.createElement("p");
+        copy.textContent = photo.caption || "";
+        const actions = document.createElement("div");
+        actions.className = "ddb-camera__community-actions";
+        const like = button(`♥ ${photo.likes_count || 0}`, "ddb-camera__button--ghost");
+        like.addEventListener("click", async () => {
+          await request(`/photo-community/${photo.id}/reaction`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ type: "like" }),
+          });
+          like.textContent = `♥ ${Number(photo.likes_count || 0) + 1}`;
+        });
+        const share = button("Delen", "ddb-camera__button--ghost");
+        share.addEventListener("click", () => {
+          if (navigator.share) navigator.share({ title: "DagjeDenBosch ontdekking", text: photo.caption || "", url: photo.image_url });
+          else navigator.clipboard?.writeText(photo.image_url);
+        });
+        actions.append(like, share);
+        card.append(image, copy, actions);
+        grid.append(card);
+      });
+      target.append(heading, grid);
+    } catch {
+      target.hidden = true;
     }
   };
 
@@ -339,6 +413,11 @@
         <p data-camera-mission></p>
       </header>
       <div class="ddb-camera__historical" data-camera-historical hidden></div>
+      <figure class="ddb-camera__reference" data-camera-reference hidden>
+        <img alt="Historisch referentiebeeld">
+        <figcaption>Richt je camera en maak dezelfde compositie.</figcaption>
+      </figure>
+      <ul class="ddb-camera__boss-targets" data-camera-boss-targets hidden></ul>
       <div class="ddb-camera__viewport">
         <video playsinline muted aria-label="Live camera"></video>
         <img data-camera-preview alt="Voorbeeld van je gemaakte foto" hidden>
@@ -352,7 +431,13 @@
       </label>
       <div class="ddb-camera__controls"></div>
       <div class="ddb-camera__feedback" data-camera-feedback role="status" aria-live="polite"></div>
-      <div class="ddb-camera__result" data-camera-result hidden></div>`;
+      <div class="ddb-camera__result" data-camera-result hidden></div>
+      <div class="ddb-camera__community-submit" data-camera-community-submit hidden>
+        <label>Bijschrift <input type="text" maxlength="280" placeholder="Wat heb je ontdekt?"></label>
+        <button type="button" class="ddb-camera__button ddb-camera__button--secondary">Deel met de community</button>
+        <small>Publicatie gebeurt pas na moderatie.</small>
+      </div>
+      <section class="ddb-camera__community" data-camera-community-feed hidden></section>`;
 
     mount.querySelector(".ddb-camera__eyebrow").textContent =
       `${challenge.interaction_type === "then_now" ? `Toen & Nu ${challenge.historical_year || ""}` : "Photo Challenge"} · ${challenge.difficulty || "medium"}`;
@@ -363,6 +448,20 @@
       historical.textContent = challenge.historical_context.replace(/<[^>]+>/g, " ");
       historical.hidden = false;
     }
+    if (challenge.interaction_type === "then_now" && challenge.reference_image_url) {
+      const reference = mount.querySelector("[data-camera-reference]");
+      reference.querySelector("img").src = challenge.reference_image_url;
+      reference.hidden = false;
+    }
+    if (challenge.interaction_type === "boss" && Array.isArray(challenge.boss_targets) && challenge.boss_targets.length) {
+      const targets = mount.querySelector("[data-camera-boss-targets]");
+      challenge.boss_targets.forEach((target) => {
+        const item = document.createElement("li");
+        item.textContent = `${target.count || 1}× ${target.label || ""}`;
+        targets.append(item);
+      });
+      targets.hidden = false;
+    }
     const hintList = mount.querySelector(".ddb-camera__hints ol");
     (challenge.hints || []).filter(Boolean).forEach((hint) => {
       const item = document.createElement("li");
@@ -370,6 +469,13 @@
       hintList.append(item);
     });
     if (!hintList.children.length) mount.querySelector(".ddb-camera__hints").hidden = true;
+    const personaNames = { bosch: "Jeroen Bosch", frederik_hendrik: "Frederik Hendrik", chef: "Chef", guide: "DagjeDenBosch gids" };
+    if (challenge.persona && challenge.persona !== "guide") {
+      const persona = document.createElement("p");
+      persona.className = "ddb-camera__persona";
+      persona.textContent = `${personaNames[challenge.persona] || "Gids"} begeleidt deze opdracht.`;
+      mount.querySelector(".ddb-camera__head").append(persona);
+    }
 
     const controls = mount.querySelector(".ddb-camera__controls");
     const open = button("Open camera", "ddb-camera__button--secondary");
@@ -410,6 +516,8 @@
       if (file) showPreview(state, mount, file);
     });
     open.addEventListener("click", () => document.body.classList.add("ddb-camera-is-open"));
+    mount.querySelector("[data-camera-community-submit] button").addEventListener("click", () => submitCommunity(mount));
+    renderCommunityFeed(root, mount);
     return mount;
   };
 

@@ -28,15 +28,23 @@ final class OpenAiVisionProvider implements VisionProvider
         }
 
         $prompt = $this->prompt($challenge);
+        $content = array(
+            array('type' => 'input_text', 'text' => $prompt),
+            array('type' => 'input_image', 'image_url' => 'data:' . $mime . ';base64,' . $image, 'detail' => 'high'),
+        );
+        $referenceId = absint($challenge['reference_image_id'] ?? 0);
+        $referencePath = $referenceId > 0 ? get_attached_file($referenceId) : '';
+        if (is_string($referencePath) && is_readable($referencePath)) {
+            $referenceMime = function_exists('mime_content_type') ? (string) mime_content_type($referencePath) : 'image/jpeg';
+            $content[] = array('type' => 'input_text', 'text' => 'Hierna volgt het historische of redactionele referentiebeeld.');
+            $content[] = array('type' => 'input_image', 'image_url' => 'data:' . $referenceMime . ';base64,' . base64_encode((string) file_get_contents($referencePath)), 'detail' => 'high');
+        }
         $body = array(
             'model' => $model,
             'store' => false,
             'input' => array(array(
                 'role' => 'user',
-                'content' => array(
-                    array('type' => 'input_text', 'text' => $prompt),
-                    array('type' => 'input_image', 'image_url' => 'data:' . $mime . ';base64,' . $image, 'detail' => 'high'),
-                ),
+                'content' => $content,
             )),
             'text' => array(
                 'format' => array(
@@ -107,11 +115,15 @@ final class OpenAiVisionProvider implements VisionProvider
         $types = implode(', ', array_map('sanitize_key', (array) ($challenge['validation_type'] ?? array())));
         $context = wp_strip_all_tags((string) ($challenge['historical_context'] ?? ''));
         $custom = wp_strip_all_tags((string) ($challenge['ai_prompt'] ?? ''));
+        $boss = implode(', ', array_map(
+            static fn (array $target): string => (int) ($target['count'] ?? 1) . '× ' . sanitize_text_field((string) ($target['label'] ?? '')),
+            (array) ($challenge['boss_targets'] ?? array())
+        ));
 
         return sprintf(
             "Beoordeel deze foto voor een mobiele stadstour in 's-Hertogenbosch.\n"
             . "Missie: %s\nVereist object: %s\nValidaties: %s\nHistorische context: %s\n"
-            . "Pass score: %d.\n%s\n"
+            . "Pass score: %d.\nBoss-doelen: %s\nInteractietype: %s\n%s\n"
             . "Wees eerlijk maar speels. Een foto slaagt alleen als het vereiste object echt zichtbaar is. "
             . "Geef concrete Nederlandstalige feedback en één korte tip voor een betere herkansing.",
             wp_strip_all_tags((string) ($challenge['mission'] ?? '')),
@@ -119,6 +131,8 @@ final class OpenAiVisionProvider implements VisionProvider
             $types,
             $context,
             (int) ($challenge['pass_score'] ?? 70),
+            $boss,
+            sanitize_key((string) ($challenge['interaction_type'] ?? 'photo')),
             $custom
         );
     }

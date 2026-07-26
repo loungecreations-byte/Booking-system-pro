@@ -28,6 +28,12 @@
   text-transform: uppercase;
 }
 
+.ddb-camera__persona {
+  color: var(--ddb-accent-gold);
+  font-size: var(--ddb-text-sm);
+  font-style: italic;
+}
+
 .ddb-camera__viewport {
   position: relative;
   overflow: hidden;
@@ -138,6 +144,37 @@
   border-radius: var(--ddb-radius-sm);
 }
 
+.ddb-camera__reference {
+  display: grid;
+  gap: var(--ddb-spacing-xs);
+  margin: 0;
+}
+
+.ddb-camera__reference[hidden],
+.ddb-camera__boss-targets[hidden] {
+  display: none;
+}
+
+.ddb-camera__reference img {
+  width: 100%;
+  max-height: 48vh;
+  object-fit: cover;
+  border-radius: var(--ddb-radius-md);
+}
+
+.ddb-camera__reference figcaption {
+  color: var(--ddb-color-text-secondary);
+}
+
+.ddb-camera__boss-targets {
+  display: grid;
+  gap: var(--ddb-spacing-xs);
+  padding: var(--ddb-spacing-sm) var(--ddb-spacing-sm) var(--ddb-spacing-sm) calc(var(--ddb-spacing-md) + var(--ddb-spacing-sm));
+  background: var(--ddb-color-surface-3);
+  border: 1px solid var(--ddb-accent-gold);
+  border-radius: var(--ddb-radius-md);
+}
+
 .ddb-camera__consent {
   display: grid;
   grid-template-columns: auto 1fr;
@@ -199,6 +236,58 @@
 
 .ddb-camera__feedback small {
   color: var(--ddb-accent-gold);
+}
+
+.ddb-camera__community-submit {
+  display: grid;
+  gap: var(--ddb-spacing-xs);
+  padding: var(--ddb-spacing-sm);
+  background: var(--ddb-color-surface-3);
+  border-radius: var(--ddb-radius-md);
+}
+
+.ddb-camera__community-submit[hidden],
+.ddb-camera__community[hidden] {
+  display: none;
+}
+
+.ddb-camera__community-submit label {
+  display: grid;
+  gap: var(--ddb-spacing-2xs);
+}
+
+.ddb-camera__community-submit input {
+  min-height: 48px;
+  padding-inline: var(--ddb-spacing-sm);
+}
+
+.ddb-camera__community-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--ddb-spacing-sm);
+}
+
+.ddb-camera__community-grid article {
+  overflow: hidden;
+  background: var(--ddb-color-surface-3);
+  border-radius: var(--ddb-radius-md);
+}
+
+.ddb-camera__community-grid img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+.ddb-camera__community-grid p {
+  padding-inline: var(--ddb-spacing-sm);
+}
+
+.ddb-camera__community-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--ddb-spacing-xs);
+  padding: var(--ddb-spacing-xs);
 }
 
 @keyframes ddb-camera-spin {

@@ -60,6 +60,28 @@
   gap: 6px;
 }
 
+.ddb-community-moderation {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.ddb-community-moderation__card {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  background: #fff;
+  border: 1px solid #dcdcde;
+  border-radius: 8px;
+}
+
+.ddb-community-moderation__card img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: 6px;
+}
+
 .ddb-chapter-chooser {
   position: fixed;
   z-index: 100100;

@@ -6,6 +6,7 @@ namespace BSP\DiscoveryCamera\Admin;
 
 use BSP\DiscoveryCamera\Support\FeatureFlags;
 use BSP\DiscoveryCamera\Service\PhotoAttemptService;
+use BSP\DiscoveryCamera\Service\CommunityService;
 
 final class SettingsPage
 {
@@ -15,6 +16,7 @@ final class SettingsPage
         add_action('admin_init', array(__CLASS__, 'settings'));
         add_action('admin_post_ddb_photo_manual_review', array(__CLASS__, 'manualReview'));
         add_action('admin_post_ddb_photo_private_image', array(__CLASS__, 'privateImage'));
+        add_action('admin_post_ddb_photo_community_moderate', array(__CLASS__, 'moderateCommunity'));
     }
 
     public static function menu(): void
@@ -95,6 +97,7 @@ final class SettingsPage
                 <?php submit_button(); ?>
             </form>
             <?php self::renderReviews(); ?>
+            <?php self::renderCommunity(); ?>
         </div>
         <?php
     }
@@ -142,6 +145,22 @@ final class SettingsPage
         exit;
     }
 
+    public static function moderateCommunity(): void
+    {
+        if (! current_user_can('manage_options')) {
+            wp_die(esc_html__('Geen toegang.', 'sbdp'), '', array('response' => 403));
+        }
+        $postId = absint($_POST['community_id'] ?? 0);
+        $decision = sanitize_key((string) ($_POST['decision'] ?? ''));
+        check_admin_referer('ddb_community_moderate_' . $postId);
+        if ($postId <= 0 || ! in_array($decision, array('approve', 'reject'), true)) {
+            wp_die(esc_html__('Ongeldige moderatieactie.', 'sbdp'), '', array('response' => 400));
+        }
+        (new CommunityService())->moderate($postId, $decision === 'approve', get_current_user_id());
+        wp_safe_redirect(add_query_arg(array('post_type' => 'sbdp_private_tour', 'page' => 'ddb-discovery-camera', 'moderated' => 1), admin_url('edit.php')));
+        exit;
+    }
+
     private static function renderReviews(): void
     {
         $attempts = (new PhotoAttemptService())->recentForAdmin();
@@ -179,6 +198,42 @@ final class SettingsPage
             <?php endforeach; ?>
             </tbody>
         </table>
+        <?php
+    }
+
+    private static function renderCommunity(): void
+    {
+        global $wpdb;
+        $rows = $wpdb->get_results(
+            "SELECT c.id,c.status,c.caption,c.created_at,a.attempt_uuid,a.tour_id,a.step_id,a.private_object_key "
+            . "FROM {$wpdb->prefix}bsp_photo_community c JOIN {$wpdb->prefix}bsp_photo_attempts a ON a.id=c.attempt_id "
+            . "WHERE c.status='pending' ORDER BY c.id ASC LIMIT 50",
+            ARRAY_A
+        );
+        ?>
+        <hr>
+        <h2><?php esc_html_e('Communitymoderatie', 'sbdp'); ?></h2>
+        <?php if (! $rows) : ?><p><?php esc_html_e('Geen foto’s wachten op moderatie.', 'sbdp'); ?></p><?php return; endif; ?>
+        <div class="ddb-community-moderation">
+            <?php foreach ($rows as $row) :
+                $id = (int) $row['id'];
+                $uuid = (string) $row['attempt_uuid'];
+                $imageUrl = wp_nonce_url(add_query_arg(array('action' => 'ddb_photo_private_image', 'attempt_uuid' => $uuid), admin_url('admin-post.php')), 'ddb_photo_image_' . $uuid);
+                ?>
+                <article class="ddb-community-moderation__card">
+                    <img src="<?php echo esc_url($imageUrl); ?>" alt="">
+                    <strong><?php echo esc_html(get_the_title((int) $row['tour_id']) . ' / ' . get_the_title((int) $row['step_id'])); ?></strong>
+                    <p><?php echo esc_html((string) $row['caption']); ?></p>
+                    <form method="post" action="<?php echo esc_url(admin_url('admin-post.php')); ?>" class="ddb-photo-review-actions">
+                        <input type="hidden" name="action" value="ddb_photo_community_moderate">
+                        <input type="hidden" name="community_id" value="<?php echo esc_attr((string) $id); ?>">
+                        <?php wp_nonce_field('ddb_community_moderate_' . $id); ?>
+                        <button class="button button-primary" name="decision" value="approve"><?php esc_html_e('Publiceren', 'sbdp'); ?></button>
+                        <button class="button" name="decision" value="reject"><?php esc_html_e('Afwijzen', 'sbdp'); ?></button>
+                    </form>
+                </article>
+            <?php endforeach; ?>
+        </div>
         <?php
     }
 }

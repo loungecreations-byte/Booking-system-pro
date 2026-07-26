@@ -9,7 +9,7 @@ use wpdb;
 final class Installer
 {
     private const OPTION = 'bsp_discovery_camera_schema_version';
-    private const VERSION = '2026-07-25-3';
+    private const VERSION = '2026-07-26-4';
 
     public static function maybeInstall(): void
     {
@@ -99,6 +99,34 @@ completed_at DATETIME NULL,
 PRIMARY KEY  (id),
 UNIQUE KEY attempt_analysis (attempt_id,analysis_version),
 KEY status_created (status,created_at)
+) {$collation};",
+            "CREATE TABLE {$prefix}bsp_photo_community (
+id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+attempt_id BIGINT UNSIGNED NOT NULL,
+user_id BIGINT UNSIGNED NOT NULL,
+tour_id BIGINT UNSIGNED NOT NULL,
+step_id BIGINT UNSIGNED NOT NULL,
+status VARCHAR(20) NOT NULL DEFAULT 'pending',
+caption VARCHAR(280) NOT NULL DEFAULT '',
+public_object_key VARCHAR(255) NULL,
+likes_count INT UNSIGNED NOT NULL DEFAULT 0,
+favorites_count INT UNSIGNED NOT NULL DEFAULT 0,
+views_count INT UNSIGNED NOT NULL DEFAULT 0,
+created_at DATETIME NOT NULL,
+moderated_at DATETIME NULL,
+moderated_by BIGINT UNSIGNED NULL,
+PRIMARY KEY  (id),
+UNIQUE KEY attempt_id (attempt_id),
+KEY status_rank (status,likes_count,created_at),
+KEY tour_status (tour_id,status)
+) {$collation};",
+            "CREATE TABLE {$prefix}bsp_photo_community_reactions (
+post_id BIGINT UNSIGNED NOT NULL,
+user_id BIGINT UNSIGNED NOT NULL,
+reaction_type VARCHAR(16) NOT NULL,
+created_at DATETIME NOT NULL,
+PRIMARY KEY  (post_id,user_id,reaction_type),
+KEY user_type (user_id,reaction_type)
 ) {$collation};",
         );
     }
