@@ -78,11 +78,18 @@
     return Number.isFinite(saved) && saved >= 0 && saved < steps.length ? saved : 0;
   };
 
+  const ticketSession = () => String(document.querySelector("[data-tour-navigation][data-ticket-session]")?.dataset.ticketSession || "");
+
   const request = async (path, options = {}) => {
+    const session = ticketSession();
     const response = await fetch(`${String(config.restBase || "").replace(/\/$/, "")}${path}`, {
       credentials: "same-origin",
       ...options,
-      headers: { "X-WP-Nonce": String(config.nonce || ""), ...(options.headers || {}) },
+      headers: {
+        "X-WP-Nonce": String(config.nonce || ""),
+        ...(session ? { "X-DDB-Tour-Session": session } : {}),
+        ...(options.headers || {}),
+      },
     });
     const payload = await response.json().catch(() => ({}));
     if (!response.ok) {
