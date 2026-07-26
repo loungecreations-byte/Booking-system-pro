@@ -30,10 +30,31 @@ final class Installer
             require_once $upgrade;
         }
 
+        $reactionTable = $wpdb->prefix . 'bsp_photo_community_reactions';
+        if ($wpdb->get_var($wpdb->prepare('SHOW TABLES LIKE %s', $reactionTable)) === $reactionTable) {
+            $actorColumn = $wpdb->get_var($wpdb->prepare(
+                "SHOW COLUMNS FROM {$reactionTable} LIKE %s",
+                'actor_key'
+            ));
+            if ((string) $actorColumn !== 'actor_key') {
+                $wpdb->query("ALTER TABLE {$reactionTable} ADD actor_key VARCHAR(80) NOT NULL DEFAULT ''");
+            }
+            $wpdb->query(
+                "UPDATE {$reactionTable} "
+                . "SET actor_key=CONCAT('user:',user_id) WHERE actor_key='' AND user_id>0"
+            );
+            $primaryColumns = $wpdb->get_col("SHOW INDEX FROM {$reactionTable} WHERE Key_name='PRIMARY'", 4);
+            if (is_array($primaryColumns) && $primaryColumns !== array('post_id', 'actor_key', 'reaction_type')) {
+                $wpdb->query(
+                    "ALTER TABLE {$reactionTable} DROP PRIMARY KEY, "
+                    . "ADD PRIMARY KEY (post_id,actor_key,reaction_type)"
+                );
+            }
+        }
+
         foreach (self::schemas($wpdb->prefix, $wpdb->get_charset_collate()) as $sql) {
             dbDelta($sql);
         }
-        $reactionTable = $wpdb->prefix . 'bsp_photo_community_reactions';
         $wpdb->query(
             "UPDATE {$reactionTable} "
             . "SET actor_key=CONCAT('user:',user_id) WHERE actor_key='' AND user_id>0"
