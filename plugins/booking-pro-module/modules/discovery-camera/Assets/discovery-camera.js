@@ -72,8 +72,9 @@
   };
 
   const currentIndex = (root, steps) => {
-    const hash = Number.parseInt(location.hash.replace("#step-", ""), 10);
-    if (Number.isFinite(hash) && hash >= 0 && hash < steps.length) return hash;
+    const hashStep = Number.parseInt(location.hash.replace("#step-", ""), 10);
+    const hashIndex = hashStep - 1;
+    if (Number.isFinite(hashIndex) && hashIndex >= 0 && hashIndex < steps.length) return hashIndex;
     const saved = Number.parseInt(localStorage.getItem(`sbdp_tour_step_${root.dataset.tourId || "0"}`) || "0", 10);
     return Number.isFinite(saved) && saved >= 0 && saved < steps.length ? saved : 0;
   };
