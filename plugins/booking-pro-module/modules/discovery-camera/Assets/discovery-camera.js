@@ -138,10 +138,44 @@
     }
   };
 
+  const setStatus = (mount, label, status = "available") => {
+    mount.dataset.experienceStatus = status;
+    const target = mount.querySelector("[data-camera-status]");
+    if (target) target.textContent = label;
+  };
+
+  const setSyncMessage = (mount, message, status = "saved") => {
+    const target = mount.querySelector("[data-camera-sync]");
+    if (!target) return;
+    target.dataset.status = status;
+    target.textContent = message;
+  };
+
+  const clearAnalysisStages = (mount) => {
+    if (mount.analysisTimer) window.clearInterval(mount.analysisTimer);
+    mount.analysisTimer = null;
+  };
+
   const setBusy = (mount, busy) => {
+    clearAnalysisStages(mount);
     mount.dataset.busy = busy ? "1" : "0";
     mount.querySelectorAll("button, input").forEach((control) => { control.disabled = busy; });
     mount.querySelector("[data-camera-progress]")?.toggleAttribute("hidden", !busy);
+    const stage = mount.querySelector("[data-camera-analysis-stage]");
+    if (!busy) {
+      if (stage) stage.hidden = true;
+      return;
+    }
+    const stages = ["Foto veilig verwerken…", "Object zoeken…", "Historische details controleren…", "Compositie beoordelen…", "Ontdekkingen verzamelen…"];
+    let index = 0;
+    if (stage) {
+      stage.hidden = false;
+      stage.textContent = stages[index];
+    }
+    mount.analysisTimer = window.setInterval(() => {
+      index = Math.min(index + 1, stages.length - 1);
+      if (stage) stage.textContent = stages[index];
+    }, 1400);
   };
 
   const renderScores = (mount, result) => {
@@ -198,6 +232,9 @@
     mount.querySelector("[data-camera-confirm]").hidden = false;
     mount.querySelector("[data-camera-retake]").hidden = false;
     mount.querySelector("[data-camera-shutter]").hidden = true;
+    mount.querySelector("[data-camera-open]").hidden = true;
+    mount.querySelector("[data-camera-file]").hidden = true;
+    setStatus(mount, "Foto controleren", "preview");
     feedback(mount, "Foto klaar", "Controleer de foto voordat je hem laat beoordelen.", "info");
   };
 
@@ -211,7 +248,10 @@
     mount.querySelector("video").hidden = false;
     mount.querySelector("[data-camera-confirm]").hidden = true;
     mount.querySelector("[data-camera-retake]").hidden = true;
-    mount.querySelector("[data-camera-shutter]").hidden = false;
+    mount.querySelector("[data-camera-shutter]").hidden = true;
+    mount.querySelector("[data-camera-open]").hidden = false;
+    mount.querySelector("[data-camera-file]").hidden = false;
+    setStatus(mount, "Beschikbaar", "available");
     startCamera(state, mount);
   };
 
@@ -225,6 +265,8 @@
       return;
     }
     setBusy(mount, true);
+    setStatus(mount, "Foto wordt beoordeeld", "analysing");
+    setSyncMessage(mount, "Foto uploaden…", "saving");
     feedback(mount, "AI kijkt mee…", "Je foto wordt beveiligd, gecomprimeerd en beoordeeld.", "loading");
     try {
       const attempt = await request("/photo-attempts", {
@@ -243,6 +285,7 @@
       });
       localStorage.setItem(`ddb_photo_attempt_${root.dataset.tourId || "0"}_${step.id}`, String(result.attempt_uuid || attempt.attempt_uuid));
       mount.dataset.attemptStatus = String(result.status || "review");
+      setSyncMessage(mount, "Foto en voortgang opgeslagen", "saved");
       renderScores(mount, result);
       renderBossProgress(mount, result.boss_progress);
       feedback(
@@ -255,7 +298,11 @@
       if (result.status === "passed") {
         lockNavigation(root, false);
         mount.dataset.completed = "1";
+        setStatus(mount, "Voltooid", "completed");
         root.dispatchEvent(new CustomEvent("ddb:photo-challenge-passed", { detail: result }));
+        const complete = root.querySelector("[data-tour-complete]");
+        if (complete && !complete.disabled) complete.click();
+        mount.querySelector("[data-camera-next]").hidden = false;
         if (state.challenge.community_allowed) {
           const community = mount.querySelector("[data-camera-community-submit]");
           community.hidden = false;
@@ -263,8 +310,10 @@
         }
       } else if (result.status === "review") {
         lockNavigation(root, false);
+        setStatus(mount, "Controle loopt", "review");
       } else {
         lockNavigation(root, true, "Maak een nieuwe foto om dit hoofdstuk te voltooien.");
+        setStatus(mount, "Opnieuw proberen", "retry");
       }
       mount.querySelector("[data-camera-retry]").hidden = result.status === "passed";
       if (queuedId) await removeQueuedUpload(queuedId);
@@ -273,6 +322,8 @@
       if (!queuedId && (!navigator.onLine || error instanceof TypeError)) {
         try {
           await queueUpload(root, step, file);
+          setStatus(mount, "Offline opgeslagen", "offline");
+          setSyncMessage(mount, "Wacht op internetverbinding", "offline");
           feedback(mount, "Foto veilig in wachtrij", "Zodra je weer online bent, hervatten we de upload automatisch.", "review");
           lockNavigation(root, false);
           return false;
@@ -286,6 +337,8 @@
         error.message || "Probeer het opnieuw zodra je verbinding hebt.",
         "error"
       );
+      setStatus(mount, "Upload opnieuw proberen", "retry");
+      setSyncMessage(mount, "Nog niet opgeslagen", "error");
       mount.querySelector("[data-camera-retry]").hidden = false;
       return false;
     } finally {
@@ -382,6 +435,9 @@
       if (result.status === "passed") {
         lockNavigation(root, false);
         mount.dataset.completed = "1";
+        setStatus(mount, "Voltooid", "completed");
+        setSyncMessage(mount, "Voortgang hersteld", "saved");
+        mount.querySelector("[data-camera-next]").hidden = false;
         if (state.challenge.community_allowed) {
           const community = mount.querySelector("[data-camera-community-submit]");
           community.hidden = false;
@@ -408,14 +464,28 @@
       const step = state?.steps.find((item) => Number(item.id) === Number(record.stepId));
       const mount = root?.querySelector(`[data-photo-challenge="${record.stepId}"]`);
       if (!root || !state || !step || !mount) continue;
+      setSyncMessage(mount, "Offline foto hervatten…", "saving");
       await upload(root, state, mount, step, record.file, record.id);
     }
+  };
+
+  const updateNetworkStatus = () => {
+    document.querySelectorAll("[data-photo-challenge]").forEach((mount) => {
+      if (navigator.onLine) {
+        if (mount.dataset.experienceStatus === "offline") setStatus(mount, "Upload hervatten", "available");
+        setSyncMessage(mount, "Online · voortgang wordt automatisch opgeslagen", "saved");
+      } else {
+        setStatus(mount, "Offline beschikbaar", "offline");
+        setSyncMessage(mount, "Offline · foto’s blijven veilig op dit apparaat", "offline");
+      }
+    });
   };
 
   const startCamera = async (state, mount) => {
     const video = mount.querySelector("video");
     if (!video || !navigator.mediaDevices?.getUserMedia) {
       feedback(mount, "Camera niet beschikbaar", "Gebruik ‘Kies foto’ als toegankelijke fallback.", "error");
+      mount.querySelector("[data-camera-permission-help]").hidden = false;
       return;
     }
     stopCamera(state);
@@ -428,9 +498,18 @@
       await video.play();
       mount.dataset.cameraActive = "1";
       mount.dataset.fullscreen = "1";
+      mount.querySelector("[data-camera-open]").hidden = true;
+      mount.querySelector("[data-camera-shutter]").hidden = false;
+      mount.querySelector("[data-camera-close]").hidden = false;
+      setStatus(mount, "Camera actief", "camera");
       feedback(mount, "Camera gereed", state.challenge.voice_intro?.transcript || "Breng het gevraagde object rustig in beeld.", "success");
-    } catch {
+    } catch (error) {
       feedback(mount, "Geen cameratoegang", "Geef cameratoestemming of kies een bestaande foto.", "error");
+      setStatus(mount, "Cameratoegang nodig", "permission");
+      mount.querySelector("[data-camera-permission-help]").hidden = false;
+      if (error?.name === "NotAllowedError") {
+        setSyncMessage(mount, "Camera is geblokkeerd in je browser", "error");
+      }
     }
   };
 
@@ -463,10 +542,18 @@
     mount.setAttribute("aria-labelledby", `ddb-camera-title-${step.id}`);
     mount.innerHTML = `
       <header class="ddb-camera__head">
-        <span class="ddb-camera__eyebrow"></span>
+        <div class="ddb-camera__meta">
+          <span class="ddb-camera__eyebrow"></span>
+          <span class="ddb-camera__status" data-camera-status>Beschikbaar</span>
+        </div>
         <h3 id="ddb-camera-title-${step.id}"></h3>
-        <p data-camera-mission></p>
+        <p class="ddb-camera__subtitle" data-camera-subtitle></p>
       </header>
+      <section class="ddb-camera__mission" aria-label="Jouw opdracht">
+        <strong>Jouw opdracht</strong>
+        <p data-camera-mission></p>
+        <div class="ddb-camera__reward"><span data-camera-difficulty></span><span data-camera-xp></span></div>
+      </section>
       <div class="ddb-camera__historical" data-camera-historical hidden></div>
       <figure class="ddb-camera__reference" data-camera-reference hidden>
         <img alt="Historisch referentiebeeld">
@@ -478,13 +565,22 @@
         <img data-camera-preview alt="Voorbeeld van je gemaakte foto" hidden>
         <div class="ddb-camera__frame" aria-hidden="true"></div>
         <div class="ddb-camera__progress" data-camera-progress role="progressbar" aria-label="Foto wordt beoordeeld" hidden></div>
+        <p class="ddb-camera__analysis-stage" data-camera-analysis-stage aria-live="polite" hidden></p>
       </div>
-      <details class="ddb-camera__hints"><summary>Hint gebruiken</summary><ol></ol></details>
+      <section class="ddb-camera__hints" data-camera-hints hidden>
+        <button type="button" class="ddb-camera__hint-button">Toon een hint</button>
+        <p data-camera-hint-output aria-live="polite"></p>
+      </section>
+      <aside class="ddb-camera__permission-help" data-camera-permission-help hidden>
+        <strong>Camera geblokkeerd?</strong>
+        <p>Open de website-instellingen van je browser, sta Camera toe en probeer opnieuw. Je kunt ook veilig een bestaande foto kiezen.</p>
+      </aside>
       <label class="ddb-camera__consent">
         <input type="checkbox" data-camera-consent>
         <span>Ik geef toestemming om deze foto privé te analyseren. De foto wordt automatisch verwijderd na de bewaartermijn.</span>
       </label>
       <div class="ddb-camera__controls"></div>
+      <p class="ddb-camera__sync" data-camera-sync data-status="saved" role="status">Klaar om te starten</p>
       <div class="ddb-camera__feedback" data-camera-feedback role="status" aria-live="polite"></div>
       <div class="ddb-camera__result" data-camera-result hidden></div>
       <div class="ddb-camera__community-submit" data-camera-community-submit hidden>
@@ -497,7 +593,10 @@
     mount.querySelector(".ddb-camera__eyebrow").textContent =
       `${challenge.interaction_type === "then_now" ? `Toen & Nu ${challenge.historical_year || ""}` : "Photo Challenge"} · ${challenge.difficulty || "medium"}`;
     mount.querySelector("h3").textContent = challenge.title || step.title || "Ontdek met je camera";
+    mount.querySelector("[data-camera-subtitle]").textContent = challenge.subtitle || "Kijk goed, maak je foto en ontgrendel het verhaal.";
     mount.querySelector("[data-camera-mission]").textContent = challenge.mission || "";
+    mount.querySelector("[data-camera-difficulty]").textContent = `Niveau: ${challenge.difficulty || "medium"}`;
+    mount.querySelector("[data-camera-xp]").textContent = `+${Number(challenge.xp_reward || 0)} XP`;
     const historical = mount.querySelector("[data-camera-historical]");
     if (challenge.historical_context) {
       historical.textContent = challenge.historical_context.replace(/<[^>]+>/g, " ");
@@ -518,13 +617,19 @@
       targets.hidden = false;
       renderBossProgress(mount, bossProgress);
     }
-    const hintList = mount.querySelector(".ddb-camera__hints ol");
-    (challenge.hints || []).filter(Boolean).forEach((hint) => {
-      const item = document.createElement("li");
-      item.textContent = hint;
-      hintList.append(item);
-    });
-    if (!hintList.children.length) mount.querySelector(".ddb-camera__hints").hidden = true;
+    const hints = (challenge.hints || []).filter(Boolean);
+    if (hints.length) {
+      const hintsPanel = mount.querySelector("[data-camera-hints]");
+      const hintOutput = mount.querySelector("[data-camera-hint-output]");
+      const hintButton = mount.querySelector(".ddb-camera__hint-button");
+      let hintIndex = 0;
+      hintsPanel.hidden = false;
+      hintButton.addEventListener("click", () => {
+        hintOutput.textContent = `Hint ${hintIndex + 1}: ${hints[hintIndex]}`;
+        hintIndex = Math.min(hintIndex + 1, hints.length - 1);
+        hintButton.textContent = hintIndex >= hints.length - 1 ? "Toon laatste hint" : "Volgende hint";
+      });
+    }
     const personaNames = { bosch: "Jeroen Bosch", frederik_hendrik: "Frederik Hendrik", chef: "Chef", guide: "DagjeDenBosch gids" };
     if (challenge.persona && challenge.persona !== "guide") {
       const persona = document.createElement("p");
@@ -535,8 +640,10 @@
 
     const controls = mount.querySelector(".ddb-camera__controls");
     const open = button("Open camera", "ddb-camera__button--secondary");
+    open.dataset.cameraOpen = "";
     const shutter = button("Maak foto", "ddb-camera__button--primary");
     shutter.dataset.cameraShutter = "";
+    shutter.hidden = true;
     const confirm = button("Gebruik deze foto", "ddb-camera__button--primary");
     confirm.dataset.cameraConfirm = "";
     confirm.hidden = true;
@@ -547,15 +654,21 @@
     retry.dataset.cameraRetry = "";
     retry.hidden = true;
     const close = button("Camera sluiten", "ddb-camera__button--ghost");
+    close.dataset.cameraClose = "";
+    close.hidden = true;
+    const next = button("Verder naar volgende stop", "ddb-camera__button--primary");
+    next.dataset.cameraNext = "";
+    next.hidden = true;
     const uploadLabel = document.createElement("label");
     uploadLabel.className = "ddb-camera__button ddb-camera__button--secondary";
+    uploadLabel.dataset.cameraFile = "";
     uploadLabel.textContent = "Kies foto";
     const input = document.createElement("input");
     input.type = "file";
     input.accept = "image/jpeg,image/png,image/webp";
     input.setAttribute("capture", "environment");
     uploadLabel.append(input);
-    controls.append(open, shutter, confirm, retake, retry, uploadLabel, close);
+    controls.append(open, shutter, confirm, retake, retry, uploadLabel, close, next);
 
     open.addEventListener("click", () => startCamera(state, mount));
     shutter.addEventListener("click", () => capture(state, mount));
@@ -565,7 +678,17 @@
     close.addEventListener("click", () => {
       stopCamera(state);
       mount.dataset.fullscreen = "0";
+      mount.dataset.cameraActive = "0";
+      shutter.hidden = true;
+      close.hidden = true;
+      open.hidden = false;
+      uploadLabel.hidden = false;
+      setStatus(mount, "Beschikbaar", "available");
       document.body.classList.remove("ddb-camera-is-open");
+    });
+    next.addEventListener("click", () => {
+      const nextControl = root.querySelector("[data-tour-mobile-next], [data-tour-next]");
+      if (nextControl && !nextControl.disabled) nextControl.click();
     });
     input.addEventListener("change", () => {
       const file = input.files?.[0];
@@ -573,8 +696,35 @@
     });
     open.addEventListener("click", () => document.body.classList.add("ddb-camera-is-open"));
     mount.querySelector("[data-camera-community-submit] button").addEventListener("click", () => submitCommunity(mount));
+    const onboardingKey = `ddb_camera_onboarding_${root.dataset.tourId || "0"}`;
+    if (!localStorage.getItem(onboardingKey)) {
+      const onboarding = document.createElement("aside");
+      onboarding.className = "ddb-camera__onboarding";
+      onboarding.setAttribute("role", "dialog");
+      onboarding.setAttribute("aria-modal", "true");
+      onboarding.setAttribute("aria-label", "Zo werkt de Discovery Camera");
+      onboarding.innerHTML = `
+        <div>
+          <span class="ddb-camera__eyebrow">Welkom ontdekker</span>
+          <h3>Zo werkt de Discovery Camera</h3>
+          <ol>
+            <li>Lees wat je moet vinden.</li>
+            <li>Open de camera of kies een foto.</li>
+            <li>Ontgrendel het verhaal en je beloning.</li>
+          </ol>
+          <p>Foto’s blijven privé, tenzij je ze later zelf met de community deelt.</p>
+          <button type="button" class="ddb-camera__button ddb-camera__button--primary">Start opdracht</button>
+        </div>`;
+      onboarding.querySelector("button").addEventListener("click", () => {
+        localStorage.setItem(onboardingKey, "1");
+        onboarding.remove();
+        open.focus();
+      });
+      mount.append(onboarding);
+    }
     renderCommunityFeed(root, mount);
     restoreAttempt(root, step, state, mount);
+    updateNetworkStatus();
     return mount;
   };
 
@@ -625,7 +775,11 @@
   };
 
   const init = () => document.querySelectorAll("[data-tour-navigation]").forEach(mountRoot);
-  window.addEventListener("online", flushQueue);
+  window.addEventListener("online", () => {
+    updateNetworkStatus();
+    flushQueue();
+  });
+  window.addEventListener("offline", updateNetworkStatus);
   document.addEventListener("visibilitychange", () => {
     if (!document.hidden) return;
     document.querySelectorAll("[data-photo-challenge]").forEach((mount) => {
