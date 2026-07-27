@@ -250,6 +250,11 @@ final class PhotoChallengeMetaBox
             </div>
 
             <?php self::textareaField('mission', __('Missie', 'sbdp'), $challenge['mission'] ?? '', true); ?>
+            <?php self::textareaField(
+                'camera_alternative',
+                __('Alternatieve opdracht zonder camera', 'sbdp'),
+                $challenge['camera_alternative'] ?? ''
+            ); ?>
             <?php self::textareaField('historical_context', __('Historische context', 'sbdp'), $challenge['historical_context'] ?? ''); ?>
             <?php self::textareaField('voice_transcript', __('Voice intro transcript', 'sbdp'), $challenge['voice_intro']['transcript'] ?? ''); ?>
             <?php self::textareaField('ai_prompt', __('Aanvullende AI-instructie', 'sbdp'), $challenge['ai_prompt'] ?? ''); ?>
@@ -279,7 +284,7 @@ final class PhotoChallengeMetaBox
 
             <label class="ddb-photo-builder__toggle">
                 <input type="checkbox" name="ddb_photo_challenge[community_allowed]" value="1" <?php checked(! empty($challenge['community_allowed'])); ?>>
-                <span><?php esc_html_e('Communitypublicatie later toestaan (nog niet actief)', 'sbdp'); ?></span>
+                <span><?php esc_html_e('Community-inzending toestaan na een geslaagde foto (publicatie pas na moderatie)', 'sbdp'); ?></span>
             </label>
             <input type="hidden" name="ddb_photo_challenge[revision]" value="<?php echo esc_attr((string) ($challenge['revision'] ?? 1)); ?>">
         </div>

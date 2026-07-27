@@ -596,6 +596,11 @@
         <strong>Camera geblokkeerd?</strong>
         <p>Open de website-instellingen van je browser, sta Camera toe en probeer opnieuw. Je kunt ook veilig een bestaande foto kiezen.</p>
       </aside>
+      <details class="ddb-camera__alternative" data-camera-alternative hidden>
+        <summary>Ik kan geen camera gebruiken</summary>
+        <p></p>
+        <small>Deze route kent nooit zelfstandig XP of voortgang toe. Laat de opdracht controleren door je begeleider.</small>
+      </details>
       <label class="ddb-camera__consent">
         <input type="checkbox" data-camera-consent>
         <span>Ik geef toestemming om deze foto privé te analyseren. De foto wordt automatisch verwijderd na de bewaartermijn.</span>
@@ -622,6 +627,11 @@
     if (challenge.historical_context) {
       historical.textContent = challenge.historical_context.replace(/<[^>]+>/g, " ");
       historical.hidden = false;
+    }
+    const alternative = mount.querySelector("[data-camera-alternative]");
+    if (challenge.camera_alternative) {
+      alternative.querySelector("p").textContent = challenge.camera_alternative;
+      alternative.hidden = false;
     }
     if (challenge.interaction_type === "then_now" && challenge.reference_image_url) {
       const reference = mount.querySelector("[data-camera-reference]");
