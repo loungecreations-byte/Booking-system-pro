@@ -25,10 +25,10 @@ const uuid = () =>
     return (char === "x" ? value : (value & 3) | 8).toString(16);
   });
 
-function formatFieldError(item, document) {
+function formatFieldError(item, moduleDocument) {
   const path = String(item?.path || "");
   const match = path.match(/^modules\.(\d+)(?:\.|$)/);
-  const module = match ? document?.modules?.[Number(match[1])] : null;
+  const module = match ? moduleDocument?.modules?.[Number(match[1])] : null;
   const label = module?.title || TYPES[module?.type]?.label || "";
   return `${label ? `${label}: ` : ""}${item?.message || "Controleer deze module."}`;
 }
@@ -364,7 +364,7 @@ function ModuleCard({ module, index, total, previousModules, initiallyOpen, onPa
 function Builder({ root }) {
   const chapterId = Number(root.dataset.chapterId);
   const config = window.sbdpExperienceBuilder || {};
-  const [document, setDocument] = useState(null);
+  const [moduleDocument, setModuleDocument] = useState(null);
   const [query, setQuery] = useState("");
   const [dirty, setDirty] = useState(false);
   const [status, setStatus] = useState("loading");
@@ -377,8 +377,8 @@ function Builder({ root }) {
   const endpoint = `${String(config.endpoint || "").replace(/\/$/, "")}/${chapterId}/modules`;
 
   useEffect(() => {
-    const builderBox = document.getElementById("sbdp_experience_builder");
-    const normalBoxes = document.getElementById("normal-sortables");
+    const builderBox = window.document.getElementById("sbdp_experience_builder");
+    const normalBoxes = window.document.getElementById("normal-sortables");
     if (builderBox && normalBoxes && normalBoxes.firstElementChild !== builderBox) {
       normalBoxes.prepend(builderBox);
     }
@@ -397,7 +397,7 @@ function Builder({ root }) {
         const next = payload.has_modular_document
           ? payload.document
           : { schema_version: 1, document_id: "", revision: 0, modules: [] };
-        setDocument(next);
+        setModuleDocument(next);
         setExpandedId(next.modules?.[0]?.id || "");
         setMigration(payload.migration || null);
         savedRef.current = JSON.stringify(next);
@@ -420,34 +420,34 @@ function Builder({ root }) {
   }, [dirty]);
 
   useEffect(() => {
-    if (!document.body.classList.contains("sbdp-has-modular-chapter")) return;
-    const legacyHeading = document.querySelector("#sbdp_tour_step_details .hndle");
+    if (!window.document.body.classList.contains("sbdp-has-modular-chapter")) return;
+    const legacyHeading = window.document.querySelector("#sbdp_tour_step_details .hndle");
     if (legacyHeading) legacyHeading.textContent = "Locatie & route";
   }, []);
 
   const mutate = (updater) => {
-    setDocument((current) => {
+    setModuleDocument((current) => {
       const next = updater(current);
       setDirty(JSON.stringify(next) !== savedRef.current);
       return next;
     });
   };
-  const modules = document?.modules || [];
+  const modules = moduleDocument?.modules || [];
   const activeModules = modules.filter((module) => module.enabled);
   const hasPhotoChallenge = modules.some((module) => module.type === "ai_photo_challenge");
 
   useEffect(() => {
-    const builderBox = document.getElementById("sbdp_experience_builder");
-    const detailsBox = document.getElementById("sbdp_tour_step_details");
-    const cameraBox = document.getElementById("ddb-photo-challenge");
+    const builderBox = window.document.getElementById("sbdp_experience_builder");
+    const detailsBox = window.document.getElementById("sbdp_tour_step_details");
+    const cameraBox = window.document.getElementById("ddb-photo-challenge");
     if (builderBox && detailsBox) builderBox.after(detailsBox);
     if (detailsBox && cameraBox) detailsBox.after(cameraBox);
     if (cameraBox) {
       cameraBox.hidden = !hasPhotoChallenge;
-      cameraBox.querySelector(".hndle")?.replaceChildren(document.createTextNode("3. AI Camera-instellingen"));
+      cameraBox.querySelector(".hndle")?.replaceChildren(window.document.createTextNode("3. AI Camera-instellingen"));
     }
     if (detailsBox) {
-      detailsBox.querySelector(".hndle")?.replaceChildren(document.createTextNode("2. Locatie & route"));
+      detailsBox.querySelector(".hndle")?.replaceChildren(window.document.createTextNode("2. Locatie & route"));
     }
   }, [hasPhotoChallenge]);
 
@@ -490,14 +490,14 @@ function Builder({ root }) {
         method: "PUT",
         credentials: "same-origin",
         headers: { "Content-Type": "application/json", "X-WP-Nonce": config.nonce || "" },
-        body: JSON.stringify({ expected_revision: Number(document.revision || 0), document }),
+        body: JSON.stringify({ expected_revision: Number(moduleDocument.revision || 0), document: moduleDocument }),
       });
       const payload = await response.json();
       if (!response.ok) {
-        const fieldErrors = payload.data?.errors?.map((item) => formatFieldError(item, document)) || [];
+        const fieldErrors = payload.data?.errors?.map((item) => formatFieldError(item, moduleDocument)) || [];
         throw Object.assign(new Error(payload.message || "Opslaan mislukt."), { fieldErrors });
       }
-      setDocument(payload.document);
+      setModuleDocument(payload.document);
       savedRef.current = JSON.stringify(payload.document);
       setDirty(false);
       setStatus("saved");
@@ -530,7 +530,7 @@ function Builder({ root }) {
       const next = payload.has_modular_document
         ? payload.document
         : { schema_version: 1, document_id: "", revision: 0, modules: [] };
-      setDocument(next);
+      setModuleDocument(next);
       setMigration(payload.migration || null);
       savedRef.current = JSON.stringify(next);
       setDirty(false);
@@ -541,7 +541,7 @@ function Builder({ root }) {
     }
   };
 
-  if (status === "loading" || !document) return <p role="status">Modules worden geladen…</p>;
+  if (status === "loading" || !moduleDocument) return <p role="status">Modules worden geladen…</p>;
 
   const applyTemplate = (template) => {
     if (modules.length > 0 && !window.confirm("De huidige modules vervangen door deze template?")) return;
@@ -571,7 +571,7 @@ function Builder({ root }) {
               <button type="button" onClick={() => {
                 setPreview(false);
                 setExpandedId(module.id);
-                window.setTimeout(() => document.getElementById(`sbdp-module-${module.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 0);
+                window.setTimeout(() => window.document.getElementById(`sbdp-module-${module.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 0);
               }}>
                 <span>{index + 1}</span>{module.title || TYPES[module.type]?.label || module.type}
               </button>
