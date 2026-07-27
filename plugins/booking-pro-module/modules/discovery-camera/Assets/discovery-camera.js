@@ -813,7 +813,14 @@
       fallback.dataset.variant = "error";
       fallback.setAttribute("role", "alert");
       fallback.textContent = error.message || "Photo Challenge niet beschikbaar.";
-      flow.prepend(fallback);
+      const host = state.moduleId
+        ? root.querySelector(`[data-photo-challenge-module-host="${state.moduleId}"]`)
+        : null;
+      if (host) {
+        host.replaceChildren(fallback);
+      } else {
+        flow.prepend(fallback);
+      }
       lockNavigation(root, false);
     }
   };

@@ -3074,6 +3074,11 @@ body.sbdp-is-tour-mode [class*="chatbot"] {
   gap: var(--ddb-spacing-md);
 }
 
+.tour-story-layout--modular {
+  grid-template-areas: none;
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .tour-experience-module {
   background: var(--ddb-color-surface-2, var(--ddb-bg-panel));
   border: 1px solid var(--ddb-border-default, var(--ddb-border));
