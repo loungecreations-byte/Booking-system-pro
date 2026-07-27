@@ -49,7 +49,11 @@ final class ModuleDocumentService
         }
 
         $current = $this->get($chapterId);
-        $hasStoredDocument = is_array($this->repository->get($chapterId));
+        // Registered post meta can return its default empty array even when no
+        // row has ever been stored. Treat only a non-empty array as an existing
+        // revision, matching the REST read boundary.
+        $stored = $this->repository->get($chapterId);
+        $hasStoredDocument = is_array($stored) && $stored !== array();
         $currentRevision = $hasStoredDocument ? max(1, absint($current['revision'] ?? 1)) : 0;
         if ($expectedRevision !== $currentRevision) {
             return new WP_Error(
