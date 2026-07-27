@@ -7,6 +7,9 @@ namespace BSP\DiscoveryCamera\Admin;
 use BSP\DiscoveryCamera\Content\PhotoChallengeMeta;
 use BSP\DiscoveryCamera\Domain\PhotoChallenge;
 use BSP\DiscoveryCamera\Provider\OpenAiVisionProvider;
+use BSP\ExperienceBuilder\Module as ExperienceBuilderModule;
+use BSP\ExperienceBuilder\Service\ModuleDocumentService;
+use BSP\ExperienceBuilder\Service\ModuleValidationService;
 use WP_Post;
 
 final class PhotoChallengeMetaBox
@@ -38,6 +41,11 @@ final class PhotoChallengeMetaBox
     public static function createForTour(): void
     {
         $tourId = isset($_GET['tour_id']) ? absint($_GET['tour_id']) : 0;
+        $preset = sanitize_key((string) ($_GET['preset'] ?? 'blank'));
+        $allowedPresets = array('blank', 'story', 'audio', 'video', 'sketchfab', 'quiz', 'discovery');
+        if (! in_array($preset, $allowedPresets, true)) {
+            $preset = 'blank';
+        }
         if (
             $tourId <= 0
             || get_post_type($tourId) !== 'sbdp_private_tour'
@@ -66,35 +74,123 @@ final class PhotoChallengeMetaBox
             $highestOrder = max($highestOrder, $step ? (int) $step->menu_order : 0);
         }
 
+        $titles = array(
+            'blank' => __('Nieuwe interactieve stap', 'sbdp'),
+            'story' => __('Nieuw verhaal', 'sbdp'),
+            'audio' => __('Nieuw audiohoofdstuk', 'sbdp'),
+            'video' => __('Nieuw videohoofdstuk', 'sbdp'),
+            'sketchfab' => __('Nieuwe 3D-beleving', 'sbdp'),
+            'quiz' => __('Nieuwe quizopdracht', 'sbdp'),
+            'discovery' => __('Nieuwe AI Discovery-opdracht', 'sbdp'),
+        );
+        $stepTitle = $titles[$preset];
         $stepId = wp_insert_post(array(
             'post_type' => 'sbdp_tour_step',
             'post_status' => 'draft',
             'post_parent' => $tourId,
             'menu_order' => $highestOrder + 1,
-            'post_title' => __('Nieuwe foto-opdracht', 'sbdp'),
+            'post_title' => $stepTitle,
             'post_content' => '',
         ), true);
         if (is_wp_error($stepId)) {
             wp_die(esc_html($stepId->get_error_message()), '', array('response' => 500));
         }
 
-        update_post_meta((int) $stepId, '_sbdp_step_type', 'photo_challenge');
-        update_post_meta((int) $stepId, PhotoChallengeMeta::KEY, PhotoChallenge::sanitize(array(
-            'revision' => 1,
-            'title' => __('Nieuwe foto-opdracht', 'sbdp'),
-            'mission' => __('Beschrijf hier wat de bezoeker moet fotograferen.', 'sbdp'),
-            'required_object' => array('type' => 'object', 'label' => __('object', 'sbdp')),
-            'validation_type' => array('composition'),
-            'difficulty' => 'medium',
-            'pass_score' => 70,
-            'xp_reward' => 0,
-        )));
+        update_post_meta((int) $stepId, '_sbdp_step_type', $preset === 'discovery' ? 'photo_challenge' : 'text');
+        $document = self::presetDocument((int) $stepId, $preset);
+        $service = new ModuleDocumentService(new ModuleValidationService(ExperienceBuilderModule::registry()));
+        $saved = $service->save((int) $stepId, $document, 0);
+        if (is_wp_error($saved)) {
+            wp_delete_post((int) $stepId, true);
+            wp_die(esc_html($saved->get_error_message()), '', array('response' => 500));
+        }
+
+        if ($preset === 'discovery') {
+            update_post_meta((int) $stepId, PhotoChallengeMeta::KEY, PhotoChallenge::sanitize(array(
+                'revision' => 1,
+                'title' => $stepTitle,
+                'mission' => __('Beschrijf hier wat de bezoeker moet fotograferen.', 'sbdp'),
+                'required_object' => array('type' => 'object', 'label' => __('object', 'sbdp')),
+                'validation_type' => array('composition'),
+                'difficulty' => 'medium',
+                'pass_score' => 70,
+                'xp_reward' => 0,
+            )));
+        }
 
         wp_safe_redirect(add_query_arg(
             array('post' => (int) $stepId, 'action' => 'edit', 'ddb_photo_created' => 1),
             admin_url('post.php')
         ));
         exit;
+    }
+
+    /** @return array<string,mixed> */
+    private static function presetDocument(int $stepId, string $preset): array
+    {
+        $types = array(
+            'blank' => array(),
+            'story' => array('text'),
+            'audio' => array('text', 'audio'),
+            'video' => array('text', 'video'),
+            'sketchfab' => array('text', 'sketchfab'),
+            'quiz' => array('text', 'quiz', 'reward'),
+            'discovery' => array('text', 'ai_photo_challenge', 'reward'),
+        );
+        $modules = array();
+        foreach ($types[$preset] ?? array() as $index => $type) {
+            $moduleId = wp_generate_uuid4();
+            $previousId = $index > 0 ? (string) ($modules[$index - 1]['id'] ?? '') : '';
+            $module = array(
+                'id' => $moduleId,
+                'type' => $type,
+                'version' => 1,
+                'index' => $index,
+                'enabled' => true,
+                'title' => ucfirst(str_replace('_', ' ', $type)),
+                'settings' => array(),
+                'content' => array(),
+                'conditions' => array(),
+                'completion' => array('mode' => 'automatic', 'requirements' => array()),
+                'visibility' => array('mode' => 'when_conditions_match'),
+                'metadata' => array('source' => 'chapter_preset', 'preset' => $preset),
+            );
+            if ($type === 'ai_photo_challenge') {
+                $module['settings'] = array('source' => 'chapter_meta');
+                $module['completion']['mode'] = 'photo_approved';
+            } elseif ($type === 'quiz') {
+                $module['settings'] = array('source' => 'chapter_meta');
+                $module['completion']['mode'] = 'quiz_passed';
+            } elseif ($type === 'reward') {
+                $module['settings'] = array('event_type' => 'experience.module_reward');
+                $module['content'] = array(
+                    'title' => __('Beloning ontgrendeld', 'sbdp'),
+                    'message' => __('Je hebt alle onderdelen voltooid.', 'sbdp'),
+                    'xp_amount' => 0,
+                );
+                $module['completion']['mode'] = 'server_claim';
+            } elseif ($type === 'text') {
+                $module['content'] = array('html' => '');
+            } else {
+                $module['content'] = array('attachment_id' => 0, 'url' => '');
+            }
+            if ($previousId !== '') {
+                $module['conditions'][] = array(
+                    'type' => 'module_completed',
+                    'module_id' => $previousId,
+                    'operator' => 'is',
+                    'value' => '1',
+                );
+            }
+            $modules[] = $module;
+        }
+
+        return array(
+            'schema_version' => 1,
+            'document_id' => 'chapter-' . $stepId . '-modules',
+            'revision' => 1,
+            'modules' => $modules,
+        );
     }
 
     public static function testChallenge(): void

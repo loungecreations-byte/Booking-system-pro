@@ -173,7 +173,7 @@ class SBDP_Private_Tours_Admin
                 </div>
                 <div class="sbdp-builder__actions">
                     <button type="button" class="button button-primary" data-private-tour-add-step>
-                        Hoofdstuk toevoegen
+                        Nieuwe stap toevoegen
                     </button>
                 </div>
             </div>
@@ -198,14 +198,15 @@ class SBDP_Private_Tours_Admin
             <div data-builder-empty style="display: none;">
                 <p style="font-size: 48px; margin: 0;">🗺️</p>
                 <p><strong>Nog geen stappen toegevoegd</strong></p>
-                <p>Klik op "Nieuwe Stap Toevoegen" om te beginnen met het samenstellen van je tour.</p>
+                <p>Klik op "Nieuwe stap toevoegen", kies een startopbouw en combineer daarna meerdere modules in dezelfde stap.</p>
             </div>
         </div>
         
         <div class="sbdp-builder-instructions">
             <p class="sbdp-builder-instructions__title">Werkflow</p>
             <ul class="sbdp-builder-instructions__list">
-                <li><strong>Nieuwe stop:</strong> voeg een stop toe en open direct de editor.</li>
+                <li><strong>Nieuwe stap:</strong> kies een startopbouw en open direct de modulaire Chapter Editor.</li>
+                <li><strong>Modules:</strong> combineer tekst, media, 3D, quiz, camera en beloning binnen één stap.</li>
                 <li><strong>Verhaaltekst:</strong> gebruik headings en alinea's voor een nette storytelling-opbouw.</li>
                 <li><strong>Missie:</strong> vul opdracht, hint en reveal apart in.</li>
                 <li><strong>Locatie:</strong> klik op de kaart of vul een locatie-label / coördinaten in.</li>

@@ -10,7 +10,7 @@ final class ChapterBuilderMetaBox
 
     public static function register(): void
     {
-        add_action('add_meta_boxes_sbdp_tour_step', array(__CLASS__, 'add'));
+        add_action('add_meta_boxes_sbdp_tour_step', array(__CLASS__, 'add'), 1);
         add_action('admin_enqueue_scripts', array(__CLASS__, 'enqueue'));
     }
 
@@ -18,7 +18,7 @@ final class ChapterBuilderMetaBox
     {
         add_meta_box(
             'sbdp_experience_builder',
-            __('Experience modules', 'sbdp'),
+            __('Stapinhoud · modules', 'sbdp'),
             array(__CLASS__, 'render'),
             'sbdp_tour_step',
             'normal',
@@ -28,6 +28,10 @@ final class ChapterBuilderMetaBox
 
     public static function render(\WP_Post $post): void
     {
+        echo '<div class="sbdp-experience-builder-intro">';
+        echo '<strong>' . esc_html__('Bouw deze stap op uit meerdere onderdelen', 'sbdp') . '</strong>';
+        echo '<p>' . esc_html__('Voeg tekst, media, 3D, quiz, camera en beloningen toe en sleep ze in de gewenste volgorde. Het oude hoofdstuktype blijft alleen voor bestaande tours behouden.', 'sbdp') . '</p>';
+        echo '</div>';
         echo '<div id="sbdp-experience-builder-root" data-chapter-id="' . esc_attr((string) $post->ID) . '">';
         echo '<p class="sbdp-experience-builder__loading">' . esc_html__('Experience Builder wordt geladen…', 'sbdp') . '</p>';
         echo '</div>';

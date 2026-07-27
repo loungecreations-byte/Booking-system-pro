@@ -233,3 +233,14 @@
     transition-duration: 0s;
   }
 }
+.sbdp-experience-builder-intro {
+  margin: 0 0 16px;
+  padding: 14px 16px;
+  border-inline-start: 4px solid var(--ui-color-accent, #d49a24);
+  border-radius: 6px;
+  background: var(--ui-color-surface-subtle, #f6f7f7);
+}
+
+.sbdp-experience-builder-intro p {
+  margin: 4px 0 0;
+}
