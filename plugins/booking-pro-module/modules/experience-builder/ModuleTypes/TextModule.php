@@ -29,4 +29,14 @@ final class TextModule extends AbstractContentModule
 
         return $module;
     }
+
+    /** @param array<string,mixed> $module @return array<int,array<string,string>> */
+    public function validate(array $module): array
+    {
+        $text = trim(wp_strip_all_tags((string) ($module['content']['html'] ?? '')));
+
+        return $text === ''
+            ? array($this->error('content.html', 'missing_text_content', 'Vul tekst in of schakel deze module uit.'))
+            : array();
+    }
 }

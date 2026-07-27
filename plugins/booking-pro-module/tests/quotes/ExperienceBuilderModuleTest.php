@@ -123,8 +123,8 @@ final class ExperienceBuilderModuleTest extends TestCase
         $result = $this->validator()->normalize(array(
             'schema_version' => 1,
             'modules' => array(
-                array('id' => $id, 'type' => 'text', 'content' => array()),
-                array('id' => $id, 'type' => 'text', 'content' => array()),
+                array('id' => $id, 'type' => 'text', 'content' => array('html' => 'Tekst')),
+                array('id' => $id, 'type' => 'text', 'content' => array('html' => 'Tekst')),
                 'invalid',
             ),
         ));
@@ -515,5 +515,17 @@ final class ExperienceBuilderModuleTest extends TestCase
         self::assertStringContainsString('PhotoChallenge::validationErrors', $service);
         self::assertStringContainsString("'ai_photo_challenge'", $service);
         self::assertStringContainsString("empty(\$module['enabled'])", $service);
+    }
+
+    public function testEnabledTextModuleCannotRenderAsAnEmptyPublicCard(): void
+    {
+        $module = new \BSP\ExperienceBuilder\ModuleTypes\TextModule();
+
+        self::assertSame('missing_text_content', $module->validate(array(
+            'content' => array('html' => '<p> </p>'),
+        ))[0]['code']);
+        self::assertSame(array(), $module->validate(array(
+            'content' => array('html' => '<p>Een echt verhaal</p>'),
+        )));
     }
 }
