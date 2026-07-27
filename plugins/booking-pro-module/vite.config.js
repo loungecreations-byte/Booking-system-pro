@@ -37,6 +37,7 @@ export default defineConfig({
         dayPlanner: path.resolve(__dirname, "assets/js/day-planner/index.jsx"),
         "tour-navigation": path.resolve(__dirname, "assets/js/tour-navigation.js"),
         gamificationProgress: path.resolve(__dirname, "modules/gamification/assets/progress/index.jsx"),
+        experienceBuilder: path.resolve(__dirname, "modules/experience-builder/assets/admin/index.jsx"),
       },
       output: {
         format: 'es',

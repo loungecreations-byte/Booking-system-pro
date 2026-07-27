@@ -1001,7 +1001,16 @@ private static function extract_public_nonce( WP_REST_Request $request ): ?strin
 	}
 
 	public static function authorize_public_availability( WP_REST_Request $request ) {
-		return self::authorize_public_request( $request, 'availability' );
+		$limit = self::check_rate_limit( $request, 'availability' );
+
+		if ( $limit instanceof WP_Error ) {
+			return $limit;
+		}
+
+		// Availability is public, read-only discovery data. Requiring a
+		// session-bound nonce here breaks cached and HTTP-auth protected
+		// planner pages without adding CSRF protection to this GET request.
+		return true;
 	}
 
 	public static function get_services( WP_REST_Request $request ) {

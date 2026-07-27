@@ -1,0 +1,79 @@
+{
+  "_client-DGS8xYPT.js": {
+    "file": "assets/client-DGS8xYPT.js",
+    "name": "client",
+    "imports": [
+      "_react-BoMwxKbN.js"
+    ]
+  },
+  "_index-Iq3xEqxC.js": {
+    "file": "assets/index-Iq3xEqxC.js",
+    "name": "index",
+    "imports": [
+      "_react-BoMwxKbN.js"
+    ]
+  },
+  "_react-BoMwxKbN.js": {
+    "file": "assets/react-BoMwxKbN.js",
+    "name": "react"
+  },
+  "assets/js/admin/booking-board/index.jsx": {
+    "file": "js/bookingBoard.js",
+    "name": "bookingBoard",
+    "src": "assets/js/admin/booking-board/index.jsx",
+    "isEntry": true,
+    "imports": [
+      "_client-DGS8xYPT.js",
+      "_index-Iq3xEqxC.js"
+    ],
+    "css": [
+      "assets/bookingBoard-D5XmzAL6.css"
+    ]
+  },
+  "assets/js/day-planner/index.jsx": {
+    "file": "js/dayPlanner.js",
+    "name": "dayPlanner",
+    "src": "assets/js/day-planner/index.jsx",
+    "isEntry": true,
+    "imports": [
+      "_client-DGS8xYPT.js",
+      "_index-Iq3xEqxC.js"
+    ]
+  },
+  "assets/js/tour-navigation.js": {
+    "file": "js/tour-navigation.js",
+    "name": "tour-navigation",
+    "src": "assets/js/tour-navigation.js",
+    "isEntry": true
+  },
+  "modules/experience-builder/assets/admin/index.jsx": {
+    "file": "js/experienceBuilder.js",
+    "name": "experienceBuilder",
+    "src": "modules/experience-builder/assets/admin/index.jsx",
+    "isEntry": true,
+    "imports": [
+      "_client-DGS8xYPT.js"
+    ]
+  },
+  "modules/gamification/assets/progress/index.jsx": {
+    "file": "js/gamificationProgress.js",
+    "name": "gamificationProgress",
+    "src": "modules/gamification/assets/progress/index.jsx",
+    "isEntry": true,
+    "imports": [
+      "_client-DGS8xYPT.js"
+    ]
+  },
+  "modules/product-overview/assets/js/activity-overview/overzicht-activiteiten.tsx": {
+    "file": "js/activityOverview.js",
+    "name": "activityOverview",
+    "src": "modules/product-overview/assets/js/activity-overview/overzicht-activiteiten.tsx",
+    "isEntry": true,
+    "imports": [
+      "_client-DGS8xYPT.js"
+    ],
+    "css": [
+      "assets/activityOverview-6txqbO4T.css"
+    ]
+  }
+}

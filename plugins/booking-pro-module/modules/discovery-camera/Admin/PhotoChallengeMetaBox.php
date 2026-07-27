@@ -6,6 +6,7 @@ namespace BSP\DiscoveryCamera\Admin;
 
 use BSP\DiscoveryCamera\Content\PhotoChallengeMeta;
 use BSP\DiscoveryCamera\Domain\PhotoChallenge;
+use BSP\DiscoveryCamera\Provider\OpenAiVisionProvider;
 use WP_Post;
 
 final class PhotoChallengeMetaBox
@@ -16,9 +17,9 @@ final class PhotoChallengeMetaBox
     public static function register(): void
     {
         add_action('add_meta_boxes_sbdp_tour_step', array(__CLASS__, 'add'));
-        add_action('add_meta_boxes_sbdp_private_tour', array(__CLASS__, 'addTourLauncher'));
         add_action('save_post_sbdp_tour_step', array(__CLASS__, 'save'), 20, 2);
         add_action('admin_post_ddb_create_photo_challenge', array(__CLASS__, 'createForTour'));
+        add_action('admin_post_ddb_test_photo_challenge', array(__CLASS__, 'testChallenge'));
         add_action('admin_enqueue_scripts', array(__CLASS__, 'enqueue'));
     }
 
@@ -32,60 +33,6 @@ final class PhotoChallengeMetaBox
             'normal',
             'high'
         );
-    }
-
-    public static function addTourLauncher(): void
-    {
-        add_meta_box(
-            'ddb-photo-challenge-launcher',
-            __('AI Photo Challenges', 'sbdp'),
-            array(__CLASS__, 'renderTourLauncher'),
-            'sbdp_private_tour',
-            'side',
-            'high'
-        );
-    }
-
-    public static function renderTourLauncher(WP_Post $tour): void
-    {
-        $steps = get_posts(array(
-            'post_type' => 'sbdp_tour_step',
-            'post_parent' => (int) $tour->ID,
-            'post_status' => array('publish', 'draft', 'private'),
-            'numberposts' => -1,
-            'orderby' => array('menu_order' => 'ASC', 'ID' => 'ASC'),
-            'meta_key' => '_sbdp_step_type',
-            'meta_value' => 'photo_challenge',
-        ));
-        $createUrl = wp_nonce_url(
-            add_query_arg(
-                array('action' => 'ddb_create_photo_challenge', 'tour_id' => (int) $tour->ID),
-                admin_url('admin-post.php')
-            ),
-            'ddb_create_photo_challenge_' . (int) $tour->ID
-        );
-        ?>
-        <div class="ddb-photo-launcher">
-            <p><?php esc_html_e('Voeg een Photo Challenge toe als normaal hoofdstuk binnen deze bestaande tour.', 'sbdp'); ?></p>
-            <a class="button button-primary button-large ddb-photo-launcher__create" href="<?php echo esc_url($createUrl); ?>">
-                <?php esc_html_e('Nieuwe foto-opdracht', 'sbdp'); ?>
-            </a>
-            <?php if ($steps) : ?>
-                <hr>
-                <strong><?php esc_html_e('Foto-opdrachten in deze tour', 'sbdp'); ?></strong>
-                <ul class="ddb-photo-launcher__list">
-                    <?php foreach ($steps as $step) : ?>
-                        <li>
-                            <a href="<?php echo esc_url(get_edit_post_link((int) $step->ID, '')); ?>">
-                                <?php echo esc_html(get_the_title($step) ?: __('Naamloze foto-opdracht', 'sbdp')); ?>
-                            </a>
-                            <small><?php echo esc_html((string) get_post_status($step)); ?></small>
-                        </li>
-                    <?php endforeach; ?>
-                </ul>
-            <?php endif; ?>
-        </div>
-        <?php
     }
 
     public static function createForTour(): void
@@ -150,6 +97,29 @@ final class PhotoChallengeMetaBox
         exit;
     }
 
+    public static function testChallenge(): void
+    {
+        $stepId = absint($_GET['step_id'] ?? 0);
+        if ($stepId <= 0 || get_post_type($stepId) !== 'sbdp_tour_step' || ! current_user_can('edit_post', $stepId)) {
+            wp_die(esc_html__('Geen toegang tot deze foto-opdracht.', 'sbdp'), '', array('response' => 403));
+        }
+        check_admin_referer('ddb_test_photo_challenge_' . $stepId);
+        $challenge = PhotoChallengeMeta::forStep($stepId);
+        $referenceId = absint($challenge['reference_image_id'] ?? 0);
+        $path = $referenceId > 0 ? get_attached_file($referenceId) : '';
+        try {
+            if (! is_string($path) || ! is_readable($path)) {
+                throw new \RuntimeException('Selecteer eerst een voorbeeldfoto en sla de opdracht op.');
+            }
+            $result = (new OpenAiVisionProvider())->analyze($challenge, $path);
+            set_transient('ddb_photo_test_' . get_current_user_id() . '_' . $stepId, array('ok' => true, 'result' => $result), 10 * MINUTE_IN_SECONDS);
+        } catch (\Throwable $error) {
+            set_transient('ddb_photo_test_' . get_current_user_id() . '_' . $stepId, array('ok' => false, 'message' => sanitize_text_field($error->getMessage())), 10 * MINUTE_IN_SECONDS);
+        }
+        wp_safe_redirect(add_query_arg(array('post' => $stepId, 'action' => 'edit', 'ddb_photo_tested' => 1), admin_url('post.php')));
+        exit;
+    }
+
     public static function enqueue(string $hook): void
     {
         if (! in_array($hook, array('post.php', 'post-new.php'), true)) {
@@ -167,6 +137,45 @@ final class PhotoChallengeMetaBox
             array(),
             is_readable($file) ? (string) filemtime($file) : SBDP_VERSION
         );
+
+        if ($screen->post_type !== 'sbdp_private_tour') {
+            if ($screen->post_type === 'sbdp_tour_step') {
+                wp_enqueue_media();
+                $builderFile = dirname(__DIR__) . '/Assets/photo-builder.js';
+                wp_enqueue_script(
+                    'ddb-photo-builder',
+                    SBDP_URL . 'modules/discovery-camera/Assets/photo-builder.js',
+                    array('jquery'),
+                    is_readable($builderFile) ? (string) filemtime($builderFile) : SBDP_VERSION,
+                    true
+                );
+            }
+            return;
+        }
+
+        $tourId = isset($_GET['post']) ? absint($_GET['post']) : 0;
+        if ($tourId <= 0 || get_post_type($tourId) !== 'sbdp_private_tour') {
+            return;
+        }
+
+        $scriptFile = dirname(__DIR__) . '/Assets/chapter-type-chooser.js';
+        wp_enqueue_script(
+            'ddb-photo-chapter-chooser',
+            SBDP_URL . 'modules/discovery-camera/Assets/chapter-type-chooser.js',
+            array('sbdp-tour-builder'),
+            is_readable($scriptFile) ? (string) filemtime($scriptFile) : SBDP_VERSION,
+            true
+        );
+        wp_localize_script('ddb-photo-chapter-chooser', 'ddbPhotoChapterChooser', array(
+            'createUrl' => wp_nonce_url(
+                add_query_arg(
+                    array('action' => 'ddb_create_photo_challenge', 'tour_id' => $tourId),
+                    admin_url('admin-post.php')
+                ),
+                'ddb_create_photo_challenge_' . $tourId
+            ),
+            'editBaseUrl' => admin_url('post.php?action=edit&post='),
+        ));
     }
 
     public static function render(WP_Post $post): void
@@ -177,10 +186,25 @@ final class PhotoChallengeMetaBox
         $hints = (array) ($challenge['hints'] ?? array('', '', ''));
 
         wp_nonce_field(self::NONCE_ACTION, self::NONCE_NAME);
+        $testResult = get_transient('ddb_photo_test_' . get_current_user_id() . '_' . (int) $post->ID);
+        if (is_array($testResult)) {
+            delete_transient('ddb_photo_test_' . get_current_user_id() . '_' . (int) $post->ID);
+            ?>
+            <div class="notice inline <?php echo ! empty($testResult['ok']) ? 'notice-success' : 'notice-error'; ?>">
+                <p>
+                    <?php
+                    echo ! empty($testResult['ok'])
+                        ? esc_html(sprintf('AI-test gereed: %d/100 — %s', (int) ($testResult['result']['total_score'] ?? 0), (string) ($testResult['result']['feedback']['message'] ?? '')))
+                        : esc_html((string) ($testResult['message'] ?? 'AI-test mislukt.'));
+                    ?>
+                </p>
+            </div>
+            <?php
+        }
         ?>
         <div class="ddb-photo-builder" data-photo-challenge-builder>
             <p class="description">
-                <?php esc_html_e('Wordt alleen actief wanneer Step type op “Photo Challenge” staat. De fake provider geeft op staging altijd menselijke review terug.', 'sbdp'); ?>
+                <?php esc_html_e('Actief als legacy Photo Challenge-hoofdstuk of als AI Photo Challenge-module. De fake provider geeft op staging altijd menselijke review terug.', 'sbdp'); ?>
             </p>
             <div class="ddb-photo-builder__grid">
                 <?php self::textField('title', __('Titel', 'sbdp'), $challenge['title'] ?? '', true); ?>
@@ -197,12 +221,45 @@ final class PhotoChallengeMetaBox
                 <?php self::numberField('xp_reward', __('XP na validatie', 'sbdp'), (int) ($challenge['xp_reward'] ?? 0), 0, 500); ?>
                 <?php self::textField('badge_reward', __('Badge-slug', 'sbdp'), $challenge['badge_reward'] ?? '', false, 'architect-hunter'); ?>
                 <?php self::numberField('hidden_collectible_id', __('Verborgen collectible-ID', 'sbdp'), (int) ($challenge['hidden_collectible_id'] ?? 0), 0, PHP_INT_MAX); ?>
+                <?php self::numberField('reference_image_id', __('Voorbeeldfoto attachment-ID', 'sbdp'), (int) ($challenge['reference_image_id'] ?? 0), 0, PHP_INT_MAX); ?>
                 <?php self::numberField('voice_attachment_id', __('Voice intro attachment-ID', 'sbdp'), (int) ($challenge['voice_intro']['attachment_id'] ?? 0), 0, PHP_INT_MAX); ?>
+                <?php self::selectField('interaction_type', __('Interactietype', 'sbdp'), $challenge['interaction_type'] ?? 'photo', array(
+                    'photo' => __('Photo Challenge', 'sbdp'),
+                    'then_now' => __('Toen & Nu', 'sbdp'),
+                    'hidden_discovery' => __('Hidden Discovery', 'sbdp'),
+                    'boss' => __('Boss Battle', 'sbdp'),
+                )); ?>
+                <?php self::selectField('persona', __('AI-gids', 'sbdp'), $challenge['persona'] ?? 'guide', array(
+                    'guide' => __('DagjeDenBosch gids', 'sbdp'),
+                    'bosch' => __('Jeroen Bosch', 'sbdp'),
+                    'frederik_hendrik' => __('Frederik Hendrik', 'sbdp'),
+                    'chef' => __('Chef', 'sbdp'),
+                )); ?>
+                <?php self::textField('historical_year', __('Historisch jaar', 'sbdp'), $challenge['historical_year'] ?? '', false, '1629'); ?>
+            </div>
+            <div class="ddb-photo-builder__media-actions">
+                <button type="button" class="button" data-ddb-select-media="image" data-ddb-target="reference_image_id">
+                    <?php esc_html_e('Selecteer voorbeeldfoto', 'sbdp'); ?>
+                </button>
+                <button type="button" class="button" data-ddb-select-media="audio" data-ddb-target="voice_attachment_id">
+                    <?php esc_html_e('Selecteer voice intro', 'sbdp'); ?>
+                </button>
+                <a class="button" href="<?php echo esc_url(wp_nonce_url(add_query_arg(array('action' => 'ddb_test_photo_challenge', 'step_id' => (int) $post->ID), admin_url('admin-post.php')), 'ddb_test_photo_challenge_' . (int) $post->ID)); ?>">
+                    <?php esc_html_e('Test AI met voorbeeldfoto', 'sbdp'); ?>
+                </a>
             </div>
 
             <?php self::textareaField('mission', __('Missie', 'sbdp'), $challenge['mission'] ?? '', true); ?>
             <?php self::textareaField('historical_context', __('Historische context', 'sbdp'), $challenge['historical_context'] ?? ''); ?>
             <?php self::textareaField('voice_transcript', __('Voice intro transcript', 'sbdp'), $challenge['voice_intro']['transcript'] ?? ''); ?>
+            <?php self::textareaField('ai_prompt', __('Aanvullende AI-instructie', 'sbdp'), $challenge['ai_prompt'] ?? ''); ?>
+            <?php
+            $bossTargets = implode("\n", array_map(
+                static fn (array $target): string => (int) ($target['count'] ?? 1) . ' | ' . (string) ($target['label'] ?? ''),
+                (array) ($challenge['boss_targets'] ?? array())
+            ));
+            self::textareaField('boss_targets_text', __('Boss Battle doelen (aantal | object)', 'sbdp'), $bossTargets);
+            ?>
 
             <fieldset class="ddb-photo-builder__types">
                 <legend><?php esc_html_e('Validatietypes', 'sbdp'); ?> *</legend>
@@ -257,6 +314,13 @@ final class PhotoChallengeMetaBox
             'attachment_id' => $raw['voice_attachment_id'] ?? 0,
             'transcript' => $raw['voice_transcript'] ?? '',
         );
+        $raw['boss_targets'] = array();
+        foreach (preg_split('/\r\n|\r|\n/', (string) ($raw['boss_targets_text'] ?? '')) as $line) {
+            $parts = array_map('trim', explode('|', $line, 2));
+            if (($parts[1] ?? '') !== '') {
+                $raw['boss_targets'][] = array('count' => absint($parts[0] ?? 1), 'label' => $parts[1]);
+            }
+        }
 
         update_post_meta($postId, PhotoChallengeMeta::KEY, PhotoChallenge::sanitize($raw));
     }

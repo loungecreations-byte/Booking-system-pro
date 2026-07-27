@@ -188,6 +188,7 @@ class SBDP_Elementor_Tour_Navigation_Widget extends Widget_Base
         $tour_summary = wp_strip_all_tags((string) get_post_meta($post_id, '_sbdp_tour_summary', true));
         $tour_duration = absint((int) get_post_meta($post_id, '_sbdp_tour_duration', true));
         $tour_support_email = sanitize_email((string) get_post_meta($post_id, '_sbdp_tour_support_email', true));
+        $preview_session = SBDP_Private_Tours::canonical_preview_session((int) $post_id);
         $google_maps_api_key = '';
         foreach (array(get_option('sbdp_google_maps_api_key', ''), get_option('elementor_google_maps_api_key', '')) as $candidate) {
             if (is_string($candidate) && '' !== trim($candidate)) {
@@ -243,6 +244,9 @@ class SBDP_Elementor_Tour_Navigation_Widget extends Widget_Base
                     'heygenVideoUrl' => (string) ($step['heygenVideoUrl'] ?? ''),
                     'heygenEmbedUrl' => (string) ($step['heygenEmbedUrl'] ?? ''),
                     'gamification'  => is_array($step['gamification'] ?? null) ? $step['gamification'] : array(),
+                    'quiz'          => is_array($step['quiz'] ?? null) ? $step['quiz'] : array(),
+                    'moduleSchemaVersion' => (int) ($step['moduleSchemaVersion'] ?? 0),
+                    'modules'       => is_array($step['modules'] ?? null) ? $step['modules'] : array(),
                 );
             },
             $steps
@@ -266,6 +270,9 @@ class SBDP_Elementor_Tour_Navigation_Widget extends Widget_Base
             data-tour-support-email="<?php echo esc_attr($tour_support_email); ?>"
             data-tour-step-count="<?php echo esc_attr((string) count($steps)); ?>"
             data-tour-steps="<?php echo esc_attr(wp_json_encode($steps_data)); ?>"
+            data-ticket-session="<?php echo esc_attr((string) ($preview_session['session'] ?? '')); ?>"
+            data-ticket-session-api-base="<?php echo esc_attr((string) ($preview_session['api_base'] ?? '')); ?>"
+            data-ticket-progress="<?php echo esc_attr(wp_json_encode($preview_session['progress'] ?? array())); ?>"
             data-map-tiles="<?php echo esc_attr($map_tiles_url); ?>"
             data-map-attribution="<?php echo esc_attr($map_attribution); ?>"
             data-route-endpoint="<?php echo esc_attr($route_endpoint); ?>"

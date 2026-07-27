@@ -374,6 +374,14 @@
       this.mapAttribution = String(root.dataset.mapAttribution || config.defaultMapAttribution || "").trim();
       this.restNonce = String(config.nonce || "").trim();
       this.gamificationEndpoint = String(config.gamificationEndpoint || "").trim();
+      this.experienceBuilderEndpoint = String(config.experienceBuilderEndpoint || "").trim().replace(/\/$/, "");
+      this.ticketSession = String(root.dataset.ticketSession || "").trim();
+      this.ticketSessionApiBase = String(root.dataset.ticketSessionApiBase || "").trim().replace(/\/$/, "");
+      this.ticketProgress = safeJsonParse(root.dataset.ticketProgress || "{}", {});
+      this.quizResults = new Map();
+      this.moduleCompletions = new Set();
+      this.pendingSync = new Set();
+      this.syncStatus = "saved";
       this.googleMapsEmbedApiKey = String(root.dataset.googleMapsApiKey || config.googleMapsEmbedApiKey || "").trim();
       this.googleMapsEmbedLanguage = String(root.dataset.googleMapsLanguage || config.googleMapsEmbedLanguage || document.documentElement.lang || "nl").trim();
       this.googleMapsEmbedRegion = String(root.dataset.googleMapsRegion || config.googleMapsEmbedRegion || "").trim().toUpperCase();
@@ -398,7 +406,9 @@
       this.bindBaseEvents();
       this.initMap();
       this.render();
-      this.completed.forEach((index) => this.syncCompletion(index));
+      if (!this.ticketSession) {
+        this.completed.forEach((index) => this.syncCompletion(index));
+      }
     }
 
     ensureLayoutScaffold() {
@@ -412,7 +422,34 @@
       const savedMode = String(localStorage.getItem(this.storageModeKey()) || "story").toLowerCase();
       const savedCompleted = safeJsonParse(localStorage.getItem(this.storageProgressKey()) || "[]", []);
 
-      if (Array.isArray(savedCompleted)) {
+      if (this.ticketSession) {
+        this.completed.clear();
+        this.steps.forEach((step, index) => {
+          const progress = this.ticketProgress && this.ticketProgress[step.id];
+          if (progress && Boolean(progress.completed)) {
+            this.completed.add(index);
+          }
+          if (progress && progress.payload && progress.payload.quiz) {
+            this.quizResults.set(String(step.id), progress.payload.quiz);
+          }
+          const moduleProgress = progress && progress.payload && progress.payload.module_completions;
+          if (moduleProgress && typeof moduleProgress === "object") {
+            Object.keys(moduleProgress).forEach((moduleId) => this.moduleCompletions.add(moduleId));
+          }
+          const moduleResults = progress && progress.payload && progress.payload.module_results;
+          if (moduleResults && typeof moduleResults === "object") {
+            Object.entries(moduleResults).forEach(([moduleId, result]) => {
+              if (result && typeof result === "object" && result.quiz) {
+                this.quizResults.set(moduleId, result.quiz);
+              }
+            });
+          }
+        });
+        const firstIncomplete = this.steps.findIndex((step, index) => !this.completed.has(index));
+        this.currentIndex = firstIncomplete >= 0 ? firstIncomplete : Math.max(this.steps.length - 1, 0);
+      }
+
+      if (!this.ticketSession && Array.isArray(savedCompleted)) {
         savedCompleted.forEach((value) => {
           const idx = Number.parseInt(String(value), 10);
           if (Number.isFinite(idx) && idx >= 0 && idx < this.steps.length) {
@@ -422,7 +459,7 @@
       }
 
       const savedArrivals = safeJsonParse(localStorage.getItem(this.storageArrivalKey()) || "[]", []);
-      if (Array.isArray(savedArrivals)) {
+      if (!this.ticketSession && Array.isArray(savedArrivals)) {
         savedArrivals.forEach((value) => {
           const idx = Number.parseInt(String(value), 10);
           if (Number.isFinite(idx) && idx >= 0 && idx < this.steps.length - 1 && this.completed.has(idx)) {
@@ -433,11 +470,16 @@
 
       if (Number.isFinite(fromHash) && fromHash > 0) {
         this.currentIndex = clamp(fromHash - 1, 0, this.steps.length - 1);
-      } else if (Number.isFinite(fromStorage)) {
+      } else if (!this.ticketSession && Number.isFinite(fromStorage)) {
         this.currentIndex = clamp(fromStorage, 0, this.steps.length - 1);
       }
 
-      this.mode = savedMode === "navigation" ? "navigation" : "story";
+      if (!this.ticketSession) {
+        const savedQuizResults = safeJsonParse(localStorage.getItem(this.storageQuizKey()) || "{}", {});
+        Object.entries(savedQuizResults).forEach(([stepId, result]) => this.quizResults.set(String(stepId), result));
+      }
+
+      this.mode = !this.ticketSession && savedMode === "navigation" ? "navigation" : "story";
       this.normalizeProgressState();
     }
 
@@ -648,7 +690,10 @@
             <p class="tour-summary-panel__eyebrow">DagjeDenBosch Experience</p>
             <h1 class="tour-summary-panel__tour-title">${escapeHtml(this.tourTitle || "Private tour")}</h1>
           </div>
-          <span class="tour-summary-panel__counter">Stop ${progressState.currentIndex + 1}/${total}</span>
+          <div class="tour-summary-panel__progress-ring" role="img" aria-label="${clamp(progressPercent, 0, 100)} procent van de tour afgerond" style="--tour-progress: ${clamp(progressPercent, 0, 100)}%">
+            <span>${clamp(progressPercent, 0, 100)}%</span>
+            <small>Stop ${progressState.currentIndex + 1}/${total}</small>
+          </div>
         </div>
         <div class="tour-summary-panel__chips">
           <span class="tour-chip">${total} stops</span>
@@ -657,10 +702,14 @@
           <span class="tour-chip">Hierna: ${escapeHtml(toCompactText(nextLabel, 34))}</span>
         </div>
         <div class="tour-summary-panel__progress">
-          <div class="tour-summary-panel__progress-bar" aria-hidden="true">
-            <span style="width:${progressPercent}%;"></span>
+          <div class="tour-summary-panel__progress-bar" role="progressbar" aria-label="Tourvoortgang" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${clamp(progressPercent, 0, 100)}" style="--tour-progress: ${clamp(progressPercent, 0, 100)}%">
+            <span aria-hidden="true"></span>
           </div>
           <p class="tour-summary-panel__progress-text">${completedCount} van ${total} stops afgerond</p>
+        </div>
+        <div class="tour-sync-status tour-sync-status--${escapeHtml(this.syncStatus)}" data-tour-sync-status role="status" aria-live="polite">
+          <span>${this.syncStatus === "saving" ? "Voortgang opslaan…" : this.syncStatus === "error" ? "Voortgang nog niet opgeslagen" : "Voortgang opgeslagen"}</span>
+          ${this.syncStatus === "error" ? '<button type="button" data-tour-sync-retry>Opnieuw proberen</button>' : ""}
         </div>
       `;
     }
@@ -679,15 +728,36 @@
         return;
       }
 
+      if (Array.isArray(step.modules) && step.modules.length > 0) {
+        target.innerHTML = `
+          <article class="tour-story-layout tour-story-layout--modular">
+            <header class="tour-step-current" id="tour-overview">
+              <p class="tour-step-current__eyebrow">Hoofdstuk ${progressState.currentIndex + 1} van ${progressState.total}</p>
+              <h2 class="tour-step-current__title">${escapeHtml(step.title || "Tourstop")}</h2>
+            </header>
+            <div class="tour-experience-modules" data-experience-modules>${this.renderModules(step)}</div>
+            ${this.renderContinueBlock(step, progressState)}
+          </article>`;
+        return;
+      }
+
       const contentParts = splitStepContent(step.content || "");
       const storyFlow = this.renderStoryFlow(step, toGamification(step), progressState);
       const continueBlock = this.renderContinueBlock(step, progressState);
       const media = this.renderMedia(step);
       const location = toStepLocation(step);
+      const sectionLinks = [
+        '<a href="#tour-overview" aria-current="location">Overzicht</a>',
+        progressState.nextStep ? '<a href="#tour-route">Route</a>' : '',
+        contentParts.bodyHtml ? '<a href="#tour-story">Verhaal</a>' : '',
+        '<a href="#tour-assignment">Opdracht</a>',
+        step.quiz && Array.isArray(step.quiz.questions) && step.quiz.questions.length ? '<a href="#tour-quiz">Quiz</a>' : '',
+      ].filter(Boolean).join("");
 
       target.innerHTML = `
         <article class="tour-story-layout">
-          <header class="tour-step-current">
+          <nav class="tour-local-nav" aria-label="Onderdelen van dit hoofdstuk">${sectionLinks}</nav>
+          <header class="tour-step-current" id="tour-overview">
             <p class="tour-step-current__eyebrow">Hoofdstuk ${progressState.currentIndex + 1} van ${progressState.total}</p>
             <h2 class="tour-step-current__title">${escapeHtml(step.title || "Tourstop")}</h2>
             ${location ? `<p class="tour-step-current__location">${escapeHtml(toCompactText(location, 120))}</p>` : ""}
@@ -700,7 +770,7 @@
               <div class="tour-step__intro">${contentParts.introHtml}</div>
             ` : ""}
 
-            ${contentParts.bodyHtml ? `<div class="tour-step__story"><div class="tour-step__content">${contentParts.bodyHtml}</div></div>` : ""}
+            ${contentParts.bodyHtml ? `<details class="tour-step__story" id="tour-story" open><summary>Lees het volledige verhaal</summary><div class="tour-step__content">${contentParts.bodyHtml}</div></details>` : ""}
 
             ${storyFlow}
             ${continueBlock}
@@ -757,15 +827,57 @@
       const viewModel = this.buildStepViewModel(step, progressState);
       return `
         <section class="tour-story-flow">
-          <div class="tour-story-flow__block tour-story-flow__block--mission">
+          <div class="tour-story-flow__block tour-story-flow__block--mission" id="tour-assignment">
             <p class="tour-story-flow__eyebrow">Opdracht</p>
             <h3 class="tour-story-flow__title">${escapeHtml(viewModel.missionTitle)}</h3>
             ${viewModel.missionBody ? `<p class="tour-story-flow__detail">${escapeHtml(viewModel.missionBody)}</p>` : ""}
             ${viewModel.missionHint ? `<p class="tour-story-flow__detail"><strong>Hint:</strong> ${escapeHtml(viewModel.missionHint)}</p>` : ""}
             ${viewModel.missionReveal ? `<p class="tour-story-flow__detail"><strong>Antwoord:</strong> ${escapeHtml(viewModel.missionReveal)}</p>` : ""}
           </div>
+          ${Array.isArray(step.modules) && step.modules.some((module) => module?.enabled && module?.type === "quiz") ? "" : this.renderQuiz(step)}
         </section>
       `;
+    }
+
+    renderQuiz(step, module = null) {
+      const quiz = step && step.quiz && typeof step.quiz === "object" ? step.quiz : {};
+      const questions = Array.isArray(quiz.questions) ? quiz.questions : [];
+      if (questions.length === 0) return "";
+
+      const moduleId = String(module?.id || "");
+      const resultKey = moduleId || String(step.id);
+      const result = this.quizResults.get(resultKey) || {};
+      const selectedAnswers = result.answers && typeof result.answers === "object" ? result.answers : {};
+      const passed = Boolean(result.passed) || (moduleId !== "" && this.moduleCompletions.has(moduleId));
+      const score = Number(result.score || 0);
+      const fields = questions.map((question, questionIndex) => {
+        const questionId = String(question.id || `q${questionIndex + 1}`);
+        const answers = Array.isArray(question.answers) ? question.answers : [];
+        return `<fieldset class="tour-quiz__question">
+          <legend><span class="tour-quiz__question-count">Vraag ${questionIndex + 1} van ${questions.length}</span>${escapeHtml(String(question.question || `Vraag ${questionIndex + 1}`))}</legend>
+          <div class="tour-quiz__answers">${answers.map((answer, answerIndex) => {
+            const answerId = String(answer.id || `a${answerIndex + 1}`);
+            const checked = String(selectedAnswers[questionId] || "") === answerId ? " checked" : "";
+            const correctIds = Array.isArray(question.correct_answer_ids) ? question.correct_answer_ids.map((value) => String(value)) : [];
+            const hasAnswerTruth = correctIds.length > 0;
+            const answerState = result.submitted && checked && hasAnswerTruth ? (correctIds.includes(answerId) ? " tour-quiz__answer--correct" : " tour-quiz__answer--wrong") : "";
+            const stateText = result.submitted && checked && hasAnswerTruth ? (correctIds.includes(answerId) ? '<span class="screen-reader-text">Correct antwoord.</span>' : '<span class="screen-reader-text">Onjuist antwoord.</span>') : '';
+            return `<label class="tour-quiz__answer${answerState}"><input type="radio" name="quiz-${escapeHtml(questionId)}" value="${escapeHtml(answerId)}"${checked}${passed ? " disabled" : ""}><span>${escapeHtml(String(answer.label || answerId))}${stateText}</span></label>`;
+          }).join("")}</div>
+          ${result.submitted && question.hint ? `<p class="tour-quiz__hint">Hint: ${escapeHtml(String(question.hint))}</p>` : ""}
+          ${result.submitted && question.explanation ? `<p class="tour-quiz__explanation">${escapeHtml(String(question.explanation))}</p>` : ""}
+        </fieldset>`;
+      }).join("");
+
+      const feedback = result.submitted
+        ? `<div class="tour-quiz__feedback tour-quiz__feedback--${passed ? "success" : "retry"}" role="status">${passed ? `Goed gedaan — ${score}% behaald. Dit hoofdstuk telt mee in je voortgang.` : result.incomplete ? "Beantwoord eerst alle vragen." : `Je behaalde ${score}%. Bekijk de uitleg en probeer opnieuw.`}</div>`
+        : "";
+      return `<form class="tour-quiz" id="${moduleId ? `tour-quiz-${escapeHtml(moduleId)}` : "tour-quiz"}" data-tour-quiz data-step-id="${escapeHtml(String(step.id))}" data-module-id="${escapeHtml(moduleId)}">
+        <p class="tour-story-flow__eyebrow">Quiz</p>
+        <h3 class="tour-story-flow__title">Test wat je hebt ontdekt</h3>
+        ${fields}<div class="tour-quiz__live" aria-live="polite" aria-atomic="true">${feedback}</div>
+        ${passed ? "" : '<button type="submit" class="tour-story-flow__action" data-tour-quiz-submit>Controleer antwoorden</button>'}
+      </form>`;
     }
 
     renderContinueBlock(step, progressState = this.getTourProgressState()) {
@@ -776,13 +888,13 @@
       const duration = transition ? formatDuration(Number(transition.duration || 0)) : null;
       const routeMeta = duration && distance ? `${duration} · ${distance}` : duration || distance || null;
       const primaryAction = nextStep
-        ? `<button type="button" class="tour-story-flow__action" data-tour-start-route>Start route</button>`
-        : `<button type="button" class="tour-story-flow__action" data-tour-complete${progressState.completedSet.has(progressState.currentIndex) ? " disabled" : ""}>${
-            progressState.completedSet.has(progressState.currentIndex) ? "Tour afgerond" : "Tour afronden"
+        ? `<button type="button" class="tour-story-flow__action" data-tour-start-route${this.isRequiredQuizPending(step) ? " disabled" : ""}>${this.isRequiredQuizPending(step) ? "Rond eerst de quiz af" : "Start route"}</button>`
+        : `<button type="button" class="tour-story-flow__action" data-tour-complete${progressState.completedSet.has(progressState.currentIndex) || this.isRequiredQuizPending(step) ? " disabled" : ""}>${
+            progressState.completedSet.has(progressState.currentIndex) ? "Tour afgerond" : this.isRequiredQuizPending(step) ? "Rond eerst de quiz af" : "Tour afronden"
           }</button>`;
 
       return `
-        <div class="tour-continue">
+        <div class="tour-continue" id="tour-route">
           ${nextStep ? `
             <div class="tour-continue__route-info">
               <span class="tour-continue__label">Volgende hoofdstuk</span>
@@ -818,7 +930,7 @@
 
       if (hasEmbed) {
         mediaHtml = `
-          <div class="tour-media tour-media--hero tour-media--embed">
+          <div class="tour-media tour-media--hero tour-media--embed" data-tour-media-state="loading">
             <div class="tour-media__frame-wrap">
               <iframe
                 src="${escapeHtml(heygenUrl)}"
@@ -834,7 +946,7 @@
         const videoIsEmbed = /(?:youtube\.com|youtu\.be|vimeo\.com|player\.vimeo\.com|youtube-nocookie\.com)/i.test(videoUrl);
         if (videoIsEmbed) {
           mediaHtml = `
-            <div class="tour-media tour-media--hero tour-media--embed">
+            <div class="tour-media tour-media--hero tour-media--embed" data-tour-media-state="loading">
               <div class="tour-media__frame-wrap">
                 <iframe
                   src="${escapeHtml(videoUrl)}"
@@ -848,10 +960,11 @@
           `;
         } else {
           mediaHtml = `
-            <figure class="tour-media tour-media--hero tour-media--video">
+            <figure class="tour-media tour-media--hero tour-media--video" data-tour-media-state="loading">
               <video controls playsinline preload="metadata" title="${title}">
                 <source src="${escapeHtml(videoUrl)}" />
               </video>
+              <p class="tour-media__status" data-tour-media-status>Video wordt geladen…</p>
             </figure>
           `;
         }
@@ -874,6 +987,87 @@
       return {
         html: `<div class="tour-step__media-primary">${mediaHtml}</div>`,
       };
+    }
+
+    renderModules(step) {
+      return step.modules.map((module) => {
+        const moduleId = String(module.id || "");
+        const id = escapeHtml(moduleId);
+        const title = escapeHtml(String(module.title || ""));
+        const content = module.content && typeof module.content === "object" ? module.content : {};
+        const completed = this.moduleCompletions.has(moduleId);
+        const visible = this.isModuleVisible(module);
+        let body = "";
+        if (module.type === "text") {
+          body = `<div class="tour-experience-module__text">${String(content.html || "")}</div>`;
+        } else if (module.type === "image") {
+          const url = sanitizeMediaUrl(content.url);
+          body = url ? `<figure><img src="${escapeHtml(url)}" alt="${escapeHtml(String(content.alt || title))}" loading="lazy" decoding="async"></figure>` : "";
+        } else if (module.type === "audio") {
+          const url = sanitizeMediaUrl(content.url);
+          body = url ? `<audio controls preload="metadata"><source src="${escapeHtml(url)}"></audio>${content.transcript ? `<details><summary>Transcript</summary><div>${String(content.transcript)}</div></details>` : ""}` : "";
+        } else if (module.type === "video") {
+          const url = sanitizeMediaUrl(content.url);
+          body = url ? `<video controls playsinline preload="metadata"><source src="${escapeHtml(url)}"></video>${content.transcript ? `<details><summary>Transcript</summary><div>${String(content.transcript)}</div></details>` : ""}` : "";
+        } else if (module.type === "sketchfab") {
+          const uid = /^[A-Za-z0-9]{20,40}$/.test(String(content.model_uid || "")) ? String(content.model_uid) : "";
+          const settings = module.settings && typeof module.settings === "object" ? module.settings : {};
+          body = uid ? `${content.introduction ? `<div class="tour-experience-module__text">${String(content.introduction)}</div>` : ""}
+            ${content.instruction ? `<p class="tour-experience-module__instruction">${escapeHtml(String(content.instruction))}</p>` : ""}
+            <div class="tour-sketchfab" data-sketchfab-viewer data-sketchfab-uid="${escapeHtml(uid)}" data-sketchfab-settings="${escapeHtml(JSON.stringify(settings))}">
+              <div class="tour-sketchfab__frame"><iframe title="${title || "Interactief 3D-model"}" allow="autoplay; fullscreen; xr-spatial-tracking" sandbox="allow-scripts allow-same-origin allow-popups allow-forms" allowfullscreen></iframe></div>
+              <button type="button" class="tour-story-flow__action" data-sketchfab-start>Open 3D-model</button>
+              <p class="tour-sketchfab__status" role="status" aria-live="polite">3D-model nog niet geladen.</p>
+            </div>` : `<p>${escapeHtml(String(content.fallback_text || "Dit 3D-model kan niet worden geladen."))}</p>`;
+        } else if (module.type === "ai_photo_challenge") {
+          body = `<div class="tour-photo-challenge-module" data-photo-challenge-module-host="${id}">
+            <p class="tour-experience-module__status" role="status">Camera-opdracht laden…</p>
+          </div>`;
+        } else if (module.type === "quiz") {
+          body = this.renderQuiz(step, module);
+        } else if (module.type === "reward") {
+          body = `<div class="tour-reward-module">
+            <p>${escapeHtml(String(content.message || "Je hebt alle onderdelen voltooid."))}</p>
+            ${Number(content.xp_amount || 0) > 0 ? `<p><strong>Tot ${escapeHtml(String(content.xp_amount))} XP</strong></p>` : ""}
+            ${completed ? "" : '<button type="button" class="tour-story-flow__action" data-reward-claim>Ontgrendel beloning</button>'}
+          </div>`;
+        }
+        const completionMode = String(module.completion && module.completion.mode || "automatic");
+        const manual = completionMode === "manual";
+        return `<section class="tour-experience-module tour-experience-module--${escapeHtml(String(module.type || "unknown"))}" data-experience-module="${id}" data-completion-mode="${escapeHtml(completionMode)}" data-module-completed="${completed ? "1" : "0"}"${visible ? "" : " hidden"}>
+          ${title ? `<h3>${title}</h3>` : ""}${body}
+          ${manual && !completed ? `<button type="button" class="tour-story-flow__action" data-module-complete="${id}">Klaar met dit onderdeel</button>` : ""}
+          <p class="tour-experience-module__status" role="status" aria-live="polite">${completed ? "Onderdeel voltooid" : ""}</p>
+        </section>`;
+      }).join("");
+    }
+
+    isModuleVisible(module) {
+      const conditions = Array.isArray(module?.conditions) ? module.conditions : [];
+      return conditions.every((condition) => {
+        const type = String(condition?.type || "");
+        const dependencyId = String(condition?.module_id || "");
+        if (type === "access_valid") return true;
+        if (type === "module_completed" || type === "photo_approved") {
+          return this.moduleCompletions.has(dependencyId);
+        }
+        if (type === "quiz_score_at_least") {
+          const result = this.quizResults.get(dependencyId) || {};
+          return this.moduleCompletions.has(dependencyId) && Number(result.score || 0) >= Number(condition.value || 0);
+        }
+        return false;
+      });
+    }
+
+    updateModuleVisibility() {
+      const step = this.steps[this.currentIndex];
+      if (!step || !Array.isArray(step.modules)) return;
+      step.modules.forEach((module) => {
+        const element = Array.from(this.root.querySelectorAll("[data-experience-module]"))
+          .find((candidate) => String(candidate.dataset.experienceModule || "") === String(module.id || ""));
+        if (element) element.hidden = !this.isModuleVisible(module);
+      });
+      this.bindModuleEvents();
     }
 
     renderStoryRouteContext(step, progressState = this.getTourProgressState(), compact = false) {
@@ -1156,7 +1350,7 @@
       const missionSource = missionSources.find((value) => typeof value === "string" && value.trim() !== "") || "";
       const missionTitle = normalizeMissionText(missionSource, "");
       const missionByType = {
-        video: "Kijk de scène uit en onthoud welk detail Bosch hier verstopt.",
+        video: "Kijk de scène uit en onthoud welk detail hier wordt getoond.",
         audio: "Luister tot het einde en let op welk detail je buiten terug moet vinden.",
         vr: "Verken de scène en spot het symbool dat deze stop onthult.",
         game: "Rond de opdracht af en neem het gevonden detail mee naar buiten.",
@@ -1234,6 +1428,12 @@
       }
 
       return null;
+    }
+
+    isRequiredQuizPending(step) {
+      const quiz = step && step.quiz && typeof step.quiz === "object" ? step.quiz : {};
+      const questions = Array.isArray(quiz.questions) ? quiz.questions : [];
+      return Boolean(quiz.required) && questions.length > 0 && !Boolean((this.quizResults.get(String(step.id)) || {}).passed);
     }
 
     getDistanceToStep(step) {
@@ -1434,7 +1634,7 @@
       return `
         <section class="tour-complete" aria-live="polite">
           <p class="tour-complete__eyebrow">Tour voltooid</p>
-          <h3 class="tour-complete__title">Je Bosch Experience is afgerond</h3>
+          <h3 class="tour-complete__title">Je experience is afgerond</h3>
           <p class="tour-complete__text">Je hebt ${totalXp} XP verzameld. Klaar voor de volgende stadsbeleving?</p>
           <a class="tour-complete__cta" href="${escapeHtml(ctaUrl)}">${escapeHtml(ctaLabel)}</a>
         </section>
@@ -1954,13 +2154,56 @@
     }
 
     bindDynamicEvents() {
+      this.bindModuleEvents();
+      this.root.querySelectorAll('[data-tour-media-state]').forEach((container) => {
+        if (container.dataset.boundMedia === "1") return;
+        container.dataset.boundMedia = "1";
+        const media = container.querySelector("video, iframe");
+        const status = container.querySelector("[data-tour-media-status]");
+        if (!media) return;
+        const markReady = () => {
+          container.dataset.tourMediaState = "ready";
+          if (status) status.textContent = "";
+        };
+        const markError = () => {
+          container.dataset.tourMediaState = "error";
+          if (status) status.textContent = "Deze media kon niet worden geladen. Probeer het later opnieuw.";
+        };
+        media.addEventListener(media.tagName === "VIDEO" ? "loadeddata" : "load", markReady, { once: true });
+        media.addEventListener("error", markError, { once: true });
+      });
+
+      this.root.querySelectorAll('[data-tour-sync-retry]').forEach((button) => {
+        if (button.dataset.boundClick === "1") return;
+        button.dataset.boundClick = "1";
+        button.addEventListener("click", () => {
+          const retryIndexes = this.pendingSync.size ? Array.from(this.pendingSync) : [this.currentIndex];
+          retryIndexes.forEach((index) => this.syncCompletion(index));
+        });
+      });
+
+      this.root.querySelectorAll('[data-tour-quiz]').forEach((form) => {
+        if (form.dataset.boundSubmit === "1") return;
+        form.dataset.boundSubmit = "1";
+        form.addEventListener("submit", (event) => {
+          event.preventDefault();
+          this.handleQuizSubmit(form);
+        });
+      });
+
       this.root.querySelectorAll('[data-tour-native-navigation]').forEach((link) => {
         if (link.dataset.boundClick === "1") {
           return;
         }
 
         link.dataset.boundClick = "1";
-        link.addEventListener("click", () => {
+        link.addEventListener("click", (event) => {
+          if (this.isRequiredQuizPending(this.steps[this.currentIndex])) {
+            event.preventDefault();
+            this.mode = "story";
+            this.render();
+            return;
+          }
           if (this.getNextStep(this.currentIndex) && !this.completed.has(this.currentIndex)) {
             this.completed.add(this.currentIndex);
             this.syncCompletion(this.currentIndex);
@@ -2189,6 +2432,216 @@
         });
       });
 
+    }
+
+    bindModuleEvents() {
+      if (this.root.dataset.photoChallengeCompletionBound !== "1") {
+        this.root.dataset.photoChallengeCompletionBound = "1";
+        this.root.addEventListener("ddb:photo-challenge-passed", (event) => {
+          const detail = event && typeof event.detail === "object" ? event.detail : {};
+          const moduleId = String(detail.moduleId || "");
+          const completion = detail.moduleCompletion && typeof detail.moduleCompletion === "object"
+            ? detail.moduleCompletion
+            : {};
+          if (!moduleId || !completion.module_completed) return;
+          this.moduleCompletions.add(moduleId);
+          const moduleElement = Array.from(this.root.querySelectorAll("[data-experience-module]"))
+            .find((candidate) => String(candidate.dataset.experienceModule || "") === moduleId);
+          if (moduleElement) {
+            moduleElement.dataset.moduleCompleted = "1";
+            const status = moduleElement.querySelector(".tour-experience-module__status");
+            if (status) status.textContent = "Onderdeel voltooid";
+          }
+          if (completion.chapter_completed) {
+            this.completed.add(this.currentIndex);
+            if (this.ticketSession && completion.progress) {
+              const step = this.steps[this.currentIndex];
+              if (step) this.ticketProgress[step.id] = completion.progress;
+            }
+            this.persistState();
+          }
+          this.updateModuleVisibility();
+        });
+      }
+      this.root.querySelectorAll("[data-experience-module]").forEach((element) => {
+        if (element.hidden || element.dataset.boundModule === "1" || element.dataset.moduleCompleted === "1") return;
+        element.dataset.boundModule = "1";
+        const moduleId = String(element.dataset.experienceModule || "");
+        const mode = String(element.dataset.completionMode || "automatic");
+        const button = element.querySelector("[data-module-complete]");
+        const media = element.querySelector("audio, video");
+        const sketchfab = element.querySelector("[data-sketchfab-viewer]");
+        if (element.querySelector("[data-photo-challenge-module-host]")) return;
+        const rewardClaim = element.querySelector("[data-reward-claim]");
+        if (rewardClaim) {
+          rewardClaim.addEventListener("click", () => this.completeModule(moduleId, element, { event: "reward_claimed" }));
+          return;
+        }
+        if (sketchfab) {
+          this.bindSketchfabViewer(sketchfab, moduleId, mode, element);
+          if (button) {
+            button.addEventListener("click", () => this.completeModule(moduleId, element, { event: "manual_confirmed" }));
+          }
+          return;
+        }
+        if (button) {
+          button.addEventListener("click", () => this.completeModule(moduleId, element, { event: "manual_confirmed" }));
+          return;
+        }
+        if (mode !== "automatic") return;
+        if (media) {
+          media.addEventListener("ended", () => this.completeModule(moduleId, element), { once: true });
+          return;
+        }
+        if ("IntersectionObserver" in window) {
+          const observer = new IntersectionObserver((entries) => {
+            if (!entries.some((entry) => entry.isIntersecting && entry.intersectionRatio >= 0.6)) return;
+            observer.disconnect();
+            this.completeModule(moduleId, element);
+          }, { threshold: 0.6 });
+          observer.observe(element);
+        } else {
+          this.completeModule(moduleId, element);
+        }
+      });
+    }
+
+    bindSketchfabViewer(viewer, moduleId, mode, element) {
+      if (viewer.dataset.sketchfabBound === "1") return;
+      viewer.dataset.sketchfabBound = "1";
+      const iframe = viewer.querySelector("iframe");
+      const start = viewer.querySelector("[data-sketchfab-start]");
+      const status = viewer.querySelector(".tour-sketchfab__status");
+      const uid = String(viewer.dataset.sketchfabUid || "");
+      let settings = {};
+      try {
+        settings = JSON.parse(String(viewer.dataset.sketchfabSettings || "{}"));
+      } catch (error) {
+        settings = {};
+      }
+      const openedAnnotations = new Set();
+      let started = false;
+      const publish = (event, payload = {}) => window.dispatchEvent(new CustomEvent("sbdp:experience-module", {
+        detail: { event, tourId: this.tourId, chapterId: this.steps[this.currentIndex]?.id, moduleId, moduleType: "sketchfab", payload },
+      }));
+      const fail = () => {
+        if (status) status.textContent = "Het 3D-model kon niet worden geladen. Probeer het opnieuw.";
+        if (start) {
+          start.disabled = false;
+          start.textContent = "Opnieuw proberen";
+        }
+        started = false;
+        publish("model_error");
+      };
+      const launch = () => {
+        if (started || !iframe || !/^[A-Za-z0-9]{20,40}$/.test(uid)) return;
+        started = true;
+        if (start) start.disabled = true;
+        if (status) status.textContent = "3D-model laden…";
+        publish("model_loading");
+        this.loadSketchfabViewerApi().then(() => {
+          const client = new window.Sketchfab("1.12.1", iframe);
+          client.init(uid, {
+            autostart: 1,
+            preload: 0,
+            dnt: 1,
+            autospin: Number(settings.autorotate || 0),
+            animation_autoplay: settings.animation_autoplay === false ? 0 : 1,
+            success: (api) => {
+              api.start();
+              api.addEventListener("viewerready", () => {
+                if (status) status.textContent = "3D-model geladen. Je kunt het nu verkennen.";
+                if (start) start.hidden = true;
+                publish("model_loaded");
+                if (mode === "viewer_ready") {
+                  this.completeModule(moduleId, element, { event: "viewer_ready" });
+                } else if (mode === "minimum_view_time") {
+                  const seconds = Math.max(5, Math.min(600, Number(settings.minimum_view_seconds || 15)));
+                  window.setTimeout(() => this.completeModule(moduleId, element, {
+                    event: "minimum_view_time_elapsed",
+                    elapsed_seconds: seconds,
+                  }), seconds * 1000);
+                }
+              });
+              api.addEventListener("annotationSelect", (index) => {
+                const annotationIndex = Number(index);
+                if (!Number.isInteger(annotationIndex) || annotationIndex < 0) return;
+                openedAnnotations.add(annotationIndex);
+                const evidence = {
+                  event: "annotation_opened",
+                  annotation_index: annotationIndex,
+                  opened_annotations: Array.from(openedAnnotations),
+                };
+                publish("annotation_opened", evidence);
+                if (mode === "annotation_opened" || mode === "all_required_annotations") {
+                  this.completeModule(moduleId, element, evidence);
+                }
+              });
+            },
+            error: fail,
+          });
+        }).catch(fail);
+      };
+      if (start) start.addEventListener("click", launch);
+      if (settings.autostart && "IntersectionObserver" in window) {
+        const observer = new IntersectionObserver((entries) => {
+          if (!entries.some((entry) => entry.isIntersecting)) return;
+          observer.disconnect();
+          launch();
+        }, { rootMargin: "160px" });
+        observer.observe(viewer);
+      } else if (settings.autostart) {
+        launch();
+      }
+    }
+
+    loadSketchfabViewerApi() {
+      if (window.Sketchfab) return Promise.resolve();
+      if (window.__ddbSketchfabViewerPromise) return window.__ddbSketchfabViewerPromise;
+      window.__ddbSketchfabViewerPromise = new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src = "https://static.sketchfab.com/api/sketchfab-viewer-1.12.1.js";
+        script.async = true;
+        script.onload = () => window.Sketchfab ? resolve() : reject(new Error("Sketchfab Viewer API ontbreekt."));
+        script.onerror = () => reject(new Error("Sketchfab Viewer API kon niet worden geladen."));
+        document.head.appendChild(script);
+      });
+      return window.__ddbSketchfabViewerPromise;
+    }
+
+    completeModule(moduleId, element, evidence = {}) {
+      if (!moduleId || !this.experienceBuilderEndpoint || this.moduleCompletions.has(moduleId)) return;
+      const step = this.steps[this.currentIndex];
+      if (!step) return;
+      const status = element.querySelector(".tour-experience-module__status");
+      if (status) status.textContent = "Voortgang opslaan…";
+      const headers = { "Content-Type": "application/json" };
+      if (this.restNonce) headers["X-WP-Nonce"] = this.restNonce;
+      if (this.ticketSession) headers["X-DDB-Tour-Session"] = this.ticketSession;
+      const url = `${this.experienceBuilderEndpoint}/tours/${encodeURIComponent(this.tourId)}/chapters/${encodeURIComponent(step.id)}/modules/${encodeURIComponent(moduleId)}/complete`;
+      window.dispatchEvent(new CustomEvent("sbdp:experience-module", { detail: { event: "module_completed", tourId: this.tourId, chapterId: step.id, moduleId } }));
+      fetch(url, { method: "POST", credentials: "same-origin", headers, body: JSON.stringify({ evidence }) })
+        .then((response) => response.ok ? response.json() : Promise.reject(new Error(`Module completion failed (${response.status})`)))
+        .then((payload) => {
+          this.moduleCompletions.add(moduleId);
+          element.dataset.moduleCompleted = "1";
+          if (status) status.textContent = "Onderdeel voltooid";
+          (payload.reward?.collectibles || []).forEach((item) => this.showCollectibleReveal(item));
+          if (payload.chapter_completed) {
+            this.completed.add(this.currentIndex);
+            if (this.ticketSession && payload.progress) {
+              this.ticketProgress[step.id] = payload.progress;
+            } else {
+              this.syncCompletion(this.currentIndex);
+            }
+            this.persistState();
+          }
+          this.updateModuleVisibility();
+        })
+        .catch(() => {
+          element.dataset.boundModule = "0";
+          if (status) status.textContent = "Nog niet opgeslagen. Tik of bekijk dit onderdeel opnieuw.";
+        });
     }
 
     enableLiveLocation(forcePrompt) {
@@ -2810,6 +3263,11 @@
       }
 
       if (completed) {
+        if (this.isRequiredQuizPending(this.steps[index])) {
+          this.mode = "story";
+          this.render();
+          return;
+        }
         this.completed.add(index);
         this.syncCompletion(index);
         if (index === this.currentIndex && this.getNextStep(index)) {
@@ -2823,14 +3281,153 @@
       this.render();
     }
 
+    handleQuizSubmit(form) {
+      const step = this.steps[this.currentIndex];
+      const quiz = step && step.quiz && typeof step.quiz === "object" ? step.quiz : {};
+      const questions = Array.isArray(quiz.questions) ? quiz.questions : [];
+      if (!step || questions.length === 0 || String(form.dataset.stepId || "") !== String(step.id)) return;
+
+      const answers = {};
+      let answered = 0;
+      let correct = 0;
+      questions.forEach((question, questionIndex) => {
+        const questionId = String(question.id || `q${questionIndex + 1}`);
+        const selected = form.querySelector(`input[name="quiz-${CSS.escape(questionId)}"]:checked`);
+        if (!selected) return;
+        const answerId = String(selected.value || "");
+        answers[questionId] = answerId;
+        answered += 1;
+        const correctIds = Array.isArray(question.correct_answer_ids)
+          ? question.correct_answer_ids.map((value) => String(value))
+          : [];
+        if (correctIds.includes(answerId)) correct += 1;
+      });
+      const moduleId = String(form.dataset.moduleId || "");
+      if (moduleId) {
+        this.submitQuizModule(moduleId, answers, answered === questions.length, form);
+        return;
+      }
+
+      const score = questions.length > 0 ? Math.round((correct / questions.length) * 100) : 0;
+      const passPercentage = Math.max(0, Math.min(100, Number(quiz.pass_percentage ?? 100)));
+      const passed = answered === questions.length && score >= passPercentage;
+      const result = {
+        submitted: true,
+        passed,
+        score,
+        answers,
+        incomplete: answered !== questions.length,
+        completedAt: passed ? new Date().toISOString() : null,
+      };
+      this.quizResults.set(String(step.id), result);
+
+      if (passed) {
+        this.completed.add(this.currentIndex);
+        this.syncCompletion(this.currentIndex);
+      }
+
+      this.persistState();
+      this.render();
+    }
+
+    submitQuizModule(moduleId, answers, complete, form) {
+      const step = this.steps[this.currentIndex];
+      if (!step || !moduleId || !this.experienceBuilderEndpoint) return;
+      const live = form.querySelector(".tour-quiz__live");
+      if (!complete) {
+        if (live) live.innerHTML = '<div class="tour-quiz__feedback tour-quiz__feedback--retry" role="status">Beantwoord eerst alle vragen.</div>';
+        return;
+      }
+      const button = form.querySelector("[data-tour-quiz-submit]");
+      if (button) button.disabled = true;
+      if (live) live.textContent = "Antwoorden veilig controleren…";
+      const headers = { "Content-Type": "application/json" };
+      if (this.restNonce) headers["X-WP-Nonce"] = this.restNonce;
+      if (this.ticketSession) headers["X-DDB-Tour-Session"] = this.ticketSession;
+      const url = `${this.experienceBuilderEndpoint}/tours/${encodeURIComponent(this.tourId)}/chapters/${encodeURIComponent(step.id)}/modules/${encodeURIComponent(moduleId)}/complete`;
+      fetch(url, {
+        method: "POST",
+        credentials: "same-origin",
+        headers,
+        body: JSON.stringify({ evidence: { event: "quiz_submitted", answers } }),
+      })
+        .then(async (response) => {
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok) throw new Error(payload.message || "Quizcontrole mislukt.");
+          return payload;
+        })
+        .then((payload) => {
+          this.quizResults.set(moduleId, { submitted: true, passed: true, score: Number(payload.quiz?.score || 0), answers });
+          this.moduleCompletions.add(moduleId);
+          if (payload.chapter_completed) this.completed.add(this.currentIndex);
+          this.persistState();
+          this.render();
+        })
+        .catch((error) => {
+          if (button) button.disabled = false;
+          if (live) live.innerHTML = `<div class="tour-quiz__feedback tour-quiz__feedback--retry" role="status">${escapeHtml(error.message || "Controle mislukt.")}</div>`;
+        });
+    }
+
     syncCompletion(index) {
       const step = this.steps[index];
-      if (!step || !this.gamificationEndpoint || !this.restNonce) return;
+      if (!step) return;
+
+      if (this.ticketSession && this.ticketSessionApiBase) {
+        this.pendingSync.add(index);
+        this.setSyncStatus("saving");
+        const url = `${this.ticketSessionApiBase}/session/${encodeURIComponent(this.ticketSession)}/progress`;
+        const headers = { "Content-Type": "application/json" };
+        if (this.restNonce) headers["X-WP-Nonce"] = this.restNonce;
+        fetch(url, {
+          method: "POST",
+          credentials: "same-origin",
+          headers,
+          body: JSON.stringify({
+            stepId: step.id,
+            completed: true,
+            payload: this.quizResults.has(String(step.id))
+              ? { quiz: this.quizResults.get(String(step.id)) }
+              : {},
+          }),
+        })
+          .then((response) => response.ok ? response.json() : Promise.reject(new Error(`Ticket progress failed (${response.status})`)))
+          .then((payload) => {
+            this.ticketProgress[step.id] = payload.progress || { completed: true };
+            this.pendingSync.delete(index);
+            this.setSyncStatus(this.pendingSync.size ? "saving" : "saved");
+          })
+          .catch(() => {
+            this.setSyncStatus("error");
+            this.updateMapStatus("Voortgang kon niet op je ticket worden opgeslagen. Controleer je verbinding en probeer opnieuw.");
+          });
+        return;
+      }
+
+      if (!this.gamificationEndpoint || !this.restNonce) return;
+      this.pendingSync.add(index);
+      this.setSyncStatus("saving");
       const url = `${this.gamificationEndpoint}/${encodeURIComponent(this.tourId)}/steps/${encodeURIComponent(step.id)}/complete`;
       fetch(url, { method: "POST", credentials: "same-origin", headers: { "Content-Type": "application/json", "X-WP-Nonce": this.restNonce }, body: JSON.stringify({ client_time: new Date().toISOString() }) })
         .then((response) => response.ok ? response.json() : Promise.reject(new Error(`Completion failed (${response.status})`)))
-        .then((payload) => { (payload.collectibles || []).forEach((item) => this.showCollectibleReveal(item)); })
-        .catch(() => { this.updateMapStatus("Voortgang staat lokaal klaar en wordt bij een volgende bevestiging opnieuw gesynchroniseerd."); });
+        .then((payload) => {
+          this.pendingSync.delete(index);
+          this.setSyncStatus(this.pendingSync.size ? "saving" : "saved");
+          (payload.collectibles || []).forEach((item) => this.showCollectibleReveal(item));
+        })
+        .catch(() => {
+          this.setSyncStatus("error");
+          this.updateMapStatus("Voortgang staat lokaal klaar. Kies opnieuw proberen zodra je verbinding terug is.");
+        });
+    }
+
+    setSyncStatus(status) {
+      this.syncStatus = ["saved", "saving", "error"].includes(status) ? status : "saved";
+      const target = this.root.querySelector('[data-tour-sync-status]');
+      if (!target) return;
+      target.className = `tour-sync-status tour-sync-status--${this.syncStatus}`;
+      target.innerHTML = `<span>${this.syncStatus === "saving" ? "Voortgang opslaan…" : this.syncStatus === "error" ? "Voortgang nog niet opgeslagen" : "Voortgang opgeslagen"}</span>${this.syncStatus === "error" ? '<button type="button" data-tour-sync-retry>Opnieuw proberen</button>' : ""}`;
+      this.bindDynamicEvents();
     }
 
     showCollectibleReveal(item) {
@@ -2880,14 +3477,25 @@
       return `sbdp_tour_mode_${this.tourId}`;
     }
 
+    storageQuizKey() {
+      return `sbdp_tour_quiz_${this.tourId}`;
+    }
+
     persistState() {
       localStorage.setItem(this.storageStepKey(), String(this.currentIndex));
       localStorage.setItem(this.storageProgressKey(), JSON.stringify(Array.from(this.completed.values())));
       localStorage.setItem(this.storageArrivalKey(), JSON.stringify(Array.from(this.arrivedTransitions.values())));
       localStorage.setItem(this.storageModeKey(), this.mode);
+      localStorage.setItem(this.storageQuizKey(), JSON.stringify(Object.fromEntries(this.quizResults.entries())));
     }
 
     openNavigationMode(startLive = false) {
+      if (this.isRequiredQuizPending(this.steps[this.currentIndex])) {
+        this.mode = "story";
+        this.render();
+        return;
+      }
+
       if (this.getNextStep(this.currentIndex) && !this.completed.has(this.currentIndex)) {
         this.completed.add(this.currentIndex);
         this.syncCompletion(this.currentIndex);
@@ -2987,10 +3595,14 @@
 
   function bootstrap() {
     document.querySelectorAll(SELECTORS.root).forEach((root) => {
+      if (root.dataset.tourExperienceMounted === "1") return;
+      root.dataset.tourExperienceMounted = "1";
       const instance = new TourExperience(root);
       instance.init();
     });
   }
+
+  window.SBDPTourNavigation = Object.freeze({ mount: bootstrap });
 
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", bootstrap);

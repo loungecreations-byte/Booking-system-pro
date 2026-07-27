@@ -622,12 +622,36 @@ class SBDP_Private_Tours_Tickets
                 $spot_name = $location_label;
             }
             $content_type = (string) get_post_meta($post->ID, '_sbdp_step_type', true);
+            $quiz = get_post_meta($post->ID, '_sbdp_step_quiz', true);
+            $module_document = get_post_meta($post->ID, '_sbdp_chapter_modules_v1', true);
+            $modules = is_array($module_document['modules'] ?? null)
+                ? array_values(array_filter($module_document['modules'], static fn ($module): bool => is_array($module) && ! empty($module['enabled'])))
+                : array();
             $photo_challenge = array();
+            $has_photo_module = (bool) array_filter(
+                $modules,
+                static fn ($module): bool => is_array($module)
+                    && ! empty($module['enabled'])
+                    && (string) ($module['type'] ?? '') === 'ai_photo_challenge'
+            );
             if (
-                'photo_challenge' === $content_type
+                ('photo_challenge' === $content_type || $has_photo_module)
                 && class_exists('\BSP\DiscoveryCamera\Content\PhotoChallengeMeta')
             ) {
                 $photo_challenge = \BSP\DiscoveryCamera\Content\PhotoChallengeMeta::forStep((int) $post->ID);
+            }
+            $has_quiz_module = (bool) array_filter(
+                $modules,
+                static fn ($module): bool => is_array($module)
+                    && ! empty($module['enabled'])
+                    && (string) ($module['type'] ?? '') === 'quiz'
+            );
+            if ($has_quiz_module && is_array($quiz)) {
+                foreach ((array) ($quiz['questions'] ?? array()) as $question_index => $question) {
+                    if (is_array($question)) {
+                        unset($quiz['questions'][$question_index]['correct_answer_ids']);
+                    }
+                }
             }
             $steps[] = array(
                 'id'          => (int) $post->ID,
@@ -660,7 +684,10 @@ class SBDP_Private_Tours_Tickets
                 'templateId'  => $template_id,
                 'vrAsset'     => (string) get_post_meta($post->ID, '_sbdp_step_vr_asset', true),
                 'gamification' => self::decode_gamification((string) get_post_meta($post->ID, '_sbdp_step_gamification', true)),
+                'quiz'        => is_array($quiz) ? $quiz : array(),
                 'photoChallenge' => $photo_challenge,
+                'moduleSchemaVersion' => $modules ? absint($module_document['schema_version'] ?? 1) : 0,
+                'modules'      => $modules,
                 'points'      => (int) get_post_meta($post->ID, '_sbdp_step_points', true),
                 'menuOrder'   => (int) $post->menu_order,
             );
