@@ -25,8 +25,16 @@ const uuid = () =>
     return (char === "x" ? value : (value & 3) | 8).toString(16);
   });
 
+function formatFieldError(item, document) {
+  const path = String(item?.path || "");
+  const match = path.match(/^modules\.(\d+)(?:\.|$)/);
+  const module = match ? document?.modules?.[Number(match[1])] : null;
+  const label = module?.title || TYPES[module?.type]?.label || "";
+  return `${label ? `${label}: ` : ""}${item?.message || "Controleer deze module."}`;
+}
+
 function emptyModule(type) {
-  const needsConfiguration = ["image", "audio", "video", "sketchfab"].includes(type);
+  const needsConfiguration = ["image", "audio", "video", "sketchfab", "quiz"].includes(type);
   return {
     id: uuid(),
     type,
@@ -40,7 +48,7 @@ function emptyModule(type) {
         : type === "ai_photo_challenge"
           ? {}
         : type === "quiz"
-          ? {}
+          ? { required: true, pass_percentage: 70, questions: [] }
         : type === "reward"
           ? { title: "Beloning ontgrendeld", message: "Je hebt alle onderdelen voltooid.", xp_amount: 0 }
         : { attachment_id: 0, url: "" },
@@ -110,6 +118,73 @@ function MediaField({ module, onChange }) {
           />
         </label>
       )}
+    </div>
+  );
+}
+
+function QuizField({ module, onChange }) {
+  const content = module.content || { required: true, pass_percentage: 70, questions: [] };
+  const questions = Array.isArray(content.questions) ? content.questions : [];
+  const patchQuestions = (next) => onChange({ ...content, questions: next });
+  const addQuestion = () => {
+    const id = `q${Date.now().toString(36)}`;
+    patchQuestions([...questions, {
+      id,
+      question: "",
+      answers: [{ id: "a1", label: "" }, { id: "a2", label: "" }],
+      correct_answer_ids: ["a1"],
+      hint: "",
+      explanation: "",
+    }]);
+  };
+
+  return (
+    <div className="sbdp-eb__quiz-editor">
+      <div className="sbdp-eb__fields sbdp-eb__quiz-settings">
+        <label><span>Minimale score (%)</span><input type="number" min="0" max="100" value={Number(content.pass_percentage ?? 70)} onChange={(event) => onChange({ ...content, pass_percentage: Number(event.target.value) })} /></label>
+        <label className="sbdp-eb__toggle"><input type="checkbox" checked={content.required !== false} onChange={(event) => onChange({ ...content, required: event.target.checked })} /> Quiz verplicht voor voltooiing</label>
+      </div>
+      {questions.map((question, questionIndex) => (
+        <fieldset className="sbdp-eb__quiz-question" key={question.id || questionIndex}>
+          <legend>Vraag {questionIndex + 1}</legend>
+          <label><span>Vraag</span><input type="text" value={question.question || ""} onChange={(event) => {
+            const next = [...questions];
+            next[questionIndex] = { ...question, question: event.target.value };
+            patchQuestions(next);
+          }} /></label>
+          <div className="sbdp-eb__quiz-answers">
+            {(question.answers || []).map((answer, answerIndex) => (
+              <label key={answer.id || answerIndex}>
+                <input type="radio" name={`correct-${module.id}-${questionIndex}`} checked={(question.correct_answer_ids || []).includes(answer.id)} onChange={() => {
+                  const next = [...questions];
+                  next[questionIndex] = { ...question, correct_answer_ids: [answer.id] };
+                  patchQuestions(next);
+                }} />
+                <span>Antwoord {answerIndex + 1}</span>
+                <input type="text" value={answer.label || ""} onChange={(event) => {
+                  const next = [...questions];
+                  const answers = [...(question.answers || [])];
+                  answers[answerIndex] = { ...answer, label: event.target.value };
+                  next[questionIndex] = { ...question, answers };
+                  patchQuestions(next);
+                }} />
+              </label>
+            ))}
+          </div>
+          <label><span>Uitleg na beantwoorden</span><textarea rows="2" value={question.explanation || ""} onChange={(event) => {
+            const next = [...questions];
+            next[questionIndex] = { ...question, explanation: event.target.value };
+            patchQuestions(next);
+          }} /></label>
+          <button type="button" className="button button-link-delete" onClick={() => {
+            if (window.confirm(`Vraag ${questionIndex + 1} verwijderen?`)) {
+              patchQuestions(questions.filter((_, index) => index !== questionIndex));
+            }
+          }}>Vraag verwijderen</button>
+        </fieldset>
+      ))}
+      <button type="button" className="button" onClick={addQuestion}>Vraag toevoegen</button>
+      <p className="description">Markeer met het ronde veld het correcte antwoord. Correcte antwoorden blijven uitsluitend server-side.</p>
     </div>
   );
 }
@@ -191,10 +266,7 @@ function ModuleCard({ module, index, total, previousModules, initiallyOpen, onPa
               <a className="button" href="#ddb-photo-challenge">Open camera-instellingen</a>
             </div>
           ) : module.type === "quiz" ? (
-            <div className="sbdp-eb__adapter-notice">
-              <strong>Bestaande hoofdstukquiz gekoppeld</strong>
-              <p>Vragen en antwoorden blijven opgeslagen in de bestaande quizconfiguratie van dit hoofdstuk. In de tour worden antwoorden server-side beoordeeld.</p>
-            </div>
+            <QuizField module={module} onChange={updateContent} />
           ) : module.type === "reward" ? (
             <div className="sbdp-eb__fields">
               <label><span>Titel</span><input type="text" value={module.content?.title || ""} onChange={(event) => updateContent({ ...module.content, title: event.target.value })} /></label>
@@ -394,7 +466,7 @@ function Builder({ root }) {
       });
       const payload = await response.json();
       if (!response.ok) {
-        const fieldErrors = payload.data?.errors?.map((item) => `${item.path}: ${item.message}`) || [];
+        const fieldErrors = payload.data?.errors?.map((item) => formatFieldError(item, document)) || [];
         throw Object.assign(new Error(payload.message || "Opslaan mislukt."), { fieldErrors });
       }
       setDocument(payload.document);
@@ -475,6 +547,7 @@ function Builder({ root }) {
       <div className="sbdp-eb__status" role="status" aria-live="polite">
         {dirty ? "Niet-opgeslagen wijzigingen" : status === "saved" ? "Modules opgeslagen" : "Alles opgeslagen"}
       </div>
+      <p className="sbdp-eb__save-help">Deze knop bewaart de module-opbouw. Gebruik daarna ook WordPress <strong>Publiceren/Updaten</strong> voor titel, locatie en Camera-instellingen.</p>
       {errors.length > 0 && (
         <div className="notice notice-error inline" role="alert">
           <p>{errors.join(" ")}</p>
@@ -496,8 +569,8 @@ function Builder({ root }) {
           <button type="button" className="button" onClick={() => runMigration("rollback")} disabled={status === "saving"}>Rollback naar legacy</button>
         </section>
       )}
-      <section className="sbdp-eb__templates" aria-label="Hoofdstuktemplates">
-        <h3>Start met een template</h3>
+      <details className="sbdp-eb__templates" aria-label="Hoofdstuktemplates" defaultOpen={modules.length === 0}>
+        <summary>{modules.length === 0 ? "Start met een template" : "Startopbouw vervangen"}</summary>
         <div className="sbdp-eb__template-grid">
           {TEMPLATES.map((template) => (
             <button type="button" key={template.id} onClick={() => applyTemplate(template)}>
@@ -505,7 +578,7 @@ function Builder({ root }) {
             </button>
           ))}
         </div>
-      </section>
+      </details>
       {preview ? (
         <section className="sbdp-eb__preview" aria-label="Snelle hoofdstukpreview">
           <div className="sbdp-eb__preview-head"><h3>Hoofdstukpreview</h3><span>Interactieve onderdelen worden hier niet gestart.</span></div>

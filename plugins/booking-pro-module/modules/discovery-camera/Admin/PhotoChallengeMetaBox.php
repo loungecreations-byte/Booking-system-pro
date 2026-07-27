@@ -146,7 +146,7 @@ final class PhotoChallengeMetaBox
                 'type' => $type,
                 'version' => 1,
                 'index' => $index,
-                'enabled' => ! in_array($type, array('image', 'audio', 'video', 'sketchfab'), true),
+                'enabled' => ! in_array($type, array('image', 'audio', 'video', 'sketchfab', 'quiz'), true),
                 'title' => ucfirst(str_replace('_', ' ', $type)),
                 'settings' => array(),
                 'content' => array(),

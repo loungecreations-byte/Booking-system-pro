@@ -653,6 +653,16 @@ class SBDP_Private_Tours_Tickets
                     }
                 }
             }
+            foreach ($modules as $module_index => $module) {
+                if (! is_array($module) || (string) ($module['type'] ?? '') !== 'quiz') {
+                    continue;
+                }
+                foreach ((array) ($module['content']['questions'] ?? array()) as $question_index => $question) {
+                    if (is_array($question)) {
+                        unset($modules[$module_index]['content']['questions'][$question_index]['correct_answer_ids']);
+                    }
+                }
+            }
             $steps[] = array(
                 'id'          => (int) $post->ID,
                 'index'       => $index,

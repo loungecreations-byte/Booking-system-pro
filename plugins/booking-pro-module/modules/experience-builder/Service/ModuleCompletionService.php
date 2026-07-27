@@ -43,7 +43,7 @@ final class ModuleCompletionService
         }
         $completionContext = array();
         if ((string) ($target['type'] ?? '') === 'quiz') {
-            $quizResult = $this->evaluateQuiz($chapterId, $evidence);
+            $quizResult = $this->evaluateQuiz($chapterId, $target, $evidence);
             if ($quizResult instanceof WP_Error) {
                 return $quizResult;
             }
@@ -251,10 +251,13 @@ final class ModuleCompletionService
     }
 
     /** @param array<string,mixed> $evidence @return array<string,mixed>|WP_Error */
-    private function evaluateQuiz(int $chapterId, array $evidence)
+    private function evaluateQuiz(int $chapterId, array $module, array $evidence)
     {
-        $quiz = get_post_meta($chapterId, '_sbdp_step_quiz', true);
-        $quiz = is_array($quiz) ? $quiz : array();
+        $quiz = is_array($module['content'] ?? null) ? $module['content'] : array();
+        if ((array) ($quiz['questions'] ?? array()) === array()) {
+            $legacy = get_post_meta($chapterId, '_sbdp_step_quiz', true);
+            $quiz = is_array($legacy) ? $legacy : array();
+        }
         $questions = is_array($quiz['questions'] ?? null) ? array_values($quiz['questions']) : array();
         $answers = is_array($evidence['answers'] ?? null) ? $evidence['answers'] : array();
         if ($questions === array()) {

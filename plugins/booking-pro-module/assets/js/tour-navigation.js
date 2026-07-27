@@ -840,7 +840,10 @@
     }
 
     renderQuiz(step, module = null) {
-      const quiz = step && step.quiz && typeof step.quiz === "object" ? step.quiz : {};
+      const moduleQuiz = module?.content && typeof module.content === "object" ? module.content : {};
+      const quiz = Array.isArray(moduleQuiz.questions) && moduleQuiz.questions.length
+        ? moduleQuiz
+        : step && step.quiz && typeof step.quiz === "object" ? step.quiz : {};
       const questions = Array.isArray(quiz.questions) ? quiz.questions : [];
       if (questions.length === 0) return "";
 
