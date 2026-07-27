@@ -309,7 +309,7 @@ function Builder({ root }) {
       .then((payload) => {
         const next = payload.has_modular_document
           ? payload.document
-          : { schema_version: 1, document_id: "", revision: 1, modules: [] };
+          : { schema_version: 1, document_id: "", revision: 0, modules: [] };
         setDocument(next);
         setMigration(payload.migration || null);
         savedRef.current = JSON.stringify(next);
@@ -415,7 +415,7 @@ function Builder({ root }) {
       if (!refreshed.ok) throw new Error(payload.message || "Verversen mislukt.");
       const next = payload.has_modular_document
         ? payload.document
-        : { schema_version: 1, document_id: "", revision: 1, modules: [] };
+        : { schema_version: 1, document_id: "", revision: 0, modules: [] };
       setDocument(next);
       setMigration(payload.migration || null);
       savedRef.current = JSON.stringify(next);
