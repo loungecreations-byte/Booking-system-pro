@@ -377,6 +377,16 @@ function Builder({ root }) {
   const endpoint = `${String(config.endpoint || "").replace(/\/$/, "")}/${chapterId}/modules`;
 
   useEffect(() => {
+    const builderBox = document.getElementById("sbdp_experience_builder");
+    const normalBoxes = document.getElementById("normal-sortables");
+    if (builderBox && normalBoxes && normalBoxes.firstElementChild !== builderBox) {
+      normalBoxes.prepend(builderBox);
+    }
+    builderBox?.classList.remove("closed");
+    builderBox?.querySelector(".handlediv")?.setAttribute("aria-expanded", "true");
+  }, []);
+
+  useEffect(() => {
     fetch(endpoint, { credentials: "same-origin", headers: { "X-WP-Nonce": config.nonce || "" } })
       .then(async (response) => {
         const payload = await response.json();
@@ -423,6 +433,24 @@ function Builder({ root }) {
     });
   };
   const modules = document?.modules || [];
+  const activeModules = modules.filter((module) => module.enabled);
+  const hasPhotoChallenge = modules.some((module) => module.type === "ai_photo_challenge");
+
+  useEffect(() => {
+    const builderBox = document.getElementById("sbdp_experience_builder");
+    const detailsBox = document.getElementById("sbdp_tour_step_details");
+    const cameraBox = document.getElementById("ddb-photo-challenge");
+    if (builderBox && detailsBox) builderBox.after(detailsBox);
+    if (detailsBox && cameraBox) detailsBox.after(cameraBox);
+    if (cameraBox) {
+      cameraBox.hidden = !hasPhotoChallenge;
+      cameraBox.querySelector(".hndle")?.replaceChildren(document.createTextNode("3. AI Camera-instellingen"));
+    }
+    if (detailsBox) {
+      detailsBox.querySelector(".hndle")?.replaceChildren(document.createTextNode("2. Locatie & route"));
+    }
+  }, [hasPhotoChallenge]);
+
   const singletonTypes = new Set(["ai_photo_challenge", "quiz"]);
   const presentTypes = new Set(modules.map((module) => module.type));
   const library = useMemo(
@@ -532,22 +560,42 @@ function Builder({ root }) {
 
   return (
     <section className="sbdp-eb" aria-label="Experience Builder">
+      <nav className="sbdp-eb__overview" aria-label="Overzicht van deze stap">
+        <div>
+          <strong>Stapoverzicht</strong>
+          <span>{activeModules.length} actief · {modules.length - activeModules.length} concept</span>
+        </div>
+        <ol>
+          {modules.map((module, index) => (
+            <li key={module.id} className={module.enabled ? "" : "is-disabled"}>
+              <button type="button" onClick={() => {
+                setPreview(false);
+                setExpandedId(module.id);
+                window.setTimeout(() => document.getElementById(`sbdp-module-${module.id}`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 0);
+              }}>
+                <span>{index + 1}</span>{module.title || TYPES[module.type]?.label || module.type}
+              </button>
+            </li>
+          ))}
+        </ol>
+        {modules.length === 0 && <p>Kies hieronder eerst een onderdeel.</p>}
+      </nav>
       <div className="sbdp-eb__toolbar">
         <div>
-          <h2>Hoofdstukmodules</h2>
-          <p>Combineer inhoud en media in de gewenste volgorde.</p>
+          <h2>Onderdelen van deze stap</h2>
+          <p>Van boven naar beneden is de volgorde die de bezoeker ziet.</p>
         </div>
         <div className="sbdp-eb__toolbar-actions">
           <button type="button" className="button" aria-pressed={preview} onClick={() => setPreview((value) => !value)}>{preview ? "Editor bekijken" : "Snelle preview"}</button>
           <button type="button" className="button button-primary" onClick={save} disabled={!dirty || status === "saving"}>
-            {status === "saving" ? "Opslaan…" : "Modules opslaan"}
+            {status === "saving" ? "Opslaan…" : "Module-opbouw opslaan"}
           </button>
         </div>
       </div>
       <div className="sbdp-eb__status" role="status" aria-live="polite">
         {dirty ? "Niet-opgeslagen wijzigingen" : status === "saved" ? "Modules opgeslagen" : "Alles opgeslagen"}
       </div>
-      <p className="sbdp-eb__save-help">Deze knop bewaart de module-opbouw. Gebruik daarna ook WordPress <strong>Publiceren/Updaten</strong> voor titel, locatie en Camera-instellingen.</p>
+      <p className="sbdp-eb__save-help">Daarna gebruik je rechts <strong>Publiceren/Updaten</strong> voor de titel, locatie en eventuele camera-instellingen.</p>
       {errors.length > 0 && (
         <div className="notice notice-error inline" role="alert">
           <p>{errors.join(" ")}</p>
@@ -629,8 +677,8 @@ function Builder({ root }) {
             <p>Voeg hierboven tekst of media toe.</p>
           </div>
         ) : modules.map((module, index) => (
+          <div id={`sbdp-module-${module.id}`} key={module.id}>
           <ModuleCard
-            key={module.id}
             module={module}
             index={index}
             total={modules.length}
@@ -654,6 +702,7 @@ function Builder({ root }) {
               }
             }}
           />
+          </div>
         ))}
       </div>
       </>

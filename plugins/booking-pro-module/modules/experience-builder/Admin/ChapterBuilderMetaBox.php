@@ -19,7 +19,7 @@ final class ChapterBuilderMetaBox
     {
         add_meta_box(
             'sbdp_experience_builder',
-            __('Stapinhoud · modules', 'sbdp'),
+            __('1. Inhoud & interactie', 'sbdp'),
             array(__CLASS__, 'render'),
             'sbdp_tour_step',
             'normal',
@@ -29,9 +29,13 @@ final class ChapterBuilderMetaBox
 
     public static function render(\WP_Post $post): void
     {
+        $parentId = (int) $post->post_parent;
         echo '<div class="sbdp-experience-builder-intro">';
-        echo '<strong>' . esc_html__('Bouw deze stap op uit meerdere onderdelen', 'sbdp') . '</strong>';
-        echo '<p>' . esc_html__('Voeg tekst, media, 3D, quiz, camera en beloningen toe en sleep ze in de gewenste volgorde. Het oude hoofdstuktype blijft alleen voor bestaande tours behouden.', 'sbdp') . '</p>';
+        echo '<strong>' . esc_html__('Dit is de inhoud van deze tourstap', 'sbdp') . '</strong>';
+        echo '<p>' . esc_html__('Voeg onderdelen toe, zet ze in de juiste volgorde en sla de module-opbouw op.', 'sbdp') . '</p>';
+        if ($parentId > 0 && get_post_type($parentId) === 'sbdp_private_tour') {
+            echo '<a class="button" href="' . esc_url(get_edit_post_link($parentId, 'raw') ?: '') . '">&larr; ' . esc_html__('Terug naar tour-overzicht', 'sbdp') . '</a>';
+        }
         echo '</div>';
         echo '<div id="sbdp-experience-builder-root" data-chapter-id="' . esc_attr((string) $post->ID) . '">';
         echo '<p class="sbdp-experience-builder__loading">' . esc_html__('Experience Builder wordt geladen…', 'sbdp') . '</p>';
@@ -81,9 +85,13 @@ final class ChapterBuilderMetaBox
             : (defined('SBDP_VERSION') ? SBDP_VERSION : '1');
 
         wp_enqueue_script(self::HANDLE, $src, array(), $version, true);
+        $postId = isset($_GET['post']) ? absint($_GET['post']) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
         wp_localize_script(self::HANDLE, 'sbdpExperienceBuilder', array(
             'endpoint' => esc_url_raw(rest_url('bsp/v1/experience-builder/chapters/')),
             'nonce' => wp_create_nonce('wp_rest'),
+            'parentEditUrl' => $postId > 0 && (int) wp_get_post_parent_id($postId) > 0
+                ? esc_url_raw((string) get_edit_post_link((int) wp_get_post_parent_id($postId), 'raw'))
+                : '',
         ));
         add_filter('script_loader_tag', array(__CLASS__, 'moduleTag'), 10, 2);
     }
