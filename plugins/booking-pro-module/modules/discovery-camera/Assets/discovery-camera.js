@@ -788,21 +788,34 @@
       state.moduleId = "";
       return;
     }
-    if (state.stepId === String(step.id)) return;
-    state.stepId = String(step.id);
-    state.moduleId = String(photoModule?.id || "");
+    const nextStepId = String(step.id);
+    const nextModuleId = String(photoModule?.id || "");
+    const host = nextModuleId
+      ? root.querySelector(`[data-photo-challenge-module-host="${nextModuleId}"]`)
+      : null;
+    const flow = host?.closest("[data-experience-modules]")
+      || root.querySelector(".tour-story-flow")
+      || root.querySelector("[data-experience-modules]");
+    if (!flow) return;
+    if (
+      state.stepId === nextStepId
+      && state.moduleId === nextModuleId
+      && (host?.querySelector("[data-photo-challenge]") || (!nextModuleId && flow.querySelector("[data-photo-challenge]")))
+    ) {
+      return;
+    }
+    state.stepId = nextStepId;
+    state.moduleId = nextModuleId;
     stopCamera(state);
     root.querySelector("[data-photo-challenge]")?.remove();
-    const flow = root.querySelector(".tour-story-flow");
-    if (!flow) return;
     try {
       const result = await request(`/tours/${encodeURIComponent(root.dataset.tourId || "")}/chapters/${encodeURIComponent(step.id)}/photo-challenge`);
       const challenge = createChallenge(root, step, result.challenge || {}, state, result.boss_progress || {});
-      const host = state.moduleId
+      const currentHost = state.moduleId
         ? root.querySelector(`[data-photo-challenge-module-host="${state.moduleId}"]`)
         : null;
-      if (host) {
-        host.replaceChildren(challenge);
+      if (currentHost) {
+        currentHost.replaceChildren(challenge);
       } else {
         flow.prepend(challenge);
       }
@@ -813,11 +826,11 @@
       fallback.dataset.variant = "error";
       fallback.setAttribute("role", "alert");
       fallback.textContent = error.message || "Photo Challenge niet beschikbaar.";
-      const host = state.moduleId
+      const currentHost = state.moduleId
         ? root.querySelector(`[data-photo-challenge-module-host="${state.moduleId}"]`)
         : null;
-      if (host) {
-        host.replaceChildren(fallback);
+      if (currentHost) {
+        currentHost.replaceChildren(fallback);
       } else {
         flow.prepend(fallback);
       }

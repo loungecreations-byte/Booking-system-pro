@@ -16,11 +16,13 @@ test("builder exposes the existing Discovery Camera as an adapter", () => {
 test("runtime mounts the camera in ordered module position", () => {
   assert.match(runtime, /data-photo-challenge-module-host/);
   assert.match(camera, /module\?\.type === "ai_photo_challenge"/);
-  assert.match(camera, /host\.replaceChildren\(challenge\)/);
+  assert.match(camera, /currentHost\.replaceChildren\(challenge\)/);
+  assert.match(camera, /host\?\.closest\("\[data-experience-modules\]"\)/);
+  assert.match(camera, /root\.querySelector\("\[data-experience-modules\]"\)/);
 });
 
 test("runtime replaces the loading placeholder when camera configuration fails", () => {
-  assert.match(camera, /host\.replaceChildren\(fallback\)/);
+  assert.match(camera, /currentHost\.replaceChildren\(fallback\)/);
   assert.match(camera, /fallback\.setAttribute\("role", "alert"\)/);
 });
 
