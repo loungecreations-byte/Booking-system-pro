@@ -1,5 +1,6 @@
 .ddb-camera {
   display: grid;
+  grid-template-columns: minmax(16rem, 0.8fr) minmax(20rem, 1.2fr);
   gap: var(--ddb-spacing-md);
   margin-block: var(--ddb-spacing-md);
   padding: var(--ddb-spacing-md);
@@ -8,6 +9,30 @@
   border: 1px solid var(--ddb-border-subtle);
   border-radius: var(--ddb-radius-lg);
   box-shadow: var(--ddb-shadow-md);
+}
+
+.ddb-camera__brief,
+.ddb-camera__capture {
+  display: grid;
+  align-content: start;
+  gap: var(--ddb-spacing-md);
+  min-width: 0;
+}
+
+.ddb-camera__viewport {
+  width: 100%;
+}
+
+.ddb-camera__controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--ddb-spacing-sm);
+}
+
+.ddb-camera__controls .ddb-camera__button {
+  flex: 1 1 10rem;
+  justify-content: center;
+  min-height: 48px;
 }
 
 .ddb-camera__head {
@@ -543,6 +568,14 @@
 }
 
 @media (max-width: 640px) {
+  .ddb-camera {
+    grid-template-columns: minmax(0, 1fr);
+    padding: var(--ddb-spacing-sm);
+  }
+
+  .ddb-camera__viewport {
+    max-height: 62vh;
+  }
   .ddb-camera {
     padding: var(--ddb-spacing-sm);
   }

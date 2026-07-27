@@ -554,67 +554,71 @@
     mount.dataset.photoChallenge = String(step.id);
     mount.setAttribute("aria-labelledby", `ddb-camera-title-${step.id}`);
     mount.innerHTML = `
-      <header class="ddb-camera__head">
-        <div class="ddb-camera__meta">
-          <span class="ddb-camera__eyebrow"></span>
-          <span class="ddb-camera__status" data-camera-status>Beschikbaar</span>
+      <div class="ddb-camera__brief">
+        <header class="ddb-camera__head">
+          <div class="ddb-camera__meta">
+            <span class="ddb-camera__eyebrow"></span>
+            <span class="ddb-camera__status" data-camera-status>Beschikbaar</span>
+          </div>
+          <h3 id="ddb-camera-title-${step.id}"></h3>
+          <p class="ddb-camera__subtitle" data-camera-subtitle></p>
+        </header>
+        <section class="ddb-camera__mission" aria-label="Jouw opdracht">
+          <strong>Jouw opdracht</strong>
+          <p data-camera-mission></p>
+          <div class="ddb-camera__reward"><span data-camera-difficulty></span><span data-camera-xp></span></div>
+        </section>
+        <div class="ddb-camera__historical" data-camera-historical hidden></div>
+        <figure class="ddb-camera__reference" data-camera-reference hidden>
+          <img alt="Historisch referentiebeeld">
+          <figcaption>Richt je camera en maak dezelfde compositie.</figcaption>
+        </figure>
+        <section class="ddb-camera__boss" data-camera-boss hidden>
+          <strong data-camera-boss-summary>Meesterproef starten</strong>
+          <ul class="ddb-camera__boss-targets" data-camera-boss-targets></ul>
+        </section>
+        <section class="ddb-camera__hints" data-camera-hints hidden>
+          <button type="button" class="ddb-camera__hint-button">Toon een hint</button>
+          <p data-camera-hint-output aria-live="polite"></p>
+        </section>
+        <details class="ddb-camera__alternative" data-camera-alternative hidden>
+          <summary>Ik kan geen camera gebruiken</summary>
+          <p></p>
+          <small>Deze route kent nooit zelfstandig XP of voortgang toe. Laat de opdracht controleren door je begeleider.</small>
+        </details>
+      </div>
+      <div class="ddb-camera__capture">
+        <div class="ddb-camera__viewport">
+          <video playsinline muted aria-label="Live camera"></video>
+          <img data-camera-preview alt="Voorbeeld van je gemaakte foto" hidden>
+          <img class="ddb-camera__then-now-overlay" data-camera-overlay alt="" hidden>
+          <div class="ddb-camera__frame" aria-hidden="true"></div>
+          <div class="ddb-camera__progress" data-camera-progress role="progressbar" aria-label="Foto wordt beoordeeld" hidden></div>
+          <p class="ddb-camera__analysis-stage" data-camera-analysis-stage aria-live="polite" hidden></p>
         </div>
-        <h3 id="ddb-camera-title-${step.id}"></h3>
-        <p class="ddb-camera__subtitle" data-camera-subtitle></p>
-      </header>
-      <section class="ddb-camera__mission" aria-label="Jouw opdracht">
-        <strong>Jouw opdracht</strong>
-        <p data-camera-mission></p>
-        <div class="ddb-camera__reward"><span data-camera-difficulty></span><span data-camera-xp></span></div>
-      </section>
-      <div class="ddb-camera__historical" data-camera-historical hidden></div>
-      <figure class="ddb-camera__reference" data-camera-reference hidden>
-        <img alt="Historisch referentiebeeld">
-        <figcaption>Richt je camera en maak dezelfde compositie.</figcaption>
-      </figure>
-      <section class="ddb-camera__boss" data-camera-boss hidden>
-        <strong data-camera-boss-summary>Meesterproef starten</strong>
-        <ul class="ddb-camera__boss-targets" data-camera-boss-targets></ul>
-      </section>
-      <div class="ddb-camera__viewport">
-        <video playsinline muted aria-label="Live camera"></video>
-        <img data-camera-preview alt="Voorbeeld van je gemaakte foto" hidden>
-        <img class="ddb-camera__then-now-overlay" data-camera-overlay alt="" hidden>
-        <div class="ddb-camera__frame" aria-hidden="true"></div>
-        <div class="ddb-camera__progress" data-camera-progress role="progressbar" aria-label="Foto wordt beoordeeld" hidden></div>
-        <p class="ddb-camera__analysis-stage" data-camera-analysis-stage aria-live="polite" hidden></p>
-      </div>
-      <label class="ddb-camera__overlay-control" data-camera-overlay-control hidden>
-        <span>Historische overlay</span>
-        <input type="range" min="25" max="75" step="25" value="50">
-      </label>
-      <section class="ddb-camera__hints" data-camera-hints hidden>
-        <button type="button" class="ddb-camera__hint-button">Toon een hint</button>
-        <p data-camera-hint-output aria-live="polite"></p>
-      </section>
-      <aside class="ddb-camera__permission-help" data-camera-permission-help hidden>
-        <strong>Camera geblokkeerd?</strong>
-        <p>Open de website-instellingen van je browser, sta Camera toe en probeer opnieuw. Je kunt ook veilig een bestaande foto kiezen.</p>
-      </aside>
-      <details class="ddb-camera__alternative" data-camera-alternative hidden>
-        <summary>Ik kan geen camera gebruiken</summary>
-        <p></p>
-        <small>Deze route kent nooit zelfstandig XP of voortgang toe. Laat de opdracht controleren door je begeleider.</small>
-      </details>
-      <label class="ddb-camera__consent">
-        <input type="checkbox" data-camera-consent>
-        <span>Ik geef toestemming om deze foto privé te analyseren. De foto wordt automatisch verwijderd na de bewaartermijn.</span>
-      </label>
-      <div class="ddb-camera__controls"></div>
-      <p class="ddb-camera__sync" data-camera-sync data-status="saved" role="status">Klaar om te starten</p>
-      <div class="ddb-camera__feedback" data-camera-feedback role="status" aria-live="polite"></div>
-      <div class="ddb-camera__result" data-camera-result hidden></div>
-      <div class="ddb-camera__community-submit" data-camera-community-submit hidden>
-        <label>Bijschrift <input type="text" maxlength="280" placeholder="Wat heb je ontdekt?"></label>
-        <button type="button" class="ddb-camera__button ddb-camera__button--secondary">Deel met de community</button>
-        <small>Publicatie gebeurt pas na moderatie.</small>
-      </div>
-      <section class="ddb-camera__community" data-camera-community-feed hidden></section>`;
+        <label class="ddb-camera__overlay-control" data-camera-overlay-control hidden>
+          <span>Historische overlay</span>
+          <input type="range" min="25" max="75" step="25" value="50">
+        </label>
+        <aside class="ddb-camera__permission-help" data-camera-permission-help hidden>
+          <strong>Camera geblokkeerd?</strong>
+          <p>Open de website-instellingen van je browser, sta Camera toe en probeer opnieuw. Je kunt ook veilig een bestaande foto kiezen.</p>
+        </aside>
+        <label class="ddb-camera__consent">
+          <input type="checkbox" data-camera-consent>
+          <span>Ik geef toestemming om deze foto privé te analyseren. De foto wordt automatisch verwijderd na de bewaartermijn.</span>
+        </label>
+        <div class="ddb-camera__controls"></div>
+        <p class="ddb-camera__sync" data-camera-sync data-status="saved" role="status">Klaar om te starten</p>
+        <div class="ddb-camera__feedback" data-camera-feedback role="status" aria-live="polite"></div>
+        <div class="ddb-camera__result" data-camera-result hidden></div>
+        <div class="ddb-camera__community-submit" data-camera-community-submit hidden>
+          <label>Bijschrift <input type="text" maxlength="280" placeholder="Wat heb je ontdekt?"></label>
+          <button type="button" class="ddb-camera__button ddb-camera__button--secondary">Deel met de community</button>
+          <small>Publicatie gebeurt pas na moderatie.</small>
+        </div>
+        <section class="ddb-camera__community" data-camera-community-feed hidden></section>
+      </div>`;
 
     mount.querySelector(".ddb-camera__eyebrow").textContent =
       `${challenge.interaction_type === "then_now" ? `Toen & Nu ${challenge.historical_year || ""}` : "Photo Challenge"} · ${challenge.difficulty || "medium"}`;

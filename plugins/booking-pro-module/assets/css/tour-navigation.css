@@ -3079,6 +3079,32 @@ body.sbdp-is-tour-mode [class*="chatbot"] {
   grid-template-columns: minmax(0, 1fr);
 }
 
+.tour-story-layout--modular > .tour-step-current,
+.tour-story-layout--modular > .tour-experience-modules,
+.tour-story-layout--modular > .tour-continue {
+  grid-area: auto;
+  grid-column: 1;
+  min-width: 0;
+  width: 100%;
+}
+
+.tour-story-layout--modular .tour-experience-module--ai_photo_challenge {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.tour-story-layout--modular .tour-experience-module--ai_photo_challenge > h3 {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
 .tour-experience-module {
   background: var(--ddb-color-surface-2, var(--ddb-bg-panel));
   border: 1px solid var(--ddb-border-default, var(--ddb-border));
