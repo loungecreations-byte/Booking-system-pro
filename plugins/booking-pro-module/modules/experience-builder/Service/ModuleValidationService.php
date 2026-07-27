@@ -109,9 +109,14 @@ final class ModuleValidationService
                 $normalized['content'] = $rawModule['content'] ?? array();
             } else {
                 $normalized = $moduleType->normalize($normalized);
-                foreach ($moduleType->validate($normalized) as $error) {
-                    $error['path'] = $path . ($error['path'] !== '' ? '.' . $error['path'] : '');
-                    $errors[] = $error;
+                // Disabled modules are safe draft configuration. They are not
+                // rendered or completable and may therefore be saved before
+                // required media/model fields are filled.
+                if (! empty($normalized['enabled'])) {
+                    foreach ($moduleType->validate($normalized) as $error) {
+                        $error['path'] = $path . ($error['path'] !== '' ? '.' . $error['path'] : '');
+                        $errors[] = $error;
+                    }
                 }
                 $definition = $moduleType->definition();
                 if (! in_array($normalized['completion']['mode'], (array) $definition['completion_modes'], true)) {

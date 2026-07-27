@@ -12,6 +12,7 @@ final class ChapterBuilderMetaBox
     {
         add_action('add_meta_boxes_sbdp_tour_step', array(__CLASS__, 'add'), 1);
         add_action('admin_enqueue_scripts', array(__CLASS__, 'enqueue'));
+        add_filter('admin_body_class', array(__CLASS__, 'adminBodyClass'));
     }
 
     public static function add(): void
@@ -36,6 +37,19 @@ final class ChapterBuilderMetaBox
         echo '<p class="sbdp-experience-builder__loading">' . esc_html__('Experience Builder wordt geladen…', 'sbdp') . '</p>';
         echo '</div>';
         echo '<noscript><p>' . esc_html__('JavaScript is nodig om Experience modules te bewerken.', 'sbdp') . '</p></noscript>';
+    }
+
+    public static function adminBodyClass(string $classes): string
+    {
+        $postId = isset($_GET['post']) ? absint($_GET['post']) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+        if ($postId <= 0 || get_post_type($postId) !== 'sbdp_tour_step') {
+            return $classes;
+        }
+        $stored = get_post_meta($postId, \BSP\ExperienceBuilder\Service\ModuleDocumentService::META_KEY, true);
+
+        return is_array($stored) && $stored !== array()
+            ? trim($classes . ' sbdp-has-modular-chapter')
+            : $classes;
     }
 
     public static function enqueue(string $hook): void

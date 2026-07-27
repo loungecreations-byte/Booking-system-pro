@@ -146,7 +146,7 @@ final class PhotoChallengeMetaBox
                 'type' => $type,
                 'version' => 1,
                 'index' => $index,
-                'enabled' => true,
+                'enabled' => ! in_array($type, array('image', 'audio', 'video', 'sketchfab'), true),
                 'title' => ucfirst(str_replace('_', ' ', $type)),
                 'settings' => array(),
                 'content' => array(),
@@ -158,6 +158,8 @@ final class PhotoChallengeMetaBox
             if ($type === 'ai_photo_challenge') {
                 $module['settings'] = array('source' => 'chapter_meta');
                 $module['completion']['mode'] = 'photo_approved';
+            } elseif ($type === 'sketchfab') {
+                $module['completion']['mode'] = 'manual';
             } elseif ($type === 'quiz') {
                 $module['settings'] = array('source' => 'chapter_meta');
                 $module['completion']['mode'] = 'quiz_passed';

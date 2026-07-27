@@ -18,6 +18,13 @@
 
 .sbdp-eb__toolbar {
   justify-content: space-between;
+  position: sticky;
+  top: 32px;
+  z-index: 20;
+  padding: 10px;
+  border: 1px solid var(--sbdp-eb-border);
+  border-radius: var(--ddb-radius-md);
+  background: var(--sbdp-eb-surface);
 }
 
 .sbdp-eb__toolbar h2,
@@ -132,6 +139,11 @@
   text-align: left;
 }
 
+.sbdp-eb__library-items button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
 .sbdp-eb__modules {
   display: grid;
   gap: var(--ddb-spacing-sm);
@@ -243,4 +255,20 @@
 
 .sbdp-experience-builder-intro p {
   margin: 4px 0 0;
+}
+
+/* A modular chapter owns content/media/mission composition. Keep the legacy
+   box available for rollback, but expose only route/location truth. */
+.sbdp-has-modular-chapter #sbdp_tour_step_details .inside > p {
+  display: none;
+}
+
+.sbdp-has-modular-chapter #sbdp_tour_step_details .inside > p:has(#sbdp_step_parent),
+.sbdp-has-modular-chapter #sbdp_tour_step_details .inside > p:has(#sbdp_step_lat),
+.sbdp-has-modular-chapter #sbdp_tour_step_details .inside > p:has(#sbdp_step_lng),
+.sbdp-has-modular-chapter #sbdp_tour_step_details .inside > p:has(#sbdp_step_altitude_m),
+.sbdp-has-modular-chapter #sbdp_tour_step_details .inside > p:has(#sbdp_step_area),
+.sbdp-has-modular-chapter #sbdp_tour_step_details .inside > p:has(#sbdp_step_location_type),
+.sbdp-has-modular-chapter #sbdp_tour_step_details .inside > p:has(#sbdp_step_location_label) {
+  display: block;
 }

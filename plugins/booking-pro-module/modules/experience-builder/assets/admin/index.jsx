@@ -26,11 +26,12 @@ const uuid = () =>
   });
 
 function emptyModule(type) {
+  const needsConfiguration = ["image", "audio", "video", "sketchfab"].includes(type);
   return {
     id: uuid(),
     type,
     version: 1,
-    enabled: true,
+    enabled: !needsConfiguration,
     title: TYPES[type]?.label || "Module",
     content: type === "text"
       ? { html: "" }
@@ -113,8 +114,11 @@ function MediaField({ module, onChange }) {
   );
 }
 
-function ModuleCard({ module, index, total, previousModules, onPatch, onMove, onDuplicate, onRemove, onDragStart, onDrop }) {
-  const [open, setOpen] = useState(true);
+function ModuleCard({ module, index, total, previousModules, initiallyOpen, onPatch, onMove, onDuplicate, onRemove, onDragStart, onDrop }) {
+  const [open, setOpen] = useState(Boolean(initiallyOpen));
+  useEffect(() => {
+    if (initiallyOpen) setOpen(true);
+  }, [initiallyOpen]);
   const updateContent = (content) => onPatch({ content });
 
   return (
@@ -296,6 +300,7 @@ function Builder({ root }) {
   const [draggedIndex, setDraggedIndex] = useState(null);
   const [preview, setPreview] = useState(false);
   const [migration, setMigration] = useState(null);
+  const [expandedId, setExpandedId] = useState("");
   const savedRef = useRef("");
   const endpoint = `${String(config.endpoint || "").replace(/\/$/, "")}/${chapterId}/modules`;
 
@@ -311,6 +316,7 @@ function Builder({ root }) {
           ? payload.document
           : { schema_version: 1, document_id: "", revision: 0, modules: [] };
         setDocument(next);
+        setExpandedId(next.modules?.[0]?.id || "");
         setMigration(payload.migration || null);
         savedRef.current = JSON.stringify(next);
         setStatus("ready");
@@ -331,6 +337,12 @@ function Builder({ root }) {
     return () => window.removeEventListener("beforeunload", warn);
   }, [dirty]);
 
+  useEffect(() => {
+    if (!document.body.classList.contains("sbdp-has-modular-chapter")) return;
+    const legacyHeading = document.querySelector("#sbdp_tour_step_details .hndle");
+    if (legacyHeading) legacyHeading.textContent = "Locatie & route";
+  }, []);
+
   const mutate = (updater) => {
     setDocument((current) => {
       const next = updater(current);
@@ -339,6 +351,8 @@ function Builder({ root }) {
     });
   };
   const modules = document?.modules || [];
+  const singletonTypes = new Set(["ai_photo_challenge", "quiz"]);
+  const presentTypes = new Set(modules.map((module) => module.type));
   const library = useMemo(
     () => Object.entries(TYPES).filter(([, item]) => item.label.toLowerCase().includes(query.toLowerCase())),
     [query]
@@ -521,9 +535,16 @@ function Builder({ root }) {
             <button
               key={type}
               type="button"
-              onClick={() => mutate((current) => ({ ...current, modules: [...current.modules, emptyModule(type)] }))}
+              disabled={singletonTypes.has(type) && presentTypes.has(type)}
+              title={singletonTypes.has(type) && presentTypes.has(type) ? "Dit moduletype staat al in deze stap." : ""}
+              onClick={() => {
+                const nextModule = emptyModule(type);
+                setExpandedId(nextModule.id);
+                mutate((current) => ({ ...current, modules: [...current.modules, nextModule] }));
+              }}
             >
-              <span>{item.label}</span><small>{item.category}</small>
+              <span>{item.label}</span>
+              <small>{singletonTypes.has(type) && presentTypes.has(type) ? "Al toegevoegd" : item.category}</small>
             </button>
           ))}
         </div>
@@ -541,6 +562,7 @@ function Builder({ root }) {
             index={index}
             total={modules.length}
             previousModules={modules.slice(0, index)}
+            initiallyOpen={module.id === expandedId}
             onPatch={(changes) => patch(index, changes)}
             onMove={(delta) => move(index, delta)}
             onDragStart={() => setDraggedIndex(index)}
